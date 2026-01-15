@@ -10,14 +10,13 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
-  User,
   Bot,
-  Calendar,
   Flag,
-  Edit,
-  Save,
   MessageSquare,
   ExternalLink,
+  Edit,
+  Save,
+  X,
 } from 'lucide-react';
 import { TaskStatusBadge } from './task-status-badge';
 
@@ -82,223 +81,159 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <h2 className="text-2xl font-semibold text-foreground leading-tight">
-            {task.title}
-          </h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
+        <h2 className="text-xl font-semibold text-foreground mb-3">
+          {task.title}
+        </h2>
+        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
           <TaskStatusBadge status={task.status} />
+          <span className="flex items-center gap-1">
+            <Flag className={`h-3 w-3 ${priorityColors[task.priority]}`} />
+            {task.priority}
+          </span>
+          <span className="flex items-center gap-1">
+            <Bot className="h-3 w-3" />
+            {task.createdBy.name}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {formatDate(task.createdAt)}
+          </span>
         </div>
       </div>
 
       <Separator />
 
       {/* Description */}
-      <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">
-          Description
-        </h3>
-        <p className="text-foreground">{task.description}</p>
-      </div>
-
-      {/* Metadata */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm">
-            <Flag className={`h-4 w-4 ${priorityColors[task.priority]}`} />
-            <span className="text-muted-foreground">Priority:</span>
-            <span className={`font-medium ${priorityColors[task.priority]}`}>
-              {task.priority}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <Bot className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">Created by:</span>
-            <span className="font-medium text-foreground">
-              {task.createdBy.name}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Created:</span>
-            <span className="font-medium text-foreground">
-              {formatDate(task.createdAt)}
-            </span>
-          </div>
-
-          {task.dueDate && (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Due:</span>
-              <span className="font-medium text-foreground">
-                {formatDate(task.dueDate)}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {task.assignedTo && (
-        <div className="flex items-center gap-2 text-sm p-3 bg-muted rounded-md">
-          <User className="h-4 w-4 text-primary" />
-          <span className="text-muted-foreground">Assigned to:</span>
-          <span className="font-medium text-foreground">
-            {task.assignedTo.name}
-          </span>
+      {task.description && (
+        <div>
+          <p className="text-sm text-foreground leading-relaxed">{task.description}</p>
         </div>
       )}
 
-      <Separator />
-
-      {/* Content */}
-      <div className="space-y-4">
-        {task.conversationId && task.topicId && (
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">
-              Related Conversation
-            </h3>
-            <Link 
-              href={`/conversations?id=${task.conversationId}&topic=${task.topicId}`}
-              className="flex items-center gap-2 p-3 bg-muted hover:bg-primary/10 hover:border hover:border-primary/30 rounded-md text-sm text-foreground transition-all group"
-            >
-              <MessageSquare className="h-4 w-4 text-primary transition-transform group-hover:scale-110" />
-              <span className="flex-1 font-medium group-hover:text-primary transition-colors">Go to Conversation Topic</span>
-              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-        )}
-
-        {task.content.proposedAction && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Proposed Action
-              </h3>
-              {canTakeAction && !isEditing && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="group transition-all hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400"
-                >
-                  <Edit className="h-3 w-3 mr-1 transition-transform group-hover:rotate-12" />
-                  Edit
-                </Button>
-              )}
+      {/* Proposed Action */}
+      {task.content.proposedAction && (
+        <div>
+          <h3 className="text-xs font-medium text-muted-foreground mb-2">
+            Proposed Action
+          </h3>
+          {isEditing ? (
+            <textarea
+              value={editedContent.proposedAction}
+              onChange={(e) =>
+                setEditedContent({
+                  ...editedContent,
+                  proposedAction: e.target.value,
+                })
+              }
+              className="w-full min-h-[150px] p-3 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono resize-none"
+              placeholder="Edit proposed action..."
+            />
+          ) : (
+            <div className="p-3 bg-muted/50 rounded-md text-sm text-foreground whitespace-pre-wrap">
+              {task.content.proposedAction}
             </div>
-            {isEditing ? (
-              <textarea
-                value={editedContent.proposedAction}
-                onChange={(e) =>
-                  setEditedContent({
-                    ...editedContent,
-                    proposedAction: e.target.value,
-                  })
-                }
-                className="w-full min-h-[200px] p-3 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-                placeholder="Edit proposed action..."
-              />
-            ) : (
-              <div className="p-3 bg-muted rounded-md text-sm text-foreground whitespace-pre-wrap">
-                {task.content.proposedAction}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {task.content.reasoning && (
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">
-              Reasoning
-            </h3>
-            {isEditing ? (
-              <textarea
-                value={editedContent.reasoning}
-                onChange={(e) =>
-                  setEditedContent({
-                    ...editedContent,
-                    reasoning: e.target.value,
-                  })
-                }
-                className="w-full min-h-[100px] p-3 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Edit reasoning..."
-              />
-            ) : (
-              <div className="p-3 bg-muted rounded-md text-sm text-foreground whitespace-pre-wrap">
-                {task.content.reasoning}
-              </div>
-            )}
-          </div>
-        )}
-
-        {task.content.data && (
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">
-              Additional Data
-            </h3>
-            <div className="p-3 bg-muted rounded-md text-sm text-foreground">
-              <pre className="whitespace-pre-wrap font-mono text-xs">
-                {JSON.stringify(task.content.data, null, 2)}
-              </pre>
+      {/* Reasoning */}
+      {task.content.reasoning && (
+        <div>
+          <h3 className="text-xs font-medium text-muted-foreground mb-2">
+            Reasoning
+          </h3>
+          {isEditing ? (
+            <textarea
+              value={editedContent.reasoning}
+              onChange={(e) =>
+                setEditedContent({
+                  ...editedContent,
+                  reasoning: e.target.value,
+                })
+              }
+              className="w-full min-h-[100px] p-3 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              placeholder="Edit reasoning..."
+            />
+          ) : (
+            <div className="p-3 bg-muted/50 rounded-md text-sm text-foreground whitespace-pre-wrap">
+              {task.content.reasoning}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+
+      {/* Related Conversation - Simplified */}
+      {task.conversationId && task.topicId && (
+        <Link 
+          href={`/conversations?id=${task.conversationId}&topic=${task.topicId}`}
+          className="flex items-center gap-2 text-xs text-primary hover:underline"
+        >
+          <MessageSquare className="h-3 w-3" />
+          View related conversation
+          <ExternalLink className="h-3 w-3" />
+        </Link>
+      )}
+
+      {/* Escalation Warning */}
+      {task.status === 'escalated' && (
+        <div className="flex items-start gap-2 p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-md">
+          <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-orange-700 dark:text-orange-300">
+            This task has been escalated and requires immediate attention.
+          </p>
+        </div>
+      )}
 
       {/* Actions */}
       {canTakeAction && (
         <>
           <Separator />
           {isEditing ? (
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <Button
                 variant="outline"
-                className="flex-1 transition-all hover:bg-gray-500/10 hover:text-gray-600 dark:hover:text-gray-400 hover:border-gray-500/50"
+                className="flex-1"
                 onClick={handleCancel}
               >
+                <X className="mr-2 h-4 w-4" />
                 Cancel
               </Button>
-              <Button className="flex-1 group transition-all hover:shadow-md hover:scale-[1.02]" onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                Save Changes
+              <Button 
+                className="flex-1" 
+                onClick={handleSave}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save
               </Button>
             </div>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <Button
                 variant="outline"
-                className="flex-1 group transition-all hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/50"
+                className="flex-1"
                 onClick={() => onReject?.(task.id)}
               >
-                <XCircle className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+                <XCircle className="mr-2 h-4 w-4" />
                 Reject
               </Button>
-              <Button className="flex-1 group transition-all hover:shadow-md hover:scale-[1.02]" onClick={() => onApprove?.(task.id)}>
-                <CheckCircle className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button 
+                className="flex-1" 
+                onClick={() => onApprove?.(task.id)}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
                 Approve
               </Button>
             </div>
           )}
         </>
-      )}
-
-      {task.status === 'escalated' && (
-        <div className="flex items-start gap-2 p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-md">
-          <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium text-orange-900 dark:text-orange-100">
-              This task has been escalated
-            </p>
-            <p className="text-orange-700 dark:text-orange-300 mt-1">
-              Requires immediate attention due to high priority or complexity.
-            </p>
-          </div>
-        </div>
       )}
     </div>
   );

@@ -236,10 +236,10 @@ function KnowledgeContent() {
         <SheetContent className="flex flex-col p-0">
           {selectedArticle && (
             <>
-              <SheetHeader className="flex-row items-start">
-                <SheetTitle className="flex-1">Knowledge Article</SheetTitle>
+              <SheetHeader className="px-6 pt-6">
+                <SheetTitle className="text-base">Knowledge Article</SheetTitle>
               </SheetHeader>
-              <div className="flex-1 overflow-y-auto px-6 py-6">
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
                 <KnowledgeDetail
                   article={selectedArticle}
                   onEdit={handleEdit}

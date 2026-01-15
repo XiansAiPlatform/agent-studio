@@ -236,81 +236,78 @@ export default function AgentsPage() {
             <>
               {sliderType === 'configure' && (
                 <>
-                  <SheetHeader>
-                    <SheetTitle>Configure Agent</SheetTitle>
-                    <SheetDescription>{selectedAgent.name}</SheetDescription>
+                  <SheetHeader className="px-6 pt-6">
+                    <SheetTitle className="text-base">Configure Agent</SheetTitle>
+                    <SheetDescription className="text-sm">{selectedAgent.name}</SheetDescription>
                   </SheetHeader>
-                  <div className="flex-1 overflow-y-auto px-6 py-6">
-                    <div className="space-y-6">
-                    <div>
-                      <h3 className="text-sm font-medium mb-3">General Settings</h3>
+                  <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
+                    <div className="space-y-5">
                       <div className="space-y-3">
                         <div>
-                          <label className="text-sm text-muted-foreground">Agent Name</label>
+                          <label className="text-xs text-muted-foreground">Agent Name</label>
                           <input
                             type="text"
                             defaultValue={selectedAgent.name}
-                            className="w-full mt-1 px-3 py-2 border rounded-md bg-background"
+                            className="w-full mt-1.5 px-3 py-2 text-sm border rounded-md bg-background"
                           />
                         </div>
                         <div>
-                          <label className="text-sm text-muted-foreground">Description</label>
+                          <label className="text-xs text-muted-foreground">Description</label>
                           <textarea
                             defaultValue={selectedAgent.description}
-                            className="w-full mt-1 px-3 py-2 border rounded-md bg-background"
-                            rows={3}
+                            className="w-full mt-1.5 px-3 py-2 text-sm border rounded-md bg-background resize-none"
+                            rows={2}
                           />
                         </div>
                       </div>
-                    </div>
 
-                    <Separator />
+                      <Separator />
 
-                    <div>
-                      <h3 className="text-sm font-medium mb-3">Behavior Settings</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Auto-respond to messages</span>
-                          <input type="checkbox" defaultChecked className="h-4 w-4" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Enable task automation</span>
-                          <input type="checkbox" defaultChecked className="h-4 w-4" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Learning mode</span>
-                          <input type="checkbox" className="h-4 w-4" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <h3 className="text-sm font-medium mb-3">Response Settings</h3>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm text-muted-foreground">Response delay (ms)</label>
-                          <input
-                            type="number"
-                            defaultValue={500}
-                            className="w-full mt-1 px-3 py-2 border rounded-md bg-background"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm text-muted-foreground">Max concurrent tasks</label>
-                          <input
-                            type="number"
-                            defaultValue={5}
-                            className="w-full mt-1 px-3 py-2 border rounded-md bg-background"
-                          />
+                      <div>
+                        <h3 className="text-xs font-medium text-muted-foreground mb-3">Behavior</h3>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Auto-respond</span>
+                            <input type="checkbox" defaultChecked className="h-4 w-4" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Task automation</span>
+                            <input type="checkbox" defaultChecked className="h-4 w-4" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Learning mode</span>
+                            <input type="checkbox" className="h-4 w-4" />
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                      <div className="pt-4">
-                        <Button className="w-full">Save Configuration</Button>
+                      <Separator />
+
+                      <div>
+                        <h3 className="text-xs font-medium text-muted-foreground mb-3">Performance</h3>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs text-muted-foreground">Response delay (ms)</label>
+                            <input
+                              type="number"
+                              defaultValue={500}
+                              className="w-full mt-1.5 px-3 py-2 text-sm border rounded-md bg-background"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground">Max concurrent tasks</label>
+                            <input
+                              type="number"
+                              defaultValue={5}
+                              className="w-full mt-1.5 px-3 py-2 text-sm border rounded-md bg-background"
+                            />
+                          </div>
+                        </div>
                       </div>
+
+                      <Separator />
+                      
+                      <Button className="w-full">Save Configuration</Button>
                     </div>
                   </div>
                 </>
@@ -318,12 +315,12 @@ export default function AgentsPage() {
 
               {sliderType === 'activity' && (
                 <>
-                  <SheetHeader>
-                    <SheetTitle>Activity Logs</SheetTitle>
-                    <SheetDescription>{selectedAgent.name}</SheetDescription>
+                  <SheetHeader className="px-6 pt-6">
+                    <SheetTitle className="text-base">Activity Logs</SheetTitle>
+                    <SheetDescription className="text-sm">{selectedAgent.name}</SheetDescription>
                   </SheetHeader>
-                  <div className="flex-1 overflow-y-auto px-6 py-6">
-                    <div className="space-y-4">
+                  <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
+                    <div className="space-y-3">
                     {[
                       {
                         time: '2 minutes ago',
@@ -356,22 +353,21 @@ export default function AgentsPage() {
                         message: 'Agent started and initialized',
                       },
                     ].map((log, index) => (
-                      <div key={index} className="flex gap-3 pb-3 border-b last:border-0">
-                        <div className="flex-shrink-0 mt-1">
+                      <div key={index} className="flex gap-2.5 pb-3 border-b last:border-0">
+                        <div className="flex-shrink-0 mt-0.5">
                           {log.type === 'success' && (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className="h-3.5 w-3.5 text-green-600" />
                           )}
                           {log.type === 'info' && (
-                            <Activity className="h-4 w-4 text-blue-600" />
+                            <Activity className="h-3.5 w-3.5 text-blue-600" />
                           )}
                           {log.type === 'warning' && (
-                            <AlertCircle className="h-4 w-4 text-yellow-600" />
+                            <AlertCircle className="h-3.5 w-3.5 text-yellow-600" />
                           )}
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm">{log.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm leading-relaxed">{log.message}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
                             {log.time}
                           </p>
                         </div>
@@ -384,26 +380,26 @@ export default function AgentsPage() {
 
               {sliderType === 'performance' && (
                 <>
-                  <SheetHeader>
-                    <SheetTitle>Performance Metrics</SheetTitle>
-                    <SheetDescription>{selectedAgent.name}</SheetDescription>
+                  <SheetHeader className="px-6 pt-6">
+                    <SheetTitle className="text-base">Performance Metrics</SheetTitle>
+                    <SheetDescription className="text-sm">{selectedAgent.name}</SheetDescription>
                   </SheetHeader>
-                  <div className="flex-1 overflow-y-auto px-6 py-6">
-                    <div className="space-y-6">
+                  <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
+                    <div className="space-y-5">
                     <div>
-                      <h3 className="text-sm font-medium mb-3">Overall Performance</h3>
-                      <div className="space-y-3">
+                      <h3 className="text-xs font-medium text-muted-foreground mb-3">Overall Performance</h3>
+                      <div className="space-y-2.5">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Success Rate</span>
-                          <span className="text-lg font-semibold text-green-600">98.5%</span>
+                          <span className="text-base font-semibold text-green-600">98.5%</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Avg Response Time</span>
-                          <span className="text-lg font-semibold">1.2s</span>
+                          <span className="text-base font-semibold">1.2s</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Tasks Completed</span>
-                          <span className="text-lg font-semibold">{selectedAgent.tasksCompleted}</span>
+                          <span className="text-base font-semibold">{selectedAgent.tasksCompleted}</span>
                         </div>
                       </div>
                     </div>
@@ -411,22 +407,22 @@ export default function AgentsPage() {
                     <Separator />
 
                     <div>
-                      <h3 className="text-sm font-medium mb-3">Today's Statistics</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Messages Processed</span>
+                      <h3 className="text-xs font-medium text-muted-foreground mb-3">Today</h3>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Messages</span>
                           <span className="font-medium">234</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Tasks Completed</span>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Tasks</span>
                           <span className="font-medium">42</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Active Conversations</span>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Conversations</span>
                           <span className="font-medium">12</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Error Rate</span>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Error Rate</span>
                           <span className="font-medium text-green-600">0.3%</span>
                         </div>
                       </div>
@@ -435,18 +431,18 @@ export default function AgentsPage() {
                     <Separator />
 
                     <div>
-                      <h3 className="text-sm font-medium mb-3">This Week</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Total Uptime</span>
+                      <h3 className="text-xs font-medium text-muted-foreground mb-3">This Week</h3>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Total Uptime</span>
                           <span className="font-medium">156h 24m</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Efficiency Trend</span>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Efficiency Trend</span>
                           <span className="font-medium text-green-600">↑ 2.5%</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Peak Hours</span>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Peak Hours</span>
                           <span className="font-medium">9AM - 5PM</span>
                         </div>
                       </div>

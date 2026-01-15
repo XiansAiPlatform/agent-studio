@@ -6,8 +6,6 @@ import { KnowledgeArticle } from '@/lib/data/dummy-knowledge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   FileJson,
   FileText,
@@ -15,18 +13,15 @@ import {
   User,
   Clock,
   Edit,
-  Save,
-  X,
   Copy,
   Trash2,
+  Save,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Dynamically import the markdown editor to avoid SSR issues
-const MDEditor = dynamic(
-  () => import('@uiw/react-md-editor'),
-  { ssr: false }
-);
+const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 
 const MDEditorMarkdown = dynamic(
   () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
@@ -69,13 +64,9 @@ export function KnowledgeDetail({
   onDuplicate,
   onDelete,
 }: KnowledgeDetailProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedArticle, setEditedArticle] = useState({
-    title: article.title,
-    description: article.description,
-    content: article.content,
-  });
   const [mounted, setMounted] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(article.content);
 
   useEffect(() => {
     setMounted(true);
@@ -86,9 +77,7 @@ export function KnowledgeDetail({
   const handleSave = () => {
     const updatedArticle: KnowledgeArticle = {
       ...article,
-      title: editedArticle.title,
-      description: editedArticle.description,
-      content: editedArticle.content,
+      content: editedContent,
       updatedAt: new Date().toISOString(),
       version: article.version + 1,
     };
@@ -97,11 +86,7 @@ export function KnowledgeDetail({
   };
 
   const handleCancel = () => {
-    setEditedArticle({
-      title: article.title,
-      description: article.description,
-      content: article.content,
-    });
+    setEditedContent(article.content);
     setIsEditing(false);
   };
 
@@ -120,8 +105,8 @@ export function KnowledgeDetail({
   const renderContent = () => {
     if (!mounted) {
       return (
-        <div className="p-4 bg-muted rounded-md">
-          <p className="text-sm text-muted-foreground">Loading editor...</p>
+        <div className="p-3 bg-muted/50 rounded-md">
+          <p className="text-sm text-muted-foreground">Loading content...</p>
         </div>
       );
     }
@@ -131,11 +116,9 @@ export function KnowledgeDetail({
         if (isEditing) {
           return (
             <textarea
-              value={editedArticle.content}
-              onChange={(e) =>
-                setEditedArticle({ ...editedArticle, content: e.target.value })
-              }
-              className="w-full min-h-[400px] p-4 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="w-full min-h-[300px] p-3 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono resize-none"
               placeholder="Enter JSON content..."
             />
           );
@@ -143,7 +126,7 @@ export function KnowledgeDetail({
         try {
           const parsed = JSON.parse(article.content);
           return (
-            <div className="p-4 bg-muted rounded-md overflow-x-auto">
+            <div className="p-3 bg-muted/50 rounded-md overflow-x-auto">
               <pre className="text-sm text-foreground font-mono">
                 {JSON.stringify(parsed, null, 2)}
               </pre>
@@ -151,7 +134,7 @@ export function KnowledgeDetail({
           );
         } catch {
           return (
-            <div className="p-4 bg-muted rounded-md">
+            <div className="p-3 bg-muted/50 rounded-md">
               <p className="text-sm text-destructive">Invalid JSON format</p>
               <pre className="mt-2 text-xs text-foreground font-mono whitespace-pre-wrap">
                 {article.content}
@@ -162,14 +145,12 @@ export function KnowledgeDetail({
 
       case 'markdown':
         return (
-          <div data-color-mode="auto">
+          <div data-color-mode="auto" className="markdown-preview-compact">
             {isEditing ? (
               <MDEditor
-                value={editedArticle.content}
-                onChange={(value) =>
-                  setEditedArticle({ ...editedArticle, content: value || '' })
-                }
-                height={500}
+                value={editedContent}
+                onChange={(value) => setEditedContent(value || '')}
+                height={400}
                 preview="live"
                 hideToolbar={false}
               />
@@ -177,7 +158,7 @@ export function KnowledgeDetail({
               <MDEditorMarkdown
                 source={article.content}
                 style={{
-                  padding: 16,
+                  padding: 12,
                   backgroundColor: 'var(--muted)',
                   borderRadius: '0.375rem',
                   color: 'var(--foreground)',
@@ -191,17 +172,15 @@ export function KnowledgeDetail({
         if (isEditing) {
           return (
             <textarea
-              value={editedArticle.content}
-              onChange={(e) =>
-                setEditedArticle({ ...editedArticle, content: e.target.value })
-              }
-              className="w-full min-h-[400px] p-4 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="w-full min-h-[300px] p-3 bg-background border border-input rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               placeholder="Enter text content..."
             />
           );
         }
         return (
-          <div className="p-4 bg-muted rounded-md">
+          <div className="p-3 bg-muted/50 rounded-md">
             <pre className="text-sm text-foreground whitespace-pre-wrap font-sans">
               {article.content}
             </pre>
@@ -218,164 +197,88 @@ export function KnowledgeDetail({
       {/* Header */}
       <div>
         <div className="flex items-start gap-3 mb-3">
-          <FormatIcon className={cn('h-6 w-6 flex-shrink-0 mt-1', formatColors[article.format])} />
+          <FormatIcon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', formatColors[article.format])} />
           <div className="flex-1">
-            {isEditing ? (
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="title" className="text-xs text-muted-foreground">
-                    Title
-                  </Label>
-                  <Input
-                    id="title"
-                    value={editedArticle.title}
-                    onChange={(e) =>
-                      setEditedArticle({ ...editedArticle, title: e.target.value })
-                    }
-                    className="text-xl font-semibold mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="description" className="text-xs text-muted-foreground">
-                    Description
-                  </Label>
-                  <Input
-                    id="description"
-                    value={editedArticle.description}
-                    onChange={(e) =>
-                      setEditedArticle({ ...editedArticle, description: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-2xl font-semibold text-foreground leading-tight">
-                  {article.title}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {article.description}
-                </p>
-              </>
-            )}
+            <h2 className="text-xl font-semibold text-foreground leading-tight">
+              {article.title}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {article.description}
+            </p>
           </div>
         </div>
-      </div>
-
-      <Separator />
-
-      {/* Assigned Agent */}
-      <div className="flex items-center gap-2 text-sm p-3 bg-primary/10 border border-primary/20 rounded-md">
-        <User className="h-4 w-4 text-primary" />
-        <span className="text-muted-foreground">Assigned to:</span>
-        <span className="font-medium text-foreground">
-          {article.assignedAgent.name}
-        </span>
-      </div>
-
-      {/* Metadata */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Created by:</span>
-            <span className="font-medium text-foreground">
-              {article.createdBy.name}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Created:</span>
-            <span className="font-medium text-foreground">
-              {formatDate(article.createdAt)}
-            </span>
-          </div>
+        
+        {/* Compact metadata */}
+        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {article.assignedAgent.name}
+          </span>
+          <span>•</span>
+          <Badge variant="outline" className="text-xs h-5">
+            {article.format.toUpperCase()}
+          </Badge>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            v{article.version}
+          </span>
+          <span>•</span>
+          <span>{formatDate(article.updatedAt)}</span>
         </div>
-
-        <div className="space-y-2">
-          {article.updatedBy && (
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Updated by:</span>
-              <span className="font-medium text-foreground">
-                {article.updatedBy.name}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Last updated:</span>
-            <span className="font-medium text-foreground">
-              {formatDate(article.updatedAt)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm p-3 bg-muted rounded-md">
-        <Badge variant="outline" className="text-xs">
-          Version {article.version}
-        </Badge>
-        <span className="text-muted-foreground">•</span>
-        <Badge variant="outline" className="text-xs">
-          {article.format.toUpperCase()}
-        </Badge>
       </div>
 
       <Separator />
 
       {/* Content */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Content</h3>
-        </div>
+        <h3 className="text-xs font-medium text-muted-foreground mb-2">Content</h3>
         {renderContent()}
       </div>
 
       {/* Actions */}
       <Separator />
       {isEditing ? (
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-2">
           <Button
             variant="outline"
-            className="flex-1 transition-all hover:bg-gray-500/10"
+            className="flex-1"
             onClick={handleCancel}
           >
             <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
           <Button
-            className="flex-1 group transition-all hover:shadow-md hover:scale-[1.02]"
+            className="flex-1"
             onClick={handleSave}
           >
-            <Save className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-            Save Changes
+            <Save className="mr-2 h-4 w-4" />
+            Save
           </Button>
         </div>
       ) : (
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-2">
           <Button
             variant="outline"
-            className="flex-1 group transition-all hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/50"
+            className="flex-1"
             onClick={() => onDelete?.(article.id)}
           >
-            <Trash2 className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+            <Trash2 className="mr-2 h-4 w-4" />
             Delete
           </Button>
           <Button
             variant="outline"
-            className="flex-1 group transition-all hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/50"
+            className="flex-1"
             onClick={handleDuplicate}
           >
-            <Copy className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+            <Copy className="mr-2 h-4 w-4" />
             Duplicate
           </Button>
           <Button
-            className="flex-1 group transition-all hover:shadow-md hover:scale-[1.02]"
+            className="flex-1"
             onClick={() => setIsEditing(true)}
           >
-            <Edit className="mr-2 h-4 w-4 transition-transform group-hover:rotate-12" />
+            <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
         </div>

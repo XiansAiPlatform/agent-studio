@@ -92,10 +92,10 @@ function PendingTasksContent() {
         <SheetContent className="flex flex-col p-0">
           {selectedTask && (
             <>
-              <SheetHeader>
-                <SheetTitle>Task Details</SheetTitle>
+              <SheetHeader className="px-6 pt-6">
+                <SheetTitle className="text-base">Task Details</SheetTitle>
               </SheetHeader>
-              <div className="flex-1 overflow-y-auto px-6 py-6">
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
                 <TaskDetail
                   task={selectedTask}
                   onApprove={handleApprove}
