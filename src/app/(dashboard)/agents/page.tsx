@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
+import { IconAvatar } from '@/components/ui/icon-avatar';
 import {
   Bot,
   Play,
@@ -37,8 +38,7 @@ type Agent = {
   uptime?: string;
   lastActive?: string;
   tasksCompleted: number;
-  bgColor: string;
-  iconColor: string;
+  variant: 'primary' | 'secondary' | 'accent';
 };
 
 const agents: Agent[] = [
@@ -50,8 +50,7 @@ const agents: Agent[] = [
     template: 'Customer Support',
     uptime: '24h 35m',
     tasksCompleted: 127,
-    bgColor: 'bg-primary/10',
-    iconColor: 'text-primary',
+    variant: 'primary',
   },
   {
     id: 'agent-003',
@@ -61,8 +60,7 @@ const agents: Agent[] = [
     template: 'Data Analysis',
     lastActive: '2h ago',
     tasksCompleted: 45,
-    bgColor: 'bg-secondary/10',
-    iconColor: 'text-secondary',
+    variant: 'secondary',
   },
   {
     id: 'agent-002',
@@ -72,8 +70,7 @@ const agents: Agent[] = [
     template: 'Email Marketing',
     uptime: '12h 15m',
     tasksCompleted: 89,
-    bgColor: 'bg-accent/10',
-    iconColor: 'text-accent',
+    variant: 'accent',
   },
 ];
 
@@ -117,9 +114,7 @@ export default function AgentsPage() {
           <Card key={agent.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div className={`h-12 w-12 rounded-md ${agent.bgColor} flex items-center justify-center`}>
-                  <Bot className={`h-6 w-6 ${agent.iconColor}`} />
-                </div>
+                <IconAvatar icon={Bot} variant={agent.variant} size="lg" rounded="md" />
                 <Badge 
                   variant={AGENT_STATUS_CONFIG[agent.status].variant}
                   className={AGENT_STATUS_CONFIG[agent.status].colors.badge}

@@ -4,6 +4,7 @@ import { KnowledgeArticle } from '@/lib/data/dummy-knowledge';
 import { FileJson, FileText, FileCode, Clock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { IconAvatar } from '@/components/ui/icon-avatar';
 
 interface KnowledgeListItemProps {
   article: KnowledgeArticle;
@@ -11,22 +12,22 @@ interface KnowledgeListItemProps {
   isSelected?: boolean;
 }
 
-const formatIcons = {
-  json: FileJson,
-  markdown: FileCode,
-  text: FileText,
-};
-
-const formatColors = {
-  json: 'text-blue-600 dark:text-blue-400',
-  markdown: 'text-purple-600 dark:text-purple-400',
-  text: 'text-gray-600 dark:text-gray-400',
-};
-
-const formatBadgeColors = {
-  json: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  markdown: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
-  text: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+const formatConfig = {
+  json: {
+    icon: FileJson,
+    variant: 'json' as const,
+    badge: 'bg-primary/10 text-primary border-primary/20',
+  },
+  markdown: {
+    icon: FileCode,
+    variant: 'markdown' as const,
+    badge: 'bg-accent/10 text-accent border-accent/20',
+  },
+  text: {
+    icon: FileText,
+    variant: 'text' as const,
+    badge: 'bg-muted text-muted-foreground border-border',
+  },
 };
 
 function formatDate(dateString: string): string {
@@ -51,7 +52,7 @@ function formatDate(dateString: string): string {
 }
 
 export function KnowledgeListItem({ article, onClick, isSelected }: KnowledgeListItemProps) {
-  const FormatIcon = formatIcons[article.format];
+  const config = formatConfig[article.format];
   
   return (
     <div
@@ -67,47 +68,54 @@ export function KnowledgeListItem({ article, onClick, isSelected }: KnowledgeLis
           : 'before:opacity-0 before:bg-border'
       )}
     >
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex items-start gap-4">
+        {/* Format Icon with Circle Background */}
+        <IconAvatar
+          icon={config.icon}
+          variant={config.variant}
+          size="md"
+          className="mt-0.5"
+        />
+
         {/* Main Content */}
-        <div className="flex-1 space-y-3 min-w-0">
-          {/* Title and Format */}
-          <div className="flex items-center gap-3">
-            <FormatIcon className={cn('h-4 w-4 flex-shrink-0', formatColors[article.format])} />
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-6">
+          <div className="flex-1 space-y-3 min-w-0">
+            {/* Title */}
             <h3 className="text-base font-medium text-foreground leading-snug tracking-tight">
               {article.title}
             </h3>
+
+            {/* Description */}
+            <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
+              {article.description}
+            </p>
+
+            {/* Metadata */}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
+              <span className="inline-flex items-center gap-1.5">
+                <User className="h-3 w-3" />
+                {article.assignedAgent.name}
+              </span>
+              
+              <span className="text-muted-foreground/30">•</span>
+              
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3 w-3" />
+                Updated {formatDate(article.updatedAt)}
+              </span>
+
+              <span className="text-muted-foreground/30">•</span>
+              
+              <span>v{article.version}</span>
+            </div>
           </div>
 
-          {/* Description */}
-          <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
-            {article.description}
-          </p>
-
-          {/* Metadata */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
-            <span className="inline-flex items-center gap-1.5">
-              <User className="h-3 w-3" />
-              {article.assignedAgent.name}
-            </span>
-            
-            <span className="text-muted-foreground/30">•</span>
-            
-            <span className="inline-flex items-center gap-1.5">
-              <Clock className="h-3 w-3" />
-              Updated {formatDate(article.updatedAt)}
-            </span>
-
-            <span className="text-muted-foreground/30">•</span>
-            
-            <span>v{article.version}</span>
+          {/* Format Badge */}
+          <div className="shrink-0 pt-0.5">
+            <Badge variant="outline" className={cn('text-xs font-medium', config.badge)}>
+              {article.format.toUpperCase()}
+            </Badge>
           </div>
-        </div>
-
-        {/* Format Badge */}
-        <div className="shrink-0 pt-0.5">
-          <Badge className={cn('text-xs font-medium', formatBadgeColors[article.format])}>
-            {article.format.toUpperCase()}
-          </Badge>
         </div>
       </div>
     </div>

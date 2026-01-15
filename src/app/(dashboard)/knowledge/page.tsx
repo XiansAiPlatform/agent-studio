@@ -165,7 +165,7 @@ function KnowledgeContent() {
               <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
                 {jsonCount}
               </div>
-              <div className="h-8 w-0.5 bg-blue-500" />
+              <div className="h-8 w-0.5 bg-primary" />
             </div>
             <div className="space-y-0.5">
               <div className="text-sm font-medium text-foreground/80">JSON Articles</div>
@@ -179,7 +179,7 @@ function KnowledgeContent() {
               <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
                 {markdownCount}
               </div>
-              <div className="h-8 w-0.5 bg-purple-500" />
+              <div className="h-8 w-0.5 bg-accent" />
             </div>
             <div className="space-y-0.5">
               <div className="text-sm font-medium text-foreground/80">Markdown Articles</div>
@@ -193,7 +193,7 @@ function KnowledgeContent() {
               <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
                 {textCount}
               </div>
-              <div className="h-8 w-0.5 bg-gray-500" />
+              <div className="h-8 w-0.5 bg-muted-foreground/50" />
             </div>
             <div className="space-y-0.5">
               <div className="text-sm font-medium text-foreground/80">Text Articles</div>

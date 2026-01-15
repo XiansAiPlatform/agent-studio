@@ -132,7 +132,7 @@ export default function AgentTemplatesPage() {
                   <div className={`h-12 w-12 rounded-md bg-${template.color}/10 flex items-center justify-center`}>
                     <Icon className={`h-6 w-6 text-${template.color}`} />
                   </div>
-                  <Badge variant="secondary">{template.category}</Badge>
+                  <Badge variant="secondary" className="text-white">{template.category}</Badge>
                 </div>
                 <CardTitle className="mt-4">{template.name}</CardTitle>
                 <CardDescription>{template.description}</CardDescription>
@@ -163,22 +163,6 @@ export default function AgentTemplatesPage() {
           );
         })}
       </div>
-
-      {/* Custom Template Option */}
-      <Card className="border-dashed border-2">
-        <CardHeader>
-          <CardTitle>Create Custom Agent</CardTitle>
-          <CardDescription>
-            Build your own agent from scratch with custom configuration
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" className="group transition-all hover:bg-primary/10 hover:text-primary hover:border-primary/50 hover:shadow-sm">
-            <Bot className="mr-2 h-4 w-4 transition-transform group-hover:rotate-12 group-hover:scale-110" />
-            Start From Scratch
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Agent Configuration Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>

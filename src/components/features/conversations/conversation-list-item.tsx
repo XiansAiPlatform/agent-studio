@@ -2,7 +2,7 @@
 
 import { Conversation } from '@/lib/data/dummy-conversations';
 import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
+import { IconAvatar } from '@/components/ui/icon-avatar';
 import { Bot, Clock, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AGENT_STATUS_CONFIG } from '@/lib/conversation-status-config';
@@ -56,9 +56,7 @@ export function ConversationListItem({
     >
       {/* Agent Avatar with Status */}
       <div className="relative flex-shrink-0">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Bot className="h-6 w-6 text-primary" />
-        </div>
+        <IconAvatar icon={Bot} variant="agent" size="lg" />
         <div
           className={cn(
             'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background',

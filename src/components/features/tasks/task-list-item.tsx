@@ -1,10 +1,12 @@
 'use client';
 
 import { Task } from '@/lib/data/dummy-tasks';
-import { Bot, Clock, Flag } from 'lucide-react';
+import { Bot, Clock, Flag, User, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { TaskStatusBadge } from './task-status-badge';
+import { IconAvatar } from '@/components/ui/icon-avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskListItemProps {
   task: Task;
@@ -56,44 +58,115 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
           : 'before:opacity-0 before:bg-border'
       )}
     >
-      <div className="flex items-start justify-between gap-6">
-        {/* Main Content */}
-        <div className="flex-1 space-y-3 min-w-0">
-          {/* Title */}
-          <h3 className="text-base font-medium text-foreground leading-snug tracking-tight">
-            {task.title}
-          </h3>
+      <div className="flex items-start gap-4">
+        {/* Prominent Agent & User Avatars */}
+        <TooltipProvider delayDuration={0}>
+          <div className="flex items-center gap-2 pt-1 shrink-0">
+            {/* Show only User icon for approved/rejected tasks */}
+            {(task.status === 'approved' || task.status === 'rejected') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <IconAvatar icon={User} variant="user" size="md" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  <p className="font-medium">{task.status === 'approved' ? 'Approved by' : 'Rejected by'}</p>
+                  <p className="text-muted-foreground">{task.assignedTo?.name || 'User'}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
-          {/* Description */}
-          <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
-            {task.description}
-          </p>
+            {/* Show only Agent icon for obsolete tasks */}
+            {task.status === 'obsolete' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <IconAvatar icon={Bot} variant="agent" size="md" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  <p className="font-medium">Obsoleted by Agent</p>
+                  <p className="text-muted-foreground">{task.createdBy.name}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
-          {/* Metadata */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
-            <span className="inline-flex items-center gap-1.5">
-              <Bot className="h-3 w-3" />
-              {task.createdBy.name}
-            </span>
-            
-            <span className="text-muted-foreground/30">•</span>
-            
-            <span>{formatDate(task.createdAt)}</span>
-
-            {task.dueDate && (
+            {/* Show Agent -> User flow for pending tasks */}
+            {task.status === 'pending' && (
               <>
-                <span className="text-muted-foreground/30">•</span>
-                <span className={cn('font-medium', priorityColors[task.priority])}>
-                  Due {formatDate(task.dueDate)}
-                </span>
+                {/* Agent Avatar */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <IconAvatar icon={Bot} variant="agent" size="md" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    <p className="font-medium">Created by Agent</p>
+                    <p className="text-muted-foreground">{task.createdBy.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                {/* Arrow indicating flow */}
+                <ArrowRight className="h-4 w-4 text-muted-foreground/30 shrink-0" />
+
+                {/* User Avatar - always show for pending tasks */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <IconAvatar icon={User} variant="user" size="md" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    <p className="font-medium">{task.assignedTo ? 'Assigned to' : 'Awaiting approval'}</p>
+                    <p className="text-muted-foreground">{task.assignedTo?.name || 'User'}</p>
+                  </TooltipContent>
+                </Tooltip>
               </>
             )}
           </div>
-        </div>
+        </TooltipProvider>
 
-        {/* Status Badge */}
-        <div className="shrink-0 pt-0.5">
-          <TaskStatusBadge status={task.status} />
+        {/* Main Content */}
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-6">
+          <div className="flex-1 space-y-3 min-w-0">
+            {/* Title */}
+            <h3 className="text-base font-medium text-foreground leading-snug tracking-tight">
+              {task.title}
+            </h3>
+
+            {/* Description */}
+            <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
+              {task.description}
+            </p>
+
+            {/* Metadata */}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
+              <span className="inline-flex items-center gap-1.5">
+                <Bot className="h-3 w-3" />
+                {task.createdBy.name}
+              </span>
+              
+              <span className="text-muted-foreground/30">•</span>
+              
+              <span>{formatDate(task.createdAt)}</span>
+
+              {task.dueDate && (
+                <>
+                  <span className="text-muted-foreground/30">•</span>
+                  <span className={cn('font-medium', priorityColors[task.priority])}>
+                    Due {formatDate(task.dueDate)}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <div className="shrink-0 pt-0.5">
+            <TaskStatusBadge status={task.status} />
+          </div>
         </div>
       </div>
     </div>
