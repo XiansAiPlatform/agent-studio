@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -15,14 +15,68 @@ function KnowledgeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedKnowledgeId = searchParams.get('id');
-  const agentFilter = searchParams.get('agent');
   const selectedArticle = selectedKnowledgeId ? getKnowledgeById(selectedKnowledgeId) : null;
 
-  // Filter state
-  const [filters, setFilters] = useState<KnowledgeFilters>({
-    formats: [],
-    agents: agentFilter ? [agentFilter] : [],
-  });
+  // Initialize filters from URL params
+  const getFiltersFromURL = (): KnowledgeFilters => {
+    const formatsParam = searchParams.get('formats');
+    const agentsParam = searchParams.get('agents');
+    
+    return {
+      formats: formatsParam ? formatsParam.split(',').filter(f => 
+        ['json', 'markdown', 'text'].includes(f)
+      ) as KnowledgeFilters['formats'] : [],
+      agents: agentsParam ? agentsParam.split(',').filter(a => a.length > 0) : [],
+    };
+  };
+
+  // Filter state initialized from URL
+  const [filters, setFilters] = useState<KnowledgeFilters>(() => getFiltersFromURL());
+
+  // Sync filters from URL when searchParams change (for browser back/forward navigation)
+  useEffect(() => {
+    const urlFilters = getFiltersFromURL();
+    const filtersChanged = 
+      JSON.stringify(urlFilters.formats) !== JSON.stringify(filters.formats) ||
+      JSON.stringify(urlFilters.agents) !== JSON.stringify(filters.agents);
+    
+    if (filtersChanged) {
+      setFilters(urlFilters);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Update URL when filters change
+  const updateFiltersWithURL = (newFilters: KnowledgeFilters) => {
+    setFilters(newFilters);
+    
+    // Build new URL with filter params
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Update formats
+    if (newFilters.formats.length > 0) {
+      params.set('formats', newFilters.formats.join(','));
+    } else {
+      params.delete('formats');
+    }
+    
+    // Update agents
+    if (newFilters.agents.length > 0) {
+      params.set('agents', newFilters.agents.join(','));
+    } else {
+      params.delete('agents');
+    }
+    
+    // Preserve the id parameter if present
+    const idParam = searchParams.get('id');
+    if (idParam) {
+      params.set('id', idParam);
+    }
+    
+    // Update URL
+    const newURL = params.toString() ? `/knowledge?${params.toString()}` : '/knowledge';
+    router.push(newURL, { scroll: false });
+  };
 
   // Extract unique agents from knowledge articles
   const availableAgents = useMemo(() => {
@@ -46,16 +100,17 @@ function KnowledgeContent() {
   }, [filters]);
 
   const handleArticleClick = (articleId: string) => {
-    router.push(`/knowledge?id=${articleId}`, { scroll: false });
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('id', articleId);
+    router.push(`/knowledge?${params.toString()}`, { scroll: false });
   };
 
   const handleCloseSlider = () => {
-    // Preserve agent filter if it exists
-    if (agentFilter) {
-      router.push(`/knowledge?agent=${agentFilter}`, { scroll: false });
-    } else {
-      router.push('/knowledge', { scroll: false });
-    }
+    // Preserve filter params when closing slider
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('id');
+    const newURL = params.toString() ? `/knowledge?${params.toString()}` : '/knowledge';
+    router.push(newURL, { scroll: false });
   };
 
   const handleEdit = (updatedArticle: any) => {
@@ -93,7 +148,7 @@ function KnowledgeContent() {
             <KnowledgeFiltersComponent
               availableAgents={availableAgents}
               filters={filters}
-              onFiltersChange={setFilters}
+              onFiltersChange={updateFiltersWithURL}
             />
             <Button>
               <Plus className="mr-2 h-4 w-4" />

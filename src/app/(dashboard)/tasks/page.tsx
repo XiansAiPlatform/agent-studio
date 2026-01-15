@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -20,12 +20,76 @@ function TasksContent() {
   // Current user ID (in a real app, this would come from auth context)
   const currentUserId = 'user-001';
 
-  // Filter state
-  const [filters, setFilters] = useState<TaskFilters>({
-    scope: 'all-tasks',
-    statuses: [],
-    agents: [],
-  });
+  // Initialize filters from URL params
+  const getFiltersFromURL = (): TaskFilters => {
+    const scope = searchParams.get('scope') as TaskFilters['scope'] || 'all-tasks';
+    const statusesParam = searchParams.get('statuses');
+    const agentsParam = searchParams.get('agents');
+    
+    return {
+      scope: ['my-tasks', 'all-tasks'].includes(scope) ? scope : 'all-tasks',
+      statuses: statusesParam ? statusesParam.split(',').filter(s => 
+        ['pending', 'approved', 'rejected', 'obsolete'].includes(s)
+      ) as TaskFilters['statuses'] : [],
+      agents: agentsParam ? agentsParam.split(',').filter(a => a.length > 0) : [],
+    };
+  };
+
+  // Filter state initialized from URL
+  const [filters, setFilters] = useState<TaskFilters>(() => getFiltersFromURL());
+
+  // Sync filters from URL when searchParams change (for browser back/forward navigation)
+  useEffect(() => {
+    const urlFilters = getFiltersFromURL();
+    const filtersChanged = 
+      urlFilters.scope !== filters.scope ||
+      JSON.stringify(urlFilters.statuses) !== JSON.stringify(filters.statuses) ||
+      JSON.stringify(urlFilters.agents) !== JSON.stringify(filters.agents);
+    
+    if (filtersChanged) {
+      setFilters(urlFilters);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Update URL when filters change
+  const updateFiltersWithURL = (newFilters: TaskFilters) => {
+    setFilters(newFilters);
+    
+    // Build new URL with filter params
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Update scope
+    if (newFilters.scope !== 'all-tasks') {
+      params.set('scope', newFilters.scope);
+    } else {
+      params.delete('scope');
+    }
+    
+    // Update statuses
+    if (newFilters.statuses.length > 0) {
+      params.set('statuses', newFilters.statuses.join(','));
+    } else {
+      params.delete('statuses');
+    }
+    
+    // Update agents
+    if (newFilters.agents.length > 0) {
+      params.set('agents', newFilters.agents.join(','));
+    } else {
+      params.delete('agents');
+    }
+    
+    // Preserve the task parameter if present
+    const taskParam = searchParams.get('task');
+    if (taskParam) {
+      params.set('task', taskParam);
+    }
+    
+    // Update URL
+    const newURL = params.toString() ? `/tasks?${params.toString()}` : '/tasks';
+    router.push(newURL, { scroll: false });
+  };
 
   // Extract unique agents from tasks
   const availableAgents = useMemo(() => {
@@ -92,7 +156,7 @@ function TasksContent() {
           <TaskFiltersComponent
             availableAgents={availableAgents}
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={updateFiltersWithURL}
           />
         </div>
 

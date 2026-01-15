@@ -43,7 +43,7 @@ type Agent = {
 
 const agents: Agent[] = [
   {
-    id: 'customer-support',
+    id: 'agent-001',
     name: 'Client Support Agent',
     description: 'Handles customer inquiries and support tickets',
     status: 'active',
@@ -54,7 +54,7 @@ const agents: Agent[] = [
     iconColor: 'text-primary',
   },
   {
-    id: 'data-analysis',
+    id: 'agent-003',
     name: 'Data Analysis Agent',
     description: 'Processes and analyzes business data',
     status: 'paused',
@@ -65,7 +65,7 @@ const agents: Agent[] = [
     iconColor: 'text-secondary',
   },
   {
-    id: 'email-marketing',
+    id: 'agent-002',
     name: 'Email Marketing Agent',
     description: 'Manages and optimizes email campaigns',
     status: 'active',
@@ -98,7 +98,7 @@ export default function AgentsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Active Agents</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Active Agent Instances</h1>
           <p className="text-muted-foreground mt-1">
             Manage and monitor your active AI agents
           </p>
@@ -175,7 +175,7 @@ export default function AgentsPage() {
                     className="w-full justify-start transition-all hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/50 hover:translate-x-1 group"
                     asChild
                   >
-                    <Link href={`/tasks?agent=${agent.id}`}>
+                    <Link href={`/tasks?agents=${encodeURIComponent(agent.name)}`}>
                       <ListTodo className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                       See Agent Tasks
                     </Link>
@@ -187,7 +187,7 @@ export default function AgentsPage() {
                     className="w-full justify-start transition-all hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/50 hover:translate-x-1 group"
                     asChild
                   >
-                    <Link href={`/knowledge?agent=${agent.name}`}>
+                    <Link href={`/knowledge?agents=${encodeURIComponent(agent.name)}`}>
                       <BookOpen className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                       View Agent Knowledge
                     </Link>

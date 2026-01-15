@@ -30,9 +30,8 @@ const navigation = [
     name: 'Tasks',
     href: '/tasks',
     icon: CheckCircle,
-    badge: 5,
     children: [
-      { name: 'Pending Tasks', href: '/tasks/pending' },
+      { name: 'Pending Tasks', href: '/tasks/pending', badge: 5 },
       { name: 'All Tasks', href: '/tasks' },
     ],
   },
@@ -46,9 +45,8 @@ const navigation = [
     name: 'Agents',
     href: '/agents',
     icon: Bot,
-    badge: 3,
     children: [
-      { name: 'Active Agents', href: '/agents' },
+      { name: 'Active Agents', href: '/agents', badge: 3 },
       { name: 'Agent Templates', href: '/agents/templates' },
     ],
   },
@@ -220,14 +218,19 @@ function NavItem({
                   <Link
                     href={child.href}
                     className={cn(
-                      "block px-3 py-1.5 text-sm truncate relative transition-colors",
+                      "flex items-center gap-2 px-3 py-1.5 text-sm relative transition-colors",
                       "hover:bg-accent/30",
                       isActive
                         ? 'bg-accent/20 text-foreground font-medium border-l-2 border-l-primary rounded-r-md'
                         : 'text-muted-foreground border-l-2 border-l-transparent rounded-md'
                     )}
                   >
-                    {child.name}
+                    <span className="flex-1 truncate">{child.name}</span>
+                    {child.badge && (
+                      <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                        {child.badge}
+                      </Badge>
+                    )}
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">
