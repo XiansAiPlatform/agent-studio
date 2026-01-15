@@ -25,7 +25,7 @@ To provide a comprehensive web-based application for:
 - Defining and deploying AI agents from templates
 - Managing agent instances and lifecycles
 - Monitoring agent performance and actions
-- Managing knowledge bases for agent context
+- Managing Knowledge Articles for agent context
 - Facilitating human-agent interactions and task approvals
 
 ### 1.2 Scope
@@ -316,7 +316,7 @@ The knowledge module shall provide:
 
 **Knowledge Base List:**
 
-- All knowledge bases with metadata (within current tenant)
+- All Knowledge Articles with metadata (within current tenant)
 - Last updated timestamp
 - Associated agent
 

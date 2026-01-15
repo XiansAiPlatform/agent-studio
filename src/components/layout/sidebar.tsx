@@ -57,8 +57,7 @@ const navigation = [
     href: '/knowledge',
     icon: Database,
     children: [
-      { name: 'Knowledge Bases', href: '/knowledge' },
-      { name: 'Indexing Status', href: '/knowledge/indexing' },
+      { name: 'Knowledge Articles', href: '/knowledge' },
     ],
   },
   {

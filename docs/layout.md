@@ -123,7 +123,7 @@ export default function DashboardLayout({ children }) {
   - Agents
   - Tasks
   - Conversations
-  - Knowledge bases
+  - Knowledge Articles
   - Templates
 
 #### 3. Actions & Tools (Right-aligned)
@@ -296,9 +296,7 @@ export function Header() {
 #### 5. Knowledge
 - **Icon:** Book / Database
 - **Sub-items:**
-  - Knowledge Bases
-  - Indexing Status
-- **Badge:** Indexing progress indicator
+  - Knowledge Articles
 
 #### 6. Performance
 - **Icon:** Chart / Graph

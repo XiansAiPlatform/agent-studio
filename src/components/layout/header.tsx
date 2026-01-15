@@ -4,6 +4,7 @@ import { Bell, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './theme-toggle';
+import { UserMenu } from './user-menu';
 import { Input } from '@/components/ui/input';
 
 export function Header() {
@@ -49,9 +50,7 @@ export function Header() {
 
           <ThemeToggle />
 
-          <Button variant="ghost" className="h-8 px-3 transition-all hover:bg-primary/10 hover:text-primary">
-            <span className="text-sm">User</span>
-          </Button>
+          <UserMenu />
         </div>
       </div>
     </header>

@@ -13,7 +13,7 @@ import { Bot, Play, FileText, Zap, MessageSquare, Database, Code, Settings, Spar
 const agentTemplates = [
   {
     id: 1,
-    name: 'Customer Support Agent',
+    name: 'Client Support Agent',
     description: 'Pre-configured agent for handling customer inquiries and support tickets',
     category: 'Support',
     icon: MessageSquare,
@@ -182,8 +182,8 @@ export default function AgentTemplatesPage() {
 
       {/* Agent Configuration Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
-          <SheetHeader className="px-6">
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
               Configure Agent
@@ -296,7 +296,7 @@ export default function AgentTemplatesPage() {
             )}
           </div>
 
-          <SheetFooter className="border-t pt-4 px-6">
+          <SheetFooter>
             <div className="flex gap-3 w-full">
               <Button 
                 variant="outline" 

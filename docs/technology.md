@@ -183,7 +183,7 @@ Use dummy JSON collections to simulate API responses without external dependenci
 export const DUMMY_AGENTS = [
   {
     id: 'agent-1',
-    name: 'Customer Support Agent',
+    name: 'Client Support Agent',
     status: 'running',
     template: 'customer-support-v1',
     createdAt: new Date('2026-01-10').toISOString(),

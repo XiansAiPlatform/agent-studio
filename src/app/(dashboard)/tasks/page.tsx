@@ -172,11 +172,11 @@ function TasksContent() {
 
       {/* Task Detail Slider */}
       <Sheet open={!!selectedTask} onOpenChange={handleCloseSlider}>
-        <SheetContent className="w-full sm:max-w-[800px] flex flex-col p-0">
+        <SheetContent className="flex flex-col p-0">
           {selectedTask && (
             <>
-              <SheetHeader className="px-6 py-4 border-b sticky top-0 bg-background z-10">
-                <SheetTitle>Task Details</SheetTitle>
+              <SheetHeader className="flex-row items-start">
+                <SheetTitle className="flex-1">Task Details</SheetTitle>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 py-6">
                 <TaskDetail

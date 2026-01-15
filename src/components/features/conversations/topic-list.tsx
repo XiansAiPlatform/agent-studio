@@ -25,21 +25,21 @@ export function TopicList({
   return (
     <div className="flex flex-col h-full border-r bg-background">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-border/40">
+      <div className="px-6 py-5 border-b border-border/60 bg-gradient-to-b from-background to-muted/20">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-medium text-foreground tracking-tight">Topics</h2>
+          <h2 className="text-sm font-semibold text-foreground tracking-tight">Topics</h2>
           {onCreateTopic && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onCreateTopic}
-              className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all group"
+              className="h-8 w-8 p-0 hover:bg-primary/20 hover:text-primary transition-all group shadow-sm hover:shadow-md"
             >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90 group-hover:scale-110" />
             </Button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground/70">
+        <p className="text-xs text-muted-foreground font-medium">
           {topics.length} topic{topics.length !== 1 ? 's' : ''}
         </p>
       </div>
@@ -55,30 +55,42 @@ export function TopicList({
               key={topic.id}
               onClick={() => onSelectTopic(topic.id)}
               className={cn(
-                'w-full text-left px-6 py-4 transition-all duration-200 relative',
-                'border-b border-border/40 last:border-b-0',
-                'hover:bg-accent/5',
-                isSelected && 'bg-accent/10',
-                'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:transition-all before:duration-200',
+                'w-full text-left px-6 py-4 transition-all duration-200 relative group/topic',
+                'border-b border-border/60 last:border-b-0',
+                'hover:bg-accent/20 hover:border-border',
+                isSelected && 'bg-accent/30 border-border shadow-inner',
+                'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:transition-all before:duration-200',
                 isSelected 
-                  ? 'before:opacity-100 before:bg-primary'
-                  : 'before:opacity-0 before:bg-border'
+                  ? 'before:opacity-100 before:bg-primary before:shadow-[2px_0_8px_rgba(var(--primary),0.3)]'
+                  : 'before:opacity-0 before:bg-primary/50 group-hover/topic:before:opacity-50'
               )}
             >
               {/* Topic Header */}
               <div className="flex items-start gap-2.5 mb-2">
-                <StatusIcon 
-                  className={cn(
-                    'h-4 w-4 mt-0.5 flex-shrink-0',
-                    TOPIC_STATUS_CONFIG[topic.status].colors.icon
-                  )} 
-                />
+                <div className={cn(
+                  'p-1 rounded-md transition-all duration-200',
+                  isSelected && 'bg-primary/10 shadow-sm',
+                  'group-hover/topic:bg-primary/10'
+                )}>
+                  <StatusIcon 
+                    className={cn(
+                      'h-4 w-4 flex-shrink-0 transition-all duration-200',
+                      TOPIC_STATUS_CONFIG[topic.status].colors.icon,
+                      isSelected && 'scale-110',
+                      'group-hover/topic:scale-110'
+                    )} 
+                  />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm truncate leading-snug">
+                  <h3 className={cn(
+                    "font-medium text-sm truncate leading-snug transition-colors duration-200",
+                    isSelected && "text-foreground font-semibold",
+                    !isSelected && "text-foreground/90"
+                  )}>
                     {topic.name}
                   </h3>
                   {topic.isDefault && (
-                    <Badge variant="outline" className="h-4 px-1.5 text-[10px] mt-1.5 font-normal">
+                    <Badge variant="outline" className="h-4 px-1.5 text-[10px] mt-1.5 font-medium border-primary/30 text-primary bg-primary/5">
                       Default
                     </Badge>
                   )}
@@ -86,10 +98,13 @@ export function TopicList({
               </div>
 
               {/* Topic Metadata */}
-              <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground/70">
-                <span>{topic.messages.length} msg</span>
+              <div className={cn(
+                "flex items-center gap-2 ml-[42px] text-xs transition-colors duration-200",
+                isSelected ? "text-muted-foreground" : "text-muted-foreground/80"
+              )}>
+                <span className="font-medium">{topic.messages.length} msg</span>
                 
-                <span className="text-muted-foreground/30">•</span>
+                <span className="text-muted-foreground/50">•</span>
                 
                 {!topic.isDefault && topic.associatedTasks && topic.associatedTasks.length > 0 && (() => {
                   const task = getTaskById(topic.associatedTasks[0]);
@@ -97,14 +112,14 @@ export function TopicList({
                     <>
                       <TaskStatusBadge 
                         status={task.status}
-                        className="h-4 px-1.5 text-[10px]"
+                        className="h-4 px-1.5 text-[10px] font-medium"
                       />
-                      <span className="text-muted-foreground/30">•</span>
+                      <span className="text-muted-foreground/50">•</span>
                     </>
                   ) : null;
                 })()}
 
-                <span className="capitalize">{topic.status}</span>
+                <span className="capitalize font-medium">{topic.status}</span>
               </div>
             </button>
           );

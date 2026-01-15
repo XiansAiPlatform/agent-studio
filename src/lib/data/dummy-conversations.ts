@@ -65,7 +65,7 @@ export const DUMMY_CONVERSATIONS: Conversation[] = [
     },
     agent: {
       id: 'agent-001',
-      name: 'Customer Support Agent',
+      name: 'Client Support Agent',
       status: 'online',
     },
     startTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago

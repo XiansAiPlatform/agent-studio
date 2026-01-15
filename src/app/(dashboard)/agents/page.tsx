@@ -24,6 +24,7 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  BookOpen,
 } from 'lucide-react';
 import { AgentStatus, AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
 
@@ -43,7 +44,7 @@ type Agent = {
 const agents: Agent[] = [
   {
     id: 'customer-support',
-    name: 'Customer Support Agent',
+    name: 'Client Support Agent',
     description: 'Handles customer inquiries and support tickets',
     status: 'active',
     template: 'Customer Support',
@@ -183,6 +184,18 @@ export default function AgentsPage() {
                   <Button
                     size="sm"
                     variant="outline"
+                    className="w-full justify-start transition-all hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/50 hover:translate-x-1 group"
+                    asChild
+                  >
+                    <Link href={`/knowledge?agent=${agent.name}`}>
+                      <BookOpen className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+                      View Agent Knowledge
+                    </Link>
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="w-full justify-start transition-all hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-500/50 hover:translate-x-1 group"
                     onClick={() => openSlider(agent, 'configure')}
                   >
@@ -218,12 +231,12 @@ export default function AgentsPage() {
 
       {/* Right Slider for Configure, Activity Logs, and Performance */}
       <Sheet open={sliderType !== null} onOpenChange={closeSlider}>
-        <SheetContent className="w-full sm:max-w-[800px] flex flex-col p-0 bg-white dark:bg-gray-950">
+        <SheetContent className="flex flex-col p-0">
           {selectedAgent && (
             <>
               {sliderType === 'configure' && (
                 <>
-                  <SheetHeader className="px-6 py-4 border-b sticky top-0 bg-white dark:bg-gray-950 z-10">
+                  <SheetHeader>
                     <SheetTitle>Configure Agent</SheetTitle>
                     <SheetDescription>{selectedAgent.name}</SheetDescription>
                   </SheetHeader>
@@ -305,7 +318,7 @@ export default function AgentsPage() {
 
               {sliderType === 'activity' && (
                 <>
-                  <SheetHeader className="px-6 py-4 border-b sticky top-0 bg-white dark:bg-gray-950 z-10">
+                  <SheetHeader>
                     <SheetTitle>Activity Logs</SheetTitle>
                     <SheetDescription>{selectedAgent.name}</SheetDescription>
                   </SheetHeader>
@@ -371,7 +384,7 @@ export default function AgentsPage() {
 
               {sliderType === 'performance' && (
                 <>
-                  <SheetHeader className="px-6 py-4 border-b sticky top-0 bg-white dark:bg-gray-950 z-10">
+                  <SheetHeader>
                     <SheetTitle>Performance Metrics</SheetTitle>
                     <SheetDescription>{selectedAgent.name}</SheetDescription>
                   </SheetHeader>

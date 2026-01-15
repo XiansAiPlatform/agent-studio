@@ -347,7 +347,7 @@ test.describe('Agents Management', () => {
     
     // Check agents table
     await expect(page.getByRole('table')).toBeVisible()
-    await expect(page.getByText('Customer Support Agent')).toBeVisible()
+    await expect(page.getByText('Client Support Agent')).toBeVisible()
   })
 
   test('should create new agent', async ({ page }) => {
@@ -372,7 +372,7 @@ test.describe('Agents Management', () => {
     await page.goto('/agents')
     
     // Click on agent row
-    await page.getByText('Customer Support Agent').click()
+    await page.getByText('Client Support Agent').click()
     
     // Check slider opened
     await expect(page.getByRole('complementary')).toBeVisible()

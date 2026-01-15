@@ -52,7 +52,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
 
   const handleEditDraft = () => {
     if (message.contentDraft?.taskId) {
-      router.push(`/tasks?id=${message.contentDraft.taskId}`);
+      router.push(`/tasks?task=${message.contentDraft.taskId}`);
     }
   };
 
@@ -127,7 +127,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
               {message.attachments.map((attachment) => (
                 <Link
                   key={attachment.id}
-                  href={`/tasks?id=${attachment.id}`}
+                  href={`/tasks?task=${attachment.id}`}
                   className={cn(
                     'flex items-center gap-2 p-2 rounded border transition-colors',
                     isUser

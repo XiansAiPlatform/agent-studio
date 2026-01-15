@@ -36,7 +36,7 @@ export const DUMMY_TASKS: Task[] = [
     priority: 'high',
     createdBy: {
       id: 'agent-001',
-      name: 'Customer Support Agent',
+      name: 'Client Support Agent',
     },
     assignedTo: {
       id: 'user-001',
@@ -192,7 +192,7 @@ export const DUMMY_TASKS: Task[] = [
     priority: 'low',
     createdBy: {
       id: 'agent-001',
-      name: 'Customer Support Agent',
+      name: 'Client Support Agent',
     },
     assignedTo: {
       id: 'user-001',
@@ -243,7 +243,7 @@ export const DUMMY_TASKS: Task[] = [
     priority: 'high',
     createdBy: {
       id: 'agent-001',
-      name: 'Customer Support Agent',
+      name: 'Client Support Agent',
     },
     assignedTo: {
       id: 'user-001',
@@ -266,7 +266,7 @@ export const DUMMY_TASKS: Task[] = [
     priority: 'medium',
     createdBy: {
       id: 'agent-001',
-      name: 'Customer Support Agent',
+      name: 'Client Support Agent',
     },
     assignedTo: {
       id: 'user-001',
@@ -289,7 +289,7 @@ export const DUMMY_TASKS: Task[] = [
     priority: 'urgent',
     createdBy: {
       id: 'agent-001',
-      name: 'Customer Support Agent',
+      name: 'Client Support Agent',
     },
     assignedTo: {
       id: 'user-001',
@@ -316,7 +316,7 @@ export const DUMMY_TASKS: Task[] = [
     priority: 'low',
     createdBy: {
       id: 'agent-001',
-      name: 'Customer Support Agent',
+      name: 'Client Support Agent',
     },
     assignedTo: {
       id: 'user-001',
