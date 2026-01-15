@@ -33,9 +33,9 @@ export function TopicList({
               variant="ghost"
               size="sm"
               onClick={onCreateTopic}
-              className="h-8 w-8 p-0 hover:bg-accent/50"
+              className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all group"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90 group-hover:scale-110" />
             </Button>
           )}
         </div>

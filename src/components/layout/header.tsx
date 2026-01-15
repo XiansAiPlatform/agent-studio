@@ -36,20 +36,20 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Plus className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 transition-all hover:bg-primary/10 hover:text-primary group">
+            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90 group-hover:scale-110" />
             <span className="sr-only">Quick actions</span>
           </Button>
 
-          <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 relative transition-all hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 group">
+            <Bell className="h-4 w-4 transition-transform group-hover:rotate-12 group-hover:scale-110" />
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
             <span className="sr-only">Notifications</span>
           </Button>
 
           <ThemeToggle />
 
-          <Button variant="ghost" className="h-8 px-3">
+          <Button variant="ghost" className="h-8 px-3 transition-all hover:bg-primary/10 hover:text-primary">
             <span className="text-sm">User</span>
           </Button>
         </div>

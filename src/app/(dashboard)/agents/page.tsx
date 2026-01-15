@@ -25,12 +25,14 @@ import {
   CheckCircle,
   AlertCircle,
 } from 'lucide-react';
+import { AgentStatus, AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
 
 type Agent = {
   id: string;
   name: string;
   description: string;
-  status: 'active' | 'idle';
+  status: AgentStatus;
+  template: string;
   uptime?: string;
   lastActive?: string;
   tasksCompleted: number;
@@ -44,6 +46,7 @@ const agents: Agent[] = [
     name: 'Customer Support Agent',
     description: 'Handles customer inquiries and support tickets',
     status: 'active',
+    template: 'Customer Support',
     uptime: '24h 35m',
     tasksCompleted: 127,
     bgColor: 'bg-primary/10',
@@ -53,7 +56,8 @@ const agents: Agent[] = [
     id: 'data-analysis',
     name: 'Data Analysis Agent',
     description: 'Processes and analyzes business data',
-    status: 'idle',
+    status: 'paused',
+    template: 'Data Analysis',
     lastActive: '2h ago',
     tasksCompleted: 45,
     bgColor: 'bg-secondary/10',
@@ -64,6 +68,7 @@ const agents: Agent[] = [
     name: 'Email Marketing Agent',
     description: 'Manages and optimizes email campaigns',
     status: 'active',
+    template: 'Email Marketing',
     uptime: '12h 15m',
     tasksCompleted: 89,
     bgColor: 'bg-accent/10',
@@ -114,8 +119,11 @@ export default function AgentsPage() {
                 <div className={`h-12 w-12 rounded-md ${agent.bgColor} flex items-center justify-center`}>
                   <Bot className={`h-6 w-6 ${agent.iconColor}`} />
                 </div>
-                <Badge variant={agent.status === 'active' ? 'default' : 'secondary'}>
-                  {agent.status === 'active' ? 'Active' : 'Idle'}
+                <Badge 
+                  variant={AGENT_STATUS_CONFIG[agent.status].variant}
+                  className={AGENT_STATUS_CONFIG[agent.status].colors.badge}
+                >
+                  {AGENT_STATUS_CONFIG[agent.status].label}
                 </Badge>
               </div>
               <CardTitle className="mt-4">{agent.name}</CardTitle>
@@ -124,10 +132,8 @@ export default function AgentsPage() {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Status:</span>
-                  <span className={`font-medium ${agent.status === 'active' ? 'text-green-600' : 'text-yellow-600'}`}>
-                    {agent.status === 'active' ? 'Running' : 'Idle'}
-                  </span>
+                  <span className="text-muted-foreground">Template:</span>
+                  <span className="font-medium">{agent.template}</span>
                 </div>
                 {agent.uptime && (
                   <div className="flex items-center justify-between text-sm">

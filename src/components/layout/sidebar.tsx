@@ -142,8 +142,8 @@ function NavItem({
               }
             }}
             className={cn(
-              'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors relative',
-              'hover:bg-accent/30',
+              'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all relative group',
+              'hover:bg-accent/30 hover:translate-x-0.5',
               active
                 ? 'bg-accent/20 text-foreground border-l-2 border-l-primary rounded-r-md'
                 : 'text-muted-foreground border-l-2 border-l-transparent rounded-md',
@@ -162,7 +162,7 @@ function NavItem({
                 {hasChildren && (
                   <ChevronRight
                     className={cn(
-                      'h-4 w-4 transition-transform',
+                      'h-4 w-4 transition-all group-hover:translate-x-0.5',
                       expanded && 'rotate-90'
                     )}
                   />
@@ -263,9 +263,9 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={() => setCollapsed(!collapsed)}
-              className="h-8 w-8"
+              className="h-8 w-8 transition-all hover:bg-primary/10 hover:text-primary group"
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-4 w-4 transition-transform group-hover:scale-110" />
               <span className="sr-only">Toggle sidebar</span>
             </Button>
           </div>

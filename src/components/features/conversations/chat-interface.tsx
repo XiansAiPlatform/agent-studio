@@ -121,11 +121,11 @@ export function ChatInterface({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="text-sm">
+          <Button variant="ghost" size="sm" className="text-sm transition-all hover:bg-primary/10 hover:text-primary">
             View Details
           </Button>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="transition-all hover:bg-primary/10 hover:text-primary group">
+            <MoreVertical className="h-4 w-4 transition-transform group-hover:rotate-90" />
           </Button>
         </div>
       </div>
@@ -167,8 +167,8 @@ export function ChatInterface({
       <div className="border-t border-border/40 bg-card px-6 py-5">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-end gap-2">
-            <Button variant="ghost" size="icon" className="flex-shrink-0 hover:bg-accent/50">
-              <Paperclip className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="flex-shrink-0 hover:bg-primary/10 hover:text-primary transition-all group">
+              <Paperclip className="h-4 w-4 transition-transform group-hover:rotate-12" />
             </Button>
             
             <div className="flex-1 relative">
@@ -188,9 +188,9 @@ export function ChatInterface({
             <Button
               onClick={handleSendMessage}
               disabled={!messageInput.trim()}
-              className="flex-shrink-0"
+              className="flex-shrink-0 group transition-all hover:shadow-md hover:scale-[1.02]"
             >
-              <Send className="h-4 w-4 mr-2" />
+              <Send className="h-4 w-4 mr-2 transition-transform group-hover:translate-x-0.5" />
               Send
             </Button>
           </div>

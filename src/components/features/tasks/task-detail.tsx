@@ -164,11 +164,11 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
             </h3>
             <Link 
               href={`/conversations?id=${task.conversationId}&topic=${task.topicId}`}
-              className="flex items-center gap-2 p-3 bg-muted hover:bg-muted/80 rounded-md text-sm text-foreground transition-colors group"
+              className="flex items-center gap-2 p-3 bg-muted hover:bg-primary/10 hover:border hover:border-primary/30 rounded-md text-sm text-foreground transition-all group"
             >
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <span className="flex-1 font-medium">Go to Conversation Topic</span>
-              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              <MessageSquare className="h-4 w-4 text-primary transition-transform group-hover:scale-110" />
+              <span className="flex-1 font-medium group-hover:text-primary transition-colors">Go to Conversation Topic</span>
+              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-0.5" />
             </Link>
           </div>
         )}
@@ -184,8 +184,9 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsEditing(true)}
+                  className="group transition-all hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400"
                 >
-                  <Edit className="h-3 w-3 mr-1" />
+                  <Edit className="h-3 w-3 mr-1 transition-transform group-hover:rotate-12" />
                   Edit
                 </Button>
               )}
@@ -257,13 +258,13 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 transition-all hover:bg-gray-500/10 hover:text-gray-600 dark:hover:text-gray-400 hover:border-gray-500/50"
                 onClick={handleCancel}
               >
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" />
+              <Button className="flex-1 group transition-all hover:shadow-md hover:scale-[1.02]" onClick={handleSave}>
+                <Save className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                 Save Changes
               </Button>
             </div>
@@ -271,14 +272,14 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 group transition-all hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/50"
                 onClick={() => onReject?.(task.id)}
               >
-                <XCircle className="mr-2 h-4 w-4" />
+                <XCircle className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                 Reject
               </Button>
-              <Button className="flex-1" onClick={() => onApprove?.(task.id)}>
-                <CheckCircle className="mr-2 h-4 w-4" />
+              <Button className="flex-1 group transition-all hover:shadow-md hover:scale-[1.02]" onClick={() => onApprove?.(task.id)}>
+                <CheckCircle className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                 Approve
               </Button>
             </div>
