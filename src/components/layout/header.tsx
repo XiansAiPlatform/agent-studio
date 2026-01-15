@@ -1,0 +1,59 @@
+'use client';
+
+import { Bell, Plus, Search } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from './theme-toggle';
+import { Input } from '@/components/ui/input';
+
+export function Header() {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-16 items-center gap-4 px-6">
+        {/* Branding */}
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
+            A
+          </div>
+          <span className="text-xl font-semibold hidden sm:inline-block">
+            Agent Studio
+          </span>
+        </Link>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Global Search */}
+        <div className="max-w-md">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search... (⌘K)"
+              className="pl-8 h-9"
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">Quick actions</span>
+          </Button>
+
+          <Button variant="ghost" size="icon" className="h-8 w-8 relative">
+            <Bell className="h-4 w-4" />
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
+            <span className="sr-only">Notifications</span>
+          </Button>
+
+          <ThemeToggle />
+
+          <Button variant="ghost" className="h-8 px-3">
+            <span className="text-sm">User</span>
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
