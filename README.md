@@ -43,7 +43,7 @@ npm install
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+4. Open [http://localhost:3010](http://localhost:3010) in your browser.
 
 ## Project Structure
 
@@ -105,7 +105,7 @@ agent-studio/
 
 - 🔄 Authentication (NextAuth.js with OIDC/SSO)
 - 🔄 Real-time conversation interface
-- 🔄 Agent templates library
+- 🔄 Available Agents library
 - 🔄 Knowledge base management
 - 🔄 Performance analytics dashboard
 - 🔄 Settings and configuration

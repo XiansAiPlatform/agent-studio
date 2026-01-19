@@ -109,7 +109,7 @@ npm run build
 # Start development server
 npm run dev
 
-# Server runs on http://localhost:3000
+# Server runs on http://localhost:3010
 # - Hot Module Replacement (HMR) enabled
 # - Fast Refresh for instant updates
 # - TypeScript type checking in background
@@ -255,7 +255,7 @@ describe('/api/agents', () => {
 
   describe('POST', () => {
     it('creates new agent', async () => {
-      const request = new Request('http://localhost:3000/api/agents', {
+      const request = new Request('http://localhost:3010/api/agents', {
         method: 'POST',
         body: JSON.stringify({
           name: 'New Agent',
@@ -300,7 +300,7 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3010',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -326,7 +326,7 @@ export default defineConfig({
 
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3010',
     reuseExistingServer: !process.env.CI,
   },
 })
@@ -527,10 +527,10 @@ npm run dev
 
 # Application
 NODE_ENV=development
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3010
 
 # Authentication (NextAuth.js)
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3010
 NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
 
 # OIDC/SSO Provider
@@ -770,9 +770,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3010
 
-ENV PORT 3000
+ENV PORT 3010
 ENV HOSTNAME "0.0.0.0"
 
 CMD ["node", "server.js"]
@@ -790,10 +790,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3010:3010"
     environment:
       - NODE_ENV=production
-      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_URL=http://localhost:3010
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     env_file:
       - .env.production
@@ -807,7 +807,7 @@ services:
 docker build -t agent-studio .
 
 # Run container
-docker run -p 3000:3000 --env-file .env.production agent-studio
+docker run -p 3010:3010 --env-file .env.production agent-studio
 
 # Using docker-compose
 docker-compose up -d
@@ -839,7 +839,7 @@ spec:
       - name: agent-studio
         image: agent-studio:latest
         ports:
-        - containerPort: 3000
+        - containerPort: 3010
         env:
         - name: NODE_ENV
           value: "production"
@@ -858,13 +858,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /api/health
-            port: 3000
+            port: 3010
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /api/health
-            port: 3000
+            port: 3010
           initialDelaySeconds: 10
           periodSeconds: 5
 ```
@@ -883,7 +883,7 @@ spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 3000
+    targetPort: 3010
   type: LoadBalancer
 ```
 

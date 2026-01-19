@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
+import { TenantSelector } from './tenant-selector';
 import { Input } from '@/components/ui/input';
 
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center gap-4 px-6">
+      <div className="flex h-16 items-center gap-3 px-6">
         {/* Branding */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
@@ -20,6 +21,14 @@ export function Header() {
             Agent Studio
           </span>
         </Link>
+
+        {/* Divider */}
+        <div className="hidden md:block h-6 w-px bg-border/60" />
+
+        {/* Tenant Selector */}
+        <div className="hidden md:block">
+          <TenantSelector />
+        </div>
 
         {/* Spacer */}
         <div className="flex-1" />

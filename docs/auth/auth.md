@@ -74,7 +74,7 @@ Create `.env.local`:
 
 ```env
 # NextAuth Configuration
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3010
 NEXTAUTH_SECRET=your-secret-key-here  # Generate with: openssl rand -base64 32
 
 # OIDC Provider (SSO)

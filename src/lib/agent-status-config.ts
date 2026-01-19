@@ -1,6 +1,6 @@
 // Centralized agent status configuration for consistent styling across the application
 
-export type AgentStatus = 'active' | 'paused' | 'error';
+export type AgentStatus = 'active' | 'inactive' | 'error';
 
 export const AGENT_STATUS_CONFIG = {
   active: {
@@ -12,8 +12,8 @@ export const AGENT_STATUS_CONFIG = {
     },
     variant: 'default' as const,
   },
-  paused: {
-    label: 'Paused',
+  inactive: {
+    label: 'Inactive',
     colors: {
       badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
       text: 'text-yellow-600 dark:text-yellow-400',

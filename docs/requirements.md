@@ -168,27 +168,27 @@ The tasks module shall provide detailed task views and action interfaces for hum
 
 ### 3.2 Agents Module
 
-#### 3.2.1 Active Agents Page
+#### 3.2.1 Agent Instances Page
 
 The agents page shall display and manage all instantiated (active) agents within the current tenant context:
 
 **Tenant Isolation:**
 
-- Active agents are tenant-isolated (each tenant has its own agent instances)
+- Agent Instances are tenant-isolated (each tenant has its own agent instances)
 - Users only see agents belonging to their current tenant
 - Agent instances cannot be shared across tenants
-- Each tenant can activate agents from common agent templates
+- Each tenant can activate agents from common Available Agents
 - Multiple named instances of an agent can be acvivated by a tenant
 
 **Agent Management:**
 
-- View all active agents (within current tenant)
+- View all Agent Instances (within current tenant)
 - Pause/Delete agents
 - Activate new agents from templates (templates are shared across tenants)
 
 **Agent List View:**
 
-- Grid view of all active agents
+- Grid view of all Agent Instances
 - Filter by status, template
 - Search by name
 
@@ -208,15 +208,15 @@ The agents page shall display and manage all instantiated (active) agents within
 
 ---
 
-### 3.3 Agent Templates Module
+### 3.3 Available Agents Module
 
-#### 3.3.1 Agent Templates Page
+#### 3.3.1 Available Agents Page
 
-The agent templates page shall allow users to browse, create, and manage agent templates that can be activated to create agent instances:
+The Available Agents page shall allow users to browse, create, and manage Available Agents that can be activated to create agent instances:
 
 **Shared Resource:**
 
-- Agent templates are shared across all tenants (common resource)
+- Available Agents are shared across all tenants (common resource)
 - When activated, templates create tenant-isolated agent instances
 
 **Template Management:**
@@ -245,7 +245,7 @@ The platform shall support a hierarchical conversation model:
 
 **Conversation Hierarchy:**
 
-- **Conversations:** A user sessions each involving a single active agents
+- **Conversations:** A user sessions each involving a single Agent Instances
   - **Default Topic:** The primary discussion thread (automatically created)
   - **Additional Topics:** User or agent-created topic threads
     - **Messages:** Individual messages within each topic

@@ -33,6 +33,8 @@ export interface Topic {
   messages: Message[];
   associatedTasks?: string[]; // Task IDs
   isDefault?: boolean;
+  messageCount?: number; // Total count from API, not affected by lazy loading
+  lastMessageAt?: string; // Last message timestamp from API
 }
 
 export interface Conversation {

@@ -32,7 +32,7 @@ export default function DashboardPage() {
   const totalTasks = DUMMY_TASKS.length;
   const activeConversations = DUMMY_CONVERSATIONS.filter((c) => c.status === 'active').length;
 
-  // Get unique active agents
+  // Get unique Agent Instances
   const activeAgents = Array.from(
     new Map(
       DUMMY_CONVERSATIONS.filter((c) => c.status === 'active').map((c) => [
@@ -228,7 +228,7 @@ export default function DashboardPage() {
 
       {/* Agent Performance Metrics */}
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 py-4">
-        {/* Active Agents */}
+        {/* Agent Instances */}
         <div className="group">
           <div className="flex items-baseline gap-3 mb-1.5">
             <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
@@ -237,7 +237,7 @@ export default function DashboardPage() {
             <div className="h-8 w-0.5 bg-emerald-500/60 dark:bg-emerald-400/60" />
           </div>
           <div className="space-y-0.5">
-            <div className="text-sm font-medium text-foreground/80">Active Agents</div>
+            <div className="text-sm font-medium text-foreground/80">Agent Instances</div>
             <div className="text-xs text-muted-foreground">Currently online</div>
           </div>
         </div>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                         {TASK_STATUS_CONFIG[task.status].label}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                       {task.createdBy.name} • {new Date(task.createdAt).toLocaleTimeString()}
                     </p>
                   </div>
@@ -339,12 +339,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Active Agents */}
+        {/* Agent Instances */}
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              Active Agents
+              Agent Instances
             </CardTitle>
             <CardDescription>Currently online and working</CardDescription>
           </CardHeader>

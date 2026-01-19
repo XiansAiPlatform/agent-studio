@@ -46,8 +46,8 @@ const navigation = [
     href: '/agents',
     icon: Bot,
     children: [
-      { name: 'Active Agents', href: '/agents', badge: 3 },
-      { name: 'Agent Templates', href: '/agents/templates' },
+      { name: 'Agent Instances', href: '/agents', badge: 3 },
+      { name: 'Agent Store', href: '/agents/templates' },
     ],
   },
   {
@@ -73,6 +73,7 @@ const navigation = [
     href: '/settings',
     icon: Settings,
     children: [
+      { name: 'Tenant', href: '/settings/tenant' },
       { name: 'Platform Config', href: '/settings/platform' },
       { name: 'Integrations', href: '/settings/integrations' },
       { name: 'User Management', href: '/settings/users' },
@@ -103,7 +104,7 @@ function NavItem({
   const [expanded, setExpanded] = useState(active);
   const Icon = item.icon;
 
-  // Get unique active agents for conversations
+  // Get unique Agent Instances for conversations
   const activeAgents = item.type === 'conversations' 
     ? Array.from(
         new Map(
@@ -151,11 +152,6 @@ function NavItem({
             {!collapsed && (
               <>
                 <span className="flex-1 truncate">{item.name}</span>
-                {item.badge && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-                    {item.badge}
-                  </Badge>
-                )}
                 {hasChildren && (
                   <ChevronRight
                     className={cn(

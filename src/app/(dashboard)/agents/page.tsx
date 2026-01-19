@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Sheet,
   SheetContent,
@@ -12,6 +14,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import {
@@ -26,8 +36,17 @@ import {
   CheckCircle,
   AlertCircle,
   BookOpen,
+  Loader2,
+  Power,
+  Trash2,
+  Info,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { AgentStatus, AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
+import { useTenant } from '@/hooks/use-tenant';
+import { showErrorToast, showSuccessToast, showInfoToast } from '@/lib/utils/error-handler';
 
 type Agent = {
   id: string;
@@ -41,46 +60,158 @@ type Agent = {
   variant: 'primary' | 'secondary' | 'accent';
 };
 
-const agents: Agent[] = [
-  {
-    id: 'agent-001',
-    name: 'Client Support Agent',
-    description: 'Handles customer inquiries and support tickets',
-    status: 'active',
-    template: 'Customer Support',
-    uptime: '24h 35m',
-    tasksCompleted: 127,
-    variant: 'primary',
-  },
-  {
-    id: 'agent-003',
-    name: 'Data Analysis Agent',
-    description: 'Processes and analyzes business data',
-    status: 'paused',
-    template: 'Data Analysis',
-    lastActive: '2h ago',
-    tasksCompleted: 45,
-    variant: 'secondary',
-  },
-  {
-    id: 'agent-002',
-    name: 'Email Marketing Agent',
-    description: 'Manages and optimizes email campaigns',
-    status: 'active',
-    template: 'Email Marketing',
-    uptime: '12h 15m',
-    tasksCompleted: 89,
-    variant: 'accent',
-  },
-];
+type SliderType = 'actions' | 'configure' | 'activity' | 'performance' | null;
 
-type SliderType = 'configure' | 'activity' | 'performance' | null;
+type WorkflowParameter = {
+  name: string;
+  type: string;
+  description?: string;
+  optional?: boolean;
+};
+
+type WorkflowDefinition = {
+  id: string;
+  workflowType: string;
+  name: string | null;
+  summary?: string | null;
+  parameterDefinitions: WorkflowParameter[];
+  activable?: boolean;
+};
+
+type ActivationWizardData = {
+  activationId: string; // The agent activation/instance ID
+  agent: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+  workflows: WorkflowDefinition[];
+};
 
 export default function AgentsPage() {
+  const { currentTenantId } = useTenant();
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [sliderType, setSliderType] = useState<SliderType>(null);
+  const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [agentToDeactivate, setAgentToDeactivate] = useState<Agent | null>(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  
+  // Activation wizard state
+  const [showActivationWizard, setShowActivationWizard] = useState(false);
+  const [wizardData, setWizardData] = useState<ActivationWizardData | null>(null);
+  const [isLoadingWizard, setIsLoadingWizard] = useState(false);
+  const [currentWorkflowIndex, setCurrentWorkflowIndex] = useState(0);
+  const [workflowInputs, setWorkflowInputs] = useState<Record<string, Record<string, string>>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, Record<string, string>>>({});
+  const [isActivating, setIsActivating] = useState(false);
 
-  const openSlider = (agent: Agent, type: SliderType) => {
+  // Check for newly created instance from URL params
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const newInstanceId = params.get('newInstance');
+      if (newInstanceId) {
+        setNewlyCreatedId(newInstanceId);
+        
+        // Remove the highlight after 10 seconds
+        const timer = setTimeout(() => {
+          setNewlyCreatedId(null);
+        }, 10000);
+        
+        // Clean URL without reloading
+        window.history.replaceState({}, '', window.location.pathname);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+  // Fetch activations from API
+  useEffect(() => {
+    const fetchActivations = async () => {
+      if (!currentTenantId) {
+        console.log('[AgentsPage] No current tenant ID');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/tenants/${currentTenantId}/agent-activations`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch activations');
+        }
+
+        const data = await response.json();
+        console.log('[AgentsPage] Fetched activations:', data);
+
+        // Map activations to Agent format
+        const activations = Array.isArray(data) ? data : [];
+        
+        // Sort activations by creation date (newest first)
+        activations.sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA; // Descending order (newest first)
+        });
+        
+        const mappedAgents: Agent[] = activations.map((activation: any, index: number) => {
+          // Determine variant based on index for visual variety
+          const variants: Array<'primary' | 'secondary' | 'accent'> = ['primary', 'secondary', 'accent'];
+          const variant = variants[index % variants.length];
+
+          // Map isActive and activatedAt to AgentStatus
+          let status: AgentStatus = 'inactive';
+          if (activation.isActive && activation.activatedAt) {
+            status = 'active';
+          } else if (activation.deactivatedAt) {
+            status = 'inactive';
+          } else {
+            // For agents that are not active and haven't been deactivated
+            status = 'inactive';
+          }
+
+          // Calculate time-related fields
+          const referenceDate = activation.activatedAt || activation.createdAt;
+          const createdAt = new Date(referenceDate);
+          const now = new Date();
+          const diffMs = now.getTime() - createdAt.getTime();
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+          const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+          return {
+            id: activation.id,
+            name: activation.name,
+            description: activation.description || `Agent instance for ${activation.agentName}`,
+            status,
+            template: activation.agentName,
+            uptime: status === 'active' ? `${diffHours}h ${diffMinutes}m` : undefined,
+            lastActive: status !== 'active' ? (diffHours > 0 ? `${diffHours}h ago` : `${diffMinutes}m ago`) : undefined,
+            tasksCompleted: 0, // This would need to come from a different endpoint
+            variant,
+          };
+        });
+
+        setAgents(mappedAgents);
+      } catch (error) {
+        console.error('[AgentsPage] Error fetching activations:', error);
+        showErrorToast(error, 'Failed to load agent activations');
+        setAgents([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchActivations();
+  }, [currentTenantId]);
+
+  const openSlider = (agent: Agent, type: SliderType = 'actions') => {
     setSelectedAgent(agent);
     setSliderType(type);
   };
@@ -90,12 +221,511 @@ export default function AgentsPage() {
     setSelectedAgent(null);
   };
 
+  const handleCardClick = (agent: Agent) => {
+    openSlider(agent, 'actions');
+  };
+
+  const handleDeleteClick = (agent: Agent) => {
+    setAgentToDelete(agent);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeactivateClick = (agent: Agent) => {
+    setAgentToDeactivate(agent);
+    setShowDeactivateDialog(true);
+  };
+
+  const handleDeactivate = async () => {
+    if (!currentTenantId || !agentToDeactivate) {
+      return;
+    }
+
+    setIsDeactivating(true);
+
+    try {
+      const response = await fetch(
+        `/api/tenants/${currentTenantId}/agent-activations/${agentToDeactivate.id}/deactivate`,
+        {
+          method: 'POST',
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || 'Failed to deactivate agent');
+      }
+
+      showSuccessToast(
+        `Agent Deactivated`,
+        `${agentToDeactivate.name} has been deactivated and stopped running`,
+        {
+          icon: '⏸️'
+        }
+      );
+      
+      setShowDeactivateDialog(false);
+      closeSlider();
+      
+      // Refresh the agents list
+      const activationsResponse = await fetch(`/api/tenants/${currentTenantId}/agent-activations`);
+      if (activationsResponse.ok) {
+        const activationsData = await activationsResponse.json();
+        const activations = Array.isArray(activationsData) ? activationsData : [];
+        
+        activations.sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+        
+        const mappedAgents: Agent[] = activations.map((activation: any, index: number) => {
+          const variants: Array<'primary' | 'secondary' | 'accent'> = ['primary', 'secondary', 'accent'];
+          const variant = variants[index % variants.length];
+
+          let status: AgentStatus = 'inactive';
+          if (activation.isActive && activation.activatedAt) {
+            status = 'active';
+          } else if (activation.deactivatedAt) {
+            status = 'inactive';
+          } else {
+            status = 'inactive';
+          }
+
+          const referenceDate = activation.activatedAt || activation.createdAt;
+          const createdAt = new Date(referenceDate);
+          const now = new Date();
+          const diffMs = now.getTime() - createdAt.getTime();
+          const diffMinutes = Math.floor(diffMs / 60000);
+          const diffHours = Math.floor(diffMinutes / 60);
+
+          return {
+            id: activation.id,
+            name: activation.name,
+            description: activation.description || `Agent instance for ${activation.agentName}`,
+            status,
+            template: activation.agentName,
+            uptime: status === 'active' ? `${diffHours}h ${diffMinutes}m` : undefined,
+            lastActive: status !== 'active' ? (diffHours > 0 ? `${diffHours}h ago` : `${diffMinutes}m ago`) : undefined,
+            tasksCompleted: Math.floor(Math.random() * 100),
+            variant,
+          };
+        });
+
+        setAgents(mappedAgents);
+      }
+      
+      setAgentToDeactivate(null);
+    } catch (error) {
+      console.error('[AgentsPage] Error deactivating instance:', error);
+      showErrorToast(error, 'Failed to deactivate agent');
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const handleDeleteInstance = async () => {
+    if (!currentTenantId || !agentToDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(
+        `/api/tenants/${currentTenantId}/agent-activations/${agentToDelete.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Handle specific error cases
+        if (response.status === 409) {
+          throw new Error(errorData.message || 'Cannot delete an active agent. Please deactivate it first.');
+        }
+        
+        throw {
+          status: response.status,
+          message: errorData.message || errorData.error || 'Failed to delete agent instance',
+          error: errorData.error,
+          details: errorData.details,
+        };
+      }
+
+      showSuccessToast(
+        `Agent Deleted Successfully`,
+        `${agentToDelete.name} has been permanently removed from your workspace`,
+        {
+          icon: '🗑️'
+        }
+      );
+      
+      setShowDeleteDialog(false);
+      closeSlider();
+      
+      // Refresh the agents list
+      setAgents((prevAgents) => prevAgents.filter((a) => a.id !== agentToDelete.id));
+      setAgentToDelete(null);
+    } catch (error) {
+      console.error('[AgentsPage] Error deleting instance:', error);
+      showErrorToast(error, 'Failed to delete agent instance');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Validation functions
+  const validateParameterValue = (value: string, type: string): { isValid: boolean; error?: string } => {
+    if (!value || value.trim() === '') {
+      return { isValid: false, error: 'This field is required' };
+    }
+
+    switch (type) {
+      case 'Int32':
+        const intValue = parseInt(value, 10);
+        if (isNaN(intValue)) {
+          return { isValid: false, error: 'Must be a valid integer' };
+        }
+        if (!Number.isInteger(Number(value))) {
+          return { isValid: false, error: 'Must be a whole number' };
+        }
+        break;
+      
+      case 'Decimal':
+        const decimalValue = parseFloat(value);
+        if (isNaN(decimalValue)) {
+          return { isValid: false, error: 'Must be a valid number' };
+        }
+        break;
+      
+      case 'String':
+        // String validation - just check it's not empty (already done above)
+        break;
+      
+      default:
+        // For unknown types, just check it's not empty
+        break;
+    }
+
+    return { isValid: true };
+  };
+
+  const validateCurrentWorkflow = (): boolean => {
+    if (!wizardData) return false;
+
+    const currentWorkflow = wizardData.workflows[currentWorkflowIndex];
+    const inputs = workflowInputs[currentWorkflow.workflowType] || {};
+    const errors: Record<string, string> = {};
+    let isValid = true;
+
+    currentWorkflow.parameterDefinitions.forEach((param) => {
+      if (!param.optional) {
+        const value = inputs[param.name] || '';
+        const validation = validateParameterValue(value, param.type);
+        
+        if (!validation.isValid) {
+          errors[param.name] = validation.error || 'Invalid value';
+          isValid = false;
+        }
+      } else if (inputs[param.name]) {
+        // Validate optional fields only if they have a value
+        const validation = validateParameterValue(inputs[param.name], param.type);
+        if (!validation.isValid) {
+          errors[param.name] = validation.error || 'Invalid value';
+          isValid = false;
+        }
+      }
+    });
+
+    setValidationErrors((prev) => ({
+      ...prev,
+      [currentWorkflow.workflowType]: errors,
+    }));
+
+    return isValid;
+  };
+
+  const handleActivateClick = async (agent: Agent) => {
+    if (!currentTenantId) {
+      showErrorToast(new Error('No tenant selected'), 'Failed to activate agent');
+      return;
+    }
+
+    // Close the agent actions slider
+    closeSlider();
+
+    setIsLoadingWizard(true);
+    setShowActivationWizard(true);
+
+    try {
+      // Fetch agent deployment details
+      const response = await fetch(
+        `/api/tenants/${currentTenantId}/agents/${encodeURIComponent(agent.template)}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch agent deployment details');
+      }
+
+      const data = await response.json();
+
+      // Filter workflows that have parameters and are activable
+      const workflowsWithParams = data.definitions
+        .filter((def: any) => 
+          def.parameterDefinitions && 
+          def.parameterDefinitions.length > 0 && 
+          def.activable === true
+        )
+        .map((def: any) => ({
+          id: def.id,
+          workflowType: def.workflowType,
+          name: def.name,
+          summary: def.summary,
+          parameterDefinitions: def.parameterDefinitions,
+          activable: def.activable,
+        }));
+
+      setWizardData({
+        activationId: agent.id, // Store the activation ID
+        agent: {
+          id: data.agent.id,
+          name: data.agent.name,
+          description: data.agent.description,
+        },
+        workflows: workflowsWithParams,
+      });
+
+      setCurrentWorkflowIndex(0);
+
+      // Fetch the activation record to get existing workflowConfiguration
+      try {
+        const activationResponse = await fetch(
+          `/api/tenants/${currentTenantId}/agent-activations`
+        );
+
+        if (activationResponse.ok) {
+          const activations = await activationResponse.json();
+          const currentActivation = Array.isArray(activations)
+            ? activations.find((a: any) => a.id === agent.id)
+            : null;
+
+          if (currentActivation?.workflowConfiguration?.workflows) {
+            // Pre-populate inputs from existing workflowConfiguration
+            const existingInputs: Record<string, Record<string, string>> = {};
+
+            currentActivation.workflowConfiguration.workflows.forEach((workflow: any) => {
+              if (workflow.inputs && Array.isArray(workflow.inputs)) {
+                existingInputs[workflow.workflowType] = {};
+                workflow.inputs.forEach((input: any) => {
+                  existingInputs[workflow.workflowType][input.name] = input.value;
+                });
+              }
+            });
+
+            console.log('[AgentsPage] Pre-populating inputs from activation record:', existingInputs);
+            setWorkflowInputs(existingInputs);
+          } else {
+            setWorkflowInputs({});
+          }
+        } else {
+          // If fetching activations fails, just start with empty inputs
+          setWorkflowInputs({});
+        }
+      } catch (activationError) {
+        console.warn('[AgentsPage] Failed to fetch activation record for pre-population:', activationError);
+        // Continue with empty inputs if fetching activation fails
+        setWorkflowInputs({});
+      }
+
+      setValidationErrors({});
+    } catch (error) {
+      console.error('[AgentsPage] Error fetching agent deployment:', error);
+      showErrorToast(error, 'Failed to load activation wizard');
+      setShowActivationWizard(false);
+    } finally {
+      setIsLoadingWizard(false);
+    }
+  };
+
+  const handleWizardNext = () => {
+    if (!validateCurrentWorkflow()) {
+      showErrorToast(
+        new Error('Please fill in all required fields with valid values'),
+        'Validation Error'
+      );
+      return;
+    }
+
+    if (wizardData && currentWorkflowIndex < wizardData.workflows.length - 1) {
+      setCurrentWorkflowIndex(currentWorkflowIndex + 1);
+    }
+  };
+
+  const handleWizardBack = () => {
+    if (currentWorkflowIndex > 0) {
+      setCurrentWorkflowIndex(currentWorkflowIndex - 1);
+    }
+  };
+
+  const handleWorkflowInputChange = (workflowType: string, paramName: string, value: string) => {
+    setWorkflowInputs((prev) => ({
+      ...prev,
+      [workflowType]: {
+        ...prev[workflowType],
+        [paramName]: value,
+      },
+    }));
+
+    // Clear validation error for this field when user types
+    setValidationErrors((prev) => ({
+      ...prev,
+      [workflowType]: {
+        ...prev[workflowType],
+        [paramName]: '',
+      },
+    }));
+  };
+
+  const handleActivateAgent = async () => {
+    if (!currentTenantId || !wizardData) {
+      return;
+    }
+
+    // Validate current workflow before activation
+    if (!validateCurrentWorkflow()) {
+      showErrorToast(
+        new Error('Please fill in all required fields with valid values'),
+        'Validation Error'
+      );
+      return;
+    }
+
+    setIsActivating(true);
+
+    try {
+      // Build workflow configuration
+      const workflows = wizardData.workflows.map((workflow) => {
+        const inputs = workflowInputs[workflow.workflowType] || {};
+        // Get valid parameter names from the current workflow definition
+        const validParamNames = new Set(
+          workflow.parameterDefinitions.map((param) => param.name)
+        );
+        
+        // Filter inputs to only include parameters defined in the current workflow
+        const filteredInputs = Object.entries(inputs)
+          .filter(([name]) => validParamNames.has(name))
+          .map(([name, value]) => ({
+            name,
+            value,
+          }));
+        
+        return {
+          workflowType: workflow.workflowType,
+          inputs: filteredInputs,
+        };
+      });
+
+      const response = await fetch(
+        `/api/tenants/${currentTenantId}/agent-activations/${wizardData.activationId}/activate`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            workflowConfiguration: {
+              workflows,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw {
+          status: response.status,
+          message: errorData.error || errorData.message || 'Failed to activate agent',
+          error: errorData.error,
+          details: errorData.details,
+        };
+      }
+
+      showSuccessToast(
+        'Agent Activated Successfully',
+        `${wizardData.agent.name} is now active and ready to use`,
+        { icon: '✅' }
+      );
+
+      setShowActivationWizard(false);
+      setWizardData(null);
+      setWorkflowInputs({});
+      setValidationErrors({});
+      setCurrentWorkflowIndex(0);
+      closeSlider();
+
+      // Refresh the agents list
+      const activationsResponse = await fetch(`/api/tenants/${currentTenantId}/agent-activations`);
+      if (activationsResponse.ok) {
+        const activationsData = await activationsResponse.json();
+        const activations = Array.isArray(activationsData) ? activationsData : [];
+        
+        activations.sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+        
+        const mappedAgents: Agent[] = activations.map((activation: any, index: number) => {
+          const variants: Array<'primary' | 'secondary' | 'accent'> = ['primary', 'secondary', 'accent'];
+          const variant = variants[index % variants.length];
+
+          let status: AgentStatus = 'inactive';
+          if (activation.isActive && activation.activatedAt) {
+            status = 'active';
+          } else if (activation.deactivatedAt) {
+            status = 'inactive';
+          } else {
+            status = 'inactive';
+          }
+
+          const referenceDate = activation.activatedAt || activation.createdAt;
+          const createdAt = new Date(referenceDate);
+          const now = new Date();
+          const diffMs = now.getTime() - createdAt.getTime();
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+          const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+          return {
+            id: activation.id,
+            name: activation.name,
+            description: activation.description || `Agent instance for ${activation.agentName}`,
+            status,
+            template: activation.agentName,
+            uptime: status === 'active' ? `${diffHours}h ${diffMinutes}m` : undefined,
+            lastActive: status !== 'active' ? (diffHours > 0 ? `${diffHours}h ago` : `${diffMinutes}m ago`) : undefined,
+            tasksCompleted: 0,
+            variant,
+          };
+        });
+
+        setAgents(mappedAgents);
+      }
+    } catch (error) {
+      console.error('[AgentsPage] Error activating agent:', error);
+      showErrorToast(error, 'Failed to activate agent');
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Active Agent Instances</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Agent Instances</h1>
           <p className="text-muted-foreground mt-1">
             Manage and monitor your active AI agents
           </p>
@@ -108,127 +738,351 @@ export default function AgentsPage() {
         </Button>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-3 text-muted-foreground">Loading agent activations...</span>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && agents.length === 0 && (
+        <Card className="p-12">
+          <div className="text-center space-y-3">
+            <Bot className="h-12 w-12 mx-auto text-muted-foreground" />
+            <h3 className="text-lg font-medium">No Active Agents</h3>
+            <p className="text-muted-foreground">
+              You haven&apos;t activated any agents yet. Click &quot;Activate New Agent&quot; to get started.
+            </p>
+          </div>
+        </Card>
+      )}
+
       {/* Agents Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {agents.map((agent) => (
-          <Card key={agent.id} className="hover:shadow-md transition-shadow">
+      {!isLoading && agents.length > 0 && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {agents.map((agent) => {
+            const isNewlyCreated = newlyCreatedId === agent.id;
+            
+            // Generate color based on template name for visual distinction
+            const getTemplateColor = (template: string) => {
+              const colors = [
+                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+                'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+                'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300 border-pink-200 dark:border-pink-800',
+                'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800',
+                'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+              ];
+              const hash = template.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              return colors[hash % colors.length];
+            };
+            
+            return (
+          <Card 
+            key={agent.id} 
+            className={`hover:shadow-lg transition-all duration-300 cursor-pointer ${
+              isNewlyCreated 
+                ? 'border-2 border-green-500' 
+                : ''
+            }`}
+            onClick={() => handleCardClick(agent)}
+          >
             <CardHeader>
               <div className="flex items-start justify-between">
                 <IconAvatar icon={Bot} variant={agent.variant} size="lg" rounded="md" />
-                <Badge 
-                  variant={AGENT_STATUS_CONFIG[agent.status].variant}
-                  className={AGENT_STATUS_CONFIG[agent.status].colors.badge}
-                >
-                  {AGENT_STATUS_CONFIG[agent.status].label}
+                <div className="flex flex-col gap-1.5 items-end">
+                  {isNewlyCreated && (
+                    <Badge 
+                      variant="default" 
+                      className="text-xs font-semibold bg-green-600 hover:bg-green-600"
+                    >
+                      NEW
+                    </Badge>
+                  )}
+                  <Badge 
+                    variant={AGENT_STATUS_CONFIG[agent.status].variant}
+                    className={AGENT_STATUS_CONFIG[agent.status].colors.badge}
+                  >
+                    {AGENT_STATUS_CONFIG[agent.status].label}
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-3">
+                <Badge variant="outline" className={`font-semibold text-xs border ${getTemplateColor(agent.template)}`}>
+                  {agent.template}
                 </Badge>
               </div>
-              <CardTitle className="mt-4">{agent.name}</CardTitle>
+              <CardTitle className="mt-2">{agent.name}</CardTitle>
               <CardDescription>{agent.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Template:</span>
-                  <span className="font-medium">{agent.template}</span>
-                </div>
                 {agent.uptime && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Uptime:</span>
-                    <span className="font-medium">{agent.uptime}</span>
+                    <span className="text-xs text-muted-foreground">Uptime:</span>
+                    <span className="text-xs font-medium">{agent.uptime}</span>
                   </div>
                 )}
                 {agent.lastActive && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Last Active:</span>
-                    <span className="font-medium">{agent.lastActive}</span>
+                  <div className="text-sm">
+                    <span className="text-xs text-muted-foreground">Last Modified: </span>
+                    <span className="text-xs font-medium">{agent.lastActive}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Tasks Completed:</span>
-                  <span className="font-medium">{agent.tasksCompleted}</span>
-                </div>
-
-                <Separator className="my-3" />
-
-                {/* Action Links */}
-                <div className="space-y-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full justify-start transition-all hover:bg-primary/10 hover:text-primary hover:border-primary/50 hover:translate-x-1 group"
-                    asChild
-                  >
-                    <Link href={`/conversations?agent=${agent.id}`}>
-                      <MessageSquare className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                      Talk to the Agent
-                    </Link>
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full justify-start transition-all hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/50 hover:translate-x-1 group"
-                    asChild
-                  >
-                    <Link href={`/tasks?agents=${encodeURIComponent(agent.name)}`}>
-                      <ListTodo className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                      See Agent Tasks
-                    </Link>
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full justify-start transition-all hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/50 hover:translate-x-1 group"
-                    asChild
-                  >
-                    <Link href={`/knowledge?agents=${encodeURIComponent(agent.name)}`}>
-                      <BookOpen className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                      View Agent Knowledge
-                    </Link>
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full justify-start transition-all hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-500/50 hover:translate-x-1 group"
-                    onClick={() => openSlider(agent, 'configure')}
-                  >
-                    <Settings className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
-                    Configure
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full justify-start transition-all hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/50 hover:translate-x-1 group"
-                    onClick={() => openSlider(agent, 'activity')}
-                  >
-                    <Activity className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                    Activity Logs
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full justify-start transition-all hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-500/50 hover:translate-x-1 group"
-                    onClick={() => openSlider(agent, 'performance')}
-                  >
-                    <TrendingUp className="mr-2 h-4 w-4 transition-transform group-hover:scale-110 group-hover:translate-y-[-2px]" />
-                    Performance
-                  </Button>
+                
+                <div className="pt-3 text-center">
+                  <p className="text-xs text-muted-foreground">Click to view actions</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Right Slider for Configure, Activity Logs, and Performance */}
+      {/* Right Slider for Agent Actions */}
       <Sheet open={sliderType !== null} onOpenChange={closeSlider}>
         <SheetContent className="flex flex-col p-0">
           {selectedAgent && (
             <>
+              {sliderType === 'actions' && selectedAgent.status === 'active' && (
+                <>
+                  <SheetHeader className="px-6 pt-6 pb-4">
+                    <div className="flex items-start gap-3">
+                      <IconAvatar icon={Bot} variant={selectedAgent.variant} size="lg" rounded="md" />
+                      <div className="flex-1">
+                        <SheetTitle className="text-lg">{selectedAgent.name}</SheetTitle>
+                        <SheetDescription className="text-sm mt-1">
+                          {selectedAgent.description}
+                        </SheetDescription>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge 
+                            variant={AGENT_STATUS_CONFIG[selectedAgent.status].variant}
+                            className={AGENT_STATUS_CONFIG[selectedAgent.status].colors.badge}
+                          >
+                            {AGENT_STATUS_CONFIG[selectedAgent.status].label}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {selectedAgent.template}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </SheetHeader>
+
+                  <Separator />
+
+                  <div className="flex-1 overflow-y-auto px-6 py-6">
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-4">Agent Actions</h3>
+                      
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-primary/10 hover:text-primary hover:border-primary/50 hover:translate-x-1 group h-auto py-3"
+                        asChild
+                      >
+                        <Link href={`/conversations?agent-name=${encodeURIComponent(selectedAgent.template)}&activation-name=${encodeURIComponent(selectedAgent.name)}`}>
+                          <MessageSquare className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                          <div className="flex-1 text-left">
+                            <div className="font-medium">Talk to the Agent</div>
+                            <div className="text-xs text-muted-foreground">Start a conversation</div>
+                          </div>
+                        </Link>
+                      </Button>
+                      
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/50 hover:translate-x-1 group h-auto py-3"
+                        asChild
+                      >
+                        <Link href={`/tasks?agents=${encodeURIComponent(selectedAgent.name)}`}>
+                          <ListTodo className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                          <div className="flex-1 text-left">
+                            <div className="font-medium">See Agent Tasks</div>
+                            <div className="text-xs text-muted-foreground">View all tasks</div>
+                          </div>
+                        </Link>
+                      </Button>
+                      
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/50 hover:translate-x-1 group h-auto py-3"
+                        asChild
+                      >
+                        <Link href={`/knowledge?agents=${encodeURIComponent(selectedAgent.name)}`}>
+                          <BookOpen className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                          <div className="flex-1 text-left">
+                            <div className="font-medium">View Agent Knowledge</div>
+                            <div className="text-xs text-muted-foreground">Browse knowledge base</div>
+                          </div>
+                        </Link>
+                      </Button>
+
+                      <Separator className="my-4" />
+                      
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-500/50 hover:translate-x-1 group h-auto py-3"
+                        onClick={() => openSlider(selectedAgent, 'configure')}
+                      >
+                        <Settings className="mr-3 h-5 w-5 transition-transform group-hover:rotate-90" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Configure</div>
+                          <div className="text-xs text-muted-foreground">Adjust agent settings</div>
+                        </div>
+                      </Button>
+                      
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/50 hover:translate-x-1 group h-auto py-3"
+                        onClick={() => openSlider(selectedAgent, 'activity')}
+                      >
+                        <Activity className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Activity Logs</div>
+                          <div className="text-xs text-muted-foreground">View recent activity</div>
+                        </div>
+                      </Button>
+                      
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-500/50 hover:translate-x-1 group h-auto py-3"
+                        onClick={() => openSlider(selectedAgent, 'performance')}
+                      >
+                        <TrendingUp className="mr-3 h-5 w-5 transition-transform group-hover:scale-110 group-hover:translate-y-[-2px]" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Performance</div>
+                          <div className="text-xs text-muted-foreground">View metrics & stats</div>
+                        </div>
+                      </Button>
+
+                      <Separator className="my-4" />
+
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/50 hover:translate-x-1 group h-auto py-3"
+                        onClick={() => handleDeactivateClick(selectedAgent)}
+                      >
+                        <Power className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Deactivate Agent</div>
+                          <div className="text-xs text-muted-foreground">Stop this agent instance</div>
+                        </div>
+                      </Button>
+
+                      <Button
+                        size="default"
+                        variant="outline"
+                        className="w-full justify-start transition-all hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/50 hover:translate-x-1 group h-auto py-3"
+                        onClick={() => handleDeleteClick(selectedAgent)}
+                        disabled={selectedAgent.status === 'active'}
+                      >
+                        <Trash2 className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Delete Instance</div>
+                          <div className="text-xs text-muted-foreground">
+                            {selectedAgent.status === 'active' 
+                              ? 'Deactivate first to delete' 
+                              : 'Permanently remove this agent'}
+                          </div>
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {sliderType === 'actions' && selectedAgent.status === 'inactive' && (
+                <>
+                  <SheetHeader className="px-6 pt-6 pb-4">
+                    <div className="flex items-start gap-3">
+                      <IconAvatar icon={Bot} variant={selectedAgent.variant} size="lg" rounded="md" />
+                      <div className="flex-1">
+                        <SheetTitle className="text-lg">{selectedAgent.name}</SheetTitle>
+                        <SheetDescription className="text-sm mt-1">
+                          {selectedAgent.description}
+                        </SheetDescription>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge 
+                            variant={AGENT_STATUS_CONFIG[selectedAgent.status].variant}
+                            className={AGENT_STATUS_CONFIG[selectedAgent.status].colors.badge}
+                          >
+                            {AGENT_STATUS_CONFIG[selectedAgent.status].label}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {selectedAgent.template}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </SheetHeader>
+
+
+                  <div className="flex-1 overflow-y-auto px-6 py-6">
+                    <div className="space-y-4">
+                      {/* Info Section */}
+                      <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <Info className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h4 className="text-sm font-medium text-yellow-900 dark:text-yellow-200">Agent is Inactive</h4>
+                            <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                              This agent instance is currently deactivated and not running. Activate it to start using its capabilities.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+
+                      {/* Actions */}
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-muted-foreground">Available Actions</h3>
+                        
+                        <Button
+                          size="default"
+                          variant="default"
+                          className="w-full justify-start transition-all hover:translate-x-1 group h-auto py-3"
+                          onClick={() => handleActivateClick(selectedAgent)}
+                        >
+                          <Power className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                          <div className="flex-1 text-left">
+                            <div className="font-medium">Activate Agent</div>
+                            <div className="text-xs opacity-90">Start this agent instance</div>
+                          </div>
+                        </Button>
+
+                        <Separator className="my-4" />
+
+                        <Button
+                          size="default"
+                          variant="outline"
+                          className="w-full justify-start transition-all hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/50 hover:translate-x-1 group h-auto py-3"
+                          onClick={() => handleDeleteClick(selectedAgent)}
+                        >
+                          <Trash2 className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
+                          <div className="flex-1 text-left">
+                            <div className="font-medium">Delete Instance</div>
+                            <div className="text-xs text-muted-foreground">Permanently remove this agent</div>
+                          </div>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               {sliderType === 'configure' && (
                 <>
                   <SheetHeader className="px-6 pt-6">
@@ -446,6 +1300,376 @@ export default function AgentsPage() {
                   </div>
                 </>
               )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Deactivate Confirmation Dialog */}
+      <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                <Power className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle>Deactivate Agent Instance</DialogTitle>
+                <DialogDescription className="mt-1">
+                  Stop this agent from running
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="rounded-lg border border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/30 p-4">
+              <p className="text-sm text-foreground">
+                Are you sure you want to deactivate{' '}
+                <span className="font-semibold text-orange-900 dark:text-orange-200">
+                  {agentToDeactivate?.name}
+                </span>
+                ?
+              </p>
+              {agentToDeactivate?.description && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {agentToDeactivate.description}
+                </p>
+              )}
+              <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-900">
+                <p className="text-xs text-muted-foreground">
+                  This will stop the agent from processing new tasks and conversations. You can reactivate it later.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeactivateDialog(false)}
+              disabled={isDeactivating}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              onClick={handleDeactivate}
+              disabled={isDeactivating}
+            >
+              {isDeactivating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deactivating...
+                </>
+              ) : (
+                <>
+                  <Power className="mr-2 h-4 w-4" />
+                  Deactivate Agent
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle>Delete Agent Instance</DialogTitle>
+                <DialogDescription className="mt-1">
+                  This action cannot be undone
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {agentToDelete?.status === 'active' && (
+              <div className="rounded-lg border border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/30 p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-medium text-orange-900 dark:text-orange-200">Agent is Active</h4>
+                    <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                      This agent is currently running. You must deactivate it before you can delete it.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+              <p className="text-sm text-foreground">
+                Are you sure you want to delete{' '}
+                <span className="font-semibold text-destructive">
+                  {agentToDelete?.name}
+                </span>
+                ?
+              </p>
+              {agentToDelete?.description && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {agentToDelete.description}
+                </p>
+              )}
+              <div className="mt-3 pt-3 border-t border-destructive/10">
+                <p className="text-xs text-muted-foreground">
+                  All conversations, tasks, and activity logs associated with this agent instance will be permanently deleted.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteInstance}
+              disabled={isDeleting || agentToDelete?.status === 'active'}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Instance
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activation Wizard Slider */}
+      <Sheet open={showActivationWizard} onOpenChange={setShowActivationWizard}>
+        <SheetContent className="flex flex-col p-0 sm:max-w-[600px]">
+          <SheetHeader className="px-6 pt-6 pb-4">
+            <div className="flex items-start gap-3">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Power className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <SheetTitle className="text-lg">Activate Agent</SheetTitle>
+                <SheetDescription className="text-sm mt-1">
+                  {wizardData ? wizardData.agent.name : 'Loading...'}
+                </SheetDescription>
+              </div>
+            </div>
+          </SheetHeader>
+
+
+          {isLoadingWizard && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Loading activation wizard...</span>
+            </div>
+          )}
+
+          {!isLoadingWizard && wizardData && wizardData.workflows.length === 0 && (
+            <div className="flex-1 px-6 py-8">
+              <div className="text-center space-y-3">
+                <CheckCircle className="h-12 w-12 mx-auto text-green-600" />
+                <h3 className="text-lg font-medium">No Configuration Needed</h3>
+                <p className="text-muted-foreground">
+                  This agent doesn&apos;t require any workflow parameters. Click activate to start the agent.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!isLoadingWizard && wizardData && wizardData.workflows.length > 0 && (
+            <>
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <div className="space-y-6">
+                  {/* Progress Indicator - Only show if more than one workflow */}
+                  {wizardData.workflows.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      {wizardData.workflows.map((workflow, index) => (
+                        <div key={workflow.id} className="flex items-center flex-1">
+                          <div
+                            className={`flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-medium transition-colors ${
+                              index === currentWorkflowIndex
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : index < currentWorkflowIndex
+                                ? 'border-green-600 bg-green-600 text-white'
+                                : 'border-muted bg-background text-muted-foreground'
+                            }`}
+                          >
+                            {index < currentWorkflowIndex ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              index + 1
+                            )}
+                          </div>
+                          {index < wizardData.workflows.length - 1 && (
+                            <div
+                              className={`flex-1 h-0.5 mx-2 ${
+                                index < currentWorkflowIndex ? 'bg-green-600' : 'bg-muted'
+                              }`}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Current Workflow Form */}
+                  {(() => {
+                    const currentWorkflow = wizardData.workflows[currentWorkflowIndex];
+                    return (
+                      <div className="space-y-4">
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h3 className="font-semibold text-lg">
+                            {currentWorkflow.name || 'Workflow Configuration'}
+                          </h3>
+                          {wizardData.workflows.length > 1 && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Step {currentWorkflowIndex + 1} of {wizardData.workflows.length}
+                            </p>
+                          )}
+                          {currentWorkflow.summary && (
+                            <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
+                              {currentWorkflow.summary}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-4">
+                          {currentWorkflow.parameterDefinitions.map((param) => {
+                            const hasError = validationErrors[currentWorkflow.workflowType]?.[param.name];
+                            return (
+                              <div key={param.name} className="space-y-2">
+                                <Label htmlFor={param.name}>
+                                  {param.name}
+                                  {!param.optional && <span className="text-red-500 ml-1">*</span>}
+                                </Label>
+                                {param.description && (
+                                  <p className="text-xs text-muted-foreground">{param.description}</p>
+                                )}
+                                <Input
+                                  id={param.name}
+                                  type={param.type === 'Int32' || param.type === 'Decimal' ? 'number' : 'text'}
+                                  step={param.type === 'Decimal' ? '0.01' : undefined}
+                                  placeholder={`Enter ${param.name.toLowerCase()}`}
+                                  value={
+                                    workflowInputs[currentWorkflow.workflowType]?.[param.name] || ''
+                                  }
+                                  onChange={(e) =>
+                                    handleWorkflowInputChange(
+                                      currentWorkflow.workflowType,
+                                      param.name,
+                                      e.target.value
+                                    )
+                                  }
+                                  required={!param.optional}
+                                  className={hasError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                />
+                                {hasError ? (
+                                  <p className="text-xs text-red-500">{hasError}</p>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">Type: {param.type}</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="px-6 py-4 flex-shrink-0">
+                <div className="flex items-center justify-between w-full">
+                  <div>
+                    {wizardData && wizardData.workflows.length > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={handleWizardBack}
+                        disabled={currentWorkflowIndex === 0 || isActivating}
+                      >
+                        <ChevronLeft className="mr-2 h-4 w-4" />
+                        Back
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowActivationWizard(false)}
+                      disabled={isActivating}
+                    >
+                      Cancel
+                    </Button>
+                    {wizardData && currentWorkflowIndex < wizardData.workflows.length - 1 ? (
+                      <Button onClick={handleWizardNext} disabled={isActivating}>
+                        Next
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button onClick={handleActivateAgent} disabled={isActivating}>
+                        {isActivating ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Activating...
+                          </>
+                        ) : (
+                          <>
+                            <Power className="mr-2 h-4 w-4" />
+                            Activate
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {!isLoadingWizard && wizardData && wizardData.workflows.length === 0 && (
+            <>
+              <Separator />
+              <div className="px-6 py-4 flex-shrink-0">
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowActivationWizard(false)}
+                    disabled={isActivating}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleActivateAgent} disabled={isActivating}>
+                    {isActivating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Activating...
+                      </>
+                    ) : (
+                      <>
+                        <Power className="mr-2 h-4 w-4" />
+                        Activate
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </>
           )}
         </SheetContent>

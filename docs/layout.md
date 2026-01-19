@@ -280,12 +280,12 @@ export function Header() {
 - **Icon:** Robot / Bot
 - **Sub-items:**
   - All Agents
-  - Active Agents
+  - Agent Instances
   - Deploy Agent (action)
   - Agent History
 - **Badge:** Count of running agents
 
-#### 4. Agent Templates
+#### 4. Available Agents
 - **Icon:** Document / Template
 - **Sub-items:**
   - All Templates

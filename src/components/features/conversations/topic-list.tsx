@@ -14,6 +14,23 @@ interface TopicListProps {
   selectedTopicId: string;
   onSelectTopic: (topicId: string) => void;
   onCreateTopic?: () => void;
+  unreadCounts?: Record<string, number>;
+}
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return date.toLocaleDateString();
 }
 
 export function TopicList({
@@ -21,6 +38,7 @@ export function TopicList({
   selectedTopicId,
   onSelectTopic,
   onCreateTopic,
+  unreadCounts = {},
 }: TopicListProps) {
   return (
     <div className="flex flex-col h-full border-r bg-background">
@@ -49,6 +67,8 @@ export function TopicList({
         {topics.map((topic) => {
           const StatusIcon = TOPIC_STATUS_CONFIG[topic.status].icon;
           const isSelected = topic.id === selectedTopicId;
+          const isGeneralTopic = topic.id === 'general-discussions';
+          const unreadCount = unreadCounts[topic.id] || 0;
 
           return (
             <button
@@ -59,6 +79,7 @@ export function TopicList({
                 'border-b border-border/60 last:border-b-0',
                 'hover:bg-accent/20 hover:border-border',
                 isSelected && 'bg-accent/30 border-border shadow-inner',
+                isGeneralTopic && 'bg-primary/5 border-b-2 border-primary/20',
                 'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:transition-all before:duration-200',
                 isSelected 
                   ? 'before:opacity-100 before:bg-primary before:shadow-[2px_0_8px_rgba(var(--primary),0.3)]'
@@ -82,13 +103,23 @@ export function TopicList({
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className={cn(
-                    "font-medium text-sm truncate leading-snug transition-colors duration-200",
-                    isSelected && "text-foreground font-semibold",
-                    !isSelected && "text-foreground/90"
-                  )}>
-                    {topic.name}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className={cn(
+                      "font-medium text-sm truncate leading-snug transition-colors duration-200",
+                      isSelected && "text-foreground font-semibold",
+                      !isSelected && "text-foreground/90"
+                    )}>
+                      {topic.name}
+                    </h3>
+                    {unreadCount > 0 && (
+                      <Badge 
+                        variant="default" 
+                        className="h-5 min-w-[20px] px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground animate-pulse"
+                      >
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Badge>
+                    )}
+                  </div>
                   {topic.isDefault && (
                     <Badge variant="outline" className="h-4 px-1.5 text-[10px] mt-1.5 font-medium border-primary/30 text-primary bg-primary/5">
                       Default
@@ -102,7 +133,7 @@ export function TopicList({
                 "flex items-center gap-2 ml-[42px] text-xs transition-colors duration-200",
                 isSelected ? "text-muted-foreground" : "text-muted-foreground/80"
               )}>
-                <span className="font-medium">{topic.messages.length} msg</span>
+                <span className="font-medium">{topic.messageCount ?? topic.messages.length} msg</span>
                 
                 <span className="text-muted-foreground/50">•</span>
                 
@@ -119,7 +150,7 @@ export function TopicList({
                   ) : null;
                 })()}
 
-                <span className="capitalize font-medium">{topic.status}</span>
+                <span className="font-medium">{formatRelativeTime(topic.lastMessageAt || topic.createdAt)}</span>
               </div>
             </button>
           );
