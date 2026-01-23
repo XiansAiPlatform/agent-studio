@@ -9,14 +9,16 @@ import {
   Topic,
   Message,
 } from '@/lib/data/dummy-conversations';
-import { ChatInterface, TopicList } from '@/components/features/conversations';
-import { Bot, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChatInterface, TopicList, ActivationOption, ConversationHeader } from '@/components/features/conversations';
+import { Bot, Loader2, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
+import { Input } from '@/components/ui/input';
 import { XiansTopicsResponse, XiansMessageHistoryResponse, XiansMessage } from '@/lib/xians/types';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { Button } from '@/components/ui/button';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 function ConversationsContent() {
   const searchParams = useSearchParams();
@@ -46,6 +48,12 @@ function ConversationsContent() {
   const [messagePages, setMessagePages] = useState<Record<string, number>>({});
   const [hasMoreMessages, setHasMoreMessages] = useState<Record<string, boolean>>({});
   const [initialLoadComplete, setInitialLoadComplete] = useState<Record<string, boolean>>({});
+
+  // Agent activation selector state
+  const [activations, setActivations] = useState<ActivationOption[]>([]);
+  const [isLoadingActivations, setIsLoadingActivations] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
 
   // Handle incoming SSE messages
   const handleIncomingMessage = useCallback((xiansMessage: XiansMessage) => {
@@ -153,6 +161,74 @@ function ConversationsContent() {
     onConnect: handleSSEConnect,
     onDisconnect: handleSSEDisconnect,
   });
+
+  // Fetch available activations for the selector
+  useEffect(() => {
+    const fetchActivations = async () => {
+      if (!currentTenantId) {
+        return;
+      }
+
+      setIsLoadingActivations(true);
+      try {
+        // Fetch all activations (we'll filter client-side based on showActiveOnly)
+        const response = await fetch(
+          `/api/tenants/${currentTenantId}/agent-activations`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch activations');
+        }
+
+        const data = await response.json();
+        const activationsList = Array.isArray(data) ? data : [];
+
+        // Map to ActivationOption format
+        const mappedActivations: ActivationOption[] = activationsList.map((activation: any) => ({
+          id: activation.id,
+          name: activation.name,
+          agentName: activation.agentName,
+          isActive: activation.isActive,
+          description: activation.description,
+        }));
+
+        setActivations(mappedActivations);
+      } catch (error) {
+        console.error('[ConversationsPage] Error fetching activations:', error);
+        // Don't show error toast - this is a secondary feature
+        setActivations([]);
+      } finally {
+        setIsLoadingActivations(false);
+      }
+    };
+
+    fetchActivations();
+  }, [currentTenantId]);
+
+  // Handle agent deployment change (filter)
+  const handleAgentChange = useCallback((newAgentName: string | null) => {
+    // When agent changes, we might want to clear or update the activation selection
+    // For now, if the current activation is not from the new agent, clear it
+    if (newAgentName && agentName !== newAgentName) {
+      // Find first activation for this agent
+      const firstActivation = activations.find(a => a.agentName === newAgentName);
+      if (firstActivation) {
+        handleActivationChange(firstActivation.name, firstActivation.agentName);
+      }
+    }
+  }, [activations, agentName]);
+
+  // Handle activation selection change
+  const handleActivationChange = useCallback((newActivationName: string, newAgentName: string) => {
+    // Update URL with new agent and activation
+    const params = new URLSearchParams();
+    params.set('agent-name', newAgentName);
+    params.set('activation-name', newActivationName);
+    // Reset topic to general when changing activation
+    params.set('topic', 'general-discussions');
+    
+    router.push(`/conversations?${params.toString()}`, { scroll: false });
+  }, [router]);
 
   // Update URL when topic is selected
   const updateTopicInURL = useCallback((topicId: string) => {
@@ -634,34 +710,218 @@ function ConversationsContent() {
     // TODO: Implement API call to create new topic
   };
 
+  // Get selected topic
+  const selectedTopic = conversation?.topics.find(t => t.id === selectedTopicId);
+
   // Loading state
   if (isLoadingTopics) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-12">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">
+      <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-gradient-to-b from-background via-muted/5 to-background">
+        <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center mb-6 shadow-xl border border-primary/20">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground mb-3 tracking-tight">
           Loading Conversation
         </h2>
-        <p className="text-muted-foreground max-w-md">
+        <p className="text-muted-foreground/90 max-w-md font-medium">
           Fetching topics for {activationName || 'agent'}...
         </p>
       </div>
     );
   }
 
-  // No agent selected
+  // No agent selected - show nicely styled agent selection view
   if (!agentName && !agentId) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-12">
-        <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-          <Bot className="h-12 w-12 text-primary" />
+      <div className="flex h-full bg-gradient-to-br from-background via-muted/5 to-background">
+        <div className="flex-1 flex flex-col p-8 overflow-y-auto">
+          <div className="w-full max-w-4xl">
+            {/* Header Section */}
+            <div className="mb-4 mt-2">
+              <h2 className="text-lg font-semibold text-foreground mb-1">
+                Select an Agent
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">
+                Choose an activation to start chatting
+              </p>
+              
+              {/* Search and Filter */}
+              <div className="flex gap-2 items-center">
+                {/* All/Active Switch */}
+                <div className="inline-flex rounded-md border border-border bg-background p-0.5 flex-shrink-0">
+                  <button
+                    className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
+                      !showActiveOnly 
+                        ? 'bg-accent text-foreground' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    onClick={() => setShowActiveOnly(false)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      All
+                      <span className="text-[10px] opacity-60">
+                        ({activations.length})
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
+                      showActiveOnly 
+                        ? 'bg-accent text-foreground' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    onClick={() => setShowActiveOnly(true)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      Active
+                      <span className="text-[10px] opacity-60">
+                        ({activations.filter(a => a.isActive).length})
+                      </span>
+                    </span>
+                  </button>
+                </div>
+
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search agents..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Agent Activation List */}
+            <div>
+            {isLoadingActivations ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
+                <p className="text-muted-foreground text-sm">Loading available agents...</p>
+              </div>
+            ) : activations.length === 0 ? (
+              <div className="text-center py-12 bg-muted/20 rounded-xl border-2 border-dashed border-border">
+                <Bot className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Active Agents</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  You need to activate an agent before you can start a conversation
+                </p>
+                <Button
+                  onClick={() => router.push('/agents/running')}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Bot className="h-4 w-4 mr-2" />
+                  Go to Agents
+                </Button>
+              </div>
+            ) : (
+              (() => {
+                // Filter activations based on search query and active status
+                const filteredActivations = activations.filter((a) => {
+                  // Filter by active status
+                  if (showActiveOnly && !a.isActive) {
+                    return false;
+                  }
+                  
+                  // Filter by search query
+                  const query = searchQuery.toLowerCase();
+                  return (
+                    a.name.toLowerCase().includes(query) ||
+                    a.agentName.toLowerCase().includes(query) ||
+                    (a.description && a.description.toLowerCase().includes(query))
+                  );
+                });
+
+                // Group by agent name
+                const groupedActivations = filteredActivations.reduce((acc, a) => {
+                  if (!acc[a.agentName]) acc[a.agentName] = [];
+                  acc[a.agentName].push(a);
+                  return acc;
+                }, {} as Record<string, ActivationOption[]>);
+
+                // Show no results message if search returned nothing
+                if (searchQuery && filteredActivations.length === 0) {
+                  return (
+                    <div className="text-center py-8 bg-muted/10 rounded-lg border border-dashed border-border">
+                      <Search className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        No agents found matching "{searchQuery}"
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {Object.entries(groupedActivations).map(([agentName, agentActivations]) => (
+                  <div key={agentName} className="space-y-2">
+                    {/* Agent Name Header */}
+                    <div className="flex items-center gap-2 px-1 mb-1">
+                      <Bot className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">{agentName}</h3>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+
+                    {/* Activation List Items */}
+                    <div className="space-y-1.5">
+                      {agentActivations.map((activation) => {
+                        const isActive = activation.name === activationName && activation.agentName === agentName;
+                        return (
+                        <button
+                          key={activation.id}
+                          onClick={() => handleActivationChange(activation.name, activation.agentName)}
+                          className={cn(
+                            "group w-full border rounded-lg p-4 text-left transition-all duration-200",
+                            isActive 
+                              ? "bg-primary/10 border-primary shadow-md shadow-primary/10" 
+                              : "bg-card hover:bg-accent/80 border-border hover:border-primary/60 hover:shadow-md hover:translate-x-1"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Icon */}
+                            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:from-primary/30 group-hover:to-primary/20 transition-all">
+                              <Bot className="h-5 w-5 text-primary group-hover:text-primary-foreground transition-colors" />
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <h4 className="text-sm font-semibold text-foreground group-hover:text-primary-foreground truncate transition-colors">
+                                  {activation.name}
+                                </h4>
+                                {activation.isActive && (
+                                  <span className="flex items-center gap-1 text-xs text-emerald-600 group-hover:text-emerald-300 flex-shrink-0 transition-colors">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 group-hover:bg-emerald-400 transition-colors" />
+                                    Active
+                                  </span>
+                                )}
+                              </div>
+                              {activation.description && (
+                                <p className="text-xs text-muted-foreground group-hover:text-muted-foreground/80 line-clamp-1 transition-colors">
+                                  {activation.description}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Arrow */}
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary-foreground group-hover:translate-x-1 transition-all flex-shrink-0" />
+                          </div>
+                        </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                    ))}
+                  </div>
+                );
+              })()
+            )}
+            </div>
+          </div>
         </div>
-        <h2 className="text-2xl font-semibold text-foreground mb-2">
-          Select an Agent
-        </h2>
-        <p className="text-muted-foreground max-w-md">
-          Choose an agent to view conversations and start chatting
-        </p>
       </div>
     );
   }
@@ -669,14 +929,14 @@ function ConversationsContent() {
   // No conversation found
   if (!conversation) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-12">
-        <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-          <Bot className="h-12 w-12 text-primary" />
+      <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-gradient-to-b from-background via-muted/5 to-background">
+        <div className="h-28 w-28 rounded-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center mb-8 shadow-2xl border border-primary/20 animate-in fade-in zoom-in duration-500">
+          <Bot className="h-14 w-14 text-primary" />
         </div>
-        <h2 className="text-2xl font-semibold text-foreground mb-2">
+        <h2 className="text-3xl font-bold text-foreground mb-3 tracking-tight">
           No Active Conversation
         </h2>
-        <p className="text-muted-foreground max-w-md">
+        <p className="text-muted-foreground/90 max-w-md text-base font-medium">
           {agentName && activationName 
             ? `No topics found for ${activationName}`
             : 'There are no active conversations with this agent'
@@ -687,34 +947,49 @@ function ConversationsContent() {
   }
 
   return (
-    <div className="flex h-full">
-      {/* Topics List - Left Sidebar */}
-      <div className="w-80 flex-shrink-0 flex flex-col border-r">
-        <div className="flex-1 overflow-hidden">
-          <TopicList
-            topics={conversation.topics}
-            selectedTopicId={selectedTopicId}
-            onSelectTopic={handleTopicSelect}
-            onCreateTopic={handleCreateTopic}
-            unreadCounts={unreadCounts}
-          />
-        </div>
+    <div className="flex flex-col h-full bg-gradient-to-br from-background via-background to-muted/5">
+      {/* Unified Header - Spans both columns */}
+      <ConversationHeader
+        activations={activations}
+        selectedActivationName={activationName}
+        onActivationChange={handleActivationChange}
+        isLoadingActivations={isLoadingActivations}
+        agentName={agentName || undefined}
+        agentStatus={conversation?.agent.status || 'online'}
+        selectedTopicName={selectedTopic?.name}
+        selectedTopicCreatedAt={selectedTopic?.createdAt}
+        selectedTopicMessageCount={selectedTopic?.messageCount ?? selectedTopic?.messages.length}
+      />
+
+      {/* Two Column Layout */}
+      <div className="flex flex-1 min-h-0">
+        {/* Topics List - Left Sidebar */}
+        <div className="w-80 flex-shrink-0 flex flex-col border-r border-border/20 shadow-lg">
+          <div className="flex-1 overflow-hidden">
+            <TopicList
+              topics={conversation.topics}
+              selectedTopicId={selectedTopicId}
+              onSelectTopic={handleTopicSelect}
+              onCreateTopic={handleCreateTopic}
+              unreadCounts={unreadCounts}
+            />
+          </div>
         
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="border-t p-3 flex items-center justify-between bg-background">
+          <div className="border-t border-border/30 p-4 flex items-center justify-between bg-gradient-to-r from-muted/30 via-muted/20 to-muted/10 shadow-inner">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="h-8 px-2"
+              className="h-9 px-3 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 disabled:opacity-40"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
+              <ChevronLeft className="h-4 w-4 mr-1.5" />
               Back
             </Button>
             
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs font-bold text-foreground bg-muted/50 px-3 py-1.5 rounded-lg border border-border/30">
               {currentPage} / {totalPages}
             </span>
             
@@ -723,37 +998,43 @@ function ConversationsContent() {
               size="sm"
               onClick={() => setCurrentPage(p => p + 1)}
               disabled={!hasMore}
-              className="h-8 px-2"
+              className="h-9 px-3 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 disabled:opacity-40"
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-4 w-4 ml-1.5" />
             </Button>
           </div>
         )}
-      </div>
+        </div>
 
-      {/* Chat Interface - Main Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedTopicId ? (
-          <ChatInterface
-            conversation={conversation}
-            selectedTopicId={selectedTopicId}
-            onSendMessage={handleSendMessage}
-            isLoadingMessages={isLoadingMessages}
-            onLoadMoreMessages={handleLoadMoreMessages}
-            isLoadingMoreMessages={isLoadingMoreMessages}
-            hasMoreMessages={hasMoreMessages[selectedTopicId] ?? false}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center p-12">
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              No Topic Selected
-            </h3>
-            <p className="text-muted-foreground">
-              Select a topic from the left to view messages
-            </p>
-          </div>
-        )}
+        {/* Chat Interface - Main Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {selectedTopicId ? (
+            <ChatInterface
+              conversation={conversation}
+              selectedTopicId={selectedTopicId}
+              onSendMessage={handleSendMessage}
+              isLoadingMessages={isLoadingMessages}
+              onLoadMoreMessages={handleLoadMoreMessages}
+              isLoadingMoreMessages={isLoadingMoreMessages}
+              hasMoreMessages={hasMoreMessages[selectedTopicId] ?? false}
+              activationName={activationName || undefined}
+              hideHeader={true}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-gradient-to-b from-background via-muted/5 to-background">
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-muted/40 to-muted/20 flex items-center justify-center mb-6 shadow-lg border border-border/30">
+                <Bot className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-3 tracking-tight">
+                No Topic Selected
+              </h3>
+              <p className="text-muted-foreground/90 text-base font-medium">
+                Select a topic from the left to view messages
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

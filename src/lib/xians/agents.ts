@@ -251,8 +251,28 @@ export class XiansAgentsApi {
   }
 
   /**
+   * Update an agent activation
+   * PUT /api/v1/admin/tenants/{tenantId}/agentActivations/{activationId}
+   */
+  async updateActivation(
+    tenantId: string,
+    activationId: string,
+    data: {
+      name?: string
+      description?: string
+      participantId?: string
+      workflowConfiguration?: any
+    }
+  ): Promise<XiansAgentActivation> {
+    return this.client.put<XiansAgentActivation>(
+      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}`,
+      data
+    )
+  }
+
+  /**
    * Delete an agent activation
-   * DELETE /api/v1/admin/tenants/{tenantId}/agentActivations/{activationId}
+   * DELETE /api/v1/admin/tenants/${tenantId}/agentActivations/{activationId}
    */
   async deleteActivation(
     tenantId: string,

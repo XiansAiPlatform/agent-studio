@@ -78,20 +78,14 @@ function PendingTasksContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
-  // Get unique agent names for filter
-  const uniqueAgentNames = Array.from(new Set(agents.map(a => a.agentName))).sort();
+  // Filter to show only active agents
+  let filteredAgents = agents.filter(a => a.status === 'active');
   
-  // Filter agents based on selected filters
-  let filteredAgents = agents;
-  
-  // Apply status filter
-  if (statusFilter === 'active') {
-    filteredAgents = filteredAgents.filter(a => a.status === 'active');
-  }
+  // Get unique agent names for filter (from active agents only)
+  const uniqueAgentNames = Array.from(new Set(filteredAgents.map(a => a.agentName))).sort();
   
   // Apply agent name filter
   if (agentFilter !== 'all') {
@@ -149,14 +143,31 @@ function PendingTasksContent() {
 
         setAgents(mappedAgents);
 
-        // Auto-select agent based on URL parameters
+        // Auto-select agent based on URL parameters or first active agent
         if (agentNameParam && activationNameParam) {
           const matchingAgent = mappedAgents.find(
             (agent) => agent.agentName === agentNameParam && agent.name === activationNameParam
           );
           if (matchingAgent) {
             setSelectedAgentId(matchingAgent.id);
-            console.log('[PendingTasksPage] Auto-selected agent:', matchingAgent);
+            console.log('[PendingTasksPage] Auto-selected agent from URL:', matchingAgent);
+          }
+        } else {
+          // Auto-select first active agent if no URL parameters
+          const activeAgents = mappedAgents.filter(agent => agent.status === 'active');
+          if (activeAgents.length > 0) {
+            const firstActiveAgent = activeAgents[0];
+            setSelectedAgentId(firstActiveAgent.id);
+            console.log('[PendingTasksPage] Auto-selected first active agent:', firstActiveAgent);
+            
+            // Update URL with the selected agent
+            const params = new URLSearchParams();
+            params.set('agent-name', firstActiveAgent.agentName);
+            params.set('activation-name', firstActiveAgent.name);
+            if (topicParam) {
+              params.set('topic', topicParam);
+            }
+            router.push(`/tasks/pending?${params.toString()}`, { scroll: false });
           }
         }
       } catch (error) {
@@ -209,9 +220,9 @@ function PendingTasksContent() {
         const data: XiansTasksResponse = await response.json();
         console.log('[PendingTasksPage] Fetched tasks:', data);
 
-        // Remove duplicates based on taskId (keep first occurrence)
+        // Remove duplicates based on workflowId (keep first occurrence)
         const uniqueTasks = data.tasks.reduce((acc, task) => {
-          if (!acc.find(t => t.taskId === task.taskId)) {
+          if (!acc.find(t => t.workflowId === task.workflowId)) {
             acc.push(task);
           }
           return acc;
@@ -226,7 +237,7 @@ function PendingTasksContent() {
             }
 
             return {
-              id: xiansTask.taskId,
+              id: xiansTask.workflowId,
               title: xiansTask.title || 'Untitled Task',
               description: xiansTask.description || 'No description available',
               status,
@@ -334,47 +345,20 @@ function PendingTasksContent() {
           <div className="col-span-12 lg:col-span-4 xl:col-span-3">
             <Card className="h-fit sticky top-6">
               <CardHeader>
-                <CardTitle className="text-lg">Running Agents</CardTitle>
+                <CardTitle className="text-lg">Active Agents</CardTitle>
                 <CardDescription>Select an agent to view its tasks</CardDescription>
                 
-                {/* Status Filter Toggle */}
-                <div className="pt-3">
-                  <div className="inline-flex w-full items-center rounded-md border border-dashed bg-transparent h-8">
-                    <button
-                      onClick={() => setStatusFilter('active')}
-                      className={`flex-1 h-full text-xs font-medium transition-colors ${
-                        statusFilter === 'active'
-                          ? 'bg-primary text-white'
-                          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                      }`}
-                    >
-                      Active
-                    </button>
-                    <div className="w-px h-4 bg-border" />
-                    <button
-                      onClick={() => setStatusFilter('all')}
-                      className={`flex-1 h-full text-xs font-medium transition-colors ${
-                        statusFilter === 'all'
-                          ? 'bg-primary text-white'
-                          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                      }`}
-                    >
-                      All
-                    </button>
-                  </div>
-                </div>
-
                 {/* Agent Name Filter */}
                 {uniqueAgentNames.length > 0 && (
-                  <div className="pt-2">
+                  <div className="pt-3">
                     <Select value={agentFilter} onValueChange={setAgentFilter}>
                       <SelectTrigger className="h-8 w-full text-xs border-dashed bg-transparent hover:bg-accent/50 transition-colors">
                         <SelectValue placeholder="Filter by agent" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all" className="text-xs">All Agents ({agents.length})</SelectItem>
+                        <SelectItem value="all" className="text-xs">All Active Agents ({filteredAgents.length})</SelectItem>
                         {uniqueAgentNames.map((agentName) => {
-                          const count = agents.filter(a => a.agentName === agentName).length;
+                          const count = filteredAgents.filter(a => a.agentName === agentName).length;
                           return (
                             <SelectItem key={agentName} value={agentName} className="text-xs">
                               {agentName} ({count})
@@ -395,7 +379,7 @@ function PendingTasksContent() {
                   <div className="flex flex-col items-center justify-center py-12 px-6">
                     <Bot className="h-12 w-12 text-muted-foreground mb-3" />
                     <p className="text-sm text-muted-foreground text-center">
-                      {agents.length === 0 ? 'No active agents found' : 'No agents match the filter'}
+                      {agentFilter !== 'all' ? 'No agents match the filter' : 'No active agents found'}
                     </p>
                   </div>
                 ) : (

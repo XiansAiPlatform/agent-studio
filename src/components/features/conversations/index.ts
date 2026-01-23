@@ -5,3 +5,5 @@ export { TopicSelector } from './topic-selector';
 export { TopicList } from './topic-list';
 export { TopicStatusBadge } from './topic-status-badge';
 export { AgentStatusBadge } from './agent-status-badge';
+export { AgentActivationSelector, type ActivationOption } from './agent-activation-selector';
+export { ConversationHeader } from './conversation-header';

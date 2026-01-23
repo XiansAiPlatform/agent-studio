@@ -102,9 +102,9 @@ function TasksContent() {
         const data: XiansTasksResponse = await response.json();
         console.log('[TasksPage] Fetched tasks:', data);
 
-        // Remove duplicates based on taskId (keep first occurrence)
+        // Remove duplicates based on workflowId (keep first occurrence)
         const uniqueTasks = data.tasks.reduce((acc, task) => {
-          if (!acc.find(t => t.taskId === task.taskId)) {
+          if (!acc.find(t => t.workflowId === task.workflowId)) {
             acc.push(task);
           }
           return acc;
@@ -119,7 +119,7 @@ function TasksContent() {
             }
 
             return {
-              id: xiansTask.taskId,
+              id: xiansTask.workflowId,
               title: xiansTask.title || 'Untitled Task',
               description: xiansTask.description || 'No description available',
               status,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   CheckCircle,
   MessageSquare,
@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DUMMY_CONVERSATIONS } from '@/lib/data/dummy-conversations';
 
 const navigation = [
   {
@@ -44,7 +43,6 @@ const navigation = [
     name: 'Conversations',
     href: '/conversations',
     icon: MessageSquare,
-    type: 'conversations', // Special type to show agents
   },
   {
     name: 'Knowledge',
@@ -79,39 +77,21 @@ const navigation = [
   },
 ];
 
-const agentStatusColors = {
-  online: 'bg-green-500',
-  offline: 'bg-gray-500',
-  busy: 'bg-yellow-500',
-};
-
 function NavItem({
   item,
   collapsed,
   active,
   pathname,
-  searchParams,
 }: {
   item: (typeof navigation)[0];
   collapsed: boolean;
   active: boolean;
   pathname: string;
-  searchParams: URLSearchParams | null;
 }) {
   const [expanded, setExpanded] = useState(active);
   const Icon = item.icon;
 
-  // Get unique Agent Instances for conversations
-  const activeAgents = item.type === 'conversations' 
-    ? Array.from(
-        new Map(
-          DUMMY_CONVERSATIONS.filter(c => c.status === 'active')
-            .map(c => [c.agent.id, c.agent])
-        ).values()
-      )
-    : [];
-
-  const hasChildren = item.children || (item.type === 'conversations' && activeAgents.length > 0);
+  const hasChildren = item.children;
 
   // Check if any child is active
   const isChildActive = (child: { href: string }) => pathname === child.href;
@@ -165,40 +145,6 @@ function NavItem({
           <p>{item.name}</p>
         </TooltipContent>
       </Tooltip>
-      
-      {/* Show agents under Conversations */}
-      {!collapsed && expanded && item.type === 'conversations' && activeAgents.length > 0 && (
-        <div className="ml-8 mt-1 space-y-1">
-          {activeAgents.map((agent) => {
-            const agentHref = `/conversations?agent=${agent.id}`;
-            const isAgentActive = pathname === '/conversations' && 
-              searchParams?.get('agent') === agent.id;
-            
-            return (
-              <Tooltip key={agent.id}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={agentHref}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 text-sm transition-colors relative",
-                      "hover:bg-accent/30",
-                      isAgentActive
-                        ? 'bg-primary/10 text-primary font-medium border-l-2 border-l-primary rounded-r-md'
-                        : 'text-muted-foreground border-l-2 border-l-transparent rounded-md'
-                    )}
-                  >
-                    <div className={cn('h-2 w-2 rounded-full', agentStatusColors[agent.status])} />
-                    <span className="truncate">{agent.name}</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{agent.name}</p>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-      )}
 
       {/* Regular children for other items */}
       {!collapsed && expanded && item.children && (
@@ -241,7 +187,6 @@ function NavItem({
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -279,7 +224,6 @@ export function Sidebar() {
                   collapsed={collapsed}
                   active={isActive}
                   pathname={pathname}
-                  searchParams={searchParams}
                 />
               );
             })}

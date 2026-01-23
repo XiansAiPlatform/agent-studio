@@ -163,9 +163,9 @@ export default function AgentsPage() {
 
     closeSlider();
     setIsLoadingWizard(true);
+    setShowActivationWizard(true);
 
     try {
-      // Step 1: Fetch agent deployment details
       const response = await fetch(
         `/api/tenants/${currentTenantId}/agents/${encodeURIComponent(agent.template)}`
       );
@@ -191,10 +191,18 @@ export default function AgentsPage() {
           activable: def.activable,
         }));
 
-      // Step 2: Fetch existing workflow configuration to pre-populate the wizard
-      // This MUST happen before opening the wizard to avoid race conditions
-      let existingInputs: Record<string, Record<string, string>> = {};
-      
+      setWizardData({
+        agent: {
+          id: data.agent.id,
+          name: data.agent.name,
+          description: data.agent.description,
+        },
+        workflows: workflowsWithParams,
+      });
+
+      setCurrentActivationId(agent.id);
+
+      // Fetch existing workflow configuration
       try {
         const activationResponse = await fetch(
           `/api/tenants/${currentTenantId}/agent-activations`
@@ -207,7 +215,7 @@ export default function AgentsPage() {
             : null;
 
           if (currentActivation?.workflowConfiguration?.workflows) {
-            // Extract existing inputs from the saved configuration
+            const existingInputs: Record<string, Record<string, string>> = {};
             currentActivation.workflowConfiguration.workflows.forEach((workflow: any) => {
               if (workflow.inputs && Array.isArray(workflow.inputs)) {
                 existingInputs[workflow.workflowType] = {};
@@ -216,36 +224,21 @@ export default function AgentsPage() {
                 });
               }
             });
-            console.log('[AgentsPage] Pre-populating wizard with saved inputs:', existingInputs);
+            setWorkflowInputs(existingInputs);
           } else {
-            console.log('[AgentsPage] No existing workflow configuration found, starting with empty inputs');
+            setWorkflowInputs({});
           }
         } else {
-          console.warn('[AgentsPage] Failed to fetch activations for pre-population');
+          setWorkflowInputs({});
         }
       } catch (activationError) {
-        console.warn('[AgentsPage] Failed to fetch activation record for pre-population:', activationError);
+        console.warn('[AgentsPage] Failed to fetch activation record:', activationError);
+        setWorkflowInputs({});
       }
-
-      // Step 3: Set all state and THEN open the wizard
-      // This ensures the wizard receives the pre-populated inputs immediately
-      setWizardData({
-        agent: {
-          id: data.agent.id,
-          name: data.agent.name,
-          description: data.agent.description,
-        },
-        workflows: workflowsWithParams,
-      });
-      setCurrentActivationId(agent.id);
-      setWorkflowInputs(existingInputs);
-      
-      // Only open the wizard after all data is ready
-      setShowActivationWizard(true);
-      
     } catch (error) {
       console.error('[AgentsPage] Error fetching agent deployment:', error);
       showErrorToast(error, 'Failed to load activation wizard');
+      setShowActivationWizard(false);
     } finally {
       setIsLoadingWizard(false);
     }
@@ -324,11 +317,6 @@ export default function AgentsPage() {
     setShowActiveOnly(false);
   };
 
-  const handleTemplateSelect = (template: string) => {
-    // Toggle behavior: if already selected, deselect it
-    setSelectedTemplate(selectedTemplate === template ? null : template);
-  };
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Page Header */}
@@ -354,7 +342,7 @@ export default function AgentsPage() {
           uniqueTemplates={uniqueTemplates}
           selectedTemplate={selectedTemplate}
           showActiveOnly={showActiveOnly}
-          onTemplateSelect={handleTemplateSelect}
+          onTemplateSelect={setSelectedTemplate}
           onClearFilters={handleClearFilters}
           onToggleActiveOnly={setShowActiveOnly}
         />
@@ -424,14 +412,7 @@ export default function AgentsPage() {
           />
         )}
         {selectedAgent && sliderType === 'configure' && (
-          <ConfigurePanel 
-            agent={selectedAgent} 
-            tenantId={currentTenantId}
-            onDeactivate={() => {
-              closeSlider();
-              handleDeactivateClick(selectedAgent);
-            }}
-          />
+          <ConfigurePanel agent={selectedAgent} />
         )}
         {selectedAgent && sliderType === 'activity' && (
           <ActivityPanel agent={selectedAgent} />

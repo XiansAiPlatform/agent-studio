@@ -74,7 +74,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
   return (
     <div
       className={cn(
-        'flex gap-3 group',
+        'flex gap-3.5 group',
         isUser ? 'flex-row-reverse' : 'flex-row'
       )}
     >
@@ -82,8 +82,8 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
       <div className="flex-shrink-0">
         <div
           className={cn(
-            'h-8 w-8 rounded-full flex items-center justify-center',
-            isUser ? 'bg-primary/10' : 'bg-secondary/10'
+            'h-9 w-9 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105',
+            isUser ? 'bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20' : 'bg-gradient-to-br from-secondary/20 to-secondary/10 border border-secondary/20'
           )}
         >
           {isUser ? (
@@ -102,11 +102,11 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
         )}
       >
         {/* Sender Name */}
-        <div className="flex items-center gap-2 px-1">
-          <span className="text-xs font-medium text-muted-foreground">
+        <div className="flex items-center gap-2 px-1 mb-1">
+          <span className="text-xs font-semibold text-muted-foreground">
             {isUser ? (userName || 'You') : (agentName || 'Agent')}
           </span>
-          <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-[10px] text-muted-foreground/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium">
             {formatTimestamp(message.timestamp)}
           </span>
         </div>
@@ -114,10 +114,10 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
         {/* Message Bubble */}
         <div
           className={cn(
-            'rounded-lg px-4 py-2.5 shadow-sm',
+            'rounded-2xl px-5 py-3 shadow-md border transition-all duration-300 group-hover:shadow-lg',
             isUser
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-foreground'
+              ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground border-primary/50'
+              : 'bg-card text-foreground border-border/50'
           )}
         >
           <div className="text-sm leading-relaxed markdown-content">
