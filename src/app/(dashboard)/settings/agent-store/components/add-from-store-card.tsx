@@ -25,14 +25,14 @@ export function AddFromStoreCard({
         </div>
         <div className="mt-4 space-y-2 text-center">
           <CardTitle className="text-xl leading-tight group-hover:text-primary transition-colors">
-            Add from Store
+            Onboard more
           </CardTitle>
           <CardDescription className="text-sm leading-relaxed">
             {templatesLoaded 
               ? (availableTemplatesCount > 0 
                   ? `${availableTemplatesCount} template${availableTemplatesCount !== 1 ? 's' : ''} available`
                   : 'All templates deployed')
-              : 'Browse available templates'
+              : 'Import more agents in to your organization'
             }
           </CardDescription>
         </div>

@@ -416,10 +416,9 @@ export default function AgentTemplatesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          
-          <h1 className="text-3xl font-semibold text-foreground">Available Agents</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Agent Store</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your agents and add new ones from the store
+            Manage and add new agents to your organization from the store
             <Badge variant="secondary" className="ml-5">
                 {deployedAgents.length}
             </Badge>
@@ -427,7 +426,7 @@ export default function AgentTemplatesPage() {
         </div>
         <Button variant="outline" className="transition-all hover:bg-primary/10 hover:text-primary hover:border-primary/50" asChild>
           <Link href="/agents/running">
-            View Running Agents
+            View Activated Agents
           </Link>
         </Button>
       </div>

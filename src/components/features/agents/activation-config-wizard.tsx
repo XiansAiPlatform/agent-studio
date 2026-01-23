@@ -302,7 +302,7 @@ export function ActivationConfigWizard({
                 <Power className="h-6 w-6 text-primary" />
               </div>
               <div className="flex-1">
-                <SheetTitle className="text-lg">Start a new Run</SheetTitle>
+                <SheetTitle className="text-lg">Activate a new agent</SheetTitle>
                 <SheetDescription className="text-sm mt-1">
                   {wizardData ? wizardData.agent.name : 'Loading...'}
                 </SheetDescription>
@@ -407,7 +407,7 @@ export function ActivationConfigWizard({
                   // Metadata Step (Name & Description)
                   <div className="space-y-6">
                     <div className="bg-muted/50 rounded-lg p-4">
-                      <h3 className="font-semibold text-lg">Run Details</h3>
+                      <h3 className="font-semibold text-lg">Describe your agent</h3>
                       {totalSteps > 1 && !showOnlyMetadata && (
                         <p className="text-sm text-muted-foreground mt-1.5">
                           Step {currentStep + 1} of {totalSteps}
@@ -423,7 +423,7 @@ export function ActivationConfigWizard({
                     <div className="space-y-6">
                       <div className="space-y-3">
                         <Label htmlFor="instance-name" className="flex items-center gap-2 text-sm font-medium">
-                          Name of the New Run
+                          Name of the agent
                           <span className="text-red-500">*</span>
 
                         </Label>
@@ -590,7 +590,7 @@ export function ActivationConfigWizard({
                       ) : (
                         <>
                           <Play className="mr-2 h-4 w-4" />
-                          {includeMetadataStep ? 'Run' : 'Activate'}
+                          {includeMetadataStep ? 'Activate' : 'Activate'}
                         </>
                       )}
                     </Button>

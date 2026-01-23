@@ -611,7 +611,7 @@ export default function AgentsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Running Agents</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Agents</h1>
           <p className="text-muted-foreground mt-1">
             Manage and monitor your active AI agents
           </p>
@@ -619,7 +619,7 @@ export default function AgentsPage() {
         <Button asChild>
           <Link href="/settings/agent-store">
             <Play className="mr-2 h-4 w-4" />
-            Create New Run
+            Add from Store
           </Link>
         </Button>
       </div>

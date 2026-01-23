@@ -113,7 +113,7 @@ export function AgentDetailsSheet({
             {/* Create New Instance Form */}
             <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
               <h3 className="text-sm font-semibold text-foreground">
-                {hasConfiguration ? 'Run Details' : 'Create New Run'}
+                {hasConfiguration ? 'Configure' : 'Create New'}
               </h3>
               <div className="space-y-4">
                 <div className="space-y-2">

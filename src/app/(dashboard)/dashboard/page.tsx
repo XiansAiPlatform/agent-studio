@@ -344,7 +344,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              Running Agents
+              Agents
             </CardTitle>
             <CardDescription>Currently online and working</CardDescription>
           </CardHeader>

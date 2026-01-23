@@ -27,7 +27,7 @@ const navigation = [
     icon: LayoutDashboard,
   },
   {
-    name: 'Running Agents',
+    name: 'Agents',
     href: '/agents/running',
     icon: Bot,
   },

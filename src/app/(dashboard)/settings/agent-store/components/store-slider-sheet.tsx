@@ -56,13 +56,13 @@ export function StoreSliderSheet({
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
-            <span>Agent Store</span>
+            <span>Available Templates</span>
             <Badge variant="secondary" className="ml-2">
               {templates.length}
             </Badge>
           </SheetTitle>
           <SheetDescription>
-            Deploy new agents from available templates
+            Onboard new agents from available templates
           </SheetDescription>
         </SheetHeader>
 
