@@ -633,7 +633,10 @@ export default function AgentsPage() {
               <span className="text-xs font-medium text-muted-foreground">Filter by Agent Type</span>
               {selectedTemplate && (
                 <button
-                  onClick={() => setSelectedTemplate(null)}
+                  onClick={() => {
+                    setSelectedTemplate(null);
+                    setShowActiveOnly(false);
+                  }}
                   className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Clear
@@ -642,21 +645,43 @@ export default function AgentsPage() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {/* All/Active Switch */}
-              <button
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${
-                  'bg-accent border-border text-foreground'
-                }`}
-                onClick={() => setShowActiveOnly(!showActiveOnly)}
-              >
-                <span className="flex items-center gap-1.5">
-                  {showActiveOnly ? 'Active' : 'All'}
-                  <span className="text-[10px] opacity-60">
-                    ({showActiveOnly ? agents.filter(a => a.status === 'active').length : agents.length})
+              <div className="inline-flex rounded-md border border-border bg-background p-0.5">
+                <button
+                  className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
+                    !showActiveOnly 
+                      ? 'bg-accent text-foreground' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => setShowActiveOnly(false)}
+                >
+                  <span className="flex items-center gap-1.5">
+                    All
+                    <span className="text-[10px] opacity-60">
+                      ({agents.length})
+                    </span>
                   </span>
-                </span>
-              </button>
+                </button>
+                <button
+                  className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
+                    showActiveOnly 
+                      ? 'bg-accent text-foreground' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => setShowActiveOnly(true)}
+                >
+                  <span className="flex items-center gap-1.5">
+                    Active
+                    <span className="text-[10px] opacity-60">
+                      ({agents.filter(a => a.status === 'active').length})
+                    </span>
+                  </span>
+                </button>
+              </div>
               {uniqueTemplates.map((template) => {
-                const count = agents.filter((agent) => agent.template === template).length;
+                const count = agents.filter((agent) => 
+                  agent.template === template && 
+                  (!showActiveOnly || agent.status === 'active')
+                ).length;
                 const isSelected = selectedTemplate === template;
                 
                 return (
@@ -714,7 +739,10 @@ export default function AgentsPage() {
             <p className="text-muted-foreground">
               No agents match the selected filter. Try selecting a different agent type.
             </p>
-            <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
+            <Button variant="outline" onClick={() => {
+              setSelectedTemplate(null);
+              setShowActiveOnly(false);
+            }}>
               Clear Filter
             </Button>
           </div>
@@ -758,7 +786,7 @@ export default function AgentsPage() {
                 </div>
               </div>
               <div>
-                <Badge variant="outline" className={`font-semibold text-xs border whitespace-normal break-words ${getTemplateColor(agent.template)}`}>
+                <Badge variant="outline" className="font-semibold text-xs border whitespace-normal break-words bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300 border-slate-200 dark:border-slate-700">
                   {agent.template}
                 </Badge>
               </div>
@@ -812,7 +840,7 @@ export default function AgentsPage() {
                           >
                             {AGENT_STATUS_CONFIG[selectedAgent.status].label}
                           </Badge>
-                          <Badge variant="outline" className="text-xs whitespace-normal break-words">
+                          <Badge variant="outline" className="text-xs whitespace-normal break-words bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300 border-slate-200 dark:border-slate-700">
                             {selectedAgent.template}
                           </Badge>
                         </div>
@@ -966,7 +994,7 @@ export default function AgentsPage() {
                           >
                             {AGENT_STATUS_CONFIG[selectedAgent.status].label}
                           </Badge>
-                          <Badge variant="outline" className="text-xs whitespace-normal break-words">
+                          <Badge variant="outline" className="text-xs whitespace-normal break-words bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300 border-slate-200 dark:border-slate-700">
                             {selectedAgent.template}
                           </Badge>
                         </div>
