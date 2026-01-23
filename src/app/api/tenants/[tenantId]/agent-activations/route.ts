@@ -59,14 +59,27 @@ export const POST = withTenant(async (request: NextRequest, { tenantContext, ses
         { status: 400 }
       )
     }
+
+    // SECURITY: Get participantId from authenticated session, not from client
+    const participantId = session.user?.email;
+
+    if (!participantId) {
+      return NextResponse.json(
+        { error: 'User email not found in session' },
+        { status: 401 }
+      );
+    }
     
     // Create SDK instance with user's auth token
     const xians = createXiansSDK((session as any).accessToken)
     
-    // Create agent activation
+    // Create agent activation with participantId from session
     const activation = await xians.agents.createActivation(
       tenantContext.tenant.id,
-      data
+      {
+        ...data,
+        participantId, // Override with session email for security
+      }
     )
     
     console.log('[Activations API] Created activation:', activation)

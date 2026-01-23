@@ -5,7 +5,7 @@ import { createXiansSDK } from '@/lib/xians'
 import { handleApiError, unauthorizedError, validationError } from '@/lib/api/error-handler'
 
 /**
- * POST /api/agents/templates/{templateId}/deploy
+ * POST /api/agents/store/{templateId}/deploy
  * Deploy an agent template to the current tenant
  */
 export async function POST(

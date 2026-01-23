@@ -3,7 +3,7 @@ import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
 
 /**
- * GET /api/agents/templates
+ * GET /api/agents/store
  * Fetch Available Agents from Xians server
  * No tenant ID required - SystemScoped agents
  */

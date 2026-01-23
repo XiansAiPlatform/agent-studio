@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Bot, User, Copy, ThumbsUp, ThumbsDown, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 
 interface MessageItemProps {
   message: Message;
@@ -117,9 +120,185 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
               : 'bg-muted text-foreground'
           )}
         >
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">
+          <div className="text-sm leading-relaxed markdown-content">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              components={{
+                // Customize link styling
+                a: ({ node, ...props }) => (
+                  <a
+                    {...props}
+                    className={cn(
+                      'underline hover:opacity-80 transition-opacity',
+                      isUser ? 'text-primary-foreground' : 'text-primary'
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                ),
+                // Customize code block styling
+                code: ({ node, inline, ...props }) =>
+                  inline ? (
+                    <code
+                      {...props}
+                      className={cn(
+                        'px-1.5 py-0.5 rounded text-xs font-mono',
+                        isUser
+                          ? 'bg-primary-foreground/20'
+                          : 'bg-muted-foreground/20'
+                      )}
+                    />
+                  ) : (
+                    <code
+                      {...props}
+                      className={cn(
+                        'block px-3 py-2 my-2 rounded text-xs font-mono overflow-x-auto',
+                        isUser
+                          ? 'bg-primary-foreground/20'
+                          : 'bg-muted-foreground/20'
+                      )}
+                    />
+                  ),
+                // Customize pre block styling (wraps code blocks)
+                pre: ({ node, ...props }) => (
+                  <pre {...props} className="my-2" />
+                ),
+                // Ensure proper text color and spacing
+                p: ({ node, ...props }) => (
+                  <p
+                    {...props}
+                    className={cn(
+                      'my-1',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
+                  />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul
+                    {...props}
+                    className={cn(
+                      'list-disc list-inside my-1 space-y-0.5',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
+                  />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol
+                    {...props}
+                    className={cn(
+                      'list-decimal list-inside my-1 space-y-0.5',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
+                  />
+                ),
+                li: ({ node, ...props }) => (
+                  <li
+                    {...props}
+                    className={isUser ? 'text-primary-foreground' : 'text-foreground'}
+                  />
+                ),
+                strong: ({ node, ...props }) => (
+                  <strong
+                    {...props}
+                    className={cn(
+                      'font-bold',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
+                  />
+                ),
+                em: ({ node, ...props }) => (
+                  <em
+                    {...props}
+                    className={isUser ? 'text-primary-foreground italic' : 'text-foreground italic'}
+                  />
+                ),
+                h1: ({ node, ...props }) => (
+                  <h1
+                    {...props}
+                    className={cn(
+                      'text-lg font-bold mt-3 mb-2',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
+                  />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2
+                    {...props}
+                    className={cn(
+                      'text-base font-bold mt-2 mb-1',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
+                  />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3
+                    {...props}
+                    className={cn(
+                      'text-sm font-bold mt-2 mb-1',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
+                  />
+                ),
+                blockquote: ({ node, ...props }) => (
+                  <blockquote
+                    {...props}
+                    className={cn(
+                      'border-l-2 pl-3 my-2 italic',
+                      isUser
+                        ? 'border-primary-foreground/40 text-primary-foreground/90'
+                        : 'border-muted-foreground/40 text-muted-foreground'
+                    )}
+                  />
+                ),
+                hr: ({ node, ...props }) => (
+                  <hr
+                    {...props}
+                    className={cn(
+                      'my-2',
+                      isUser
+                        ? 'border-primary-foreground/30'
+                        : 'border-muted-foreground/30'
+                    )}
+                  />
+                ),
+                table: ({ node, ...props }) => (
+                  <div className="overflow-x-auto my-2">
+                    <table
+                      {...props}
+                      className={cn(
+                        'min-w-full border-collapse',
+                        isUser ? 'text-primary-foreground' : 'text-foreground'
+                      )}
+                    />
+                  </div>
+                ),
+                th: ({ node, ...props }) => (
+                  <th
+                    {...props}
+                    className={cn(
+                      'border px-2 py-1 text-left font-semibold',
+                      isUser
+                        ? 'border-primary-foreground/30 bg-primary-foreground/10'
+                        : 'border-border bg-muted/50'
+                    )}
+                  />
+                ),
+                td: ({ node, ...props }) => (
+                  <td
+                    {...props}
+                    className={cn(
+                      'border px-2 py-1',
+                      isUser
+                        ? 'border-primary-foreground/30'
+                        : 'border-border'
+                    )}
+                  />
+                ),
+              }}
+            >
             {message.content}
-          </p>
+            </ReactMarkdown>
+          </div>
 
           {/* Attachments - Only show if no content draft is present */}
           {message.attachments && message.attachments.length > 0 && !message.contentDraft && (
@@ -212,9 +391,88 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
 
                 {/* Draft Body */}
                 <div className="px-4 py-3 max-h-96 overflow-y-auto">
-                  <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground">
+                  <div className="text-sm leading-relaxed markdown-content">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkBreaks]}
+                      components={{
+                        a: ({ node, ...props }) => (
+                          <a
+                            {...props}
+                            className="text-primary underline hover:opacity-80 transition-opacity"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          />
+                        ),
+                        code: ({ node, inline, ...props }) =>
+                          inline ? (
+                            <code
+                              {...props}
+                              className="px-1.5 py-0.5 rounded text-xs font-mono bg-muted-foreground/20"
+                            />
+                          ) : (
+                            <code
+                              {...props}
+                              className="block px-3 py-2 my-2 rounded text-xs font-mono overflow-x-auto bg-muted-foreground/20"
+                            />
+                          ),
+                        pre: ({ node, ...props }) => (
+                          <pre {...props} className="my-2" />
+                        ),
+                        p: ({ node, ...props }) => (
+                          <p {...props} className="my-1 text-foreground" />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul {...props} className="list-disc list-inside my-1 space-y-0.5 text-foreground" />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol {...props} className="list-decimal list-inside my-1 space-y-0.5 text-foreground" />
+                        ),
+                        li: ({ node, ...props }) => (
+                          <li {...props} className="text-foreground" />
+                        ),
+                        strong: ({ node, ...props }) => (
+                          <strong {...props} className="font-bold text-foreground" />
+                        ),
+                        em: ({ node, ...props }) => (
+                          <em {...props} className="italic text-foreground" />
+                        ),
+                        h1: ({ node, ...props }) => (
+                          <h1 {...props} className="text-lg font-bold mt-3 mb-2 text-foreground" />
+                        ),
+                        h2: ({ node, ...props }) => (
+                          <h2 {...props} className="text-base font-bold mt-2 mb-1 text-foreground" />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3 {...props} className="text-sm font-bold mt-2 mb-1 text-foreground" />
+                        ),
+                        blockquote: ({ node, ...props }) => (
+                          <blockquote
+                            {...props}
+                            className="border-l-2 border-muted-foreground/40 pl-3 my-2 italic text-muted-foreground"
+                          />
+                        ),
+                        hr: ({ node, ...props }) => (
+                          <hr {...props} className="my-2 border-muted-foreground/30" />
+                        ),
+                        table: ({ node, ...props }) => (
+                          <div className="overflow-x-auto my-2">
+                            <table {...props} className="min-w-full border-collapse text-foreground" />
+                          </div>
+                        ),
+                        th: ({ node, ...props }) => (
+                          <th
+                            {...props}
+                            className="border border-border px-2 py-1 text-left font-semibold bg-muted/50"
+                          />
+                        ),
+                        td: ({ node, ...props }) => (
+                          <td {...props} className="border border-border px-2 py-1" />
+                        ),
+                      }}
+                    >
                     {message.contentDraft.content}
-                  </pre>
+                    </ReactMarkdown>
+                  </div>
                 </div>
 
                 {/* Draft Actions */}

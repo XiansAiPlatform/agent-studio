@@ -142,11 +142,11 @@ function ConversationsContent() {
   }, []);
 
   // Set up SSE connection for real-time messages
+  // participantId is now obtained from session on the backend for security
   const { isConnected, error: sseError } = useMessageListener({
     tenantId: currentTenantId,
     agentName,
     activationName,
-    participantId: session?.user?.email ?? null,
     enabled: !!(currentTenantId && agentName && activationName && session?.user?.email),
     onMessage: handleIncomingMessage,
     onError: handleSSEError,
@@ -244,12 +244,32 @@ function ConversationsContent() {
           };
         });
 
-        // Sort topics to ensure General Discussions (scope: null) is first
-        const allTopics = mappedTopics.sort((a, b) => {
-          if (a.isDefault) return -1;
-          if (b.isDefault) return 1;
-          return 0;
-        });
+        // Ensure General Discussions topic exists if topics array is empty or doesn't include it
+        const hasGeneralTopic = mappedTopics.some(t => t.isDefault);
+        let allTopics = [...mappedTopics];
+        
+        if (!hasGeneralTopic) {
+          // Create default General Discussions topic
+          const generalTopic: Topic = {
+            id: 'general-discussions',
+            name: 'General Discussions',
+            createdAt: new Date().toISOString(),
+            status: 'active' as const,
+            messages: [],
+            associatedTasks: [],
+            isDefault: true,
+            messageCount: 0,
+            lastMessageAt: undefined,
+          };
+          allTopics = [generalTopic, ...mappedTopics];
+        } else {
+          // Sort topics to ensure General Discussions (scope: null) is first
+          allTopics = mappedTopics.sort((a, b) => {
+            if (a.isDefault) return -1;
+            if (b.isDefault) return 1;
+            return 0;
+          });
+        }
         
         setTopics(allTopics);
 
@@ -310,10 +330,10 @@ function ConversationsContent() {
         // Other topics should use their name (same as id)
         const topicParam = selectedTopicId === 'general-discussions' ? '' : selectedTopicId;
 
+        // participantId is now obtained from session on the backend for security
         const queryParams = new URLSearchParams({
           agentName,
           activationName,
-          participantId: session.user.email,
           topic: topicParam,
           page: '1',
           pageSize: '10', // Load only 10 messages initially
@@ -417,10 +437,10 @@ function ConversationsContent() {
       // Other topics should use their name (same as id)
       const topicParam = topicId === 'general-discussions' ? undefined : topicId;
 
+      // participantId is now obtained from session on the backend for security
       const requestBody = {
         agentName,
         activationName,
-        participantId: session.user.email,
         text: content,
         topic: topicParam,
       };
@@ -512,10 +532,10 @@ function ConversationsContent() {
       // Determine the topic parameter for the API call
       const topicParam = selectedTopicId === 'general-discussions' ? '' : selectedTopicId;
 
+      // participantId is now obtained from session on the backend for security
       const queryParams = new URLSearchParams({
         agentName,
         activationName,
-        participantId: session.user.email,
         topic: topicParam,
         page: nextPage.toString(),
         pageSize: '10',

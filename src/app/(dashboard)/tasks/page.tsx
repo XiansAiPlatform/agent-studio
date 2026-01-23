@@ -4,21 +4,62 @@ import { Suspense, useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { DUMMY_TASKS, getTaskById } from '@/lib/data/dummy-tasks';
+import { Task } from '@/lib/data/dummy-tasks';
 import { TaskListItem } from '@/components/features/tasks/task-list-item';
 import { TaskDetail } from '@/components/features/tasks/task-detail';
 import { TaskFiltersComponent, TaskFilters } from '@/components/features/tasks';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { cn } from '@/lib/utils';
+import { useTenant } from '@/hooks/use-tenant';
+import { useAuth } from '@/hooks/use-auth';
+import { showErrorToast } from '@/lib/utils/error-handler';
+import { Loader2 } from 'lucide-react';
+
+type XiansTask = {
+  taskId: string;
+  workflowId: string;
+  runId: string;
+  title: string;
+  description: string;
+  initialWork: string | null;
+  finalWork: string | null;
+  participantId: string;
+  status: string;
+  isCompleted: boolean;
+  availableActions: string[];
+  performedAction: string | null;
+  comment: string | null;
+  startTime: string;
+  closeTime: string | null;
+  metadata: any;
+  agentName: string;
+  activationName: string;
+  tenantId: string;
+};
+
+type XiansTasksResponse = {
+  tasks: XiansTask[];
+  nextPageToken: string | null;
+  pageSize: number;
+  hasNextPage: boolean;
+  totalCount: number | null;
+};
 
 function TasksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { currentTenantId } = useTenant();
+  const { user } = useAuth();
+  
   const selectedTaskId = searchParams.get('task');
-  const selectedTask = selectedTaskId ? getTaskById(selectedTaskId) : null;
+  
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
 
-  // Current user ID (in a real app, this would come from auth context)
-  const currentUserId = 'user-001';
+  // Current user ID from auth
+  const currentUserId = user?.id || 'user-001';
+  
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
   // Initialize filters from URL params
   const getFiltersFromURL = (): TaskFilters => {
@@ -37,6 +78,95 @@ function TasksContent() {
 
   // Filter state initialized from URL
   const [filters, setFilters] = useState<TaskFilters>(() => getFiltersFromURL());
+
+  // Fetch all tasks from API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!currentTenantId) {
+        setTasks([]);
+        setIsLoadingTasks(false);
+        return;
+      }
+
+      setIsLoadingTasks(true);
+      try {
+        // participantId is now obtained from session on the backend for security
+        const response = await fetch(
+          `/api/tenants/${currentTenantId}/tasks`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch tasks');
+        }
+
+        const data: XiansTasksResponse = await response.json();
+        console.log('[TasksPage] Fetched tasks:', data);
+
+        // Remove duplicates based on taskId (keep first occurrence)
+        const uniqueTasks = data.tasks.reduce((acc, task) => {
+          if (!acc.find(t => t.taskId === task.taskId)) {
+            acc.push(task);
+          }
+          return acc;
+        }, [] as XiansTask[]);
+
+        // Map Xians tasks to our Task format
+        const mappedTasks: Task[] = uniqueTasks.map((xiansTask) => {
+            // Map status: Running -> pending, Completed -> approved
+            let status: 'pending' | 'approved' | 'rejected' | 'obsolete' = 'pending';
+            if (xiansTask.isCompleted) {
+              status = xiansTask.performedAction?.toLowerCase().includes('reject') ? 'rejected' : 'approved';
+            }
+
+            return {
+              id: xiansTask.taskId,
+              title: xiansTask.title || 'Untitled Task',
+              description: xiansTask.description || 'No description available',
+              status,
+              priority: 'medium', // Default priority
+              createdBy: {
+                id: xiansTask.agentName || 'Unknown Agent',
+                name: xiansTask.agentName || 'Unknown Agent',
+              },
+              assignedTo: {
+                id: xiansTask.participantId,
+                name: xiansTask.participantId,
+              },
+              createdAt: xiansTask.startTime,
+              updatedAt: xiansTask.closeTime || xiansTask.startTime,
+              conversationId: undefined,
+              topicId: undefined,
+              content: {
+                originalRequest: xiansTask.initialWork || undefined,
+                proposedAction: xiansTask.finalWork || undefined,
+                reasoning: xiansTask.description || undefined,
+                data: {
+                  workflowId: xiansTask.workflowId,
+                  runId: xiansTask.runId,
+                  workflowStatus: xiansTask.status, // Add workflow status from API
+                  isCompleted: xiansTask.isCompleted, // Add isCompleted flag
+                  availableActions: xiansTask.availableActions || [],
+                  performedAction: xiansTask.performedAction || null,
+                  comment: xiansTask.comment || null,
+                  metadata: xiansTask.metadata || null,
+                  activationName: xiansTask.activationName,
+                },
+              },
+            };
+        });
+
+        setTasks(mappedTasks);
+      } catch (error) {
+        console.error('[TasksPage] Error fetching tasks:', error);
+        showErrorToast(error, 'Failed to load tasks');
+        setTasks([]);
+      } finally {
+        setIsLoadingTasks(false);
+      }
+    };
+
+    fetchTasks();
+  }, [currentTenantId]);
 
   // Sync filters from URL when searchParams change (for browser back/forward navigation)
   useEffect(() => {
@@ -93,13 +223,13 @@ function TasksContent() {
 
   // Extract unique agents from tasks
   const availableAgents = useMemo(() => {
-    const agentNames = new Set(DUMMY_TASKS.map((task) => task.createdBy.name));
+    const agentNames = new Set(tasks.map((task) => task.createdBy.name));
     return Array.from(agentNames).sort();
-  }, []);
+  }, [tasks]);
 
   // Filter tasks based on selected filters
   const filteredTasks = useMemo(() => {
-    return DUMMY_TASKS.filter((task) => {
+    return tasks.filter((task) => {
       // Filter by scope (my tasks vs all tasks)
       if (filters.scope === 'my-tasks') {
         if (task.assignedTo?.id !== currentUserId) {
@@ -116,7 +246,7 @@ function TasksContent() {
       }
       return true;
     });
-  }, [filters, currentUserId]);
+  }, [tasks, filters, currentUserId]);
 
   const handleTaskClick = (taskId: string) => {
     router.push(`/tasks?task=${taskId}`, { scroll: false });
@@ -209,14 +339,19 @@ function TasksContent() {
         <Card className="overflow-visible">
           <CardHeader>
             <CardTitle>
-              {filteredTasks.length === DUMMY_TASKS.length
+              {filteredTasks.length === tasks.length
                 ? 'All Tasks'
-                : `Filtered Tasks (${filteredTasks.length} of ${DUMMY_TASKS.length})`}
+                : `Filtered Tasks (${filteredTasks.length} of ${tasks.length})`}
             </CardTitle>
             <CardDescription>Click on a task to view details</CardDescription>
           </CardHeader>
           <CardContent className="!px-0 !py-0">
-            {filteredTasks.length > 0 ? (
+            {isLoadingTasks ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Loading tasks...</p>
+              </div>
+            ) : filteredTasks.length > 0 ? (
               filteredTasks.map((task) => (
                 <TaskListItem
                   key={task.id}
@@ -227,7 +362,7 @@ function TasksContent() {
               ))
             ) : (
               <p className="text-center text-muted-foreground py-12 px-6">
-                No tasks match the selected filters
+                {tasks.length === 0 ? 'No tasks found' : 'No tasks match the selected filters'}
               </p>
             )}
           </CardContent>

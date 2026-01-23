@@ -2,6 +2,7 @@
 
 import { Bell, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
@@ -13,11 +14,16 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center gap-3 px-6">
         {/* Branding */}
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
-            A
-          </div>
-          <span className="text-xl font-semibold hidden sm:inline-block">
+        <Link href="/" className="flex flex-col gap-0.5 hover:opacity-80 transition-opacity group">
+          <Image 
+            src="/logo.svg" 
+            alt="Xians" 
+            width={90} 
+            height={40}
+            className="h-7 w-auto"
+            priority
+          />
+          <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors tracking-wide">
             Agent Studio
           </span>
         </Link>

@@ -41,6 +41,7 @@ interface IconAvatarProps {
   className?: string;
   iconClassName?: string;
   rounded?: 'full' | 'md' | 'lg';
+  pulse?: boolean;
 }
 
 export function IconAvatar({
@@ -50,6 +51,7 @@ export function IconAvatar({
   className,
   iconClassName,
   rounded = 'full',
+  pulse = false,
 }: IconAvatarProps) {
   const roundedClass = {
     full: 'rounded-full',
@@ -57,17 +59,35 @@ export function IconAvatar({
     lg: 'rounded-lg',
   }[rounded];
 
+  if (!pulse) {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-center shrink-0',
+          sizeStyles[size].container,
+          variantStyles[variant],
+          roundedClass,
+          className
+        )}
+      >
+        <Icon className={cn(sizeStyles[size].icon, iconClassName)} />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        'flex items-center justify-center shrink-0',
-        sizeStyles[size].container,
-        variantStyles[variant],
-        roundedClass,
-        className
-      )}
-    >
-      <Icon className={cn(sizeStyles[size].icon, iconClassName)} />
+    <div className={cn('relative inline-flex', className)}>
+      <div
+        className={cn(
+          'flex items-center justify-center shrink-0 relative z-10',
+          sizeStyles[size].container,
+          variantStyles[variant],
+          roundedClass,
+        )}
+      >
+        <Icon className={cn(sizeStyles[size].icon, iconClassName)} />
+      </div>
+      <div className={cn('sonar-container absolute inset-0', roundedClass)} />
     </div>
   );
 }

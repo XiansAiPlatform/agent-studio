@@ -40,6 +40,7 @@ export function ChatInterface({
   const loadMoreCooldownRef = useRef(false);
   const hasUserScrolledRef = useRef(false);
   const previousMessageCountRef = useRef(0);
+  const lastAgentMessageIdRef = useRef<string | null>(null);
 
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
 
@@ -47,6 +48,7 @@ export function ChatInterface({
   useEffect(() => {
     hasUserScrolledRef.current = false;
     loadMoreCooldownRef.current = true;
+    lastAgentMessageIdRef.current = null;
     
     // Enable loading after a delay to prevent immediate auto-load
     const timer = setTimeout(() => {
@@ -56,6 +58,21 @@ export function ChatInterface({
     
     return () => clearTimeout(timer);
   }, [selectedTopicId]);
+
+  // Clear typing indicator when agent message is received
+  useEffect(() => {
+    if (!selectedTopic || !isTyping) return;
+
+    // Get the last agent message
+    const agentMessages = selectedTopic.messages.filter(m => m.role === 'agent');
+    const lastAgentMessage = agentMessages[agentMessages.length - 1];
+
+    // If there's a new agent message (different from the last one we tracked), clear typing indicator
+    if (lastAgentMessage && lastAgentMessage.id !== lastAgentMessageIdRef.current) {
+      lastAgentMessageIdRef.current = lastAgentMessage.id;
+      setIsTyping(false);
+    }
+  }, [selectedTopic?.messages, isTyping]);
 
   // Handle scroll event to load more messages
   useEffect(() => {
@@ -155,12 +172,20 @@ export function ChatInterface({
   const handleSendMessage = () => {
     if (!messageInput.trim() || !selectedTopicId) return;
 
+    // Capture the current last agent message before sending
+    const currentTopic = conversation.topics.find(t => t.id === selectedTopicId);
+    if (currentTopic) {
+      const agentMessages = currentTopic.messages.filter(m => m.role === 'agent');
+      const lastAgentMessage = agentMessages[agentMessages.length - 1];
+      lastAgentMessageIdRef.current = lastAgentMessage?.id ?? null;
+    }
+
     onSendMessage?.(messageInput, selectedTopicId);
     setMessageInput('');
     
-    // Simulate typing indicator
+    // Show typing indicator for up to 6 seconds (will be cleared when agent responds)
     setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 2000);
+    setTimeout(() => setIsTyping(false), 6000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

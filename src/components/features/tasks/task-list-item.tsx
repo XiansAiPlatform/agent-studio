@@ -2,6 +2,9 @@
 
 import { Task } from '@/lib/data/dummy-tasks';
 import { Bot, Clock, Flag, User, ArrowRight } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { cn } from '@/lib/utils';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { TaskStatusBadge } from './task-status-badge';
@@ -20,6 +23,22 @@ const priorityColors = {
   high: 'text-orange-600 dark:text-orange-400',
   urgent: 'text-red-600 dark:text-red-400',
 };
+
+function decodeText(text: string): string {
+  // Replace literal \n with actual newlines
+  let decoded = text.replace(/\\n/g, '\n');
+  
+  // Replace Unicode escape sequences (e.g., \u0060 -> `)
+  decoded = decoded.replace(/\\u([0-9a-fA-F]{4})/g, (match, code) => {
+    return String.fromCharCode(parseInt(code, 16));
+  });
+  
+  // Replace other common escape sequences
+  decoded = decoded.replace(/\\t/g, '\t');
+  decoded = decoded.replace(/\\r/g, '\r');
+  
+  return decoded;
+}
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -133,13 +152,15 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
           <div className="flex-1 space-y-3 min-w-0">
             {/* Title */}
             <h3 className="text-base font-medium text-foreground leading-snug tracking-tight">
-              {task.title}
+              {decodeText(task.title)}
             </h3>
 
             {/* Description */}
-            <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
-              {task.description}
-            </p>
+            <div className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2 markdown-list-compact">
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                {decodeText(task.description)}
+              </ReactMarkdown>
+            </div>
 
             {/* Metadata */}
             <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
@@ -165,7 +186,12 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
 
           {/* Status Badge */}
           <div className="shrink-0 pt-0.5">
-            <TaskStatusBadge status={task.status} />
+            <TaskStatusBadge 
+              status={task.status}
+              workflowStatus={task.content?.data?.workflowStatus}
+              isCompleted={task.content?.data?.isCompleted}
+              performedAction={task.content?.data?.performedAction}
+            />
           </div>
         </div>
       </div>

@@ -73,7 +73,7 @@ export default function DashboardPage() {
             </Link>
           </Button>
           <Button asChild>
-            <Link href="/agents">
+            <Link href="/agents/running">
               <Bot className="mr-2 h-4 w-4" />
               Manage Agents
             </Link>
@@ -237,7 +237,7 @@ export default function DashboardPage() {
             <div className="h-8 w-0.5 bg-emerald-500/60 dark:bg-emerald-400/60" />
           </div>
           <div className="space-y-0.5">
-            <div className="text-sm font-medium text-foreground/80">Agent Instances</div>
+            <div className="text-sm font-medium text-foreground/80">Running Agents</div>
             <div className="text-xs text-muted-foreground">Currently online</div>
           </div>
         </div>
@@ -344,7 +344,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              Agent Instances
+              Running Agents
             </CardTitle>
             <CardDescription>Currently online and working</CardDescription>
           </CardHeader>
@@ -394,7 +394,7 @@ export default function DashboardPage() {
               className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm hover:shadow-md transition-all" 
               asChild
             >
-              <Link href="/agents">
+              <Link href="/agents/running">
                 <Users className="mr-2 h-4 w-4" />
                 Manage All Agents
                 <ArrowRight className="ml-2 h-4 w-4" />

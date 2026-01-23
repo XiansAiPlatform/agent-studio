@@ -105,7 +105,7 @@ export function TopicList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className={cn(
-                      "font-medium text-sm truncate leading-snug transition-colors duration-200",
+                      "font-medium text-sm break-words leading-snug transition-colors duration-200",
                       isSelected && "text-foreground font-semibold",
                       !isSelected && "text-foreground/90"
                     )}>

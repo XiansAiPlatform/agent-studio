@@ -23,12 +23,21 @@ export async function GET(
     
     const agentName = searchParams.get('agentName');
     const activationName = searchParams.get('activationName');
-    const participantId = searchParams.get('participantId') || session.user.email || '';
     const topic = searchParams.get('topic'); // Can be null, empty string, or topic name
     const page = searchParams.get('page') || '1';
     const pageSize = searchParams.get('pageSize') || '50';
     const chatOnly = searchParams.get('chatOnly') || 'false';
     const sortOrder = searchParams.get('sortOrder') || 'asc';
+
+    // SECURITY: Get participantId from authenticated session, not from client
+    const participantId = session.user?.email;
+
+    if (!participantId) {
+      return NextResponse.json(
+        { error: 'User email not found in session' },
+        { status: 401 }
+      );
+    }
 
     if (!agentName) {
       return NextResponse.json(

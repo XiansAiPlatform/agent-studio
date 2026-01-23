@@ -27,11 +27,16 @@ const navigation = [
     icon: LayoutDashboard,
   },
   {
+    name: 'Running Agents',
+    href: '/agents/running',
+    icon: Bot,
+  },
+  {
     name: 'Tasks',
     href: '/tasks',
     icon: CheckCircle,
     children: [
-      { name: 'Pending Tasks', href: '/tasks/pending', badge: 5 },
+      { name: 'Pending', href: '/tasks/pending', badge: 5 },
       { name: 'All Tasks', href: '/tasks' },
     ],
   },
@@ -40,15 +45,6 @@ const navigation = [
     href: '/conversations',
     icon: MessageSquare,
     type: 'conversations', // Special type to show agents
-  },
-  {
-    name: 'Agents',
-    href: '/agents',
-    icon: Bot,
-    children: [
-      { name: 'Agent Instances', href: '/agents', badge: 3 },
-      { name: 'Agent Store', href: '/agents/templates' },
-    ],
   },
   {
     name: 'Knowledge',
@@ -73,6 +69,7 @@ const navigation = [
     href: '/settings',
     icon: Settings,
     children: [
+      { name: 'Agent Store', href: '/settings/agent-store' },
       { name: 'Tenant', href: '/settings/tenant' },
       { name: 'Platform Config', href: '/settings/platform' },
       { name: 'Integrations', href: '/settings/integrations' },

@@ -24,8 +24,20 @@ export async function GET(
     
     const agentName = searchParams.get('agentName');
     const activationName = searchParams.get('activationName');
-    const participantId = searchParams.get('participantId') || session.user.email || '';
     const heartbeatSeconds = searchParams.get('heartbeatSeconds') || '60';
+
+    // SECURITY: Get participantId from authenticated session, not from client
+    const participantId = session.user?.email;
+
+    if (!participantId) {
+      return new Response(
+        JSON.stringify({ error: 'User email not found in session' }),
+        { 
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     // Validate required parameters
     if (!agentName) {

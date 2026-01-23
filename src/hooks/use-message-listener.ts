@@ -7,7 +7,6 @@ export interface UseMessageListenerParams {
   tenantId: string | null;
   agentName: string | null;
   activationName: string | null;
-  participantId: string | null;
   enabled?: boolean;
   onMessage?: (message: XiansMessage) => void;
   onError?: (error: Error) => void;
@@ -34,7 +33,6 @@ export function useMessageListener(
     tenantId,
     agentName,
     activationName,
-    participantId,
     enabled = true,
     onMessage,
     onError,
@@ -80,7 +78,7 @@ export function useMessageListener(
 
   const connect = useCallback(() => {
     // Validate required parameters
-    if (!tenantId || !agentName || !activationName || !participantId) {
+    if (!tenantId || !agentName || !activationName) {
       return;
     }
 
@@ -93,10 +91,10 @@ export function useMessageListener(
 
     try {
       // Build query parameters
+      // participantId is now obtained from session on the backend for security
       const queryParams = new URLSearchParams({
         agentName,
         activationName,
-        participantId,
         heartbeatSeconds: '60',
       });
 
@@ -206,7 +204,6 @@ export function useMessageListener(
     tenantId,
     agentName,
     activationName,
-    participantId,
     enabled,
     disconnect,
   ]);
@@ -218,7 +215,7 @@ export function useMessageListener(
 
   // Connect on mount or when parameters change
   useEffect(() => {
-    if (enabled && tenantId && agentName && activationName && participantId) {
+    if (enabled && tenantId && agentName && activationName) {
       connect();
     }
 
@@ -227,7 +224,7 @@ export function useMessageListener(
       disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, tenantId, agentName, activationName, participantId]);
+  }, [enabled, tenantId, agentName, activationName]);
 
   return {
     isConnected,

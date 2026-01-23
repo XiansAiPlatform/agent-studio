@@ -24,7 +24,6 @@ export async function POST(
     const {
       agentName,
       activationName,
-      participantId,
       text,
       topic,
       data,
@@ -33,6 +32,16 @@ export async function POST(
       hint,
       origin,
     } = body;
+
+    // SECURITY: Get participantId from authenticated session, not from client
+    const participantId = session.user?.email;
+
+    if (!participantId) {
+      return NextResponse.json(
+        { error: 'User email not found in session' },
+        { status: 401 }
+      );
+    }
 
     // Validate required fields
     if (!agentName) {
@@ -45,13 +54,6 @@ export async function POST(
     if (!activationName) {
       return NextResponse.json(
         { error: 'activationName is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!participantId) {
-      return NextResponse.json(
-        { error: 'participantId is required' },
         { status: 400 }
       );
     }
