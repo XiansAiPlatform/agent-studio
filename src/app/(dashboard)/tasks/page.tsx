@@ -352,14 +352,16 @@ function TasksContent() {
                 <p className="text-sm text-muted-foreground">Loading tasks...</p>
               </div>
             ) : filteredTasks.length > 0 ? (
-              filteredTasks.map((task) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  onClick={() => handleTaskClick(task.id)}
-                  isSelected={task.id === selectedTaskId}
-                />
-              ))
+              <>
+                {filteredTasks.map((task) => (
+                  <TaskListItem
+                    key={task.id}
+                    task={task}
+                    onClick={() => handleTaskClick(task.id)}
+                    isSelected={task.id === selectedTaskId}
+                  />
+                ))}
+              </>
             ) : (
               <p className="text-center text-muted-foreground py-12 px-6">
                 {tasks.length === 0 ? 'No tasks found' : 'No tasks match the selected filters'}
