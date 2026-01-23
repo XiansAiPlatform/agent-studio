@@ -327,13 +327,13 @@ export function ChatInterface({
               {!isLoadingMoreMessages && hasMoreMessages && selectedTopic.messages.length > 0 && (
                 <div className="flex items-center justify-center py-4">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={onLoadMoreMessages}
-                    className="gap-2 text-xs font-bold rounded-xl bg-primary/5 hover:bg-primary/10 hover:text-primary hover:border-primary/50 hover:shadow-xl transition-all duration-300 border-primary/30 px-4 py-2 shadow-md"
+                    className="gap-2 text-xs rounded-full hover:bg-muted transition-all duration-200"
                   >
                     <ArrowUp className="h-3.5 w-3.5" />
-                    Load More Messages
+                    Load earlier messages
                   </Button>
                 </div>
               )}
@@ -364,15 +364,15 @@ export function ChatInterface({
 
               {/* Typing Indicator */}
               {isTyping && (
-                <div className="flex items-center gap-3.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="h-9 w-9 rounded-xl bg-accent/20 flex items-center justify-center shadow-md border border-accent/30">
-                    <Bot className="h-5 w-5 text-accent" />
+                <div className="flex items-center gap-3 animate-in fade-in duration-300">
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                    <Bot className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="bg-card rounded-2xl px-5 py-3.5 shadow-lg border border-primary/20">
-                    <div className="flex gap-1.5">
-                      <div className="h-2.5 w-2.5 bg-primary rounded-full animate-bounce shadow-md shadow-primary/30" style={{ animationDelay: '0ms' }} />
-                      <div className="h-2.5 w-2.5 bg-accent rounded-full animate-bounce shadow-md shadow-accent/30" style={{ animationDelay: '150ms' }} />
-                      <div className="h-2.5 w-2.5 bg-primary rounded-full animate-bounce shadow-md shadow-primary/30" style={{ animationDelay: '300ms' }} />
+                  <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
+                    <div className="flex gap-1">
+                      <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
                 </div>
@@ -385,17 +385,9 @@ export function ChatInterface({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-border/30 bg-card px-6 py-5 shadow-lg">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-end gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="flex-shrink-0 h-11 w-11 rounded-xl bg-primary/5 hover:bg-primary/15 hover:text-primary hover:shadow-lg transition-all duration-300 group border border-primary/10 hover:border-primary/30"
-            >
-              <Paperclip className="h-5 w-5 text-primary transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
-            </Button>
-            
+      <div className="border-t border-border/20 bg-card px-6 py-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Input
                 ref={inputRef}
@@ -403,26 +395,19 @@ export function ChatInterface({
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={`Message ${conversation.agent.name}...`}
-                className="pr-28 h-12 resize-none bg-background border-primary/20 rounded-xl shadow-md focus:shadow-xl focus:border-primary/50 transition-all duration-300 text-sm"
+                className="h-11 resize-none bg-muted/30 border-0 rounded-full focus-visible:ring-1 focus-visible:ring-primary/30 transition-all text-sm px-4"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary/70 font-semibold bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                Press Enter
-              </div>
             </div>
 
             <Button
               onClick={handleSendMessage}
               disabled={!messageInput.trim()}
-              className="flex-shrink-0 h-11 px-5 rounded-xl group transition-all duration-300 hover:shadow-xl hover:scale-[1.05] bg-primary shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              size="icon"
+              className="flex-shrink-0 h-11 w-11 rounded-full transition-all duration-200 bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:translate-x-1" />
-              Send
+              <Send className="h-4 w-4" />
             </Button>
           </div>
-
-          <p className="text-xs text-primary/60 mt-3 text-center font-semibold">
-            Shift + Enter for new line
-          </p>
         </div>
       </div>
     </div>

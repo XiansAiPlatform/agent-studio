@@ -47,15 +47,15 @@ export function AgentSelectionView({
   }, {} as Record<string, ActivationOption[]>);
 
   return (
-    <div className="flex h-full bg-gradient-to-br from-background via-muted/5 to-background">
-      <div className="flex-1 flex flex-col p-8 overflow-y-auto">
-        <div className="w-full max-w-4xl">
+    <div className="flex h-full bg-card">
+      <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+        <div className="w-full max-w-3xl">
           {/* Header Section */}
-          <div className="mb-4 mt-2">
-            <h2 className="text-lg font-semibold text-foreground mb-1">
+          <div className="mb-6">
+            <h2 className="text-base font-medium text-foreground mb-1">
               Select an Agent
             </h2>
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-muted-foreground mb-4">
               Choose an activation to start chatting
             </p>
             
@@ -74,44 +74,41 @@ export function AgentSelectionView({
           <div>
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
-                <p className="text-muted-foreground text-sm">Loading available agents...</p>
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                <p className="text-muted-foreground text-sm">Loading agents...</p>
               </div>
             ) : activations.length === 0 ? (
-              <div className="text-center py-12 bg-muted/20 rounded-xl border-2 border-dashed border-border">
-                <Bot className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No Active Agents</h3>
+              <div className="text-center py-12">
+                <Bot className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                <h3 className="text-base font-medium text-foreground mb-2">No Active Agents</h3>
                 <p className="text-muted-foreground text-sm mb-4">
-                  You need to activate an agent before you can start a conversation
+                  Activate an agent to start chatting
                 </p>
                 <Button
                   onClick={() => router.push('/agents/running')}
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 rounded-full"
                 >
-                  <Bot className="h-4 w-4 mr-2" />
                   Go to Agents
                 </Button>
               </div>
             ) : searchQuery && filteredActivations.length === 0 ? (
-              <div className="text-center py-8 bg-muted/10 rounded-lg border border-dashed border-border">
-                <Search className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+              <div className="text-center py-8">
+                <Search className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">
                   No agents found matching &quot;{searchQuery}&quot;
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {Object.entries(groupedActivations).map(([agentName, agentActivations]) => (
                   <div key={agentName} className="space-y-2">
                     {/* Agent Name Header */}
-                    <div className="flex items-center gap-2 px-1 mb-1">
-                      <Bot className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-semibold text-foreground">{agentName}</h3>
-                      <div className="h-px flex-1 bg-border" />
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{agentName}</h3>
                     </div>
 
                     {/* Activation List Items */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       {agentActivations.map((activation) => {
                         const isSelected = 
                           activation.name === selectedActivationName && 

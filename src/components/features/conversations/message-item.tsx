@@ -82,14 +82,14 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
       <div className="flex-shrink-0">
         <div
           className={cn(
-            'h-9 w-9 rounded-xl flex items-center justify-center shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-110',
-            isUser ? 'bg-primary/20 border border-primary/30' : 'bg-accent/20 border border-accent/30'
+            'h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200',
+            isUser ? 'bg-primary/15' : 'bg-muted'
           )}
         >
           {isUser ? (
-            <User className="h-5 w-5 text-primary" />
+            <User className="h-4 w-4 text-primary" />
           ) : (
-            <Bot className="h-5 w-5 text-accent" />
+            <Bot className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
       </div>

@@ -14,25 +14,25 @@ interface AgentCardProps {
 export function AgentCard({ agent, isNewlyCreated, onClick }: AgentCardProps) {
   return (
     <Card 
-      className={`hover:shadow-lg transition-all duration-300 cursor-pointer ${
-        isNewlyCreated ? 'border-2 border-green-500' : ''
+      className={`hover:bg-muted/50 transition-all duration-200 cursor-pointer border ${
+        isNewlyCreated ? 'border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-border/50'
       }`}
       onClick={onClick}
     >
-      <CardHeader className="space-y-4">
-        <div className="flex items-start justify-between">
+      <CardHeader className="space-y-3 pb-4">
+        <div className="flex items-start justify-between gap-3">
           <IconAvatar 
             icon={Bot} 
             variant={agent.variant} 
-            size="lg" 
-            rounded="md" 
+            size="md" 
+            rounded="full" 
             pulse={agent.status === 'active'} 
           />
-          <div className="flex flex-col gap-1.5 items-end">
+          <div className="flex items-center gap-2">
             {isNewlyCreated && (
               <Badge 
                 variant="default" 
-                className="text-xs font-semibold bg-green-600 hover:bg-green-600"
+                className="text-xs bg-emerald-600 hover:bg-emerald-600"
               >
                 NEW
               </Badge>
@@ -45,37 +45,31 @@ export function AgentCard({ agent, isNewlyCreated, onClick }: AgentCardProps) {
             </Badge>
           </div>
         </div>
-        <div>
-          <Badge 
-            variant="outline" 
-            className="font-semibold text-xs border whitespace-normal break-words bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-          >
-            {agent.template}
-          </Badge>
-        </div>
-        <div className="space-y-4">
-          <CardTitle className="whitespace-normal break-words">{agent.name}</CardTitle>
-          <CardDescription className="whitespace-normal break-words">
+        <div className="space-y-2">
+          <CardTitle className="text-base whitespace-normal break-words">{agent.name}</CardTitle>
+          <div className="text-xs text-muted-foreground">{agent.template}</div>
+          <CardDescription className="text-xs whitespace-normal break-words line-clamp-2">
             {agent.description}
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2.5">
-          {agent.uptime && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-xs text-muted-foreground">Uptime:</span>
-              <span className="text-xs font-medium">{agent.uptime}</span>
-            </div>
-          )}
-          {agent.lastActive && (
-            <div className="text-sm">
-              <span className="text-xs text-muted-foreground">Last Modified: </span>
-              <span className="text-xs font-medium">{agent.lastActive}</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
+      {(agent.uptime || agent.lastActive) && (
+        <CardContent className="pt-0 pb-4">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {agent.uptime && (
+              <>
+                <span>Uptime: {agent.uptime}</span>
+              </>
+            )}
+            {agent.lastActive && (
+              <>
+                {agent.uptime && <span>•</span>}
+                <span>Modified {agent.lastActive}</span>
+              </>
+            )}
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }

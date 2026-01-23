@@ -115,32 +115,26 @@ export function ConversationView({
         {selectedTopicId && selectedTopic ? (
           <>
             {/* Chat Header */}
-            <div className="border-b border-border/30 bg-card px-6 py-4 shadow-sm">
+            <div className="border-b border-border/20 bg-card px-6 py-3">
               <div className="flex items-center justify-between">
                 {/* Agent Icon + Topic Info */}
                 <div className="flex items-center gap-3">
                   {/* Agent Avatar with Sonar Pulse */}
                   <div className="relative inline-flex">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-sm relative z-10">
-                      <Bot className="h-5 w-5 text-primary" />
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 relative z-10">
+                      <Bot className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="sonar-container absolute inset-0 rounded-xl" />
+                    <div className="sonar-container absolute inset-0 rounded-full" />
                   </div>
                   
                   {/* Topic Info */}
                   <div>
-                    <h3 className="font-semibold text-base text-foreground">
+                    <h3 className="font-medium text-sm text-foreground">
                       {selectedTopic.name}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      {selectedTopic.createdAt && (
-                        <span className="text-xs text-muted-foreground font-medium">
-                          Created {new Date(selectedTopic.createdAt).toLocaleDateString()}
-                        </span>
-                      )}
-                      <span className="text-xs text-muted-foreground/50">•</span>
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {selectedTopic.messageCount ?? selectedTopic.messages.length} message{(selectedTopic.messageCount ?? selectedTopic.messages.length) !== 1 ? 's' : ''}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-muted-foreground">
+                        {selectedTopic.messageCount ?? selectedTopic.messages.length} messages
                       </span>
                     </div>
                   </div>
@@ -148,24 +142,19 @@ export function ConversationView({
 
                 {/* SSE Connection Status */}
                 {agentName && selectedActivationName && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className={cn(
-                      "flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all",
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "flex items-center gap-1.5 text-xs",
                       isConnected 
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" 
-                        : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                        ? "text-emerald-600 dark:text-emerald-400" 
+                        : "text-muted-foreground"
                     )}>
                       <span className={cn(
-                        "h-1.5 w-1.5 rounded-full animate-pulse",
-                        isConnected ? "bg-emerald-500" : "bg-amber-500"
+                        "h-1.5 w-1.5 rounded-full",
+                        isConnected && "bg-emerald-500 animate-pulse"
                       )} />
-                      {isConnected ? 'Live' : 'Connecting...'}
-                    </span>
-                    {sseError && (
-                      <span className="text-red-500 dark:text-red-400 px-2 py-1 rounded-full bg-red-500/10 border border-red-500/20">
-                        Connection Error
-                      </span>
-                    )}
+                      {isConnected && 'Live'}
+                    </div>
                   </div>
                 )}
               </div>
