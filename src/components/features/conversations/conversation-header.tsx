@@ -110,7 +110,7 @@ export function ConversationHeader({
   }
 
   return (
-    <div className="border-b border-border/20 bg-gradient-to-b from-background via-background to-muted/10 backdrop-blur-sm shadow-sm">
+    <div className="border-b border-primary/20 bg-primary/[0.04] shadow-lg">
       <div className="flex items-center px-6 py-4">
         {/* Agent Selector - single unified component */}
         <div className="flex items-center">
@@ -121,16 +121,16 @@ export function ConversationHeader({
             <SelectPrimitive.Trigger
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-xl',
-                'bg-gradient-to-br from-muted/30 to-muted/10 border border-border/50',
-                'hover:bg-gradient-to-br hover:from-muted/50 hover:to-muted/20',
-                'hover:border-primary/30 hover:shadow-md transition-all duration-300',
-                'focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+                'bg-primary/[0.08] border border-primary/20',
+                'hover:bg-primary/[0.12]',
+                'hover:border-primary/40 hover:shadow-lg transition-all duration-300',
+                'focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
                 'group'
               )}
             >
               {/* Agent Avatar - inside the dropdown */}
-              <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 shadow-inner">
-                <Bot className="h-4 w-4 text-primary" />
+              <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0 shadow-md border border-primary/20">
+                <Bot className="h-5 w-5 text-primary" />
               </div>
               <div className="text-left">
                 {selectedActivation ? (
@@ -216,21 +216,21 @@ export function ConversationHeader({
             <div className="h-12 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent mx-5" />
 
             {/* Topic Info */}
-            <div className="text-left px-4 py-2 rounded-lg bg-muted/20 border border-border/30">
+            <div className="text-left px-4 py-2 rounded-lg bg-primary/[0.08] border border-primary/20 shadow-md">
               <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-lg shadow-primary/50" />
                 {selectedTopicName}
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 {selectedTopicCreatedAt && (
-                  <span className="text-xs text-muted-foreground/80">
+                  <span className="text-xs text-primary/70 font-medium">
                     Created {new Date(selectedTopicCreatedAt).toLocaleDateString()}
                   </span>
                 )}
                 {selectedTopicMessageCount !== undefined && (
                   <>
-                    <span className="text-xs text-muted-foreground/30">•</span>
-                    <span className="text-xs font-medium text-muted-foreground/80">
+                    <span className="text-xs text-primary/30">•</span>
+                    <span className="text-xs font-semibold text-primary/80">
                       {selectedTopicMessageCount} message{selectedTopicMessageCount !== 1 ? 's' : ''}
                     </span>
                   </>

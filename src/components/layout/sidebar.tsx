@@ -35,7 +35,7 @@ const navigation = [
     href: '/tasks',
     icon: CheckCircle,
     children: [
-      { name: 'Pending', href: '/tasks/pending', badge: 5 },
+      { name: 'Pending', href: '/tasks/pending'},
       { name: 'All Tasks', href: '/tasks' },
     ],
   },
@@ -164,12 +164,7 @@ function NavItem({
                         : 'text-muted-foreground border-l-2 border-l-transparent rounded-md'
                     )}
                   >
-                    <span className="flex-1 truncate">{child.name}</span>
-                    {child.badge && (
-                      <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-                        {child.badge}
-                      </Badge>
-                    )}
+                    <span className="truncate">{child.name}</span>
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">

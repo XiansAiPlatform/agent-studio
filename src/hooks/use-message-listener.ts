@@ -79,14 +79,22 @@ export function useMessageListener(
   const connect = useCallback(() => {
     // Validate required parameters
     if (!tenantId || !agentName || !activationName) {
+      console.log('[SSE] Missing required parameters:', { tenantId, agentName, activationName });
       return;
     }
 
     if (!enabled) {
+      console.log('[SSE] Connection disabled');
       return;
     }
 
-    // Disconnect existing connection
+    // If already connected, don't create a new connection
+    if (eventSourceRef.current && eventSourceRef.current.readyState !== EventSource.CLOSED) {
+      console.log('[SSE] Connection already exists, skipping new connection');
+      return;
+    }
+
+    // Disconnect existing connection (cleanup)
     disconnect();
 
     try {
@@ -100,8 +108,13 @@ export function useMessageListener(
 
       const url = `/api/tenants/${tenantId}/messaging/listen?${queryParams.toString()}`;
       
+      console.log('[SSE] Attempting to connect to:', url);
+      
       const eventSource = new EventSource(url);
       eventSourceRef.current = eventSource;
+      
+      // Log initial state
+      console.log('[SSE] EventSource created with readyState:', eventSource.readyState);
 
       // Handle connection open
       eventSource.addEventListener('open', () => {
@@ -169,9 +182,24 @@ export function useMessageListener(
 
       // Handle errors
       eventSource.addEventListener('error', (event) => {
-        console.error('[SSE] Connection error (readyState:', eventSource.readyState, ')');
+        const readyState = eventSource.readyState;
+        const readyStateText = readyState === 0 ? 'CONNECTING' : readyState === 1 ? 'OPEN' : 'CLOSED';
         
-        const connectionError = new Error('SSE connection error');
+        console.error('[SSE] Connection error', {
+          readyState,
+          readyStateText,
+          eventType: event.type,
+          timeStamp: event.timeStamp,
+          wasConnected: isConnected,
+        });
+        
+        // If we were previously connected and got an error, this is likely a transient network issue
+        // If we never connected (readyState === 0), this could be a CORS, auth, or server issue
+        const errorMessage = readyState === 0 
+          ? 'Failed to establish SSE connection. Check server availability and CORS settings.'
+          : 'SSE connection lost. Attempting to reconnect...';
+        
+        const connectionError = new Error(errorMessage);
         setError(connectionError);
         setIsConnected(false);
         onErrorRef.current?.(connectionError);
@@ -180,8 +208,10 @@ export function useMessageListener(
         eventSource.close();
         eventSourceRef.current = null;
 
-        // Attempt to reconnect with exponential backoff
-        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        // Only auto-reconnect if we had successfully connected before, or haven't exceeded attempts
+        const shouldReconnect = reconnectAttemptsRef.current < maxReconnectAttempts;
+        
+        if (shouldReconnect) {
           const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current);
           console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
           
@@ -190,7 +220,12 @@ export function useMessageListener(
             connect();
           }, delay);
         } else {
-          console.error('[SSE] Max reconnection attempts reached');
+          console.error('[SSE] Max reconnection attempts reached. Please check:', {
+            url,
+            tenantId,
+            agentName,
+            activationName,
+          });
           onDisconnectRef.current?.();
         }
       });

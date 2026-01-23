@@ -83,6 +83,14 @@ export async function GET(
 
     const xiansUrl = `${xiansBaseUrl}/api/v1/admin/tenants/${tenantId}/messaging/listen?${queryParams.toString()}`;
 
+    // Log the connection attempt
+    console.log('[SSE Listen] Connecting to Xians SSE stream:', {
+      tenantId,
+      agentName,
+      activationName,
+      participantId,
+    });
+
     // Create a fetch request to the Xians server with SSE
     const xiansResponse = await fetch(xiansUrl, {
       method: 'GET',
@@ -95,7 +103,13 @@ export async function GET(
     });
 
     if (!xiansResponse.ok) {
-      console.error('[SSE Listen] Xians API error:', xiansResponse.status, xiansResponse.statusText);
+      console.error('[SSE Listen] Xians API error:', {
+        status: xiansResponse.status,
+        statusText: xiansResponse.statusText,
+        tenantId,
+        agentName,
+        activationName,
+      });
       return new Response(
         JSON.stringify({ 
           error: `Failed to connect to message stream: ${xiansResponse.statusText}` 
@@ -106,6 +120,8 @@ export async function GET(
         }
       );
     }
+
+    console.log('[SSE Listen] Successfully connected to Xians SSE stream');
 
     // Check if the response body exists
     if (!xiansResponse.body) {

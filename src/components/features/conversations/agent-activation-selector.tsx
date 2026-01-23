@@ -10,6 +10,7 @@ import {
   SelectGroup,
   SelectLabel,
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 export interface ActivationOption {
   id: string;
@@ -104,9 +105,14 @@ export function AgentActivationSelector({
         >
           <div className="min-w-0 flex-1 text-left">
             {selectedActivation ? (
-              <h2 className="text-sm font-semibold text-foreground leading-snug">
-                {selectedActivation.name}
-              </h2>
+              <>
+                <h2 className="text-sm font-semibold text-foreground leading-snug mb-1">
+                  {selectedActivation.name}
+                </h2>
+                <Badge variant="outline" className="text-xs font-medium bg-primary/5 border-primary/20 text-primary">
+                  {selectedActivation.agentName}
+                </Badge>
+              </>
             ) : (
               <>
                 <h2 className="text-sm font-semibold text-foreground">

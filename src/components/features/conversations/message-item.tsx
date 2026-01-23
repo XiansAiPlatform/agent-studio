@@ -82,14 +82,14 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
       <div className="flex-shrink-0">
         <div
           className={cn(
-            'h-9 w-9 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105',
-            isUser ? 'bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20' : 'bg-gradient-to-br from-secondary/20 to-secondary/10 border border-secondary/20'
+            'h-9 w-9 rounded-xl flex items-center justify-center shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-110',
+            isUser ? 'bg-primary/20 border border-primary/30' : 'bg-accent/20 border border-accent/30'
           )}
         >
           {isUser ? (
-            <User className="h-4 w-4 text-primary" />
+            <User className="h-5 w-5 text-primary" />
           ) : (
-            <Bot className="h-4 w-4 text-secondary" />
+            <Bot className="h-5 w-5 text-accent" />
           )}
         </div>
       </div>
@@ -101,23 +101,30 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
           isUser ? 'items-end' : 'items-start'
         )}
       >
-        {/* Sender Name */}
+        {/* Sender Name + Timestamp */}
         <div className="flex items-center gap-2 px-1 mb-1">
+          {isUser && (
+            <span className="text-[10px] text-muted-foreground/60 font-medium">
+              {formatTimestamp(message.timestamp)}
+            </span>
+          )}
           <span className="text-xs font-semibold text-muted-foreground">
             {isUser ? (userName || 'You') : (agentName || 'Agent')}
           </span>
-          <span className="text-[10px] text-muted-foreground/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium">
-            {formatTimestamp(message.timestamp)}
-          </span>
+          {!isUser && (
+            <span className="text-[10px] text-muted-foreground/60 font-medium">
+              {formatTimestamp(message.timestamp)}
+            </span>
+          )}
         </div>
 
         {/* Message Bubble */}
         <div
           className={cn(
-            'rounded-2xl px-5 py-3 shadow-md border transition-all duration-300 group-hover:shadow-lg',
+            'rounded-2xl px-4 py-2.5 transition-all duration-200',
             isUser
-              ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground border-primary/50'
-              : 'bg-card text-foreground border-border/50'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted/50 text-foreground'
           )}
         >
           <div className="text-sm leading-relaxed markdown-content">
@@ -137,8 +144,9 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   />
                 ),
                 // Customize code block styling
-                code: ({ node, inline, ...props }) =>
-                  inline ? (
+                code: ({ node, ...props }) => {
+                  const inline = !('inline' in props) || (props as any).inline !== false;
+                  return inline ? (
                     <code
                       {...props}
                       className={cn(
@@ -158,7 +166,8 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                           : 'bg-muted-foreground/20'
                       )}
                     />
-                  ),
+                  );
+                },
                 // Customize pre block styling (wraps code blocks)
                 pre: ({ node, ...props }) => (
                   <pre {...props} className="my-2" />
@@ -403,8 +412,9 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                             rel="noopener noreferrer"
                           />
                         ),
-                        code: ({ node, inline, ...props }) =>
-                          inline ? (
+                        code: ({ node, ...props }) => {
+                          const inline = !('inline' in props) || (props as any).inline !== false;
+                          return inline ? (
                             <code
                               {...props}
                               className="px-1.5 py-0.5 rounded text-xs font-mono bg-muted-foreground/20"
@@ -414,7 +424,8 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                               {...props}
                               className="block px-3 py-2 my-2 rounded text-xs font-mono overflow-x-auto bg-muted-foreground/20"
                             />
-                          ),
+                          );
+                        },
                         pre: ({ node, ...props }) => (
                           <pre {...props} className="my-2" />
                         ),
