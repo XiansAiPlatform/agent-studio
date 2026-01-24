@@ -4,16 +4,18 @@ import { Suspense, useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Task } from '@/lib/data/dummy-tasks';
 import { TaskListItem } from '@/components/features/tasks/task-list-item';
 import { TaskDetail } from '@/components/features/tasks/task-detail';
-import { TaskFiltersComponent, TaskFilters } from '@/components/features/tasks';
+import { TaskFilterSlider, TaskFilters } from '@/components/features/tasks';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast } from '@/lib/utils/error-handler';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type XiansTask = {
   taskId: string;
@@ -45,6 +47,8 @@ type XiansTasksResponse = {
   totalCount: number | null;
 };
 
+type TaskStatusFilter = 'all' | 'pending';
+
 function TasksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,6 +59,12 @@ function TasksContent() {
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
+  const [isFilterSliderOpen, setIsFilterSliderOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>('all');
+  const [selectedActivations, setSelectedActivations] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   // Current user ID from auth
   const currentUserId = user?.id || 'user-001';
@@ -62,22 +72,26 @@ function TasksContent() {
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
   // Initialize filters from URL params
-  const getFiltersFromURL = (): TaskFilters => {
-    const scope = searchParams.get('scope') as TaskFilters['scope'] || 'all-tasks';
-    const statusesParam = searchParams.get('statuses');
-    const agentsParam = searchParams.get('agents');
+  useEffect(() => {
+    const statusParam = searchParams.get('status') as TaskStatusFilter;
+    const activationsParam = searchParams.get('activations');
+    const pageParam = searchParams.get('page');
     
-    return {
-      scope: ['my-tasks', 'all-tasks'].includes(scope) ? scope : 'all-tasks',
-      statuses: statusesParam ? statusesParam.split(',').filter(s => 
-        ['pending', 'approved', 'rejected', 'obsolete'].includes(s)
-      ) as TaskFilters['statuses'] : [],
-      agents: agentsParam ? agentsParam.split(',').filter(a => a.length > 0) : [],
-    };
-  };
-
-  // Filter state initialized from URL
-  const [filters, setFilters] = useState<TaskFilters>(() => getFiltersFromURL());
+    if (statusParam && ['all', 'pending'].includes(statusParam)) {
+      setStatusFilter(statusParam);
+    }
+    
+    if (activationsParam) {
+      setSelectedActivations(activationsParam.split(',').filter(a => a.length > 0));
+    }
+    
+    if (pageParam) {
+      const page = parseInt(pageParam, 10);
+      if (!isNaN(page) && page > 0) {
+        setCurrentPage(page);
+      }
+    }
+  }, [searchParams]);
 
   // Fetch all tasks from API
   useEffect(() => {
@@ -90,9 +104,28 @@ function TasksContent() {
 
       setIsLoadingTasks(true);
       try {
-        // participantId is now obtained from session on the backend for security
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.set('pageSize', '20');
+        params.set('pageToken', currentPage.toString());
+        
+        // Map frontend status filter to backend status
+        if (statusFilter === 'pending') {
+          params.set('status', 'Running');
+        }
+        
+        // Add activation filters
+        if (selectedActivations.length > 0) {
+          // Since we can only pass one activationName at a time in the API,
+          // we'll need to make multiple requests or pass comma-separated
+          // For now, let's fetch all and filter client-side if multiple selections
+          if (selectedActivations.length === 1) {
+            params.set('activationName', selectedActivations[0]);
+          }
+        }
+
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/tasks`
+          `/api/tenants/${currentTenantId}/tasks?${params.toString()}`
         );
 
         if (!response.ok) {
@@ -101,14 +134,25 @@ function TasksContent() {
 
         const data: XiansTasksResponse = await response.json();
         console.log('[TasksPage] Fetched tasks:', data);
+        
+        // Update pagination state
+        setHasNextPage(data.hasNextPage);
+        setTotalPages(data.hasNextPage ? currentPage + 1 : currentPage);
 
         // Remove duplicates based on workflowId (keep first occurrence)
-        const uniqueTasks = data.tasks.reduce((acc, task) => {
+        let uniqueTasks = data.tasks.reduce((acc, task) => {
           if (!acc.find(t => t.workflowId === task.workflowId)) {
             acc.push(task);
           }
           return acc;
         }, [] as XiansTask[]);
+        
+        // Client-side filtering if multiple activations selected
+        if (selectedActivations.length > 1) {
+          uniqueTasks = uniqueTasks.filter(task => 
+            selectedActivations.includes(task.activationName)
+          );
+        }
 
         // Map Xians tasks to our Task format
         const mappedTasks: Task[] = uniqueTasks.map((xiansTask) => {
@@ -125,8 +169,8 @@ function TasksContent() {
               status,
               priority: 'medium', // Default priority
               createdBy: {
-                id: xiansTask.agentName || 'Unknown Agent',
-                name: xiansTask.agentName || 'Unknown Agent',
+                id: xiansTask.activationName || 'Unknown Activation',
+                name: xiansTask.activationName || 'Unknown Activation',
               },
               assignedTo: {
                 id: xiansTask.participantId,
@@ -150,6 +194,7 @@ function TasksContent() {
                   comment: xiansTask.comment || null,
                   metadata: xiansTask.metadata || null,
                   activationName: xiansTask.activationName,
+                  agentName: xiansTask.agentName,
                 },
               },
             };
@@ -166,48 +211,29 @@ function TasksContent() {
     };
 
     fetchTasks();
-  }, [currentTenantId]);
-
-  // Sync filters from URL when searchParams change (for browser back/forward navigation)
-  useEffect(() => {
-    const urlFilters = getFiltersFromURL();
-    const filtersChanged = 
-      urlFilters.scope !== filters.scope ||
-      JSON.stringify(urlFilters.statuses) !== JSON.stringify(filters.statuses) ||
-      JSON.stringify(urlFilters.agents) !== JSON.stringify(filters.agents);
-    
-    if (filtersChanged) {
-      setFilters(urlFilters);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [currentTenantId, statusFilter, selectedActivations, currentPage]);
 
   // Update URL when filters change
-  const updateFiltersWithURL = (newFilters: TaskFilters) => {
-    setFilters(newFilters);
+  const updateFiltersInURL = (
+    newStatusFilter: TaskStatusFilter,
+    newActivations: string[],
+    page: number = 1
+  ) => {
+    const params = new URLSearchParams();
     
-    // Build new URL with filter params
-    const params = new URLSearchParams(searchParams.toString());
-    
-    // Update scope
-    if (newFilters.scope !== 'all-tasks') {
-      params.set('scope', newFilters.scope);
-    } else {
-      params.delete('scope');
+    // Update status filter
+    if (newStatusFilter !== 'all') {
+      params.set('status', newStatusFilter);
     }
     
-    // Update statuses
-    if (newFilters.statuses.length > 0) {
-      params.set('statuses', newFilters.statuses.join(','));
-    } else {
-      params.delete('statuses');
+    // Update activations
+    if (newActivations.length > 0) {
+      params.set('activations', newActivations.join(','));
     }
     
-    // Update agents
-    if (newFilters.agents.length > 0) {
-      params.set('agents', newFilters.agents.join(','));
-    } else {
-      params.delete('agents');
+    // Update page
+    if (page > 1) {
+      params.set('page', page.toString());
     }
     
     // Preserve the task parameter if present
@@ -219,34 +245,34 @@ function TasksContent() {
     // Update URL
     const newURL = params.toString() ? `/tasks?${params.toString()}` : '/tasks';
     router.push(newURL, { scroll: false });
+    
+    // Update state
+    setStatusFilter(newStatusFilter);
+    setSelectedActivations(newActivations);
+    setCurrentPage(page);
   };
 
-  // Extract unique agents from tasks
-  const availableAgents = useMemo(() => {
-    const agentNames = new Set(tasks.map((task) => task.createdBy.name));
-    return Array.from(agentNames).sort();
+  // Extract unique activations with their agent names
+  const activationsWithAgents = useMemo(() => {
+    const activationMap = new Map<string, string>();
+    
+    tasks.forEach((task) => {
+      const activationName = task.createdBy.name;
+      const agentName = task.content?.data?.agentName || 'Unknown Agent';
+      
+      if (!activationMap.has(activationName)) {
+        activationMap.set(activationName, agentName);
+      }
+    });
+
+    return Array.from(activationMap.entries()).map(([activationName, agentName]) => ({
+      activationName,
+      agentName,
+    }));
   }, [tasks]);
 
-  // Filter tasks based on selected filters
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      // Filter by scope (my tasks vs all tasks)
-      if (filters.scope === 'my-tasks') {
-        if (task.assignedTo?.id !== currentUserId) {
-          return false;
-        }
-      }
-      // Filter by status
-      if (filters.statuses.length > 0 && !filters.statuses.includes(task.status as any)) {
-        return false;
-      }
-      // Filter by agent
-      if (filters.agents.length > 0 && !filters.agents.includes(task.createdBy.name)) {
-        return false;
-      }
-      return true;
-    });
-  }, [tasks, filters, currentUserId]);
+  // Tasks are already filtered by the backend, no client-side filtering needed
+  const filteredTasks = tasks;
 
   const handleTaskClick = (taskId: string) => {
     router.push(`/tasks?task=${taskId}`, { scroll: false });
@@ -269,25 +295,101 @@ function TasksContent() {
   };
 
   const pendingTasks = filteredTasks.filter(t => t.status === 'pending');
+  const completedTasks = filteredTasks.filter(t => t.status === 'approved' || t.status === 'rejected');
   const approvedTasks = filteredTasks.filter(t => t.status === 'approved').length;
   const rejectedTasks = filteredTasks.filter(t => t.status === 'rejected').length;
+
+  // Clear individual filter
+  const clearFilter = (type: 'status' | 'activation', value?: string) => {
+    if (type === 'status') {
+      updateFiltersInURL('all', selectedActivations, 1);
+    } else if (type === 'activation' && value) {
+      const newActivations = selectedActivations.filter(a => a !== value);
+      updateFiltersInURL(statusFilter, newActivations, 1);
+    }
+  };
+
+  const clearAllFilters = () => {
+    updateFiltersInURL('all', [], 1);
+  };
+
+  const hasActiveFilters = 
+    statusFilter !== 'all' || 
+    selectedActivations.length > 0;
+  
+  const activeFilterCount = 
+    (statusFilter !== 'all' ? 1 : 0) + 
+    selectedActivations.length;
+
+  const handlePageChange = (newPage: number) => {
+    updateFiltersInURL(statusFilter, selectedActivations, newPage);
+  };
 
   return (
     <>
       <div className="container mx-auto p-6 space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="shrink-0">
-            <h1 className="text-3xl font-semibold text-foreground">All Tasks</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage tasks requiring your attention
-            </p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="shrink-0">
+              <h1 className="text-3xl font-semibold text-foreground">All Tasks</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage tasks requiring your attention
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsFilterSliderOpen(true)}
+              className="shrink-0"
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Filter Tasks
+              {activeFilterCount > 0 && (
+                <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 text-xs">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
           </div>
-          <TaskFiltersComponent
-            availableAgents={availableAgents}
-            filters={filters}
-            onFiltersChange={updateFiltersWithURL}
-          />
+
+          {/* Active Filters Display */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+
+              {statusFilter !== 'all' && (
+                <Badge
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-secondary/80"
+                  onClick={() => clearFilter('status')}
+                >
+                  {statusFilter === 'pending' ? 'Pending' : statusFilter}
+                  <X className="ml-1 h-3 w-3" />
+                </Badge>
+              )}
+
+              {selectedActivations.map((agent: string) => (
+                <Badge
+                  key={agent}
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-secondary/80"
+                  onClick={() => clearFilter('activation', agent)}
+                >
+                  {agent}
+                  <X className="ml-1 h-3 w-3" />
+                </Badge>
+              ))}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-6 px-2 text-xs"
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Task Summary Stats */}
@@ -368,8 +470,49 @@ function TasksContent() {
               </p>
             )}
           </CardContent>
+          
+          {/* Pagination */}
+          {filteredTasks.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || isLoadingTasks}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!hasNextPage || isLoadingTasks}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
+
+      {/* Filter Slider */}
+      <TaskFilterSlider
+        isOpen={isFilterSliderOpen}
+        onClose={() => setIsFilterSliderOpen(false)}
+        activations={activationsWithAgents}
+        statusFilter={statusFilter}
+        selectedActivations={selectedActivations}
+        onFiltersChange={(newStatus, newActivations) => {
+          updateFiltersInURL(newStatus, newActivations, 1);
+        }}
+      />
 
       {/* Task Detail Slider */}
       <Sheet open={!!selectedTask} onOpenChange={handleCloseSlider}>

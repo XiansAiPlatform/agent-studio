@@ -34,10 +34,6 @@ const navigation = [
     name: 'Tasks',
     href: '/tasks',
     icon: CheckCircle,
-    children: [
-      { name: 'Pending', href: '/tasks/pending'},
-      { name: 'All Tasks', href: '/tasks' },
-    ],
   },
   {
     name: 'Conversations',

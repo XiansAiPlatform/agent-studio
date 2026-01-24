@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { TaskStatusBadge } from './task-status-badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskListItemProps {
@@ -110,11 +111,25 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
           </div>
 
           {/* Metadata */}
-          <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/60">
+          <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/60 flex-wrap">
             <span className="inline-flex items-center gap-1">
               <Bot className="h-3 w-3" />
-              {task.createdBy.name}
+              <span className="font-medium text-foreground/70">
+                {task.createdBy.name}
+              </span>
             </span>
+
+            {task.content?.data?.agentName && (
+              <>
+                <span className="text-muted-foreground/30">•</span>
+                <Badge 
+                  variant="outline" 
+                  className="text-[10px] h-5 px-1.5 bg-primary/5 border-primary/20 text-primary font-medium"
+                >
+                  {task.content.data.agentName}
+                </Badge>
+              </>
+            )}
             
             <span className="text-muted-foreground/30">•</span>
             

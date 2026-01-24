@@ -98,13 +98,13 @@ export function AgentActionsSlider({
               className="w-full justify-start transition-all duration-300 hover:bg-blue-500/5 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/30 hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 group h-auto py-2.5 rounded-xl border-border/40"
               asChild
             >
-              <Link href={`/tasks/pending?agent-name=${encodeURIComponent(agent.template)}&activation-name=${encodeURIComponent(agent.name)}&topic=general-discussions`}>
+              <Link href={`/tasks?agent-name=${encodeURIComponent(agent.template)}&activation-name=${encodeURIComponent(agent.name)}&topic=general-discussions`}>
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mr-3.5 transition-transform group-hover:scale-110 group-hover:bg-blue-500/15">
                   <ListTodo className="h-4 w-4" />
                 </div>
                 <div className="flex-1 text-left">
                   <div className="font-semibold text-sm">View Tasks</div>
-                  <div className="text-xs text-muted-foreground/70">Manage pending items</div>
+                  <div className="text-xs text-muted-foreground/70">Manage all tasks</div>
                 </div>
               </Link>
             </Button>

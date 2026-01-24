@@ -220,10 +220,6 @@ export function Header() {
 │  [☰] Menu       │
 ├─────────────────┤
 │ 🏠 Tasks        │  ← Active route highlighted
-│   • Pending     │
-│   • Assigned    │
-│   • All         │
-│   • Completed   │
 │                 │
 │ 💬 Conversations│
 │   • Active      │
@@ -263,10 +259,6 @@ export function Header() {
 
 #### 1. Tasks (Home)
 - **Icon:** Checkmark / List
-- **Sub-items:**
-  - Pending Tasks  - Assigned to Me
-  - All Tasks
-  - Completed
 - **Badge:** Count of pending items
 
 #### 2. Conversations
@@ -358,12 +350,6 @@ const navigation = [
     href: '/tasks',
     icon: CheckCircle,
     badge: 5, // Dynamic count
-    children: [
-      { name: 'Pending Tasks', href: '/tasks/pending' },
-      { name: 'Assigned to Me', href: '/tasks/assigned' },
-      { name: 'All Tasks', href: '/tasks' },
-      { name: 'Completed', href: '/tasks/completed' },
-    ],
   },
   {
     name: 'Conversations',
@@ -605,8 +591,6 @@ app/
 │   │
 │   ├── tasks/
 │   │   ├── page.tsx           # /tasks
-│   │   ├── pending/
-│   │   │   └── page.tsx       # /tasks/pending
 │   │   └── [id]/
 │   │       └── page.tsx       # /tasks/:id
 │   │
