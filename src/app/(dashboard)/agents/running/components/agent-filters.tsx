@@ -1,4 +1,3 @@
-import { Card } from '@/components/ui/card';
 import { Bot } from 'lucide-react';
 import { Agent } from '../types';
 
@@ -22,7 +21,7 @@ export function AgentFilters({
   onToggleActiveOnly,
 }: AgentFiltersProps) {
   return (
-    <Card className="p-4">
+    <div className="p-4 rounded-xl border bg-background shadow-sm">
       <div className="space-y-2.5">
         <div className="flex items-center gap-2">
           <Bot className="h-3.5 w-3.5 text-muted-foreground" />
@@ -99,6 +98,6 @@ export function AgentFilters({
           })}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

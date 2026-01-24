@@ -16,6 +16,7 @@ interface TaskListItemProps {
   task: Task;
   onClick: (task: Task) => void;
   isSelected?: boolean;
+  isHighlighted?: boolean;
 }
 
 const priorityColors = {
@@ -63,15 +64,16 @@ function formatDate(dateString: string): string {
   return `in ${diffDays}d`;
 }
 
-export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
+export function TaskListItem({ task, onClick, isSelected, isHighlighted }: TaskListItemProps) {
   return (
     <div
       onClick={() => onClick(task)}
       className={cn(
-        'group relative py-4 px-5 cursor-pointer transition-all duration-200',
+        'group relative py-4 px-5 cursor-pointer transition-all duration-500',
         'border-b border-border/30 last:border-b-0',
         'hover:bg-muted/30',
-        isSelected && 'bg-muted/50',
+        isSelected && 'bg-muted/60 border-l-4 border-l-primary',
+        isHighlighted && 'bg-primary/10 animate-pulse-slow',
       )}
     >
       <div className="flex items-start gap-4">

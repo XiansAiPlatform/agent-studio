@@ -4,3 +4,4 @@ export { TaskFiltersComponent } from './task-filters';
 export { TaskFilterSlider } from './task-filter-slider';
 export { TaskStatusBadge } from './task-status-badge';
 export type { TaskFilters, TaskStatus, TaskScope } from './task-filters';
+export type { SelectedActivation } from './task-filter-slider';

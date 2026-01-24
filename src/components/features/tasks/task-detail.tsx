@@ -280,6 +280,13 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
         `The action "${action}" has been successfully executed`,
         { icon: '✅' }
       );
+
+      // Call the callback to trigger parent component refresh and highlight
+      // Both onApprove and onReject do the same thing (close and refresh), so we use onApprove for all actions
+      if (onApprove) {
+        console.log('[TaskDetail] Calling onApprove callback with taskId:', task.id);
+        onApprove(task.id);
+      }
     } catch (error) {
       console.error('[TaskDetail] Error performing action:', error);
       showErrorToast(error, 'Failed to perform action');

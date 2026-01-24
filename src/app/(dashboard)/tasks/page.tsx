@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useMemo, useEffect } from 'react';
+import { Suspense, useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Task } from '@/lib/data/dummy-tasks';
 import { TaskListItem } from '@/components/features/tasks/task-list-item';
 import { TaskDetail } from '@/components/features/tasks/task-detail';
-import { TaskFilterSlider, TaskFilters } from '@/components/features/tasks';
+import { TaskFilterSlider, TaskFilters, SelectedActivation } from '@/components/features/tasks';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/use-tenant';
@@ -61,10 +61,15 @@ function TasksContent() {
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const [isFilterSliderOpen, setIsFilterSliderOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>('all');
-  const [selectedActivations, setSelectedActivations] = useState<string[]>([]);
+  const [selectedActivation, setSelectedActivation] = useState<SelectedActivation | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [allActivations, setAllActivations] = useState<Array<{ activationName: string; agentName: string }>>([]);
+  const [isLoadingActivations, setIsLoadingActivations] = useState(true);
+  const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+  const [persistentSelectedTaskId, setPersistentSelectedTaskId] = useState<string | null>(null);
 
   // Current user ID from auth
   const currentUserId = user?.id || 'user-001';
@@ -74,15 +79,23 @@ function TasksContent() {
   // Initialize filters from URL params
   useEffect(() => {
     const statusParam = searchParams.get('status') as TaskStatusFilter;
-    const activationsParam = searchParams.get('activations');
+    const agentParam = searchParams.get('agent');
+    const activationParam = searchParams.get('activation');
     const pageParam = searchParams.get('page');
+    const taskParam = searchParams.get('task');
+    
+    console.log('[TasksPage] Parsing URL params:', { statusParam, agentParam, activationParam, pageParam, taskParam });
     
     if (statusParam && ['all', 'pending'].includes(statusParam)) {
       setStatusFilter(statusParam);
     }
     
-    if (activationsParam) {
-      setSelectedActivations(activationsParam.split(',').filter(a => a.length > 0));
+    if (agentParam && activationParam) {
+      const activation = { agentName: agentParam, activationName: activationParam };
+      console.log('[TasksPage] Setting activation from URL:', activation);
+      setSelectedActivation(activation);
+    } else {
+      setSelectedActivation(null);
     }
     
     if (pageParam) {
@@ -91,132 +104,216 @@ function TasksContent() {
         setCurrentPage(page);
       }
     }
+    
+    // Set persistent selected task from URL if present
+    if (taskParam) {
+      setPersistentSelectedTaskId(taskParam);
+    }
+    
+    // Mark URL params as initialized
+    setUrlParamsInitialized(true);
   }, [searchParams]);
 
-  // Fetch all tasks from API
+  // Fetch all activations (both active and inactive)
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchActivations = async () => {
       if (!currentTenantId) {
-        setTasks([]);
-        setIsLoadingTasks(false);
+        setAllActivations([]);
+        setIsLoadingActivations(false);
         return;
       }
 
-      setIsLoadingTasks(true);
+      setIsLoadingActivations(true);
       try {
-        // Build query parameters
-        const params = new URLSearchParams();
-        params.set('pageSize', '20');
-        params.set('pageToken', currentPage.toString());
-        
-        // Map frontend status filter to backend status
-        if (statusFilter === 'pending') {
-          params.set('status', 'Running');
-        }
-        
-        // Add activation filters
-        if (selectedActivations.length > 0) {
-          // Since we can only pass one activationName at a time in the API,
-          // we'll need to make multiple requests or pass comma-separated
-          // For now, let's fetch all and filter client-side if multiple selections
-          if (selectedActivations.length === 1) {
-            params.set('activationName', selectedActivations[0]);
-          }
-        }
-
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/tasks?${params.toString()}`
+          `/api/tenants/${currentTenantId}/activations`
         );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch tasks');
-        }
-
-        const data: XiansTasksResponse = await response.json();
-        console.log('[TasksPage] Fetched tasks:', data);
-        
-        // Update pagination state
-        setHasNextPage(data.hasNextPage);
-        setTotalPages(data.hasNextPage ? currentPage + 1 : currentPage);
-
-        // Remove duplicates based on workflowId (keep first occurrence)
-        let uniqueTasks = data.tasks.reduce((acc, task) => {
-          if (!acc.find(t => t.workflowId === task.workflowId)) {
-            acc.push(task);
+          // Try to get the actual error message from the server
+          let errorMessage = 'Failed to fetch activations';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } catch {
+            // If parsing fails, use status text
+            errorMessage = `Failed to fetch activations: ${response.status} ${response.statusText}`;
           }
-          return acc;
-        }, [] as XiansTask[]);
-        
-        // Client-side filtering if multiple activations selected
-        if (selectedActivations.length > 1) {
-          uniqueTasks = uniqueTasks.filter(task => 
-            selectedActivations.includes(task.activationName)
-          );
+          throw new Error(errorMessage);
         }
 
-        // Map Xians tasks to our Task format
-        const mappedTasks: Task[] = uniqueTasks.map((xiansTask) => {
-            // Map status: Running -> pending, Completed -> approved
-            let status: 'pending' | 'approved' | 'rejected' | 'obsolete' = 'pending';
-            if (xiansTask.isCompleted) {
-              status = xiansTask.performedAction?.toLowerCase().includes('reject') ? 'rejected' : 'approved';
-            }
+        const data = await response.json();
+        console.log('[TasksPage] Fetched activations:', data);
 
-            return {
-              id: xiansTask.workflowId,
-              title: xiansTask.title || 'Untitled Task',
-              description: xiansTask.description || 'No description available',
-              status,
-              priority: 'medium', // Default priority
-              createdBy: {
-                id: xiansTask.activationName || 'Unknown Activation',
-                name: xiansTask.activationName || 'Unknown Activation',
-              },
-              assignedTo: {
-                id: xiansTask.participantId,
-                name: xiansTask.participantId,
-              },
-              createdAt: xiansTask.startTime,
-              updatedAt: xiansTask.closeTime || xiansTask.startTime,
-              conversationId: undefined,
-              topicId: undefined,
-              content: {
-                originalRequest: xiansTask.initialWork || undefined,
-                proposedAction: xiansTask.finalWork || undefined,
-                reasoning: xiansTask.description || undefined,
-                data: {
-                  workflowId: xiansTask.workflowId,
-                  runId: xiansTask.runId,
-                  workflowStatus: xiansTask.status, // Add workflow status from API
-                  isCompleted: xiansTask.isCompleted, // Add isCompleted flag
-                  availableActions: xiansTask.availableActions || [],
-                  performedAction: xiansTask.performedAction || null,
-                  comment: xiansTask.comment || null,
-                  metadata: xiansTask.metadata || null,
-                  activationName: xiansTask.activationName,
-                  agentName: xiansTask.agentName,
-                },
-              },
-            };
-        });
+        // Map the response to our format
+        // The API returns an array directly, not wrapped in { activations: [...] }
+        const activationsArray = Array.isArray(data) ? data : (data.activations || []);
+        const activationsWithAgents = activationsArray.map((activation: any) => ({
+          activationName: activation.name, // The activation instance name
+          agentName: activation.agentName, // The agent template name
+          isActive: activation.isActive || false, // Whether the activation is currently active
+        }));
 
-        setTasks(mappedTasks);
+        console.log('[TasksPage] Mapped activations:', activationsWithAgents);
+        setAllActivations(activationsWithAgents);
       } catch (error) {
-        console.error('[TasksPage] Error fetching tasks:', error);
-        showErrorToast(error, 'Failed to load tasks');
-        setTasks([]);
+        console.error('[TasksPage] Error fetching activations:', error);
+        // Fallback: extract activations from current tasks
+        const activationMap = new Map<string, string>();
+        tasks.forEach((task) => {
+          const activationName = task.createdBy.name;
+          const agentName = task.content?.data?.agentName || 'Unknown Agent';
+          if (!activationMap.has(activationName)) {
+            activationMap.set(activationName, agentName);
+          }
+        });
+        const fallbackActivations = Array.from(activationMap.entries()).map(([activationName, agentName]) => ({
+          activationName,
+          agentName,
+          isActive: false, // We don't know the status in fallback mode
+        }));
+        console.log('[TasksPage] Using fallback activations from tasks:', fallbackActivations);
+        setAllActivations(fallbackActivations);
       } finally {
-        setIsLoadingTasks(false);
+        setIsLoadingActivations(false);
       }
     };
 
+    fetchActivations();
+  }, [currentTenantId, tasks]);
+
+  // Fetch all tasks from API
+  const fetchTasks = useCallback(async () => {
+    if (!currentTenantId) {
+      setTasks([]);
+      setIsLoadingTasks(false);
+      return;
+    }
+
+    // Wait for URL params to be initialized before fetching
+    if (!urlParamsInitialized) {
+      console.log('[TasksPage] Waiting for URL params to initialize...');
+      return;
+    }
+
+    setIsLoadingTasks(true);
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.set('pageSize', '20');
+      params.set('pageToken', currentPage.toString());
+      
+      // Map frontend status filter to backend status
+      if (statusFilter === 'pending') {
+        params.set('status', 'Running');
+      }
+      
+      // Add activation filter
+      if (selectedActivation) {
+        params.set('activationName', selectedActivation.activationName);
+        params.set('agentName', selectedActivation.agentName);
+        console.log('[TasksPage] Applying activation filter:', selectedActivation);
+      } else {
+        console.log('[TasksPage] No activation filter applied');
+      }
+
+      const apiUrl = `/api/tenants/${currentTenantId}/tasks?${params.toString()}`;
+      console.log('[TasksPage] Fetching tasks from:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+
+      if (!response.ok) {
+        // Try to get the actual error message from the server
+        let errorMessage = 'Failed to fetch tasks';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // If parsing fails, use status text
+          errorMessage = `Failed to fetch tasks: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data: XiansTasksResponse = await response.json();
+      console.log('[TasksPage] Fetched tasks:', data);
+      
+      // Update pagination state
+      setHasNextPage(data.hasNextPage);
+      setTotalPages(data.hasNextPage ? currentPage + 1 : currentPage);
+
+      // Remove duplicates based on workflowId (keep first occurrence)
+      const uniqueTasks = data.tasks.reduce((acc, task) => {
+        if (!acc.find(t => t.workflowId === task.workflowId)) {
+          acc.push(task);
+        }
+        return acc;
+      }, [] as XiansTask[]);
+
+      // Map Xians tasks to our Task format
+      const mappedTasks: Task[] = uniqueTasks.map((xiansTask) => {
+          // Map status: Running -> pending, Completed -> approved
+          let status: 'pending' | 'approved' | 'rejected' | 'obsolete' = 'pending';
+          if (xiansTask.isCompleted) {
+            status = xiansTask.performedAction?.toLowerCase().includes('reject') ? 'rejected' : 'approved';
+          }
+
+          return {
+            id: xiansTask.workflowId,
+            title: xiansTask.title || 'Untitled Task',
+            description: xiansTask.description || 'No description available',
+            status,
+            priority: 'medium', // Default priority
+            createdBy: {
+              id: xiansTask.activationName || 'Unknown Activation',
+              name: xiansTask.activationName || 'Unknown Activation',
+            },
+            assignedTo: {
+              id: xiansTask.participantId,
+              name: xiansTask.participantId,
+            },
+            createdAt: xiansTask.startTime,
+            updatedAt: xiansTask.closeTime || xiansTask.startTime,
+            conversationId: undefined,
+            topicId: undefined,
+            content: {
+              originalRequest: xiansTask.initialWork || undefined,
+              proposedAction: xiansTask.finalWork || undefined,
+              reasoning: xiansTask.description || undefined,
+              data: {
+                workflowId: xiansTask.workflowId,
+                runId: xiansTask.runId,
+                workflowStatus: xiansTask.status, // Add workflow status from API
+                isCompleted: xiansTask.isCompleted, // Add isCompleted flag
+                availableActions: xiansTask.availableActions || [],
+                performedAction: xiansTask.performedAction || null,
+                comment: xiansTask.comment || null,
+                metadata: xiansTask.metadata || null,
+                activationName: xiansTask.activationName,
+                agentName: xiansTask.agentName,
+              },
+            },
+          };
+      });
+
+      setTasks(mappedTasks);
+    } catch (error) {
+      console.error('[TasksPage] Error fetching tasks:', error);
+      showErrorToast(error, 'Failed to load tasks');
+      setTasks([]);
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  }, [currentTenantId, statusFilter, selectedActivation, currentPage, urlParamsInitialized]);
+
+  useEffect(() => {
     fetchTasks();
-  }, [currentTenantId, statusFilter, selectedActivations, currentPage]);
+  }, [fetchTasks]);
 
   // Update URL when filters change
   const updateFiltersInURL = (
     newStatusFilter: TaskStatusFilter,
-    newActivations: string[],
+    newActivation: SelectedActivation | null,
     page: number = 1
   ) => {
     const params = new URLSearchParams();
@@ -226,9 +323,10 @@ function TasksContent() {
       params.set('status', newStatusFilter);
     }
     
-    // Update activations
-    if (newActivations.length > 0) {
-      params.set('activations', newActivations.join(','));
+    // Update activation filter
+    if (newActivation) {
+      params.set('agent', newActivation.agentName);
+      params.set('activation', newActivation.activationName);
     }
     
     // Update page
@@ -248,33 +346,15 @@ function TasksContent() {
     
     // Update state
     setStatusFilter(newStatusFilter);
-    setSelectedActivations(newActivations);
+    setSelectedActivation(newActivation);
     setCurrentPage(page);
   };
-
-  // Extract unique activations with their agent names
-  const activationsWithAgents = useMemo(() => {
-    const activationMap = new Map<string, string>();
-    
-    tasks.forEach((task) => {
-      const activationName = task.createdBy.name;
-      const agentName = task.content?.data?.agentName || 'Unknown Agent';
-      
-      if (!activationMap.has(activationName)) {
-        activationMap.set(activationName, agentName);
-      }
-    });
-
-    return Array.from(activationMap.entries()).map(([activationName, agentName]) => ({
-      activationName,
-      agentName,
-    }));
-  }, [tasks]);
 
   // Tasks are already filtered by the backend, no client-side filtering needed
   const filteredTasks = tasks;
 
   const handleTaskClick = (taskId: string) => {
+    setPersistentSelectedTaskId(taskId);
     router.push(`/tasks?task=${taskId}`, { scroll: false });
   };
 
@@ -282,16 +362,38 @@ function TasksContent() {
     router.push('/tasks', { scroll: false });
   };
 
-  const handleApprove = (taskId: string) => {
-    console.log('Approving task:', taskId);
-    // TODO: Implement approve logic
+  const handleCloseWithRefresh = async (taskId: string) => {
+    console.log('[TasksPage] handleCloseWithRefresh called with taskId:', taskId);
+    
+    // Close the slider first
     handleCloseSlider();
+    console.log('[TasksPage] Slider closed, waiting 100ms...');
+    
+    // Small delay to ensure the slider closes smoothly
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Highlight the updated task immediately (before refresh)
+    console.log('[TasksPage] Setting highlighted task:', taskId);
+    setHighlightedTaskId(taskId);
+    
+    // Refresh the task list after animation completes (6 seconds)
+    // This gives the backend time to process the status change
+    setTimeout(async () => {
+      console.log('[TasksPage] Animation complete, refreshing tasks...');
+      await fetchTasks();
+      console.log('[TasksPage] Tasks refreshed, clearing highlight');
+      setHighlightedTaskId(null);
+    }, 6000);
   };
 
-  const handleReject = (taskId: string) => {
-    console.log('Rejecting task:', taskId);
-    // TODO: Implement reject logic
-    handleCloseSlider();
+  const handleApprove = async (taskId: string) => {
+    console.log('[TasksPage] handleApprove called with taskId:', taskId);
+    await handleCloseWithRefresh(taskId);
+  };
+
+  const handleReject = async (taskId: string) => {
+    console.log('[TasksPage] handleReject called with taskId:', taskId);
+    await handleCloseWithRefresh(taskId);
   };
 
   const pendingTasks = filteredTasks.filter(t => t.status === 'pending');
@@ -300,29 +402,28 @@ function TasksContent() {
   const rejectedTasks = filteredTasks.filter(t => t.status === 'rejected').length;
 
   // Clear individual filter
-  const clearFilter = (type: 'status' | 'activation', value?: string) => {
+  const clearFilter = (type: 'status' | 'activation') => {
     if (type === 'status') {
-      updateFiltersInURL('all', selectedActivations, 1);
-    } else if (type === 'activation' && value) {
-      const newActivations = selectedActivations.filter(a => a !== value);
-      updateFiltersInURL(statusFilter, newActivations, 1);
+      updateFiltersInURL('all', selectedActivation, 1);
+    } else if (type === 'activation') {
+      updateFiltersInURL(statusFilter, null, 1);
     }
   };
 
   const clearAllFilters = () => {
-    updateFiltersInURL('all', [], 1);
+    updateFiltersInURL('all', null, 1);
   };
 
   const hasActiveFilters = 
     statusFilter !== 'all' || 
-    selectedActivations.length > 0;
+    selectedActivation !== null;
   
   const activeFilterCount = 
     (statusFilter !== 'all' ? 1 : 0) + 
-    selectedActivations.length;
+    (selectedActivation ? 1 : 0);
 
   const handlePageChange = (newPage: number) => {
-    updateFiltersInURL(statusFilter, selectedActivations, newPage);
+    updateFiltersInURL(statusFilter, selectedActivation, newPage);
   };
 
   return (
@@ -332,7 +433,7 @@ function TasksContent() {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="shrink-0">
-              <h1 className="text-3xl font-semibold text-foreground">All Tasks</h1>
+              <h1 className="text-3xl font-semibold text-foreground">My Tasks</h1>
               <p className="text-muted-foreground mt-1">
                 Manage tasks requiring your attention
               </p>
@@ -368,17 +469,16 @@ function TasksContent() {
                 </Badge>
               )}
 
-              {selectedActivations.map((agent: string) => (
+              {selectedActivation && (
                 <Badge
-                  key={agent}
                   variant="secondary"
                   className="cursor-pointer hover:bg-secondary/80"
-                  onClick={() => clearFilter('activation', agent)}
+                  onClick={() => clearFilter('activation')}
                 >
-                  {agent}
+                  {selectedActivation.activationName}
                   <X className="ml-1 h-3 w-3" />
                 </Badge>
-              ))}
+              )}
 
               <Button
                 variant="ghost"
@@ -392,59 +492,10 @@ function TasksContent() {
           )}
         </div>
 
-        {/* Task Summary Stats */}
-        <div className="grid gap-8 md:grid-cols-3 py-4">
-          {/* Pending Tasks */}
-          <div className="group">
-            <div className="flex items-baseline gap-3 mb-1.5">
-              <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
-                {pendingTasks.length}
-              </div>
-              <div className={cn("h-8 w-0.5", TASK_STATUS_CONFIG.pending.colors.bar)} />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm font-medium text-foreground/80">{TASK_STATUS_CONFIG.pending.label}</div>
-              <div className="text-xs text-muted-foreground">This month</div>
-            </div>
-          </div>
-
-          {/* Approved Tasks */}
-          <div className="group">
-            <div className="flex items-baseline gap-3 mb-1.5">
-              <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
-                {approvedTasks}
-              </div>
-              <div className={cn("h-8 w-0.5", TASK_STATUS_CONFIG.approved.colors.bar)} />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm font-medium text-foreground/80">{TASK_STATUS_CONFIG.approved.label}</div>
-              <div className="text-xs text-muted-foreground">This month</div>
-            </div>
-          </div>
-
-          {/* Rejected Tasks */}
-          <div className="group">
-            <div className="flex items-baseline gap-3 mb-1.5">
-              <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
-                {rejectedTasks}
-              </div>
-              <div className={cn("h-8 w-0.5", TASK_STATUS_CONFIG.rejected.colors.bar)} />
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-sm font-medium text-foreground/80">{TASK_STATUS_CONFIG.rejected.label}</div>
-              <div className="text-xs text-muted-foreground">This month</div>
-            </div>
-          </div>
-        </div>
-
         {/* Tasks List */}
         <Card className="overflow-visible">
           <CardHeader>
-            <CardTitle>
-              {filteredTasks.length === tasks.length
-                ? 'All Tasks'
-                : `Filtered Tasks (${filteredTasks.length} of ${tasks.length})`}
-            </CardTitle>
+
             <CardDescription>Click on a task to view details</CardDescription>
           </CardHeader>
           <CardContent className="!px-0 !py-0">
@@ -460,7 +511,8 @@ function TasksContent() {
                     key={task.id}
                     task={task}
                     onClick={() => handleTaskClick(task.id)}
-                    isSelected={task.id === selectedTaskId}
+                    isSelected={task.id === persistentSelectedTaskId}
+                    isHighlighted={task.id === highlightedTaskId}
                   />
                 ))}
               </>
@@ -503,16 +555,19 @@ function TasksContent() {
       </div>
 
       {/* Filter Slider */}
-      <TaskFilterSlider
-        isOpen={isFilterSliderOpen}
-        onClose={() => setIsFilterSliderOpen(false)}
-        activations={activationsWithAgents}
-        statusFilter={statusFilter}
-        selectedActivations={selectedActivations}
-        onFiltersChange={(newStatus, newActivations) => {
-          updateFiltersInURL(newStatus, newActivations, 1);
-        }}
-      />
+      {isFilterSliderOpen && (
+        <TaskFilterSlider
+          isOpen={isFilterSliderOpen}
+          onClose={() => setIsFilterSliderOpen(false)}
+          activations={allActivations}
+          statusFilter={statusFilter}
+          selectedActivation={selectedActivation}
+          onFiltersChange={(newStatus, newActivation) => {
+            console.log('[TasksPage] Filter changed:', { newStatus, newActivation });
+            updateFiltersInURL(newStatus, newActivation, 1);
+          }}
+        />
+      )}
 
       {/* Task Detail Slider */}
       <Sheet open={!!selectedTask} onOpenChange={handleCloseSlider}>

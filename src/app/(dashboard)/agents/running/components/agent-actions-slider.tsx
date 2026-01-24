@@ -81,7 +81,7 @@ export function AgentActionsSlider({
               className="w-full justify-start transition-all duration-300 hover:bg-primary/5 hover:text-primary hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 hover:-translate-y-0.5 group h-auto py-2.5 rounded-xl border-border/40"
               asChild
             >
-              <Link href={`/conversations?agent-name=${encodeURIComponent(agent.template)}&activation-name=${encodeURIComponent(agent.name)}`}>
+              <Link href={`/conversations/${encodeURIComponent(agent.template)}/${encodeURIComponent(agent.name)}?topic=general-discussions`}>
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3.5 transition-transform group-hover:scale-110 group-hover:bg-primary/15">
                   <MessageSquare className="h-4 w-4" />
                 </div>
@@ -98,7 +98,7 @@ export function AgentActionsSlider({
               className="w-full justify-start transition-all duration-300 hover:bg-blue-500/5 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/30 hover:shadow-md hover:shadow-blue-500/5 hover:-translate-y-0.5 group h-auto py-2.5 rounded-xl border-border/40"
               asChild
             >
-              <Link href={`/tasks?agent-name=${encodeURIComponent(agent.template)}&activation-name=${encodeURIComponent(agent.name)}&topic=general-discussions`}>
+              <Link href={`/tasks?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}>
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mr-3.5 transition-transform group-hover:scale-110 group-hover:bg-blue-500/15">
                   <ListTodo className="h-4 w-4" />
                 </div>

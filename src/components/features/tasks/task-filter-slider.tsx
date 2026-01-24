@@ -5,8 +5,8 @@ import { Search, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 type TaskStatusFilter = 'all' | 'pending';
 
@@ -18,6 +18,12 @@ const STATUS_LABELS: Record<TaskStatusFilter, string> = {
 interface ActivationWithAgent {
   activationName: string;
   agentName: string;
+  isActive?: boolean;
+}
+
+export interface SelectedActivation {
+  activationName: string;
+  agentName: string;
 }
 
 interface TaskFilterSliderProps {
@@ -25,8 +31,8 @@ interface TaskFilterSliderProps {
   onClose: () => void;
   activations: ActivationWithAgent[];
   statusFilter: TaskStatusFilter;
-  selectedActivations: string[];
-  onFiltersChange: (statusFilter: TaskStatusFilter, activations: string[]) => void;
+  selectedActivation: SelectedActivation | null;
+  onFiltersChange: (statusFilter: TaskStatusFilter, activation: SelectedActivation | null) => void;
 }
 
 export function TaskFilterSlider({
@@ -34,31 +40,38 @@ export function TaskFilterSlider({
   onClose,
   activations,
   statusFilter,
-  selectedActivations,
+  selectedActivation,
   onFiltersChange,
 }: TaskFilterSliderProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-  const [localSelectedActivations, setLocalSelectedActivations] = useState(selectedActivations);
+  const [localSelectedActivation, setLocalSelectedActivation] = useState<SelectedActivation | null>(selectedActivation);
 
   // Sync local state when props change
   useMemo(() => {
     setLocalStatusFilter(statusFilter);
-    setLocalSelectedActivations(selectedActivations);
-  }, [statusFilter, selectedActivations]);
+    setLocalSelectedActivation(selectedActivation);
+  }, [statusFilter, selectedActivation]);
 
-  // Group activations by agent
+  // Helper function to check if an activation is selected
+  const isActivationSelected = (activationName: string, agentName: string): boolean => {
+    return localSelectedActivation?.activationName === activationName && 
+           localSelectedActivation?.agentName === agentName;
+  };
+
+  // Group activations by agent with their active status
   const groupedActivations = useMemo(() => {
-    const groups = new Map<string, string[]>();
+    const groups = new Map<string, Array<{ name: string; isActive: boolean }>>();
     
-    activations.forEach(({ activationName, agentName }) => {
+    console.log('[TaskFilterSlider] Processing activations:', activations);
+    
+    activations.forEach(({ activationName, agentName, isActive }) => {
       if (!groups.has(agentName)) {
         groups.set(agentName, []);
       }
       const activationList = groups.get(agentName)!;
-      if (!activationList.includes(activationName)) {
-        activationList.push(activationName);
+      if (!activationList.find(a => a.name === activationName)) {
+        activationList.push({ name: activationName, isActive: isActive || false });
       }
     });
 
@@ -66,11 +79,23 @@ export function TaskFilterSlider({
     const sortedGroups = new Map(
       Array.from(groups.entries())
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([agent, acts]) => [agent, acts.sort()])
+        .map(([agent, acts]) => [agent, acts.sort((a, b) => a.name.localeCompare(b.name))])
     );
 
+    console.log('[TaskFilterSlider] Grouped activations:', sortedGroups);
+    
     return sortedGroups;
   }, [activations]);
+
+  // Initialize all agents as expanded by default
+  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(() => {
+    return new Set(Array.from(groupedActivations.keys()));
+  });
+
+  // Update expanded agents when groupedActivations changes
+  useMemo(() => {
+    setExpandedAgents(new Set(Array.from(groupedActivations.keys())));
+  }, [groupedActivations]);
 
   // Filter activations based on search query
   const filteredGroups = useMemo(() => {
@@ -79,11 +104,11 @@ export function TaskFilterSlider({
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = new Map<string, string[]>();
+    const filtered = new Map<string, Array<{ name: string; isActive: boolean }>>();
 
     groupedActivations.forEach((activationList, agentName) => {
       const matchingActivations = activationList.filter(act =>
-        act.toLowerCase().includes(query) || 
+        act.name.toLowerCase().includes(query) || 
         agentName.toLowerCase().includes(query)
       );
 
@@ -95,28 +120,10 @@ export function TaskFilterSlider({
     return filtered;
   }, [groupedActivations, searchQuery]);
 
-  const toggleAgent = (agentName: string) => {
-    const activationList = groupedActivations.get(agentName) || [];
-    const allSelected = activationList.every(act => localSelectedActivations.includes(act));
-    
-    let newAgents: string[];
-    if (allSelected) {
-      // Deselect all activations from this agent
-      newAgents = localSelectedActivations.filter(act => !activationList.includes(act));
-    } else {
-      // Select all activations from this agent
-      const toAdd = activationList.filter(act => !localSelectedActivations.includes(act));
-      newAgents = [...localSelectedActivations, ...toAdd];
-    }
-    
-    setLocalSelectedActivations(newAgents);
-  };
-
-  const toggleActivation = (activationName: string) => {
-    const newAgents = localSelectedActivations.includes(activationName)
-      ? localSelectedActivations.filter((a) => a !== activationName)
-      : [...localSelectedActivations, activationName];
-    setLocalSelectedActivations(newAgents);
+  const toggleActivation = (activationName: string, agentName: string) => {
+    const isSelected = isActivationSelected(activationName, agentName);
+    // Toggle: if already selected, deselect; otherwise select this one
+    setLocalSelectedActivation(isSelected ? null : { activationName, agentName });
   };
 
   const toggleStatus = (status: TaskStatusFilter) => {
@@ -125,12 +132,12 @@ export function TaskFilterSlider({
 
   const clearFilters = () => {
     setLocalStatusFilter('all');
-    setLocalSelectedActivations([]);
+    setLocalSelectedActivation(null);
     setSearchQuery('');
   };
 
   const applyFilters = () => {
-    onFiltersChange(localStatusFilter, localSelectedActivations);
+    onFiltersChange(localStatusFilter, localSelectedActivation);
     onClose();
   };
 
@@ -146,61 +153,78 @@ export function TaskFilterSlider({
 
   const hasActiveFilters = 
     localStatusFilter !== 'all' || 
-    localSelectedActivations.length > 0;
-
-  const getAgentSelectionCount = (agentName: string) => {
-    const activationList = groupedActivations.get(agentName) || [];
-    return activationList.filter(act => localSelectedActivations.includes(act)).length;
-  };
+    localSelectedActivation !== null;
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
+      <SheetContent 
+        className="w-full sm:max-w-md flex flex-col p-0"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            applyFilters();
+          }
+        }}
+      >
         <SheetHeader className="px-6 pt-6 pb-4 border-b">
           <SheetTitle>Filter Tasks</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="p-6 space-y-8 flex-1 flex flex-col">
             {/* Status Filter */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3">Status</h3>
-              <div className="flex gap-2">
-                {(Object.keys(STATUS_LABELS) as TaskStatusFilter[]).map((status) => (
-                  <Button
-                    key={status}
-                    variant={localStatusFilter === status ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleStatus(status)}
-                    className="flex-1"
-                  >
-                    {STATUS_LABELS[status]}
-                  </Button>
-                ))}
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <p className="text-sm text-muted-foreground">Show me</p>
+                <div className="inline-flex items-center gap-2">
+                  {(Object.keys(STATUS_LABELS) as TaskStatusFilter[]).map((status, index) => (
+                    <span key={status} className="inline-flex items-center gap-2">
+                      <button
+                        onClick={() => toggleStatus(status)}
+                        className={cn(
+                          'px-3 py-1 rounded-md text-sm font-medium transition-all',
+                          localStatusFilter === status
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'bg-muted/50 text-foreground hover:bg-muted hover:shadow-sm'
+                        )}
+                      >
+                        {STATUS_LABELS[status].toLowerCase()}
+                      </button>
+                      {index < Object.keys(STATUS_LABELS).length - 1 && (
+                        <span className="text-muted-foreground text-sm">or</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">tasks</p>
               </div>
             </div>
 
-            <Separator />
-
             {/* Activation Filter */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3">
-                Activations
-                {localSelectedActivations.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {localSelectedActivations.length}
-                  </Badge>
+            <div className="space-y-4">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <p className="text-sm text-muted-foreground">from</p>
+                {!localSelectedActivation ? (
+                  <span className="text-sm text-muted-foreground italic">any agent</span>
+                ) : (
+                  <button
+                    onClick={() => toggleActivation(localSelectedActivation.activationName, localSelectedActivation.agentName)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm hover:bg-primary/20 transition-colors"
+                  >
+                    {localSelectedActivation.activationName}
+                    <X className="h-3 w-3" />
+                  </button>
                 )}
-              </h3>
+              </div>
 
               {/* Search Input */}
-              <div className="relative mb-3">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search activations or agents..."
+                  placeholder="Search for agents..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-9"
+                  className="pl-9 pr-9 border-dashed"
                 />
                 {searchQuery && (
                   <button
@@ -213,106 +237,96 @@ export function TaskFilterSlider({
               </div>
 
               {/* Grouped Activations List */}
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {Array.from(filteredGroups.entries()).map(([agentName, activationList]) => {
-                  const isExpanded = expandedAgents.has(agentName) || !!searchQuery;
-                  const selectionCount = getAgentSelectionCount(agentName);
-                  const allSelected = selectionCount === activationList.length;
+              <div className="space-y-4 flex-1 overflow-y-auto">
+                {filteredGroups.size > 0 ? (
+                  Array.from(filteredGroups.entries()).map(([agentName, activationList]) => {
+                    const isExpanded = expandedAgents.has(agentName) || !!searchQuery;
 
-                  return (
-                    <div key={agentName} className="border rounded-lg">
-                      {/* Agent Header */}
-                      <button
-                        onClick={() => toggleAgentExpanded(agentName)}
-                        className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 flex-1">
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          <span className="text-sm font-medium">{agentName}</span>
-                          {selectionCount > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {selectionCount}/{activationList.length}
-                            </Badge>
-                          )}
-                        </div>
-                        <Button
-                          variant={allSelected ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleAgent(agentName);
-                          }}
-                          className="h-7 px-3 text-xs"
+                    return (
+                      <div key={agentName} className="space-y-2">
+                        {/* Agent Header */}
+                        <button
+                          onClick={() => toggleAgentExpanded(agentName)}
+                          className="w-full flex items-center gap-2 group"
                         >
-                          {allSelected ? 'Deselect All' : 'Select All'}
-                        </Button>
-                      </button>
+                          {isExpanded ? (
+                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground">
+                            {agentName}
+                          </span>
+                        </button>
 
-                      {/* Activation List */}
-                      {isExpanded && (
-                        <div className="border-t bg-muted/20">
-                          {activationList.map((activationName) => {
-                            const isSelected = localSelectedActivations.includes(activationName);
-                            return (
-                              <button
-                                key={activationName}
-                                onClick={() => toggleActivation(activationName)}
-                                className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                                  isSelected ? 'bg-primary/5' : ''
-                                }`}
-                              >
-                                <span className={isSelected ? 'font-medium text-primary' : ''}>
-                                  {activationName}
-                                </span>
-                                {isSelected && (
-                                  <Badge variant="default" className="text-xs h-5">
-                                    Selected
-                                  </Badge>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {filteredGroups.size === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No activations found matching "{searchQuery}"
+                        {/* Activation List */}
+                        {isExpanded && (
+                          <div className="ml-5 pl-3 border-l border-dashed space-y-1">
+                            {activationList.map((activation) => {
+                              const isSelected = isActivationSelected(activation.name, agentName);
+                              return (
+                                <button
+                                  key={activation.name}
+                                  onClick={() => toggleActivation(activation.name, agentName)}
+                                  className={cn(
+                                    'w-full text-left px-2 py-1.5 text-sm rounded transition-colors flex items-center justify-between gap-2',
+                                    isSelected
+                                      ? 'text-primary font-medium bg-primary/5'
+                                      : 'text-foreground/70 hover:text-foreground hover:bg-muted/50'
+                                  )}
+                                >
+                                  <span className="flex-1 truncate">{activation.name}</span>
+                                  {activation.isActive && (
+                                    <Badge 
+                                      variant="default" 
+                                      className="text-[10px] h-4 px-1.5 bg-green-500 hover:bg-green-500 shrink-0"
+                                    >
+                                      Active
+                                    </Badge>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : searchQuery ? (
+                  <p className="text-sm text-muted-foreground/70 text-center py-8 italic">
+                    No agents found matching "{searchQuery}"
                   </p>
-                )}
+                ) : groupedActivations.size === 0 ? (
+                  <p className="text-sm text-muted-foreground/70 text-center py-8 italic">
+                    No agents available
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="border-t p-4 bg-muted/20 space-y-2">
-          {hasActiveFilters && (
+        <div className="border-t p-6 space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            {hasActiveFilters ? (
+              <button
+                onClick={clearFilters}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Clear filters
+              </button>
+            ) : (
+              <span className="text-muted-foreground/50 italic">No filters applied</span>
+            )}
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              onClick={clearFilters}
-              className="w-full"
+              onClick={applyFilters}
             >
-              <X className="mr-2 h-4 w-4" />
-              Clear All Filters
+              Apply
             </Button>
-          )}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={applyFilters}
-            className="w-full"
-          >
-            Apply Filters
-          </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
