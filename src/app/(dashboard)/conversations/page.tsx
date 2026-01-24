@@ -29,6 +29,7 @@ function ConversationsContent() {
   const [selectedTopicId, setSelectedTopicId] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [messageStates, setMessageStates] = useState<MessageStatesMap>({});
+  const [lastActivationKey, setLastActivationKey] = useState<string>('');
 
   // Fetch activations
   const { activations, isLoading: isLoadingActivations } = useActivations(currentTenantId);
@@ -76,10 +77,10 @@ function ConversationsContent() {
   // SSE connect handler
   const handleSSEConnect = useCallback(() => {
     console.log('[SSE] Real-time connection established');
-    toast.success('Real-time messaging connected', {
-      description: 'You will receive agent responses instantly',
-      duration: 2000,
-    });
+    // toast.success('Real-time messaging connected', {
+    //   description: 'You will receive agent responses instantly',
+    //   duration: 2000,
+    // });
   }, []);
 
   // SSE disconnect handler
@@ -87,12 +88,18 @@ function ConversationsContent() {
     // Disconnected - silent
   }, []);
 
-  // Set up SSE connection
+  // Check if the selected activation is active
+  const selectedActivation = activations.find(
+    a => a.name === activationName && a.agentName === agentName
+  );
+  const isActivationActive = selectedActivation?.status === 'active';
+
+  // Set up SSE connection - only for active activations
   const { isConnected, error: sseError } = useMessageListener({
     tenantId: currentTenantId,
     agentName,
     activationName,
-    enabled: !!(currentTenantId && agentName && activationName && session?.user?.email),
+    enabled: !!(currentTenantId && agentName && activationName && session?.user?.email && isActivationActive),
     onMessage: handleIncomingMessage,
     onError: handleSSEError,
     onConnect: handleSSEConnect,
@@ -125,12 +132,28 @@ function ConversationsContent() {
     updateTopicInURL(topicId);
   }, [updateTopicInURL]);
 
+  // Clear message states when activation or agent changes
+  useEffect(() => {
+    const activationKey = `${agentName}-${activationName}`;
+    if (activationKey !== lastActivationKey && lastActivationKey !== '') {
+      console.log('[ConversationsPage] Activation changed, clearing message states');
+      setMessageStates({});
+      setSelectedTopicId('');
+    }
+    setLastActivationKey(activationKey);
+  }, [agentName, activationName, lastActivationKey]);
+
   // Sync selected topic from URL
   useEffect(() => {
     if (topicParam && topics.length > 0) {
       const topicExists = topics.some(topic => topic.id === topicParam);
       if (topicExists && topicParam !== selectedTopicId) {
         setSelectedTopicId(topicParam);
+      } else if (!topicExists) {
+        // If topic from URL doesn't exist, fall back to general discussions
+        const initialTopicId = 'general-discussions';
+        setSelectedTopicId(initialTopicId);
+        updateTopicInURL(initialTopicId);
       }
     } else if (topics.length > 0 && !selectedTopicId) {
       // Auto-select general discussions if no topic selected
@@ -449,35 +472,39 @@ function ConversationsContent() {
   };
 
   return (
-    <ConversationView
-      conversation={conversation}
-      selectedTopicId={selectedTopicId}
-      onTopicSelect={handleTopicSelect}
-      onSendMessage={handleSendMessage}
-      isLoadingMessages={currentMessageState.isLoading}
-      onLoadMoreMessages={handleLoadMoreMessages}
-      isLoadingMoreMessages={currentMessageState.isLoadingMore}
-      hasMoreMessages={currentMessageState.hasMore}
-      unreadCounts={unreadCounts}
-          activations={activations}
-          selectedActivationName={activationName}
-          onActivationChange={handleActivationChange}
-          isLoadingActivations={isLoadingActivations}
-      agentName={agentName}
-      currentPage={currentPage}
-      totalPages={totalPages}
-      hasMore={hasMore}
-      onPageChange={setCurrentPage}
-      isConnected={isConnected}
-      sseError={sseError}
-    />
+    <div className="h-full">
+      <ConversationView
+        conversation={conversation}
+        selectedTopicId={selectedTopicId}
+        onTopicSelect={handleTopicSelect}
+        onSendMessage={handleSendMessage}
+        isLoadingMessages={currentMessageState.isLoading}
+        onLoadMoreMessages={handleLoadMoreMessages}
+        isLoadingMoreMessages={currentMessageState.isLoadingMore}
+        hasMoreMessages={currentMessageState.hasMore}
+        unreadCounts={unreadCounts}
+            activations={activations}
+            selectedActivationName={activationName}
+            onActivationChange={handleActivationChange}
+            isLoadingActivations={isLoadingActivations}
+        agentName={agentName}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        hasMore={hasMore}
+        onPageChange={setCurrentPage}
+        isConnected={isConnected}
+        sseError={sseError}
+      />
+    </div>
   );
 }
 
 export default function ConversationsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
-      <ConversationsContent />
-    </Suspense>
+    <div className="h-full overflow-hidden">
+      <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+        <ConversationsContent />
+      </Suspense>
+    </div>
   );
 }

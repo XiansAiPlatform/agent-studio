@@ -5,3 +5,4 @@ export type {
   WorkflowParameter,
   InstanceMetadata
 } from './activation-config-wizard';
+export { AgentStatusBadge } from './agent-status-badge';

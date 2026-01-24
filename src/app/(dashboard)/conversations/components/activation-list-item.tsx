@@ -1,6 +1,8 @@
 import { Bot, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ActivationOption } from '../hooks';
+import { IconAvatar } from '@/components/ui/icon-avatar';
+import { AgentStatusBadge } from '@/components/features/agents';
 
 interface ActivationListItemProps {
   activation: ActivationOption;
@@ -24,10 +26,14 @@ export function ActivationListItem({
       )}
     >
       <div className="flex items-center gap-3">
-        {/* Icon */}
-        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Bot className="h-4 w-4 text-primary" />
-        </div>
+        {/* Agent Icon with Pulse */}
+        <IconAvatar 
+          icon={Bot} 
+          variant="primary" 
+          size="sm" 
+          rounded="full"
+          pulse={activation.status === 'active'}
+        />
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -35,11 +41,11 @@ export function ActivationListItem({
             <h4 className="text-sm font-medium text-foreground truncate">
               {activation.name}
             </h4>
-            {activation.isActive && (
-              <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              </span>
-            )}
+            <AgentStatusBadge 
+              status={activation.status}
+              size="xs"
+              showOnlyWhenActive={true}
+            />
           </div>
           {activation.description && (
             <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">

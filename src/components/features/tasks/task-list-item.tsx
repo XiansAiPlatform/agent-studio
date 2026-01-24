@@ -67,131 +67,67 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
     <div
       onClick={() => onClick(task)}
       className={cn(
-        'group relative py-5 px-6 cursor-pointer transition-all duration-200',
-        'border-b border-border/40 last:border-b-0',
-        'hover:bg-accent/5',
-        isSelected && 'bg-accent/10',
-        'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:transition-all before:duration-200',
-        isSelected 
-          ? cn('before:opacity-100', TASK_STATUS_CONFIG[task.status].colors.bar)
-          : 'before:opacity-0 before:bg-border'
+        'group relative py-4 px-5 cursor-pointer transition-all duration-200',
+        'border-b border-border/30 last:border-b-0',
+        'hover:bg-muted/30',
+        isSelected && 'bg-muted/50',
       )}
     >
       <div className="flex items-start gap-4">
-        {/* Prominent Agent & User Avatars */}
-        <TooltipProvider delayDuration={0}>
-          <div className="flex items-center gap-2 pt-1 shrink-0">
-            {/* Show only User icon for approved/rejected tasks */}
-            {(task.status === 'approved' || task.status === 'rejected') && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <IconAvatar icon={User} variant="user" size="md" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  <p className="font-medium">{task.status === 'approved' ? 'Approved by' : 'Rejected by'}</p>
-                  <p className="text-muted-foreground">{task.assignedTo?.name || 'User'}</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* Show only Agent icon for obsolete tasks */}
-            {task.status === 'obsolete' && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <IconAvatar icon={Bot} variant="agent" size="md" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  <p className="font-medium">Obsoleted by Agent</p>
-                  <p className="text-muted-foreground">{task.createdBy.name}</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* Show Agent -> User flow for pending tasks */}
-            {task.status === 'pending' && (
-              <>
-                {/* Agent Avatar */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <IconAvatar icon={Bot} variant="agent" size="md" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">
-                    <p className="font-medium">Created by Agent</p>
-                    <p className="text-muted-foreground">{task.createdBy.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* Arrow indicating flow */}
-                <ArrowRight className="h-4 w-4 text-muted-foreground/30 shrink-0" />
-
-                {/* User Avatar - always show for pending tasks */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <IconAvatar icon={User} variant="user" size="md" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">
-                    <p className="font-medium">{task.assignedTo ? 'Assigned to' : 'Awaiting approval'}</p>
-                    <p className="text-muted-foreground">{task.assignedTo?.name || 'User'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </>
-            )}
-          </div>
-        </TooltipProvider>
+        {/* Simplified Avatar Section */}
+        <div className="shrink-0 pt-1">
+          {task.status === 'pending' && (
+            <IconAvatar icon={Bot} variant="agent" size="sm" rounded="lg" />
+          )}
+          {(task.status === 'approved' || task.status === 'rejected') && (
+            <IconAvatar icon={User} variant="user" size="sm" rounded="lg" />
+          )}
+          {task.status === 'obsolete' && (
+            <IconAvatar icon={Bot} variant="agent" size="sm" rounded="lg" />
+          )}
+        </div>
 
         {/* Main Content */}
-        <div className="flex-1 min-w-0 flex items-start justify-between gap-6">
-          <div className="flex-1 space-y-3 min-w-0">
-            {/* Title */}
-            <h3 className="text-base font-medium text-foreground leading-snug tracking-tight">
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Title & Status */}
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-sm font-medium text-foreground leading-snug flex-1">
               {decodeText(task.title)}
             </h3>
-
-            {/* Description */}
-            <div className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2 markdown-list-compact">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                {decodeText(task.description)}
-              </ReactMarkdown>
-            </div>
-
-            {/* Metadata */}
-            <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
-              <span className="inline-flex items-center gap-1.5">
-                <Bot className="h-3 w-3" />
-                {task.createdBy.name}
-              </span>
-              
-              <span className="text-muted-foreground/30">•</span>
-              
-              <span>{formatDate(task.createdAt)}</span>
-
-              {task.dueDate && (
-                <>
-                  <span className="text-muted-foreground/30">•</span>
-                  <span className={cn('font-medium', priorityColors[task.priority])}>
-                    Due {formatDate(task.dueDate)}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Status Badge */}
-          <div className="shrink-0 pt-0.5">
             <TaskStatusBadge 
               status={task.status}
               workflowStatus={task.content?.data?.workflowStatus}
               isCompleted={task.content?.data?.isCompleted}
               performedAction={task.content?.data?.performedAction}
             />
+          </div>
+
+          {/* Description */}
+          <div className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2 markdown-list-compact">
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+              {decodeText(task.description)}
+            </ReactMarkdown>
+          </div>
+
+          {/* Metadata */}
+          <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/60">
+            <span className="inline-flex items-center gap-1">
+              <Bot className="h-3 w-3" />
+              {task.createdBy.name}
+            </span>
+            
+            <span className="text-muted-foreground/30">•</span>
+            
+            <span>{formatDate(task.createdAt)}</span>
+
+            {task.dueDate && (
+              <>
+                <span className="text-muted-foreground/30">•</span>
+                <span className={cn('font-medium', priorityColors[task.priority])}>
+                  Due {formatDate(task.dueDate)}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>

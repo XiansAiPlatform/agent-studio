@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import { Bot } from 'lucide-react';
-import { AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
+import { AgentStatusBadge } from '@/components/features/agents';
 import { Agent } from '../types';
 
 interface AgentCardProps {
@@ -37,12 +37,10 @@ export function AgentCard({ agent, isNewlyCreated, onClick }: AgentCardProps) {
                 NEW
               </Badge>
             )}
-            <Badge 
-              variant={AGENT_STATUS_CONFIG[agent.status].variant}
-              className={AGENT_STATUS_CONFIG[agent.status].colors.badge}
-            >
-              {AGENT_STATUS_CONFIG[agent.status].label}
-            </Badge>
+            <AgentStatusBadge 
+              status={agent.status}
+              size="sm"
+            />
           </div>
         </div>
         <div className="space-y-2">

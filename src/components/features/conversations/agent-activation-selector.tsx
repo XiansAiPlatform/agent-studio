@@ -16,7 +16,7 @@ export interface ActivationOption {
   id: string;
   name: string;
   agentName: string;
-  isActive: boolean;
+  status: 'active' | 'inactive';
   description?: string;
 }
 
@@ -151,7 +151,7 @@ export function AgentActivationSelector({
                     <span className="flex items-center gap-2">
                       <span className={cn(
                         "h-1.5 w-1.5 rounded-full flex-shrink-0",
-                        activation.isActive ? "bg-emerald-500" : "bg-muted-foreground/40"
+                        activation.status === 'active' ? "bg-emerald-500" : "bg-muted-foreground/40"
                       )} />
                       <span>{activation.name}</span>
                     </span>

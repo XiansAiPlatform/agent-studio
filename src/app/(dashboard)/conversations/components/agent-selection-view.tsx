@@ -27,7 +27,7 @@ export function AgentSelectionView({
 
   // Filter activations
   const filteredActivations = activations.filter((a) => {
-    if (showActiveOnly && !a.isActive) {
+    if (showActiveOnly && a.status !== 'active') {
       return false;
     }
     
@@ -66,7 +66,7 @@ export function AgentSelectionView({
               showActiveOnly={showActiveOnly}
               onShowActiveOnlyChange={setShowActiveOnly}
               totalCount={activations.length}
-              activeCount={activations.filter(a => a.isActive).length}
+              activeCount={activations.filter(a => a.status === 'active').length}
             />
           </div>
 

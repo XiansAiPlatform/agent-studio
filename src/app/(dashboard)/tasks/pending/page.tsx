@@ -324,39 +324,40 @@ function PendingTasksContent() {
 
   return (
     <>
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-foreground">Pending Tasks</h1>
-            <p className="text-muted-foreground mt-1">
-              Tasks awaiting your review and approval
+      <div className="min-h-screen bg-muted/30">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Modern Header */}
+          <div className="mb-8">
+            <div className="flex items-end justify-between mb-2">
+              <h1 className="text-2xl font-medium text-foreground tracking-tight">Pending Tasks</h1>
+              {tasks.length > 0 && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/60 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>{tasks.length} pending</span>
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground/80">
+              Review and approve tasks from your active agents
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>{tasks.length} pending task{tasks.length !== 1 ? 's' : ''}</span>
-          </div>
-        </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Panel - Agent List */}
-          <div className="col-span-12 lg:col-span-4 xl:col-span-3">
-            <Card className="h-fit sticky top-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Active Agents</CardTitle>
-                <CardDescription>Select an agent to view its tasks</CardDescription>
-                
-                {/* Agent Name Filter */}
+          {/* Fluid Two Column Layout */}
+          <div className="flex gap-6 items-start">
+            {/* Left Panel - Agent List */}
+            <div className="w-80 shrink-0">
+              <div className="sticky top-6 space-y-4">
+                {/* Filter */}
                 {uniqueAgentNames.length > 0 && (
-                  <div className="pt-3">
+                  <div>
                     <Select value={agentFilter} onValueChange={setAgentFilter}>
-                      <SelectTrigger className="h-8 w-full text-xs border-dashed bg-transparent hover:bg-accent/50 transition-colors">
-                        <SelectValue placeholder="Filter by agent" />
+                      <SelectTrigger className="h-9 w-full text-xs border-border/40 bg-background shadow-sm hover:bg-accent/30 transition-all">
+                        <SelectValue placeholder="Filter active agents" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all" className="text-xs">All Active Agents ({filteredAgents.length})</SelectItem>
+                        <SelectItem value="all" className="text-xs">
+                          All Active Agents ({filteredAgents.length})
+                        </SelectItem>
                         {uniqueAgentNames.map((agentName) => {
                           const count = filteredAgents.filter(a => a.agentName === agentName).length;
                           return (
@@ -369,140 +370,141 @@ function PendingTasksContent() {
                     </Select>
                   </div>
                 )}
-              </CardHeader>
-              <CardContent className="!px-0 !py-0">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : filteredAgents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 px-6">
-                    <Bot className="h-12 w-12 text-muted-foreground mb-3" />
-                    <p className="text-sm text-muted-foreground text-center">
-                      {agentFilter !== 'all' ? 'No agents match the filter' : 'No active agents found'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {filteredAgents.map((agent) => {
-                      const isSelected = agent.id === selectedAgentId;
-                      return (
-                        <button
-                          key={agent.id}
-                          onClick={() => handleAgentSelect(agent.id)}
-                          className={`w-full px-4 py-3 text-left transition-colors ${
-                            isSelected 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'hover:bg-accent/50'
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <IconAvatar icon={Bot} variant={agent.variant} size="sm" rounded="md" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className={`text-sm font-medium break-words ${
-                                  isSelected 
-                                    ? 'text-primary-foreground' 
-                                    : 'hover:text-foreground'
-                                }`}>
+
+                {/* Agents */}
+                <div className="rounded-xl border border-border/40 bg-card shadow-sm overflow-hidden">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-16">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : filteredAgents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 px-6">
+                      <Bot className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                      <p className="text-xs text-muted-foreground/80 text-center">
+                        {agentFilter !== 'all' ? 'No matching agents' : 'No active agents'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/30">
+                      {filteredAgents.map((agent) => {
+                        const isSelected = agent.id === selectedAgentId;
+                        return (
+                          <button
+                            key={agent.id}
+                            onClick={() => handleAgentSelect(agent.id)}
+                            className={`w-full px-4 py-3.5 text-left transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-primary/10 border-l-2 border-primary' 
+                                : 'hover:bg-muted/50 border-l-2 border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="mt-0.5">
+                                <IconAvatar 
+                                  icon={Bot} 
+                                  variant={agent.variant} 
+                                  size="sm" 
+                                  rounded="full"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <h4 className="text-sm font-medium text-foreground leading-tight truncate">
                                   {agent.name}
                                 </h4>
+                                <p className="text-xs text-muted-foreground/70 leading-tight truncate">
+                                  {agent.agentName}
+                                </p>
+                                <Badge
+                                  variant={AGENT_STATUS_CONFIG[agent.status].variant}
+                                  className={`text-[10px] px-2 py-0 h-5 ${AGENT_STATUS_CONFIG[agent.status].colors.badge}`}
+                                >
+                                  {AGENT_STATUS_CONFIG[agent.status].label}
+                                </Badge>
                               </div>
-                              <p className={`text-xs break-words mb-2 ${
-                                isSelected 
-                                  ? 'text-primary-foreground/80' 
-                                  : 'text-muted-foreground hover:text-foreground/80'
-                              }`}>
-                                {agent.agentName}
-                              </p>
-                              <Badge
-                                variant={AGENT_STATUS_CONFIG[agent.status].variant}
-                                className={`text-xs ${AGENT_STATUS_CONFIG[agent.status].colors.badge}`}
-                              >
-                                {AGENT_STATUS_CONFIG[agent.status].label}
-                              </Badge>
                             </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
-          {/* Right Panel - Tasks List */}
-          <div className="col-span-12 lg:col-span-8 xl:col-span-9">
-            {!selectedAgentId ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">
-                    No Agent Selected
-                  </h3>
-                  <p className="text-sm text-muted-foreground text-center max-w-md">
-                    Select an agent from the list to view its pending tasks
-                  </p>
-                </CardContent>
-              </Card>
-            ) : selectedAgent ? (
-              <>
-                {/* Selected Agent Info */}
-                <Card className="mb-4">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start gap-3">
-                      <IconAvatar icon={Bot} variant={selectedAgent.variant} size="md" rounded="md" />
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{selectedAgent.name}</CardTitle>
-                        <CardDescription className="mt-1">
+            {/* Right Panel - Tasks */}
+            <div className="flex-1 min-w-0">
+              {!selectedAgentId ? (
+                <div className="rounded-xl border border-border/40 bg-card shadow-sm p-12">
+                  <div className="flex flex-col items-center justify-center text-center max-w-sm mx-auto">
+                    <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                      <Bot className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-base font-medium text-foreground mb-2">
+                      Select an agent
+                    </h3>
+                    <p className="text-sm text-muted-foreground/70">
+                      Choose an agent from the list to view pending tasks
+                    </p>
+                  </div>
+                </div>
+              ) : selectedAgent ? (
+                <div className="space-y-4">
+                  {/* Agent Header */}
+                  <div className="rounded-xl border border-border/40 bg-card shadow-sm p-4">
+                    <div className="flex items-center gap-3">
+                      <IconAvatar 
+                        icon={Bot} 
+                        variant={selectedAgent.variant} 
+                        size="md" 
+                        rounded="full"
+                        pulse={selectedAgent.status === 'active'}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-base font-medium text-foreground truncate">
+                          {selectedAgent.name}
+                        </h2>
+                        <p className="text-xs text-muted-foreground/70 truncate">
                           {selectedAgent.agentName}
                           {topicParam && (
                             <span className="ml-2">
-                              • Topic: <span className="font-medium">{topicParam}</span>
+                              • {topicParam}
                             </span>
                           )}
-                        </CardDescription>
+                        </p>
                       </div>
                       <Badge
                         variant={AGENT_STATUS_CONFIG[selectedAgent.status].variant}
-                        className={AGENT_STATUS_CONFIG[selectedAgent.status].colors.badge}
+                        className={`${AGENT_STATUS_CONFIG[selectedAgent.status].colors.badge}`}
                       >
                         {AGENT_STATUS_CONFIG[selectedAgent.status].label}
                       </Badge>
                     </div>
-                  </CardHeader>
-                </Card>
+                  </div>
 
-                {/* Tasks List */}
-                {isLoadingTasks ? (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-3" />
-                      <p className="text-sm text-muted-foreground">Loading tasks...</p>
-                    </CardContent>
-                  </Card>
-                ) : tasks.length === 0 ? (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">
-                        No pending tasks
-                      </h3>
-                      <p className="text-sm text-muted-foreground text-center max-w-md">
-                        This agent has no tasks waiting for your approval at the moment.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card className="overflow-visible">
-                    <CardHeader>
-                      <CardTitle>Pending Tasks</CardTitle>
-                      <CardDescription>
-                        Click on a task to view full details and take action
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="!px-0 !py-0">
+                  {/* Tasks */}
+                  {isLoadingTasks ? (
+                    <div className="rounded-xl border border-border/40 bg-card shadow-sm p-12">
+                      <div className="flex flex-col items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-3" />
+                        <p className="text-sm text-muted-foreground/70">Loading tasks...</p>
+                      </div>
+                    </div>
+                  ) : tasks.length === 0 ? (
+                    <div className="rounded-xl border border-border/40 bg-card shadow-sm p-12">
+                      <div className="flex flex-col items-center justify-center text-center max-w-sm mx-auto">
+                        <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                          <Clock className="h-8 w-8 text-muted-foreground/50" />
+                        </div>
+                        <h3 className="text-base font-medium text-foreground mb-2">
+                          All clear
+                        </h3>
+                        <p className="text-sm text-muted-foreground/70">
+                          No pending tasks for this agent
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-border/40 bg-card shadow-sm overflow-hidden">
                       {tasks.map((task) => (
                         <TaskListItem
                           key={task.id}
@@ -511,22 +513,22 @@ function PendingTasksContent() {
                           isSelected={task.id === selectedTaskId}
                         />
                       ))}
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Task Detail Slider */}
       <Sheet open={!!selectedTask} onOpenChange={handleCloseSlider}>
-        <SheetContent className="flex flex-col p-0">
+        <SheetContent className="flex flex-col p-0 w-[600px] max-w-[90vw]">
           {selectedTask && (
             <>
-              <SheetHeader className="px-6 pt-6">
-                <SheetTitle className="text-base">Task Details</SheetTitle>
+              <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/50">
+                <SheetTitle className="text-base font-medium">Task Details</SheetTitle>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
                 <TaskDetail

@@ -20,6 +20,7 @@ interface ChatInterfaceProps {
   hasMoreMessages?: boolean;
   activationName?: string;
   hideHeader?: boolean;
+  isActivationActive?: boolean;
 }
 
 export function ChatInterface({
@@ -32,6 +33,7 @@ export function ChatInterface({
   hasMoreMessages = false,
   activationName,
   hideHeader = false,
+  isActivationActive = true,
 }: ChatInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -183,7 +185,7 @@ export function ChatInterface({
   }, [selectedTopic?.messages, isLoadingMoreMessages]);
 
   const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedTopicId) return;
+    if (!messageInput.trim() || !selectedTopicId || !isActivationActive) return;
 
     // Capture the current last agent message before sending
     const currentTopic = conversation.topics.find(t => t.id === selectedTopicId);
@@ -217,10 +219,10 @@ export function ChatInterface({
   }
 
   return (
-    <div className="flex flex-col h-full bg-card border-l border-border/30">
+    <div className="flex flex-col h-full bg-card border-l border-border/30 overflow-hidden">
       {/* Chat Header */}
       {!hideHeader && (
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border/30 bg-card shadow-sm">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border/30 bg-card shadow-sm flex-shrink-0">
         <div className="flex items-center gap-4">
           {/* Agent Avatar */}
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -294,7 +296,7 @@ export function ChatInterface({
       )}
 
       {/* Messages Area */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-6">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-6 min-h-0">
         <div className="space-y-5 max-w-5xl mx-auto">
           {/* Loading State */}
           {isLoadingMessages ? (
@@ -385,8 +387,13 @@ export function ChatInterface({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-border/20 bg-card px-6 py-4">
+      <div className="border-t border-border/20 bg-card px-6 py-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto">
+          {!isActivationActive && (
+            <div className="mb-3 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm text-yellow-700 dark:text-yellow-400">
+              This agent is inactive. Messages cannot be sent until it is activated.
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <Input
@@ -394,14 +401,15 @@ export function ChatInterface({
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={`Message ${conversation.agent.name}...`}
-                className="h-11 resize-none bg-muted/30 border-0 rounded-full focus-visible:ring-1 focus-visible:ring-primary/30 transition-all text-sm px-4"
+                placeholder={isActivationActive ? `Message ${conversation.agent.name}...` : 'Activation is inactive'}
+                disabled={!isActivationActive}
+                className="h-11 resize-none bg-muted/30 border-0 rounded-full focus-visible:ring-1 focus-visible:ring-primary/30 transition-all text-sm px-4 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
             <Button
               onClick={handleSendMessage}
-              disabled={!messageInput.trim()}
+              disabled={!messageInput.trim() || !isActivationActive}
               size="icon"
               className="flex-shrink-0 h-11 w-11 rounded-full transition-all duration-200 bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >

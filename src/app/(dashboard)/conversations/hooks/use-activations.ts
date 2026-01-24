@@ -31,7 +31,7 @@ export function useActivations(tenantId: string | null) {
           id: activation.id,
           name: activation.name,
           agentName: activation.agentName,
-          isActive: activation.isActive,
+          status: activation.isActive ? 'active' : 'inactive',
           description: activation.description,
         }));
 

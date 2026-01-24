@@ -57,6 +57,12 @@ export function ConversationView({
   }, []);
 
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
+  
+  // Find the current activation to check if it's active
+  const currentActivation = activations.find(
+    a => a.name === selectedActivationName && a.agentName === agentName
+  );
+  const isAgentActive = currentActivation?.status === 'active';
 
   return (
     <div className="flex h-full bg-card">
@@ -111,29 +117,37 @@ export function ConversationView({
       </div>
 
       {/* Chat Area - Right Column */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {selectedTopicId && selectedTopic ? (
           <>
             {/* Chat Header */}
-            <div className="border-b border-border/20 bg-card px-6 py-3">
+            <div className="border-b border-border/50 bg-card px-6 py-3 flex-shrink-0">
               <div className="flex items-center justify-between">
-                {/* Agent Icon + Topic Info */}
+                {/* Agent Icon + Activation & Topic Info */}
                 <div className="flex items-center gap-3">
-                  {/* Agent Avatar with Sonar Pulse */}
+                  {/* Agent Avatar with Sonar Pulse (only when connected AND agent is active) */}
                   <div className="relative inline-flex">
                     <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 relative z-10">
                       <Bot className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="sonar-container absolute inset-0 rounded-full" />
+                    {isConnected && isAgentActive && <div className="sonar-container absolute inset-0 rounded-full" />}
                   </div>
                   
-                  {/* Topic Info */}
+                  {/* Activation & Topic Info */}
                   <div>
-                    <h3 className="font-medium text-sm text-foreground">
-                      {selectedTopic.name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs text-muted-foreground">
+                    {/* Activation Name with Agent Badge */}
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h3 className="font-medium text-sm text-foreground">
+                        {selectedActivationName || 'No Activation'}
+                      </h3>
+                    </div>
+                    {/* Topic Name & Message Count */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {selectedTopic.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground/60">•</span>
+                      <span className="text-xs text-muted-foreground/60">
                         {selectedTopic.messageCount ?? selectedTopic.messages.length} messages
                       </span>
                     </div>
@@ -161,17 +175,20 @@ export function ConversationView({
             </div>
 
             {/* Chat Interface */}
-            <ChatInterface
-              conversation={conversation}
-              selectedTopicId={selectedTopicId}
-              onSendMessage={onSendMessage}
-              isLoadingMessages={isLoadingMessages}
-              onLoadMoreMessages={onLoadMoreMessages}
-              isLoadingMoreMessages={isLoadingMoreMessages}
-              hasMoreMessages={hasMoreMessages}
-              activationName={selectedActivationName || undefined}
-              hideHeader={true}
-            />
+            <div className="flex-1 min-h-0">
+              <ChatInterface
+                conversation={conversation}
+                selectedTopicId={selectedTopicId}
+                onSendMessage={onSendMessage}
+                isLoadingMessages={isLoadingMessages}
+                onLoadMoreMessages={onLoadMoreMessages}
+                isLoadingMoreMessages={isLoadingMoreMessages}
+                hasMoreMessages={hasMoreMessages}
+                activationName={selectedActivationName || undefined}
+                hideHeader={true}
+                isActivationActive={isAgentActive}
+              />
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">

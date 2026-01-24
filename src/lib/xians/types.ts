@@ -208,7 +208,7 @@ export interface XiansAgentDeploymentDetail {
 // Agent Activation types
 export interface XiansAgentActivation {
   id: string
-  tenant: string
+  tenantId: string
   name: string
   agentName: string
   description?: string
@@ -221,10 +221,12 @@ export interface XiansAgentActivation {
         value: string
       }>
     }>
-  }
-  status?: 'active' | 'inactive'
+  } | null
+  workflowIds?: string[]
+  isActive: boolean
+  activatedAt?: string | null
+  deactivatedAt?: string | null
   createdAt: string
-  updatedAt?: string
   createdBy: string
 }
 

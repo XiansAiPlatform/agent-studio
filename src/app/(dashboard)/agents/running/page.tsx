@@ -336,7 +336,7 @@ export default function AgentsPage() {
         <div>
           <h1 className="text-3xl font-semibold text-foreground">Agents</h1>
           <p className="text-muted-foreground mt-1">
-            Manage and monitor your active AI agents
+            Manage and monitor your AI agents
           </p>
         </div>
         <Button asChild>
