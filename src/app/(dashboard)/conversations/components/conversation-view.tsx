@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Bot } from 'lucide-react';
+import { useCallback } from 'react';
 import { Conversation } from '@/lib/data/dummy-conversations';
-import { Button } from '@/components/ui/button';
-import { ChatInterface, TopicList, ConversationHeader } from '@/components/features/conversations';
 import { ActivationOption } from '../hooks';
-import { cn } from '@/lib/utils';
+import { 
+  ConversationHeader, 
+  TopicSidebar, 
+  ChatPanel 
+} from '../[agentName]/[activationName]/_components';
 
 interface ConversationViewProps {
   conversation: Conversation;
@@ -29,6 +30,13 @@ interface ConversationViewProps {
   sseError?: Error | null;
 }
 
+/**
+ * Conversation View Component
+ * 
+ * Main layout component that displays:
+ * - Left: Topic sidebar with agent selector and pagination
+ * - Right: Chat header and chat panel
+ */
 export function ConversationView({
   conversation,
   selectedTopicId,
@@ -66,142 +74,62 @@ export function ConversationView({
 
   return (
     <div className="flex h-full bg-card">
-      {/* Topics List - Left Column */}
-      <div className="w-96 flex-shrink-0 flex flex-col border-r border-border/30 shadow-2xl">
-        {/* Topics Column: Agent Selector + Topics List */}
-        <div className="flex-1 overflow-hidden">
-          <TopicList
-            topics={conversation.topics}
-            selectedTopicId={selectedTopicId}
-            onSelectTopic={onTopicSelect}
-            onCreateTopic={handleCreateTopic}
-            unreadCounts={unreadCounts}
-            activations={activations}
-            selectedActivationName={selectedActivationName}
-            onActivationChange={onActivationChange}
-            isLoadingActivations={isLoadingActivations}
-            showAgentSelector={true}
-          />
-        </div>
-        
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="border-t border-primary/20 p-4 flex items-center justify-between bg-primary/[0.04] shadow-lg">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="h-9 px-3 rounded-lg bg-primary/5 hover:bg-primary/15 hover:text-primary transition-all duration-300 disabled:opacity-40 border border-primary/10"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1.5" />
-              Back
-            </Button>
-            
-            <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/30 shadow-md">
-              {currentPage} / {totalPages}
-            </span>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={!hasMore}
-              className="h-9 px-3 rounded-lg bg-primary/5 hover:bg-primary/15 hover:text-primary transition-all duration-300 disabled:opacity-40 border border-primary/10"
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1.5" />
-            </Button>
-          </div>
-        )}
-      </div>
+      {/* Topics List - Left Sidebar */}
+      <TopicSidebar
+        topics={conversation.topics}
+        selectedTopicId={selectedTopicId}
+        onSelectTopic={onTopicSelect}
+        onCreateTopic={handleCreateTopic}
+        unreadCounts={unreadCounts}
+        activations={activations}
+        selectedActivationName={selectedActivationName}
+        onActivationChange={onActivationChange}
+        isLoadingActivations={isLoadingActivations}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        hasMore={hasMore}
+        onPageChange={onPageChange}
+      />
 
       {/* Chat Area - Right Column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {selectedTopicId && selectedTopic ? (
           <>
             {/* Chat Header */}
-            <div className="border-b border-border/50 bg-card px-6 py-3 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                {/* Agent Icon + Activation & Topic Info */}
-                <div className="flex items-center gap-3">
-                  {/* Agent Avatar with Sonar Pulse (only when connected AND agent is active) */}
-                  <div className="relative inline-flex">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 relative z-10">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                    {isConnected && isAgentActive && <div className="sonar-container absolute inset-0 rounded-full" />}
-                  </div>
-                  
-                  {/* Activation & Topic Info */}
-                  <div>
-                    {/* Activation Name with Agent Badge */}
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-medium text-sm text-foreground">
-                        {selectedActivationName || 'No Activation'}
-                      </h3>
-                    </div>
-                    {/* Topic Name & Message Count */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {selectedTopic.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground/60">•</span>
-                      <span className="text-xs text-muted-foreground/60">
-                        {selectedTopic.messageCount ?? selectedTopic.messages.length} messages
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SSE Connection Status */}
-                {agentName && selectedActivationName && (
-                  <div className="flex items-center gap-2">
-                    <div className={cn(
-                      "flex items-center gap-1.5 text-xs",
-                      isConnected 
-                        ? "text-emerald-600 dark:text-emerald-400" 
-                        : "text-muted-foreground"
-                    )}>
-                      <span className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        isConnected && "bg-emerald-500 animate-pulse"
-                      )} />
-                      {isConnected && 'Live'}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ConversationHeader
+              activationName={selectedActivationName || 'No Activation'}
+              topic={selectedTopic}
+              isConnected={isConnected}
+              isAgentActive={isAgentActive}
+            />
 
             {/* Chat Interface */}
-            <div className="flex-1 min-h-0">
-              <ChatInterface
-                conversation={conversation}
-                selectedTopicId={selectedTopicId}
-                onSendMessage={onSendMessage}
-                isLoadingMessages={isLoadingMessages}
-                onLoadMoreMessages={onLoadMoreMessages}
-                isLoadingMoreMessages={isLoadingMoreMessages}
-                hasMoreMessages={hasMoreMessages}
-                activationName={selectedActivationName || undefined}
-                hideHeader={true}
-                isActivationActive={isAgentActive}
-              />
-            </div>
+            <ChatPanel
+              conversation={conversation}
+              selectedTopic={selectedTopic}
+              selectedTopicId={selectedTopicId}
+              onSendMessage={onSendMessage}
+              isLoadingMessages={isLoadingMessages}
+              onLoadMoreMessages={onLoadMoreMessages}
+              isLoadingMoreMessages={isLoadingMoreMessages}
+              hasMoreMessages={hasMoreMessages}
+              activationName={selectedActivationName}
+              isAgentActive={isAgentActive}
+            />
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
-            <div className="h-20 w-20 rounded-2xl bg-primary/15 flex items-center justify-center mb-6 shadow-xl border border-primary/30">
-              <Bot className="h-10 w-10 text-primary" />
-            </div>
-            <h3 className="text-2xl font-bold text-foreground mb-3 tracking-tight">
-              No Topic Selected
-            </h3>
-            <p className="text-primary/70 text-base font-medium">
-              Select a topic from the left to view messages
-            </p>
-          </div>
+          <ChatPanel
+            conversation={conversation}
+            selectedTopic={undefined}
+            selectedTopicId={''}
+            onSendMessage={onSendMessage}
+            isLoadingMessages={isLoadingMessages}
+            onLoadMoreMessages={onLoadMoreMessages}
+            isLoadingMoreMessages={isLoadingMoreMessages}
+            hasMoreMessages={hasMoreMessages}
+            activationName={selectedActivationName}
+            isAgentActive={isAgentActive}
+          />
         )}
       </div>
     </div>

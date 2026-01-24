@@ -1,6 +1,6 @@
 import { Bot, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ActivationOption } from '../hooks';
+import { ActivationOption } from '../../hooks';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import { AgentStatusBadge } from '@/components/features/agents';
 

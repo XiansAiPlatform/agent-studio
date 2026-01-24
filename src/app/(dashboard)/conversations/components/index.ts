@@ -1,4 +1,2 @@
-export { AgentSelectionView } from './agent-selection-view';
+// Export conversation view component
 export { ConversationView } from './conversation-view';
-export { ActivationFilter } from './activation-filter';
-export { ActivationListItem } from './activation-list-item';
