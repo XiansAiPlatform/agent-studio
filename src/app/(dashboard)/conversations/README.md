@@ -15,14 +15,12 @@ conversations/
 │           ├── topic-sidebar.tsx               # Topic list with pagination
 │           ├── chat-panel.tsx                  # Chat interface or empty state
 │           └── index.ts
-├── components/                                 # Shared conversation components
-│   ├── conversation-view.tsx                   # Main conversation layout
-│   └── index.ts
 ├── _components/                                # Shared feature components
 │   ├── agent-selection/                        # Agent selection components
 │   │   ├── activation-filter.tsx               # Search and filter UI
 │   │   ├── activation-list-item.tsx            # Activation card component
 │   │   └── index.ts
+│   ├── conversation-view.tsx                   # Main conversation layout
 │   └── index.ts
 ├── hooks/                                      # Custom hooks for data management
 │   ├── use-activations.ts                      # Fetch and manage activations

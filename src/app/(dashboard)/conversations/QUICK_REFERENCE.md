@@ -11,10 +11,10 @@ conversations/
 │       ├── conversation-header.tsx      → Header (activation, topic, status)
 │       ├── topic-sidebar.tsx            → Topics list + pagination
 │       └── chat-panel.tsx               → Chat interface + empty state
-├── 📁 _components/agent-selection/      → Agent selection components
-│   ├── activation-filter.tsx            → Search & filter controls
-│   └── activation-list-item.tsx         → Activation card
-├── 📁 components/                       → Shared layout components
+├── 📁 _components/                      → Shared feature components
+│   ├── agent-selection/                 → Agent selection components
+│   │   ├── activation-filter.tsx        → Search & filter controls
+│   │   └── activation-list-item.tsx     → Activation card
 │   └── conversation-view.tsx            → Main conversation layout
 ├── 📁 hooks/                            → Custom data hooks
 │   ├── use-activations.ts               → Fetch activations
@@ -35,7 +35,7 @@ conversations/
 | Conversation header | `[agentName]/[activationName]/_components/conversation-header.tsx` |
 | Topic sidebar | `[agentName]/[activationName]/_components/topic-sidebar.tsx` |
 | Chat panel | `[agentName]/[activationName]/_components/chat-panel.tsx` |
-| Conversation layout | `components/conversation-view.tsx` |
+| Conversation layout | `_components/conversation-view.tsx` |
 | Data fetching | `hooks/` directory |
 | Helper functions | `utils/index.ts` |
 

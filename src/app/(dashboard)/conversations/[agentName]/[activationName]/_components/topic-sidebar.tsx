@@ -8,7 +8,7 @@ interface TopicSidebarProps {
   topics: Topic[];
   selectedTopicId: string;
   onSelectTopic: (topicId: string) => void;
-  onCreateTopic: () => void;
+  onCreateTopic?: (topicName: string) => void;
   unreadCounts: Record<string, number>;
   activations: ActivationOption[];
   selectedActivationName: string | null;

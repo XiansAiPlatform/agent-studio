@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Loader2, Bot } from 'lucide-react';
@@ -8,11 +8,11 @@ import { useTenant } from '@/hooks/use-tenant';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { toast } from 'sonner';
-import { Message } from '@/lib/data/dummy-conversations';
+import { Message, Topic } from '@/lib/data/dummy-conversations';
 import { useActivations, useTopics, useConversationState } from '../../hooks';
 import { getTopicParam } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
-import { ConversationView } from '../../components/conversation-view';
+import { ConversationView } from '../../_components';
 
 /**
  * Conversation Page
@@ -40,6 +40,10 @@ function ConversationContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [messageStates, setMessageStates] = useState<MessageStatesMap>({});
   const [lastActivationKey, setLastActivationKey] = useState<string>('');
+  
+  // Ref for chat input to focus after topic creation or activation change
+  const chatInputRef = useRef<HTMLInputElement>(null);
+  const hasAutoFocusedRef = useRef(false);
 
   // Fetch activations (for switching between agents)
   const { activations, isLoading: isLoadingActivations } = useActivations(currentTenantId);
@@ -51,6 +55,7 @@ function ConversationContent() {
     isLoading: isLoadingTopics,
     totalPages,
     hasMore,
+    addTopic,
   } = useTopics({
     tenantId: currentTenantId,
     agentName,
@@ -141,10 +146,43 @@ function ConversationContent() {
     router.push(`/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${params.toString()}`, { scroll: false });
   }, [searchParams, router, agentName, activationName]);
 
+  // Handle topic creation
+  const handleCreateTopic = useCallback((topicName: string) => {
+    // Create new topic with the provided name
+    const newTopic: Topic = {
+      id: topicName, // Use the topic name as the ID (will be used as scope)
+      name: topicName,
+      createdAt: new Date().toISOString(),
+      status: 'active',
+      messages: [],
+      associatedTasks: [],
+      isDefault: false,
+      messageCount: 0,
+      lastMessageAt: new Date().toISOString(),
+    };
+
+    // Add topic to the list
+    addTopic(newTopic);
+    
+    // Select the newly created topic
+    setSelectedTopicId(newTopic.id);
+    updateTopicInURL(newTopic.id);
+
+    // Focus the chat input after a short delay to ensure rendering is complete
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+    }, 100);
+  }, [addTopic, updateTopicInURL]);
+
   // Handle topic selection
   const handleTopicSelect = useCallback((topicId: string) => {
     setSelectedTopicId(topicId);
     updateTopicInURL(topicId);
+    
+    // Focus the chat input after topic selection
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+    }, 100);
   }, [updateTopicInURL]);
 
   // Clear message states when activation or agent changes
@@ -178,6 +216,28 @@ function ConversationContent() {
     }
   }, [topicParam, topics, selectedTopicId, updateTopicInURL]);
 
+  // Auto-focus chat input when activation changes and topic is selected
+  useEffect(() => {
+    // Only auto-focus once per activation load
+    if (selectedTopicId && !isLoadingTopics && chatInputRef.current && !hasAutoFocusedRef.current) {
+      // Add a small delay to ensure the chat interface is fully rendered
+      const timeoutId = setTimeout(() => {
+        chatInputRef.current?.focus();
+        hasAutoFocusedRef.current = true;
+      }, 150);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedTopicId, isLoadingTopics]);
+
+  // Reset auto-focus flag when activation changes
+  useEffect(() => {
+    const activationKey = `${agentName}-${activationName}`;
+    return () => {
+      hasAutoFocusedRef.current = false;
+    };
+  }, [agentName, activationName]);
+
   // Fetch messages for selected topic
   useEffect(() => {
     const fetchMessages = async () => {
@@ -190,8 +250,8 @@ function ConversationContent() {
         return;
       }
 
-      // Skip if messages already loaded for this topic
-      if (messageStates[selectedTopicId]?.messages?.length > 0) {
+      // Skip if we've already attempted to fetch for this topic (even if no messages)
+      if (messageStates[selectedTopicId] !== undefined) {
         return;
       }
 
@@ -272,7 +332,7 @@ function ConversationContent() {
     };
     
     fetchMessages();
-  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, updateTopicMessages, messageStates]);
+  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, updateTopicMessages]);
 
   // Handle sending messages
   const handleSendMessage = async (content: string, topicId: string) => {
@@ -495,6 +555,8 @@ function ConversationContent() {
         onPageChange={setCurrentPage}
         isConnected={isConnected}
         sseError={sseError}
+        onCreateTopic={handleCreateTopic}
+        chatInputRef={chatInputRef}
       />
     </div>
   );

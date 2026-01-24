@@ -13,6 +13,7 @@ interface ChatPanelProps {
   hasMoreMessages: boolean;
   activationName: string | null;
   isAgentActive: boolean;
+  chatInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 /**
@@ -31,6 +32,7 @@ export function ChatPanel({
   hasMoreMessages,
   activationName,
   isAgentActive,
+  chatInputRef,
 }: ChatPanelProps) {
   if (!selectedTopicId || !selectedTopic) {
     return (
@@ -61,6 +63,7 @@ export function ChatPanel({
         activationName={activationName || undefined}
         hideHeader={true}
         isActivationActive={isAgentActive}
+        inputRef={chatInputRef}
       />
     </div>
   );

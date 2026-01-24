@@ -28,6 +28,8 @@ interface ConversationViewProps {
   onPageChange: (page: number) => void;
   isConnected: boolean;
   sseError?: Error | null;
+  onCreateTopic?: (topicName: string) => void;
+  chatInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 /**
@@ -58,12 +60,9 @@ export function ConversationView({
   onPageChange,
   isConnected,
   sseError,
+  onCreateTopic,
+  chatInputRef,
 }: ConversationViewProps) {
-  const handleCreateTopic = useCallback(() => {
-    console.log('Creating new topic');
-    // TODO: Implement API call to create new topic
-  }, []);
-
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
   
   // Find the current activation to check if it's active
@@ -79,7 +78,7 @@ export function ConversationView({
         topics={conversation.topics}
         selectedTopicId={selectedTopicId}
         onSelectTopic={onTopicSelect}
-        onCreateTopic={handleCreateTopic}
+        onCreateTopic={onCreateTopic}
         unreadCounts={unreadCounts}
         activations={activations}
         selectedActivationName={selectedActivationName}
@@ -115,6 +114,7 @@ export function ConversationView({
               hasMoreMessages={hasMoreMessages}
               activationName={selectedActivationName}
               isAgentActive={isAgentActive}
+              chatInputRef={chatInputRef}
             />
           </>
         ) : (
@@ -129,6 +129,7 @@ export function ConversationView({
             hasMoreMessages={hasMoreMessages}
             activationName={selectedActivationName}
             isAgentActive={isAgentActive}
+            chatInputRef={chatInputRef}
           />
         )}
       </div>

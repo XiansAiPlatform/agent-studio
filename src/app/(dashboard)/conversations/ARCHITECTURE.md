@@ -238,7 +238,7 @@ SSE Event → useMessageListener
 ```
 conversations/
 ├── page.tsx (520 lines - everything)
-├── components/
+├── _components/
 │   ├── agent-selection-view.tsx
 │   ├── conversation-view.tsx
 │   ├── activation-filter.tsx
@@ -252,10 +252,9 @@ conversations/
 ├── [agentName]/[activationName]/
 │   ├── page.tsx (450 lines - conversation logic)
 │   └── _components/ (3 focused components)
-├── components/
-│   └── conversation-view.tsx (refactored to use sub-components)
 └── _components/
-    └── agent-selection/ (2 components)
+    ├── agent-selection/ (2 components)
+    └── conversation-view.tsx (refactored to use sub-components)
 ```
 
 ### Key Changes

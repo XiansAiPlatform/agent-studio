@@ -111,6 +111,30 @@ export function useTopics({
     fetchTopics();
   }, [fetchTopics]);
 
+  // Add a new topic to the list (for newly created topics)
+  const addTopic = useCallback((newTopic: Topic) => {
+    setTopics(prevTopics => {
+      // Check if topic already exists
+      const exists = prevTopics.some(t => t.id === newTopic.id);
+      if (exists) {
+        return prevTopics;
+      }
+      
+      // Add new topic after General Discussions
+      const generalTopicIndex = prevTopics.findIndex(t => t.isDefault);
+      if (generalTopicIndex >= 0) {
+        return [
+          ...prevTopics.slice(0, generalTopicIndex + 1),
+          newTopic,
+          ...prevTopics.slice(generalTopicIndex + 1),
+        ];
+      }
+      
+      // If no general topic, add at the beginning
+      return [newTopic, ...prevTopics];
+    });
+  }, []);
+
   return {
     topics,
     setTopics,
@@ -118,5 +142,6 @@ export function useTopics({
     totalPages,
     hasMore,
     refetch: fetchTopics,
+    addTopic,
   };
 }

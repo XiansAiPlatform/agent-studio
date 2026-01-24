@@ -21,6 +21,7 @@ interface ChatInterfaceProps {
   activationName?: string;
   hideHeader?: boolean;
   isActivationActive?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }
 
 export function ChatInterface({
@@ -34,12 +35,14 @@ export function ChatInterface({
   activationName,
   hideHeader = false,
   isActivationActive = true,
+  inputRef: externalInputRef,
 }: ChatInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = externalInputRef || localInputRef;
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const previousScrollHeightRef = useRef(0);
   const isRestoringScrollRef = useRef(false);
