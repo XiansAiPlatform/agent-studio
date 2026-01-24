@@ -38,12 +38,26 @@ cd agent-studio
 npm install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+```bash
+# Create .env.local file with required variables
+# See docs/SECURITY_SETUP.md for detailed instructions
+
+# Required:
+NEXTAUTH_SECRET=<generate-with-openssl-rand-base64-32>
+NEXTAUTH_URL=http://localhost:3010
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+XIANS_SERVER_URL=https://your-xians-server-url
+XIANS_APIKEY=your-xians-api-key
+```
+
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3010](http://localhost:3010) in your browser.
+5. Open [http://localhost:3010](http://localhost:3010) in your browser.
 
 ## Project Structure
 
@@ -134,6 +148,7 @@ Complete documentation is available in the `docs/` folder:
 - [Layout Structure](./docs/layout.md) - Application layout and routing
 - [Technology Stack](./docs/technology.md) - Technical architecture
 - [Authentication](./docs/auth.md) - Auth setup and RBAC
+- [Security Setup](./docs/SECURITY_SETUP.md) - Security configuration and best practices
 - [Development Guide](./docs/development.md) - Testing, deployment, best practices
 
 ## Development Workflow

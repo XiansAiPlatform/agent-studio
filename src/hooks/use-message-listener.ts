@@ -18,6 +18,7 @@ export interface UseMessageListenerReturn {
   isConnected: boolean;
   error: Error | null;
   reconnect: () => void;
+  maxReconnectAttemptsReached: boolean;
 }
 
 /**
@@ -42,6 +43,7 @@ export function useMessageListener(
 
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [maxReconnectAttemptsReached, setMaxReconnectAttemptsReached] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -121,6 +123,7 @@ export function useMessageListener(
         console.log('[SSE] Connection established');
         setIsConnected(true);
         setError(null);
+        setMaxReconnectAttemptsReached(false);
         reconnectAttemptsRef.current = 0;
         onConnectRef.current?.();
       });
@@ -226,6 +229,7 @@ export function useMessageListener(
             agentName,
             activationName,
           });
+          setMaxReconnectAttemptsReached(true);
           onDisconnectRef.current?.();
         }
       });
@@ -245,6 +249,7 @@ export function useMessageListener(
 
   const reconnect = useCallback(() => {
     reconnectAttemptsRef.current = 0; // Reset attempts for manual reconnect
+    setMaxReconnectAttemptsReached(false); // Reset max attempts flag
     connect();
   }, [connect]);
 
@@ -265,5 +270,6 @@ export function useMessageListener(
     isConnected,
     error,
     reconnect,
+    maxReconnectAttemptsReached,
   };
 }

@@ -77,10 +77,6 @@ function ConversationsContent() {
   // SSE connect handler
   const handleSSEConnect = useCallback(() => {
     console.log('[SSE] Real-time connection established');
-    // toast.success('Real-time messaging connected', {
-    //   description: 'You will receive agent responses instantly',
-    //   duration: 2000,
-    // });
   }, []);
 
   // SSE disconnect handler
@@ -95,7 +91,7 @@ function ConversationsContent() {
   const isActivationActive = selectedActivation?.status === 'active';
 
   // Set up SSE connection - only for active activations
-  const { isConnected, error: sseError } = useMessageListener({
+  const { isConnected, error: sseError, maxReconnectAttemptsReached } = useMessageListener({
     tenantId: currentTenantId,
     agentName,
     activationName,
@@ -105,6 +101,19 @@ function ConversationsContent() {
     onConnect: handleSSEConnect,
     onDisconnect: handleSSEDisconnect,
   });
+
+  // Redirect to server unavailable page if max reconnection attempts reached
+  useEffect(() => {
+    if (maxReconnectAttemptsReached) {
+      const currentUrl = `/conversations?${searchParams.toString()}`;
+      const errorMessage = sseError?.message || 'Failed to establish connection to the real-time messaging server after multiple attempts';
+      const params = new URLSearchParams({
+        error: errorMessage,
+        returnUrl: currentUrl,
+      });
+      router.push(`/server-unavailable?${params.toString()}`);
+    }
+  }, [maxReconnectAttemptsReached, sseError, searchParams, router]);
 
   // Handle activation selection change
   const handleActivationChange = useCallback((newActivationName: string, newAgentName: string) => {

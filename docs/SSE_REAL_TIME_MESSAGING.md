@@ -124,17 +124,28 @@ Only `Outgoing` messages (from agent) are displayed in the UI. `Incoming` messag
 - **Parse errors**: Logged but don't break connection
 - **Stream errors**: Gracefully handled with cleanup
 - **Client disconnects**: Silent cleanup on server side
+- **Max reconnection attempts**: After 5 failed attempts, users are redirected to a dedicated error page
+
+### Server Unavailability Handling
+
+When the SSE connection fails after maximum reconnection attempts (5 attempts with exponential backoff), the application automatically redirects users to a dedicated server unavailable page (`/server-unavailable`). This page:
+
+- Displays a clear error message explaining the connection failure
+- Provides options to retry the connection
+- Allows users to navigate to the dashboard
+- Includes technical details for troubleshooting
+
+The redirect is triggered by the `maxReconnectAttemptsReached` flag in the `useMessageListener` hook return value.
 
 ## Usage
 
 ```typescript
 import { useMessageListener } from '@/hooks/use-message-listener';
 
-const { isConnected, error } = useMessageListener({
+const { isConnected, error, maxReconnectAttemptsReached, reconnect } = useMessageListener({
   tenantId: 'tenant-123',
   agentName: 'Support Agent',
   activationName: 'Live Chat',
-  participantId: 'user@example.com',
   enabled: true,
   onMessage: (message) => {
     console.log('Received:', message);
@@ -149,6 +160,13 @@ const { isConnected, error } = useMessageListener({
     console.log('Disconnected');
   },
 });
+
+// Redirect to error page when max attempts reached
+useEffect(() => {
+  if (maxReconnectAttemptsReached) {
+    router.push('/server-unavailable?error=Connection failed');
+  }
+}, [maxReconnectAttemptsReached]);
 ```
 
 ## Configuration
