@@ -10,6 +10,7 @@ export const GET = withTenant(async (request: NextRequest, { tenantId, session }
     const activationName = searchParams.get('activationName');
     const topic = searchParams.get('topic');
     const status = searchParams.get('status');
+    const viewType = searchParams.get('viewType') || 'my'; // Default to 'my' tasks
 
     // SECURITY: Get participantId from authenticated session, not from client
     const participantId = session.user?.email;
@@ -25,17 +26,21 @@ export const GET = withTenant(async (request: NextRequest, { tenantId, session }
       tenantId,
       agentName: agentName || 'all',
       activationName: activationName || 'all',
-      participantId,
+      participantId: viewType === 'my' ? participantId : 'everyone',
       topic: topic || 'all',
       status: status || 'all',
+      viewType,
     });
 
     const client = createXiansClient();
     
     // Build the query parameters for Xians API
-    const xiansParams = new URLSearchParams({
-      participantId,
-    });
+    const xiansParams = new URLSearchParams();
+
+    // Only add participantId if viewing "my" tasks
+    if (viewType === 'my') {
+      xiansParams.append('participantId', participantId);
+    }
 
     // Add optional filters
     if (agentName) {

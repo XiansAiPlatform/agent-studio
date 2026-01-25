@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Task } from '@/lib/data/dummy-tasks';
 import { TaskListItem } from '@/components/features/tasks/task-list-item';
 import { TaskDetail } from '@/components/features/tasks/task-detail';
@@ -48,6 +50,7 @@ type XiansTasksResponse = {
 };
 
 type TaskStatusFilter = 'all' | 'pending';
+type ViewType = 'my' | 'everyone';
 
 function TasksContent() {
   const router = useRouter();
@@ -62,6 +65,7 @@ function TasksContent() {
   const [isFilterSliderOpen, setIsFilterSliderOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>('all');
   const [selectedActivation, setSelectedActivation] = useState<SelectedActivation | null>(null);
+  const [viewType, setViewType] = useState<ViewType>('my');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -73,6 +77,7 @@ function TasksContent() {
 
   // Current user ID from auth
   const currentUserId = user?.id || 'user-001';
+  const currentUserEmail = user?.email || null;
   
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
@@ -83,8 +88,9 @@ function TasksContent() {
     const activationParam = searchParams.get('activation');
     const pageParam = searchParams.get('page');
     const taskParam = searchParams.get('task');
+    const viewTypeParam = searchParams.get('viewType') as ViewType;
     
-    console.log('[TasksPage] Parsing URL params:', { statusParam, agentParam, activationParam, pageParam, taskParam });
+    console.log('[TasksPage] Parsing URL params:', { statusParam, agentParam, activationParam, pageParam, taskParam, viewTypeParam });
     
     if (statusParam && ['all', 'pending'].includes(statusParam)) {
       setStatusFilter(statusParam);
@@ -103,6 +109,10 @@ function TasksContent() {
       if (!isNaN(page) && page > 0) {
         setCurrentPage(page);
       }
+    }
+    
+    if (viewTypeParam && ['my', 'everyone'].includes(viewTypeParam)) {
+      setViewType(viewTypeParam);
     }
     
     // Set persistent selected task from URL if present
@@ -202,6 +212,7 @@ function TasksContent() {
       const params = new URLSearchParams();
       params.set('pageSize', '20');
       params.set('pageToken', currentPage.toString());
+      params.set('viewType', viewType);
       
       // Map frontend status filter to backend status
       if (statusFilter === 'pending') {
@@ -304,7 +315,7 @@ function TasksContent() {
     } finally {
       setIsLoadingTasks(false);
     }
-  }, [currentTenantId, statusFilter, selectedActivation, currentPage, urlParamsInitialized]);
+  }, [currentTenantId, statusFilter, selectedActivation, viewType, currentPage, urlParamsInitialized]);
 
   useEffect(() => {
     fetchTasks();
@@ -314,9 +325,16 @@ function TasksContent() {
   const updateFiltersInURL = (
     newStatusFilter: TaskStatusFilter,
     newActivation: SelectedActivation | null,
+    newViewType?: ViewType,
     page: number = 1
   ) => {
     const params = new URLSearchParams();
+    
+    // Update view type
+    const finalViewType = newViewType !== undefined ? newViewType : viewType;
+    if (finalViewType !== 'my') {
+      params.set('viewType', finalViewType);
+    }
     
     // Update status filter
     if (newStatusFilter !== 'all') {
@@ -347,6 +365,9 @@ function TasksContent() {
     // Update state
     setStatusFilter(newStatusFilter);
     setSelectedActivation(newActivation);
+    if (newViewType !== undefined) {
+      setViewType(newViewType);
+    }
     setCurrentPage(page);
   };
 
@@ -404,14 +425,14 @@ function TasksContent() {
   // Clear individual filter
   const clearFilter = (type: 'status' | 'activation') => {
     if (type === 'status') {
-      updateFiltersInURL('all', selectedActivation, 1);
+      updateFiltersInURL('all', selectedActivation, undefined, 1);
     } else if (type === 'activation') {
-      updateFiltersInURL(statusFilter, null, 1);
+      updateFiltersInURL(statusFilter, null, undefined, 1);
     }
   };
 
   const clearAllFilters = () => {
-    updateFiltersInURL('all', null, 1);
+    updateFiltersInURL('all', null, undefined, 1);
   };
 
   const hasActiveFilters = 
@@ -423,7 +444,7 @@ function TasksContent() {
     (selectedActivation ? 1 : 0);
 
   const handlePageChange = (newPage: number) => {
-    updateFiltersInURL(statusFilter, selectedActivation, newPage);
+    updateFiltersInURL(statusFilter, selectedActivation, undefined, newPage);
   };
 
   return (
@@ -433,24 +454,59 @@ function TasksContent() {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="shrink-0">
-              <h1 className="text-3xl font-semibold text-foreground">My Tasks</h1>
+              <h1 className="text-3xl font-semibold text-foreground">
+                {viewType === 'my' ? 'My Tasks' : "Everyone's Tasks"}
+              </h1>
               <p className="text-muted-foreground mt-1">
-                Manage tasks requiring your attention
+                {viewType === 'my' 
+                  ? 'Manage tasks requiring your attention'
+                  : 'View all tasks across the organization'}
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsFilterSliderOpen(true)}
-              className="shrink-0"
-            >
-              <Filter className="mr-2 h-4 w-4" />
-              Filter Tasks
-              {activeFilterCount > 0 && (
-                <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 text-xs">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
+            <div className="flex items-center gap-4 shrink-0">
+              {/* View Type Switch */}
+              <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-2">
+                <Label 
+                  htmlFor="view-type-switch" 
+                  className={cn(
+                    "text-sm font-medium cursor-pointer transition-colors",
+                    viewType === 'my' ? 'text-foreground' : 'text-muted-foreground'
+                  )}
+                >
+                  My Tasks
+                </Label>
+                <Switch
+                  id="view-type-switch"
+                  checked={viewType === 'everyone'}
+                  onCheckedChange={(checked) => {
+                    updateFiltersInURL(statusFilter, selectedActivation, checked ? 'everyone' : 'my', 1);
+                  }}
+                />
+                <Label 
+                  htmlFor="view-type-switch" 
+                  className={cn(
+                    "text-sm font-medium cursor-pointer transition-colors",
+                    viewType === 'everyone' ? 'text-foreground' : 'text-muted-foreground'
+                  )}
+                >
+                  Everyone
+                </Label>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => setIsFilterSliderOpen(true)}
+                className="shrink-0"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Filter
+                {activeFilterCount > 0 && (
+                  <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 text-xs">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Active Filters Display */}
@@ -514,6 +570,7 @@ function TasksContent() {
                     onClick={() => handleTaskClick(task.id)}
                     isSelected={task.id === persistentSelectedTaskId}
                     isHighlighted={task.id === highlightedTaskId}
+                    currentUserEmail={currentUserEmail}
                   />
                 ))}
               </>
@@ -577,7 +634,7 @@ function TasksContent() {
           selectedActivation={selectedActivation}
           onFiltersChange={(newStatus, newActivation) => {
             console.log('[TasksPage] Filter changed:', { newStatus, newActivation });
-            updateFiltersInURL(newStatus, newActivation, 1);
+            updateFiltersInURL(newStatus, newActivation, undefined, 1);
           }}
         />
       )}

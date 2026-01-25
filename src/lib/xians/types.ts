@@ -344,6 +344,21 @@ export interface PaginatedResponse<T> {
   }
 }
 
+// Tenant Stats types
+export interface XiansTenantStats {
+  tasks: {
+    pending: number
+    completed: number
+    timedOut: number
+    cancelled: number
+    total: number
+  }
+  messages: {
+    activeUsers: number
+    totalMessages: number
+  }
+}
+
 // Common API response wrapper
 export interface XiansApiResponse<T> {
   success: boolean

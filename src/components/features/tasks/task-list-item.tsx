@@ -17,6 +17,7 @@ interface TaskListItemProps {
   onClick: (task: Task) => void;
   isSelected?: boolean;
   isHighlighted?: boolean;
+  currentUserEmail?: string | null;
 }
 
 const priorityColors = {
@@ -64,7 +65,9 @@ function formatDate(dateString: string): string {
   return `in ${diffDays}d`;
 }
 
-export function TaskListItem({ task, onClick, isSelected, isHighlighted }: TaskListItemProps) {
+export function TaskListItem({ task, onClick, isSelected, isHighlighted, currentUserEmail }: TaskListItemProps) {
+  const isCurrentUser = currentUserEmail && task.assignedTo && task.assignedTo.id === currentUserEmail;
+  
   return (
     <div
       onClick={() => onClick(task)}
@@ -130,6 +133,25 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted }: TaskL
                 >
                   {task.content.data.agentName}
                 </Badge>
+              </>
+            )}
+            
+            {task.assignedTo && (
+              <>
+                <span className="text-muted-foreground/30">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  <span className="font-medium text-foreground/70">
+                    Owner:
+                  </span>
+                  {isCurrentUser ? (
+                    <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                      me
+                    </span>
+                  ) : (
+                    <span>{task.assignedTo.name}</span>
+                  )}
+                </span>
               </>
             )}
             

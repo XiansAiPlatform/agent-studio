@@ -1,4 +1,7 @@
 import { Bot } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { Agent } from '../types';
 
 interface AgentFiltersProps {
@@ -41,73 +44,71 @@ export function AgentFilters({
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* My/Everyone's Switch */}
-          <div className="inline-flex rounded-md border border-border bg-background p-0.5">
-            <button
-              className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
-                !showMyAgentsOnly 
-                  ? 'bg-accent text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              onClick={() => onToggleMyAgentsOnly(false)}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Everyone's/Mine Switch */}
+          <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
+            <Label 
+              htmlFor="ownership-switch" 
+              className={cn(
+                "text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5",
+                !showMyAgentsOnly ? 'text-foreground' : 'text-muted-foreground'
+              )}
             >
-              <span className="flex items-center gap-1.5">
-                Everyone&apos;s
-                <span className="text-[10px] opacity-60">
-                  ({agents.length})
-                </span>
+              Everyone&apos;s
+              <span className="text-[10px] opacity-60">
+                ({agents.length})
               </span>
-            </button>
-            <button
-              className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
-                showMyAgentsOnly 
-                  ? 'bg-accent text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              onClick={() => onToggleMyAgentsOnly(true)}
+            </Label>
+            <Switch
+              id="ownership-switch"
+              checked={showMyAgentsOnly}
+              onCheckedChange={onToggleMyAgentsOnly}
+            />
+            <Label 
+              htmlFor="ownership-switch" 
+              className={cn(
+                "text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5",
+                showMyAgentsOnly ? 'text-foreground' : 'text-muted-foreground'
+              )}
             >
-              <span className="flex items-center gap-1.5">
-                Mine
-                <span className="text-[10px] opacity-60">
-                  ({agents.filter(a => a.participantId === currentUserEmail).length})
-                </span>
+              Mine
+              <span className="text-[10px] opacity-60">
+                ({agents.filter(a => a.participantId === currentUserEmail).length})
               </span>
-            </button>
+            </Label>
           </div>
 
           {/* All/Active Switch */}
-          <div className="inline-flex rounded-md border border-border bg-background p-0.5">
-            <button
-              className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
-                !showActiveOnly 
-                  ? 'bg-accent text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              onClick={() => onToggleActiveOnly(false)}
+          <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
+            <Label 
+              htmlFor="status-switch" 
+              className={cn(
+                "text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5",
+                !showActiveOnly ? 'text-foreground' : 'text-muted-foreground'
+              )}
             >
-              <span className="flex items-center gap-1.5">
-                All
-                <span className="text-[10px] opacity-60">
-                  ({agents.filter(a => !showMyAgentsOnly || a.participantId === currentUserEmail).length})
-                </span>
+              All
+              <span className="text-[10px] opacity-60">
+                ({agents.filter(a => !showMyAgentsOnly || a.participantId === currentUserEmail).length})
               </span>
-            </button>
-            <button
-              className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
-                showActiveOnly 
-                  ? 'bg-accent text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              onClick={() => onToggleActiveOnly(true)}
+            </Label>
+            <Switch
+              id="status-switch"
+              checked={showActiveOnly}
+              onCheckedChange={onToggleActiveOnly}
+            />
+            <Label 
+              htmlFor="status-switch" 
+              className={cn(
+                "text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5",
+                showActiveOnly ? 'text-foreground' : 'text-muted-foreground'
+              )}
             >
-              <span className="flex items-center gap-1.5">
-                Active
-                <span className="text-[10px] opacity-60">
-                  ({agents.filter(a => a.status === 'active' && (!showMyAgentsOnly || a.participantId === currentUserEmail)).length})
-                </span>
+              Active
+              <span className="text-[10px] opacity-60">
+                ({agents.filter(a => a.status === 'active' && (!showMyAgentsOnly || a.participantId === currentUserEmail)).length})
               </span>
-            </button>
+            </Label>
           </div>
           {uniqueTemplates.map((template) => {
             const count = agents.filter((agent) => 
