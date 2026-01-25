@@ -6,12 +6,14 @@ declare module "next-auth" {
     user: {
       id: string
       role: string
+      hasTenantAccess?: boolean
     } & DefaultSession["user"]
     accessToken?: string
   }
 
   interface User extends DefaultUser {
     role?: string
+    hasTenantAccess?: boolean
   }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
     accessToken?: string
     idToken?: string
     provider?: string
+    hasTenantAccess?: boolean
   }
 }

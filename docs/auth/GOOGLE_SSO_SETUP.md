@@ -1,5 +1,7 @@
 # Google SSO Setup Guide
 
+> **Note:** This application also supports Microsoft/Office 365 authentication. See [MICROSOFT_SSO_SETUP.md](./MICROSOFT_SSO_SETUP.md) for Microsoft setup, or [MULTI_PROVIDER_SSO_SETUP.md](./MULTI_PROVIDER_SSO_SETUP.md) for configuring both providers.
+
 ## Step 1: Create Environment Variables File
 
 Create a `.env.local` file in the root of your project with the following content:

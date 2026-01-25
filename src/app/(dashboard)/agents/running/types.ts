@@ -10,6 +10,7 @@ export type Agent = {
   lastActive?: string;
   tasksCompleted: number;
   variant: 'primary' | 'secondary' | 'accent';
+  participantId?: string;
 };
 
 export type SliderType = 'actions' | 'configure' | 'activity' | 'performance' | null;

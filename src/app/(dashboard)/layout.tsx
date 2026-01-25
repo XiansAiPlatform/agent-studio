@@ -7,10 +7,7 @@ import { BackendUnavailable } from '@/components/backend-unavailable'
  * Server Component - Dashboard Layout
  * 
  * Validates user has tenants server-side before rendering.
- * Redirects to /settings/tenant if no tenants found.
- * 
- * Note: The client component handles the /settings/tenant page specially
- * to allow tenant creation without validation loops.
+ * Redirects to /no-access if no tenants found.
  */
 export default async function DashboardLayout({
   children,
@@ -39,10 +36,9 @@ export default async function DashboardLayout({
   const { tenants } = result
   
   // Server-side redirect if no tenants
-  // The client component will handle /settings/tenant specially to avoid loops
   if (tenants.length === 0) {
-    console.log('[Dashboard Layout] No tenants found, redirecting to /settings/tenant')
-    redirect('/settings/tenant')
+    console.log('[Dashboard Layout] No tenants found, redirecting to /no-access')
+    redirect('/no-access')
   }
 
   console.log('[Dashboard Layout] User has', tenants.length, 'tenant(s), rendering dashboard')

@@ -5,60 +5,36 @@
  */
 
 // Tenant types
+
+/**
+ * Tenant details from Xians API
+ * Only enabled tenants are returned by the API
+ */
 export interface XiansTenant {
   tenantId: string
   name: string
-  domain: string
-  description?: string
   logo?: {
-    url?: string
-    imgBase64?: string
+    url?: string | null
+    imgBase64?: string | null
     width?: number
     height?: number
   }
-  theme?: string
-  timezone?: string
-  enabled?: boolean
-  createdAt?: string
-  updatedAt?: string
 }
 
-export interface CreateTenantRequest {
+/**
+ * Participant tenant from the participant API
+ * GET /api/v1/admin/participants/{email}/tenants
+ * Returns minimal tenant info for tenants user has access to
+ */
+export interface XiansParticipantTenant {
   tenantId: string
-  name: string
-  domain: string
-  description?: string
+  tenantName: string
   logo?: {
-    url?: string
-    imgBase64?: string
+    url?: string | null
+    imgBase64?: string | null
     width?: number
     height?: number
   }
-  theme?: string
-  timezone?: string
-}
-
-export interface UpdateTenantRequest {
-  name?: string
-  domain?: string
-  description?: string
-  logo?: {
-    url?: string
-    imgBase64?: string
-    width?: number
-    height?: number
-  }
-  theme?: string
-  timezone?: string
-  enabled?: boolean
-}
-
-export interface XiansUserTenantAccess {
-  tenantId: string
-  userId: string
-  role: 'owner' | 'admin' | 'member' | 'viewer'
-  permissions: string[]
-  grantedAt: string
 }
 
 // Agent types

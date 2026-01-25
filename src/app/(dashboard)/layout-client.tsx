@@ -27,9 +27,6 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
   const pathname = usePathname()
   const [isValidating, setIsValidating] = useState(true)
 
-  // Check if we're on the tenant settings page (skip validation)
-  const isOnTenantSettings = pathname === '/settings/tenant'
-
   // Initialize store and validate selected tenant
   useEffect(() => {
     const initializeAndValidate = async () => {
@@ -38,13 +35,6 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
         
         // Always update the tenant list (so user menu can show tenants)
         setTenants(initialTenants)
-        
-        // If we're on the tenant settings page, skip validation but allow tenants to be displayed
-        if (isOnTenantSettings) {
-          console.log('[Dashboard Client] On tenant settings page, skipping validation')
-          setIsValidating(false)
-          return
-        }
         
         // Get the tenant ID that was selected (either the persisted one or auto-selected)
         // Note: After setTenants(), the store may have auto-selected a valid tenant
@@ -82,12 +72,11 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
             
             if (!isValid) {
               console.warn('[Dashboard Client] Tenant not found in Xians:', finalSelectedTenantId)
-              console.log('[Dashboard Client] This tenant may have been deleted. Redirecting to tenant settings.')
+              console.log('[Dashboard Client] This tenant may have been deleted or disabled. Redirecting to no-access page.')
               
-              // Clear tenants and redirect to settings page with reason
-              // The user needs to be aware that their selected tenant no longer exists
+              // Clear tenants and redirect to no-access page
               clearTenants()
-              router.push(`/settings/tenant?reason=invalid&tenant=${encodeURIComponent(finalSelectedTenantId)}`)
+              router.push('/no-access')
               return
             }
           } catch (error) {
@@ -108,7 +97,7 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
     }
     
     initializeAndValidate()
-  }, [initialTenants, setTenants, router, isOnTenantSettings])
+  }, [initialTenants, setTenants, router])
 
   // Show loading while validating selected tenant
   if (isValidating) {
@@ -118,21 +107,6 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="text-sm text-muted-foreground">Validating tenant...</p>
         </div>
-      </div>
-    )
-  }
-
-  // If on tenant settings page, show simplified layout without sidebar
-  if (isOnTenantSettings) {
-    return (
-      <div className="flex h-screen flex-col">
-        {/* Simplified Header for tenant settings */}
-        <Header />
-
-        {/* Main Content - Full width without sidebar */}
-        <main className="flex-1 overflow-y-auto bg-background">
-          {children}
-        </main>
       </div>
     )
   }

@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast } from '@/lib/utils/error-handler';
-import { Loader2, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Filter, X, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 
 type XiansTask = {
   taskId: string;
@@ -495,8 +495,9 @@ function TasksContent() {
         {/* Tasks List */}
         <Card className="overflow-visible">
           <CardHeader>
-
-            <CardDescription>Click on a task to view details</CardDescription>
+            {!isLoadingTasks && filteredTasks.length > 0 && (
+              <CardDescription>Click on a task to view details</CardDescription>
+            )}
           </CardHeader>
           <CardContent className="!px-0 !py-0">
             {isLoadingTasks ? (
@@ -517,9 +518,21 @@ function TasksContent() {
                 ))}
               </>
             ) : (
-              <p className="text-center text-muted-foreground py-12 px-6">
-                {tasks.length === 0 ? 'No tasks found' : 'No tasks match the selected filters'}
-              </p>
+              <div className="flex flex-col items-center justify-center py-16 px-6 space-y-3">
+                <div className="rounded-full bg-muted/50 p-3">
+                  <ClipboardList className="h-6 w-6 text-muted-foreground/60" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {tasks.length === 0 ? 'No tasks yet' : 'No matching tasks'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {tasks.length === 0 
+                      ? 'Tasks will appear here when they require your attention' 
+                      : 'Try adjusting your filters to see more tasks'}
+                  </p>
+                </div>
+              </div>
             )}
           </CardContent>
           

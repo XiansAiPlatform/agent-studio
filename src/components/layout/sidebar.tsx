@@ -64,7 +64,6 @@ const navigation = [
     icon: Settings,
     children: [
       { name: 'Agent Store', href: '/settings/agent-store' },
-      { name: 'Tenant', href: '/settings/tenant' },
       { name: 'Platform Config', href: '/settings/platform' },
       { name: 'Integrations', href: '/settings/integrations' },
       { name: 'User Management', href: '/settings/users' },

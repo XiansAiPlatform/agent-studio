@@ -63,6 +63,7 @@ export function useAgents(currentTenantId: string | null) {
           lastActive: status !== 'active' ? (diffHours > 0 ? `${diffHours}h ago` : `${diffMinutes}m ago`) : undefined,
           tasksCompleted: 0,
           variant,
+          participantId: activation.participantId,
         };
       });
 

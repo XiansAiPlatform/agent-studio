@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import AzureADProvider from "next-auth/providers/azure-ad"
 import type { JWT } from "next-auth/jwt"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
@@ -36,11 +37,41 @@ export const authOptions: NextAuthOptions = {
         timeout: 10000, // Increase timeout to 10 seconds
       }
     }),
+    AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID!,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+      tenantId: process.env.AZURE_AD_TENANT_ID,
+      authorization: {
+        params: {
+          scope: "openid profile email User.Read"
+        }
+      },
+      httpOptions: {
+        timeout: 10000, // Increase timeout to 10 seconds
+      }
+    }),
   ],
   
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Allow sign in - we'll handle tenant validation in the redirect
+      // Check if user has tenant access
+      if (user.email) {
+        try {
+          const client = createXiansClient()
+          const tenantsApi = new XiansTenantsApi(client)
+          const tenantNames = await tenantsApi.getParticipantTenants(user.email)
+          
+          // Store tenant check result in user object (temporary)
+          user.hasTenantAccess = tenantNames.length > 0
+          
+          console.log(`[Auth] User ${user.email} has access to ${tenantNames.length} tenant(s)`)
+        } catch (error) {
+          console.error('[Auth] Error checking tenant access during sign-in:', error)
+          // Allow sign in even if check fails - we'll validate again on redirect
+          user.hasTenantAccess = true
+        }
+      }
+      
       return true
     },
     
@@ -57,6 +88,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.role = user.role || 'user' // Default role
         token.email = user.email
+        token.hasTenantAccess = user.hasTenantAccess
       }
       
       return token
@@ -68,19 +100,13 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.accessToken = token.accessToken as string
+        session.user.hasTenantAccess = token.hasTenantAccess as boolean
       }
       
       return session
     },
     
     async redirect({ url, baseUrl }) {
-      // If redirecting after sign in, check tenant validation
-      if (url === baseUrl || url === `${baseUrl}/`) {
-        // We'll handle the redirect on the client side based on tenantValid
-        // For now, just go to the default page
-        return baseUrl
-      }
-      
       // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`
       // Allows callback URLs on the same origin

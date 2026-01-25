@@ -51,19 +51,29 @@ export function AgentCard({ agent, isNewlyCreated, onClick }: AgentCardProps) {
           </CardDescription>
         </div>
       </CardHeader>
-      {(agent.uptime || agent.lastActive) && (
+      {(agent.uptime || agent.lastActive || agent.participantId) && (
         <CardContent className="pt-0 pb-4">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {agent.uptime && (
-              <>
-                <span>Uptime: {agent.uptime}</span>
-              </>
+          <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+            {agent.participantId && (
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">Owner:</span>
+                <span className="truncate">{agent.participantId}</span>
+              </div>
             )}
-            {agent.lastActive && (
-              <>
-                {agent.uptime && <span>•</span>}
-                <span>Modified {agent.lastActive}</span>
-              </>
+            {(agent.uptime || agent.lastActive) && (
+              <div className="flex items-center gap-3">
+                {agent.uptime && (
+                  <>
+                    <span>Uptime: {agent.uptime}</span>
+                  </>
+                )}
+                {agent.lastActive && (
+                  <>
+                    {agent.uptime && <span>•</span>}
+                    <span>Modified {agent.lastActive}</span>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </CardContent>

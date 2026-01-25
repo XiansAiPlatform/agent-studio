@@ -37,24 +37,21 @@ export async function GET(
     const tenantsApi = new XiansTenantsApi(xiansClient)
 
     // Try to fetch the specific tenant from Xians
+    // API only returns enabled tenants (404 if disabled or not found)
     const tenant = await tenantsApi.getTenant(tenantId)
-    
-    const isEnabled = tenant.enabled !== false
     
     console.log(`[Tenant Validate API] Tenant "${tenantId}" found in Xians:`, {
       exists: true,
-      enabled: isEnabled,
+      enabled: true,
       name: tenant.name
     })
 
     return NextResponse.json({
       exists: true,
-      enabled: isEnabled,
+      enabled: true, // API only returns enabled tenants
       tenant: {
         id: tenant.tenantId,
-        name: tenant.name,
-        domain: tenant.domain,
-        enabled: isEnabled
+        name: tenant.name
       }
     })
   } catch (error: any) {
@@ -71,7 +68,7 @@ export async function GET(
       exists: false,
       enabled: false,
       error: isNotFound 
-        ? `Tenant "${tenantId}" does not exist in Xians` 
+        ? `Tenant "${tenantId}" does not exist or is disabled in Xians` 
         : error.message || 'Failed to validate tenant'
     })
   }

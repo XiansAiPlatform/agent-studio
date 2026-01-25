@@ -18,23 +18,25 @@ export async function GET() {
   }
   
   try {
-    console.log('[User Tenants API] Fetching tenants from Xians for user:', session.user.id)
+    console.log('[User Tenants API] Fetching tenants from Xians for user:', session.user.email)
     
     const tenantProvider = useTenantProvider()
     const userTenants = await tenantProvider.getUserTenants(
       session.user.id,
-      session.accessToken
+      session.accessToken,
+      session.user.email || undefined
     )
     
     console.log('[User Tenants API] Found', userTenants.length, 'tenant(s) in Xians')
     
     if (userTenants.length === 0) {
-      console.warn('[User Tenants API] No tenants found for user - they need to create a tenant')
+      console.warn('[User Tenants API] No tenants found for user - user needs to be granted access by admin')
     }
     
     return NextResponse.json({
       tenants: userTenants,
       userId: session.user.id,
+      userEmail: session.user.email,
       count: userTenants.length
     })
   } catch (error) {

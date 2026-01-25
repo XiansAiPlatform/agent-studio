@@ -7,7 +7,7 @@ export default withAuth(
     const path = req.nextUrl.pathname
 
     // Public paths that don't require tenant validation
-    const publicPaths = ['/login', '/enable-tenant', '/settings/tenant']
+    const publicPaths = ['/login', '/no-access', '/enable-tenant']
     const isPublicPath = publicPaths.some(p => path.startsWith(p))
 
     if (isPublicPath) {

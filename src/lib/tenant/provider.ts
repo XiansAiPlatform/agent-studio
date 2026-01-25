@@ -9,7 +9,11 @@ export interface TenantProvider {
   
   getTenant(tenantId: string, authToken?: string): Promise<Tenant | null>
   
-  getUserTenants(userId: string, authToken?: string): Promise<Array<{
+  getUserTenants(
+    userId: string, 
+    authToken?: string, 
+    userEmail?: string
+  ): Promise<Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
   }>>

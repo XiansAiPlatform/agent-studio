@@ -9,7 +9,7 @@ import { useTenant } from '@/hooks/use-tenant'
  * TenantValidator Component
  * 
  * Validates that the user's current tenant exists in Xians.
- * If not, redirects to /settings/tenant for tenant creation.
+ * If not, redirects to /no-access page.
  * 
  * This runs on every page load to ensure tenant still exists in Xians.
  */
@@ -23,7 +23,7 @@ export function TenantValidator({ children }: { children: React.ReactNode }) {
   const [validationError, setValidationError] = useState<string | null>(null)
 
   // Paths that don't require tenant validation
-  const publicPaths = ['/login', '/settings/tenant', '/enable-tenant']
+  const publicPaths = ['/login', '/enable-tenant', '/no-access']
   const isPublicPath = publicPaths.some(path => pathname?.startsWith(path))
 
   // First effect: Check if user has any tenants
@@ -41,12 +41,12 @@ export function TenantValidator({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // If loading is complete and no tenants exist, redirect to settings
+    // If loading is complete and no tenants exist, redirect to no-access page
     if ((hasNoTenants || error) && !isLoading && !hasRedirected) {
-      console.log('[TenantValidator] No valid tenants found in Xians, redirecting to /settings/tenant')
+      console.log('[TenantValidator] No valid tenants found in Xians, redirecting to /no-access')
       console.log('[TenantValidator] Reason:', hasNoTenants ? 'No tenants available' : error)
       setHasRedirected(true)
-      router.push('/settings/tenant')
+      router.push('/no-access')
       return
     }
 
@@ -76,7 +76,7 @@ export function TenantValidator({ children }: { children: React.ReactNode }) {
         console.error('[TenantValidator] Current tenant does not exist in Xians:', currentTenantId)
         setValidationError(`Tenant "${currentTenantId}" does not exist in Xians`)
         setHasRedirected(true)
-        router.push('/settings/tenant')
+        router.push('/no-access')
       } else {
         console.log('[TenantValidator] Current tenant validated successfully in Xians:', currentTenantId)
         setIsValidating(false)
@@ -113,10 +113,10 @@ export function TenantValidator({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <button
-            onClick={() => router.push('/settings/tenant')}
+            onClick={() => router.push('/no-access')}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
-            Go to Settings
+            Get Help
           </button>
         </div>
       </div>

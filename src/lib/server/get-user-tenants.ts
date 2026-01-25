@@ -24,10 +24,11 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
     const tenantProvider = useTenantProvider()
     const userTenants = await tenantProvider.getUserTenants(
       session.user.id,
-      session.accessToken
+      session.accessToken,
+      session.user.email
     )
     
-    console.log('[Server] Fetched', userTenants.length, 'tenant(s) for user:', session.user.id)
+    console.log('[Server] Fetched', userTenants.length, 'tenant(s) for user:', session.user.email)
     
     return {
       success: true,

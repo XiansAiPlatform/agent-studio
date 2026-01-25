@@ -14,14 +14,7 @@ export class XiansTenantProvider implements TenantProvider {
       name: xiansTenant.name,
       slug: xiansTenant.tenantId.toLowerCase(),
       metadata: {
-        domain: xiansTenant.domain,
-        description: xiansTenant.description,
-        logo: xiansTenant.logo,
-        theme: xiansTenant.theme,
-        timezone: xiansTenant.timezone,
-        enabled: xiansTenant.enabled,
-        createdAt: xiansTenant.createdAt,
-        updatedAt: xiansTenant.updatedAt,
+        logo: xiansTenant.logo
       }
     }
   }
@@ -33,11 +26,7 @@ export class XiansTenantProvider implements TenantProvider {
       
       const xiansTenant = await tenantsApi.getTenant(tenantId)
       
-      // Only return enabled tenants
-      if (xiansTenant.enabled === false) {
-        return null
-      }
-      
+      // API only returns enabled tenants
       return this.mapXiansTenantToTenant(xiansTenant)
     } catch (error) {
       console.error('Error fetching tenant:', error)
@@ -62,35 +51,49 @@ export class XiansTenantProvider implements TenantProvider {
     }
   }
 
-  async getUserTenants(userId: string, authToken?: string): Promise<Array<{
+  async getUserTenants(userId: string, authToken?: string, userEmail?: string): Promise<Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
   }>> {
     const client = createXiansClient(authToken)
     const tenantsApi = new XiansTenantsApi(client)
     
-    // Get all tenants from Xians
-    // Note: Errors are now propagated up to be handled by the caller
-    const xiansTenants = await tenantsApi.listTenants()
-
-    // xiansTenants.push({
-    //   tenantId: 'neworg',
-    //   name: 'Neworg Organization',
-    //   domain: 'neworg.com',
-    //   description: 'Neworg Organization',
-    //   enabled: true,
-    //   createdAt: new Date().toISOString(),
-    //   updatedAt: new Date().toISOString(),
-    // })
+    if (!userEmail) {
+      console.warn('[XiansTenantProvider] No email provided, cannot fetch participant tenants')
+      return []
+    }
     
-    // Filter to enabled tenants and map to internal format
-    const enabledTenants = xiansTenants
-      .filter(t => t.enabled !== false)
-      .map(t => ({
-        tenant: this.mapXiansTenantToTenant(t),
-        role: 'admin' as const  // Default role, can be enhanced later
-      }))
+    // Get participant tenants using the new API
+    // This returns tenant IDs and names where user has TenantParticipant role
+    const participantTenants = await tenantsApi.getParticipantTenants(userEmail)
     
-    return enabledTenants
+    if (participantTenants.length === 0) {
+      console.log('[XiansTenantProvider] User has no tenant access')
+      return []
+    }
+    
+    console.log('[XiansTenantProvider] User has access to', participantTenants.length, 'tenant(s)')
+    
+    // Fetch full tenant details for each participant tenant
+    const tenantPromises = participantTenants.map(async (participantTenant) => {
+      const tenantId = participantTenant.tenantId
+      try {
+        const xiansTenant = await tenantsApi.getTenant(tenantId)
+        
+        // API only returns enabled tenants
+        return {
+          tenant: this.mapXiansTenantToTenant(xiansTenant),
+          role: 'admin' as 'owner' | 'admin' | 'member' | 'viewer'  // Default role, can be enhanced later
+        }
+      } catch (error) {
+        console.error(`[XiansTenantProvider] Failed to fetch tenant ${tenantId}:`, error)
+        return null
+      }
+    })
+    
+    const tenants = await Promise.all(tenantPromises)
+    
+    // Filter out nulls (failed fetches or disabled tenants)
+    return tenants.filter((t): t is { tenant: Tenant; role: 'owner' | 'admin' | 'member' | 'viewer' } => t !== null)
   }
 }

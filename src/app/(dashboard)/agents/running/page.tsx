@@ -370,27 +370,35 @@ export default function AgentsPage() {
 
       {/* Empty State */}
       {!isLoading && agents.length === 0 && (
-        <Card className="p-12">
-          <div className="text-center space-y-3">
-            <Bot className="h-12 w-12 mx-auto text-muted-foreground" />
-            <h3 className="text-lg font-medium">No Active Agents</h3>
-            <p className="text-muted-foreground">
-              You haven&apos;t activated any agents yet. Click &quot;Add from Store&quot; to get started.
-            </p>
+        <Card>
+          <div className="flex flex-col items-center justify-center py-16 px-6 space-y-3">
+            <div className="rounded-full bg-muted/50 p-3">
+              <Bot className="h-6 w-6 text-muted-foreground/60" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-foreground">No agents</p>
+              <p className="text-xs text-muted-foreground">
+                You haven&apos;t activated any agents yet. Click &quot;Add from Store&quot; to get started.
+              </p>
+            </div>
           </div>
         </Card>
       )}
 
       {/* Filtered Empty State */}
       {!isLoading && agents.length > 0 && filteredAgents.length === 0 && (
-        <Card className="p-12">
-          <div className="text-center space-y-3">
-            <Bot className="h-12 w-12 mx-auto text-muted-foreground" />
-            <h3 className="text-lg font-medium">No Agents Found</h3>
-            <p className="text-muted-foreground">
-              No agents match the selected filter. Try selecting a different agent type.
-            </p>
-            <Button variant="outline" onClick={handleClearFilters}>
+        <Card>
+          <div className="flex flex-col items-center justify-center py-16 px-6 space-y-3">
+            <div className="rounded-full bg-muted/50 p-3">
+              <Bot className="h-6 w-6 text-muted-foreground/60" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-foreground">No matching agents</p>
+              <p className="text-xs text-muted-foreground">
+                Try adjusting your filters to see more agents
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleClearFilters} className="mt-2">
               Clear Filter
             </Button>
           </div>
