@@ -136,16 +136,16 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" asChild>
-            <Link href="/tasks">
+          <Button asChild>
+            <Link href="/tasks?status=pending">
               <ListTodo className="mr-2 h-4 w-4" />
-              View All Tasks
+              My Pending Tasks
             </Link>
           </Button>
-          <Button asChild>
+          <Button variant="outline" asChild>
             <Link href="/agents/running">
               <Bot className="mr-2 h-4 w-4" />
-              Manage Agents
+              Meet Agents
             </Link>
           </Button>
         </div>
