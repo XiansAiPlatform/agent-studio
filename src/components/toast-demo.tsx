@@ -15,6 +15,21 @@ export function ToastDemo() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        {/* Persistent Toast for Styling */}
+        <Button
+          variant="default"
+          className="col-span-2 bg-primary"
+          onClick={() =>
+            showToast.success({
+              title: "Persistent Toast for Styling",
+              description: "This toast stays visible for styling adjustments. Close it manually when done.",
+              duration: Infinity,
+            })
+          }
+        >
+          🎨 Show Persistent Toast (For Styling)
+        </Button>
+
         {/* Success Toast */}
         <Button
           variant="outline"

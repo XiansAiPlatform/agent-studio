@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Bot, Play, Loader2 } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
+import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { ActivationConfigWizard, ActivationWizardData } from '@/components/features/agents/activation-config-wizard';
 
@@ -21,6 +22,7 @@ import { ConfigurePanel, ActivityPanel, PerformancePanel } from './components/ag
 
 export default function AgentsPage() {
   const { currentTenantId } = useTenant();
+  const { user } = useAuth();
   const { agents, isLoading, refreshAgents, setAgents } = useAgents(currentTenantId);
   
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
@@ -34,6 +36,7 @@ export default function AgentsPage() {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [showMyAgentsOnly, setShowMyAgentsOnly] = useState(false);
   
   // Activation wizard state
   const [showActivationWizard, setShowActivationWizard] = useState(false);
@@ -316,12 +319,14 @@ export default function AgentsPage() {
   const filteredAgents = agents.filter((agent) => {
     if (selectedTemplate && agent.template !== selectedTemplate) return false;
     if (showActiveOnly && agent.status !== 'active') return false;
+    if (showMyAgentsOnly && agent.participantId !== user?.email) return false;
     return true;
   });
 
   const handleClearFilters = () => {
     setSelectedTemplate(null);
     setShowActiveOnly(false);
+    setShowMyAgentsOnly(false);
   };
 
   const handleTemplateSelect = (template: string) => {
@@ -354,9 +359,12 @@ export default function AgentsPage() {
           uniqueTemplates={uniqueTemplates}
           selectedTemplate={selectedTemplate}
           showActiveOnly={showActiveOnly}
+          showMyAgentsOnly={showMyAgentsOnly}
+          currentUserEmail={user?.email}
           onTemplateSelect={handleTemplateSelect}
           onClearFilters={handleClearFilters}
           onToggleActiveOnly={setShowActiveOnly}
+          onToggleMyAgentsOnly={setShowMyAgentsOnly}
         />
       )}
 
@@ -413,6 +421,7 @@ export default function AgentsPage() {
               key={agent.id}
               agent={agent}
               isNewlyCreated={newlyCreatedId === agent.id}
+              currentUserEmail={user?.email}
               onClick={() => handleCardClick(agent)}
             />
           ))}

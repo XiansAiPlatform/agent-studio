@@ -307,11 +307,16 @@
 }
 
 [data-sonner-toast] [data-close-button] {
+  position: absolute !important;
   background: transparent !important;
   border: 0 !important;
   color: hsl(var(--muted-foreground)) !important;
   opacity: 0.7 !important;
   transition: all 0.2s !important;
+  left: auto !important;
+  right: 6px !important;
+  top: 4px !important;
+  transform: none !important;
 }
 
 [data-sonner-toast] [data-close-button]:hover {

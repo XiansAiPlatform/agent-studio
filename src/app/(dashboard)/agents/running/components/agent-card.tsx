@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import { Bot } from 'lucide-react';
@@ -8,10 +8,12 @@ import { Agent } from '../types';
 interface AgentCardProps {
   agent: Agent;
   isNewlyCreated?: boolean;
+  currentUserEmail?: string | null;
   onClick: () => void;
 }
 
-export function AgentCard({ agent, isNewlyCreated, onClick }: AgentCardProps) {
+export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: AgentCardProps) {
+  const isCurrentUser = currentUserEmail && agent.participantId === currentUserEmail;
   return (
     <Card 
       className={`hover:bg-muted/50 transition-all duration-200 cursor-pointer border ${
@@ -43,12 +45,9 @@ export function AgentCard({ agent, isNewlyCreated, onClick }: AgentCardProps) {
             />
           </div>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <CardTitle className="text-base whitespace-normal break-words">{agent.name}</CardTitle>
           <div className="text-xs text-muted-foreground">{agent.template}</div>
-          <CardDescription className="text-xs whitespace-normal break-words line-clamp-2">
-            {agent.description}
-          </CardDescription>
         </div>
       </CardHeader>
       {(agent.uptime || agent.lastActive || agent.participantId) && (
@@ -57,7 +56,13 @@ export function AgentCard({ agent, isNewlyCreated, onClick }: AgentCardProps) {
             {agent.participantId && (
               <div className="flex items-center gap-1.5">
                 <span className="font-medium">Owner:</span>
-                <span className="truncate">{agent.participantId}</span>
+                {isCurrentUser ? (
+                  <span className="truncate font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                    me
+                  </span>
+                ) : (
+                  <span className="truncate">{agent.participantId}</span>
+                )}
               </div>
             )}
             {(agent.uptime || agent.lastActive) && (

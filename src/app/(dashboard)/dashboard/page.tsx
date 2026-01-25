@@ -16,15 +16,22 @@ import {
   Zap,
   MessageSquare,
   Calendar,
+  Loader2,
 } from 'lucide-react';
 import { DUMMY_TASKS } from '@/lib/data/dummy-tasks';
 import { DUMMY_CONVERSATIONS } from '@/lib/data/dummy-conversations';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { cn } from '@/lib/utils';
+import { ToastDemo } from '@/components/toast-demo';
+import { useTenant } from '@/hooks/use-tenant';
+import { useAgents } from '@/app/(dashboard)/agents/running/hooks/use-agents';
+import { AgentStatusBadge } from '@/components/features/agents';
 
 type TimePeriod = '7d' | '30d' | '90d' | 'all';
 
 export default function DashboardPage() {
+  const { currentTenantId } = useTenant();
+  const { agents: allAgents, isLoading: isLoadingAgents } = useAgents(currentTenantId);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('7d');
   const pendingTasks = DUMMY_TASKS.filter((t) => t.status === 'pending');
   const approvedTasks = DUMMY_TASKS.filter((t) => t.status === 'approved');
@@ -32,23 +39,16 @@ export default function DashboardPage() {
   const totalTasks = DUMMY_TASKS.length;
   const activeConversations = DUMMY_CONVERSATIONS.filter((c) => c.status === 'active').length;
 
-  // Get unique Agent Instances
-  const activeAgents = Array.from(
-    new Map(
-      DUMMY_CONVERSATIONS.filter((c) => c.status === 'active').map((c) => [
-        c.agent.id,
-        c.agent,
-      ])
-    ).values()
-  );
+  // Get active agent instances from the API
+  const activeAgents = allAgents.filter((agent) => agent.status === 'active');
 
   // Calculate approval rate
   const approvalRate = totalTasks > 0 
     ? Math.round((approvedTasks.length / totalTasks) * 100) 
     : 0;
 
-  // Agent Performance Metrics
-  const totalAgents = Array.from(new Map(DUMMY_CONVERSATIONS.map((c) => [c.agent.id, c.agent])).values()).length;
+  // Agent Performance Metrics - using real agent data
+  const totalAgents = allAgents.length;
   const agentUtilization = totalAgents > 0 ? Math.round((activeAgents.length / totalAgents) * 100) : 0;
   const completedTasks = approvedTasks.length + rejectedTasks.length;
   const successRate = completedTasks > 0 ? Math.round((approvedTasks.length / completedTasks) * 100) : 0;
@@ -346,48 +346,63 @@ export default function DashboardPage() {
               <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               Agents
             </CardTitle>
-            <CardDescription>Currently online and working</CardDescription>
+            <CardDescription>Currently active and working</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {activeAgents.slice(0, 5).map((agent) => (
-                <div
-                  key={agent.id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer group"
-                >
-                  <div className="h-10 w-10 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Bot className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                      {agent.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize flex items-center gap-1.5">
-                      <span
-                        className={`inline-block h-2 w-2 rounded-full ${
-                          agent.status === 'online'
-                            ? 'bg-green-500'
-                            : agent.status === 'busy'
-                            ? 'bg-yellow-500'
-                            : 'bg-gray-400'
-                        }`}
-                      />
-                      {agent.status}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    asChild
-                  >
-                    <Link href={`/conversations?agent=${agent.id}`}>
-                      <MessageSquare className="h-4 w-4" />
-                    </Link>
-                  </Button>
+            {isLoadingAgents ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading agents...</span>
+              </div>
+            ) : activeAgents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                <div className="rounded-full bg-muted/50 p-3">
+                  <Bot className="h-5 w-5 text-muted-foreground/60" />
                 </div>
-              ))}
-            </div>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-foreground">No active agents</p>
+                  <p className="text-xs text-muted-foreground">
+                    Activate agents to see them here
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activeAgents.slice(0, 5).map((agent) => (
+                  <div
+                    key={agent.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer group"
+                  >
+                    <div className="h-10 w-10 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                        {agent.name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <AgentStatusBadge status={agent.status} size="xs" />
+                        {agent.uptime && (
+                          <span className="text-xs text-muted-foreground">
+                            {agent.uptime}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      asChild
+                    >
+                      <Link href={`/conversations/${agent.template}`}>
+                        <MessageSquare className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
             <Separator className="my-4" />
             <Button 
               size="sm" 
@@ -403,6 +418,11 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Temporary Toast Demo for Styling */}
+      {/* <div className="mt-8">
+        <ToastDemo />
+      </div> */}
     </div>
   );
 }
