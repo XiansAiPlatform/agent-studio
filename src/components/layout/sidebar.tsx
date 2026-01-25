@@ -41,33 +41,14 @@ const navigation = [
     icon: MessageSquare,
   },
   {
-    name: 'Knowledge',
-    href: '/knowledge',
-    icon: Database,
-    children: [
-      { name: 'Knowledge Articles', href: '/knowledge' },
-    ],
-  },
-  {
-    name: 'Performance',
-    href: '/performance',
-    icon: BarChart,
-    children: [
-      { name: 'Metrics & KPIs', href: '/performance/metrics' },
-      { name: 'Usage Analytics', href: '/performance/analytics' },
-      { name: 'Cost Tracking', href: '/performance/costs' },
-    ],
-  },
-  {
     name: 'Settings',
     href: '/settings',
     icon: Settings,
     children: [
       { name: 'Agent Store', href: '/settings/agent-store' },
-      { name: 'Platform Config', href: '/settings/platform' },
-      { name: 'Integrations', href: '/settings/integrations' },
-      { name: 'User Management', href: '/settings/users' },
-      { name: 'Billing', href: '/settings/billing' },
+      { name: 'Knowledge', href: '/settings/knowledge' },
+      { name: 'Performance', href: '/settings/performance' },
+      { name: 'Activity Logs', href: '/settings/logs' }
     ],
   },
 ];

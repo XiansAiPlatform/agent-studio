@@ -125,8 +125,8 @@ export function AgentActionsSlider({
                 </div>
               </button>
               
-              <button
-                onClick={() => onSliderTypeChange('activity')}
+              <Link
+                href={`/settings/logs?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
                 className="group flex items-start gap-3 p-3 rounded-lg hover:bg-emerald-500/5 transition-colors cursor-pointer w-full text-left"
               >
                 <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -134,7 +134,7 @@ export function AgentActionsSlider({
                   <div className="font-medium text-sm group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Activity Logs</div>
                   <p className="text-xs text-muted-foreground mt-0.5">View recent actions and history</p>
                 </div>
-              </button>
+              </Link>
               
               <button
                 onClick={() => onSliderTypeChange('performance')}

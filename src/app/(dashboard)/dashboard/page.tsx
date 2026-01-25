@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Calendar,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import { DUMMY_TASKS } from '@/lib/data/dummy-tasks';
 import { DUMMY_CONVERSATIONS } from '@/lib/data/dummy-conversations';
@@ -24,14 +25,19 @@ import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { cn } from '@/lib/utils';
 import { ToastDemo } from '@/components/toast-demo';
 import { useTenant } from '@/hooks/use-tenant';
+import { useAuth } from '@/hooks/use-auth';
 import { useAgents } from '@/app/(dashboard)/agents/running/hooks/use-agents';
 import { AgentStatusBadge } from '@/components/features/agents';
+import { LogLevelBadge } from '@/components/features/logs';
 import { XiansTenantStats } from '@/lib/xians/types';
+import { useLogs } from '@/app/(dashboard)/settings/logs/hooks/use-logs';
+import { formatDistanceToNow } from 'date-fns';
 
 type TimePeriod = '7d' | '30d' | '90d';
 
 export default function DashboardPage() {
   const { currentTenantId } = useTenant();
+  const { user } = useAuth();
   const { agents: allAgents, isLoading: isLoadingAgents } = useAgents(currentTenantId);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('7d');
   const [tenantStats, setTenantStats] = useState<XiansTenantStats | null>(null);
@@ -40,6 +46,13 @@ export default function DashboardPage() {
 
   // Get active agent instances from the API
   const activeAgents = allAgents.filter((agent) => agent.status === 'active');
+
+  // Fetch recent logs for activity feed
+  const { logs: recentLogs, isLoading: isLoadingLogs } = useLogs(
+    currentTenantId,
+    { pageSize: 10, page: 1 }, // Get 10 most recent logs
+    Boolean(currentTenantId) && Boolean(user)
+  );
 
   // Calculate date range based on time period
   const getDateRange = (period: TimePeriod) => {
@@ -245,50 +258,66 @@ export default function DashboardPage() {
 
       {/* Main Content - Textual Layout */}
       <div className="grid gap-8 md:grid-cols-5">
-        {/* Recent Activity - Textual Feed */}
+        {/* Recent Activity - Logs Feed */}
         <div className="md:col-span-3 space-y-4 p-5 rounded-lg bg-muted/40">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-medium text-foreground">Recent Activity</h2>
           </div>
           
-          <div className="space-y-3">
-            {DUMMY_TASKS.slice(0, 6).map((task, idx) => (
-              <div
-                key={task.id}
-                className="group cursor-pointer"
-              >
-                <p className="text-sm text-foreground leading-relaxed">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Bot className="h-3.5 w-3.5 text-muted-foreground inline" />
-                    <span className="font-medium group-hover:text-primary transition-colors">
-                      {task.title}
-                    </span>
-                  </span>
-                  {' '}·{' '}
-                  <Badge
-                    variant={TASK_STATUS_CONFIG[task.status].variant}
-                    className={cn(
-                      TASK_STATUS_CONFIG[task.status].colors.badge,
-                      'inline-flex items-center h-5 text-xs'
+          {isLoadingLogs ? (
+            <div className="flex items-center gap-2 py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Loading recent activity...</span>
+            </div>
+          ) : recentLogs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-2">
+              <FileText className="h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground italic">
+                No recent activity yet
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentLogs.slice(0, 8).map((log) => (
+                <div
+                  key={log.id}
+                  className="group cursor-pointer"
+                >
+                  <div className="flex items-start gap-2">
+                    {/* Only show badge for non-Information logs */}
+                    {log.level !== 'Information' && (
+                      <LogLevelBadge level={log.level} className="mt-0.5 shrink-0" />
                     )}
-                  >
-                    {TASK_STATUS_CONFIG[task.status].label}
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5 pl-5" suppressHydrationWarning>
-                  by {task.createdBy.name} at {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            ))}
-          </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground leading-relaxed truncate">
+                        {log.message}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                        {log.agent && (
+                          <span className="inline-flex items-center gap-1">
+                            <Bot className="h-3 w-3" />
+                            {log.activation || log.agent}
+                          </span>
+                        )}
+                        <span>·</span>
+                        <span suppressHydrationWarning>
+                          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="pt-4 border-t border-border">
             <Link
-              href="/tasks"
+              href="/settings/logs"
               className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
             >
-              View all tasks
+              View all logs
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
