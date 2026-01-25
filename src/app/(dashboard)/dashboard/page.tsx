@@ -143,9 +143,11 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-foreground">
+            Welcome, {user?.name || user?.email || 'User'}!
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Monitor and manage your AI agent platform
+            Let's get started with your AI agent team.
           </p>
         </div>
         <div className="flex items-center gap-3">
