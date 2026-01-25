@@ -60,14 +60,52 @@ export default function AgentsPage() {
     }
   }, []);
 
+  // Restore selected agent from URL params
+  useEffect(() => {
+    if (typeof window !== 'undefined' && agents.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const agentName = params.get('agentName');
+      const activationName = params.get('activationName');
+      
+      if (agentName && activationName) {
+        const agent = agents.find(
+          (a) => a.template === agentName && a.name === activationName
+        );
+        if (agent) {
+          setSelectedAgent(agent);
+          setSliderType('actions');
+        }
+      }
+    }
+  }, [agents]);
+
   const openSlider = (agent: Agent, type: SliderType = 'actions') => {
     setSelectedAgent(agent);
     setSliderType(type);
+    
+    // Update URL with agent info
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('agentName', agent.template);
+      params.set('activationName', agent.name);
+      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    }
   };
 
   const closeSlider = () => {
     setSliderType(null);
     setSelectedAgent(null);
+    
+    // Remove agent params from URL
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('agentName');
+      params.delete('activationName');
+      const newUrl = params.toString() 
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
   };
 
   const handleCardClick = (agent: Agent) => {

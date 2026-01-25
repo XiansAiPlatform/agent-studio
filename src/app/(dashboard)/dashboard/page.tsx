@@ -225,7 +225,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-0.5">
             <div className="text-sm font-medium text-foreground/80">Running Agents</div>
-            <div className="text-xs text-muted-foreground">Currently online</div>
+            <div className="text-xs text-muted-foreground">Currently active</div>
           </div>
         </div>
 
@@ -261,49 +261,75 @@ export default function DashboardPage() {
       {/* Main Content - Textual Layout */}
       <div className="grid gap-8 md:grid-cols-5">
         {/* Recent Activity - Logs Feed */}
-        <div className="md:col-span-3 space-y-4 p-5 rounded-lg bg-muted/40">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-medium text-foreground">Recent Activity</h2>
+        <div className="md:col-span-3 space-y-4 p-5 rounded-lg bg-gradient-to-br from-muted/40 to-muted/20 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Activity className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">What's Happening</h2>
+                <p className="text-xs text-muted-foreground">Live updates from your agents</p>
+              </div>
+            </div>
+            {!isLoadingLogs && recentLogs.length > 0 && (
+              <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                {recentLogs.length} recent
+              </Badge>
+            )}
           </div>
           
           {isLoadingLogs ? (
-            <div className="flex items-center gap-2 py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Loading recent activity...</span>
+            <div className="flex items-center gap-2 py-8">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Checking in on your agents...</span>
             </div>
           ) : recentLogs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 space-y-2">
-              <FileText className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground italic">
-                No recent activity yet
-              </p>
+            <div className="flex flex-col items-center justify-center py-12 space-y-3">
+              <div className="p-4 rounded-full bg-muted/50">
+                <Zap className="h-8 w-8 text-muted-foreground/60" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Your agents are ready to go!
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Activity will appear here as your agents start working
+                </p>
+              </div>
+              <Button variant="outline" size="sm" asChild className="mt-2">
+                <Link href="/agents/running">
+                  <Bot className="mr-2 h-3.5 w-3.5" />
+                  View Agents
+                </Link>
+              </Button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {recentLogs.slice(0, 8).map((log) => (
+            <div className="space-y-2">
+              {recentLogs.slice(0, 8).map((log, index) => (
                 <div
                   key={log.id}
-                  className="group cursor-pointer"
+                  className="-mx-2 px-2 py-2 rounded-lg"
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     {/* Only show badge for non-Information logs */}
                     {log.level !== 'Information' && (
                       <LogLevelBadge level={log.level} className="mt-0.5 shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground leading-relaxed truncate">
-                        {log.message}
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {log.message.length > 100 ? `${log.message.substring(0, 100)}...` : log.message}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                         {log.agent && (
-                          <span className="inline-flex items-center gap-1">
+                          <span className="inline-flex items-center gap-1 font-medium">
                             <Bot className="h-3 w-3" />
                             {log.activation || log.agent}
                           </span>
                         )}
-                        <span>·</span>
-                        <span suppressHydrationWarning>
+                        <span className="text-muted-foreground/50">•</span>
+                        <span className="text-muted-foreground/80" suppressHydrationWarning>
                           {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                         </span>
                       </div>
@@ -314,56 +340,89 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="pt-4 border-t border-border">
+          <div className="pt-3 border-t border-border/50">
             <Link
               href="/settings/logs"
-              className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
+              className="text-sm text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1.5 group transition-all"
             >
-              View all logs
-              <ArrowRight className="h-3.5 w-3.5" />
+              <span>Explore all activity</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>
 
         {/* Active Agents - Textual List */}
-        <div className="md:col-span-2 space-y-4 p-5 rounded-lg bg-muted/40">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-lg font-medium text-foreground">Active Agents</h2>
+        <div className="md:col-span-2 space-y-4 p-5 rounded-lg bg-gradient-to-br from-muted/40 to-muted/20 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Zap className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Your Team</h2>
+                <p className="text-xs text-muted-foreground">Agents working for you</p>
+              </div>
+            </div>
+            {!isLoadingAgents && activeAgents.length > 0 && (
+              <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                {activeAgents.length} active
+              </Badge>
+            )}
           </div>
 
           {isLoadingAgents ? (
-            <div className="flex items-center gap-2 py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Loading agents...</span>
+            <div className="flex items-center gap-2 py-8">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Gathering your team...</span>
             </div>
           ) : activeAgents.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic py-4">
-              No agents are currently active. Visit the{' '}
-              <Link href="/agents/running" className="text-foreground hover:underline font-medium">
-                agents page
-              </Link>{' '}
-              to activate some.
-            </p>
+            <div className="flex flex-col items-center justify-center py-12 space-y-3">
+              <div className="p-4 rounded-full bg-muted/50">
+                <Bot className="h-8 w-8 text-muted-foreground/60" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Let's get your team started!
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Activate agents to start automating tasks
+                </p>
+              </div>
+              <Button variant="outline" size="sm" asChild className="mt-2">
+                <Link href="/agents/running">
+                  <Zap className="mr-2 h-3.5 w-3.5" />
+                  Activate Agents
+                </Link>
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {activeAgents.slice(0, 5).map((agent) => (
-                <div key={agent.id} className="group">
-                  <div className="flex items-baseline gap-2">
-                    <Bot className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              {activeAgents.slice(0, 5).map((agent, index) => (
+                <div 
+                  key={agent.id} 
+                  className="group hover:bg-accent/50 -mx-2 px-2 py-2 rounded-lg transition-all duration-200"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-1 rounded bg-primary/10 mt-0.5">
+                      <Bot className="h-3 w-3 text-primary" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <Link 
-                        href={`/conversations/${agent.template}`}
-                        className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate block"
+                        href={`/agents/running?agentName=${encodeURIComponent(agent.template || agent.name)}&activationName=${encodeURIComponent(agent.name)}`}
+                        className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate block group-hover:translate-x-0.5 transition-transform"
                       >
                         {agent.name}
                       </Link>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-1">
                         <AgentStatusBadge status={agent.status} size="xs" />
                         {agent.uptime && (
-                          <span className="text-xs text-muted-foreground">
-                            · {agent.uptime} uptime
-                          </span>
+                          <>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span className="text-xs text-muted-foreground/80">
+                              {agent.uptime} uptime
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>
@@ -372,20 +431,20 @@ export default function DashboardPage() {
               ))}
               
               {activeAgents.length > 5 && (
-                <p className="text-xs text-muted-foreground italic pt-2">
-                  and {activeAgents.length - 5} more...
+                <p className="text-xs text-muted-foreground/80 pt-2 pl-2">
+                  + {activeAgents.length - 5} more agent{activeAgents.length - 5 > 1 ? 's' : ''} active
                 </p>
               )}
             </div>
           )}
 
-          <div className="pt-4 border-t border-border">
+          <div className="pt-3 border-t border-border/50">
             <Link
               href="/agents/running"
-              className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
+              className="text-sm text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1.5 group transition-all"
             >
-              Manage all agents
-              <ArrowRight className="h-3.5 w-3.5" />
+              <span>Meet your full team</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>
