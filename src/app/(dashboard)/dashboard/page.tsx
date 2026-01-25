@@ -247,17 +247,9 @@ export default function DashboardPage() {
       <div className="grid gap-8 md:grid-cols-5">
         {/* Recent Activity - Textual Feed */}
         <div className="md:col-span-3 space-y-4 p-5 rounded-lg bg-muted/40">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" />
-              <h2 className="text-lg font-medium text-foreground">Recent Activity</h2>
-            </div>
-            <Link 
-              href="/tasks" 
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              View all →
-            </Link>
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            <h2 className="text-lg font-medium text-foreground">Recent Activity</h2>
           </div>
           
           <div className="space-y-3">
@@ -289,6 +281,16 @@ export default function DashboardPage() {
                 </p>
               </div>
             ))}
+          </div>
+
+          <div className="pt-4 border-t border-border">
+            <Link
+              href="/tasks"
+              className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
+            >
+              View all tasks
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
         </div>
 

@@ -11,10 +11,10 @@ interface TaskStatusBadgeProps {
 }
 
 const actionColors = {
-  approve: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-  reject: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
-  hold: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
-  default: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+  approve: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/50',
+  reject: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/50',
+  hold: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800/50',
+  default: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/50',
 };
 
 function getActionColor(action: string): string {
@@ -37,12 +37,12 @@ export function TaskStatusBadge({
   // If task is completed and has a performedAction, show both badges
   if (isCompleted && performedAction) {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
+      <div className={cn("flex items-center gap-1.5", className)}>
         {/* Primary badge: Performed Action */}
         <Badge 
-          variant="secondary"
+          variant="outline"
           className={cn(
-            "shrink-0 font-medium text-xs",
+            "shrink-0 font-medium text-[10px] h-6 px-2.5 rounded-lg border",
             getActionColor(performedAction)
           )}
         >
@@ -52,7 +52,7 @@ export function TaskStatusBadge({
         {workflowStatus && (
           <Badge 
             variant="outline"
-            className="shrink-0 font-normal text-xs text-muted-foreground"
+            className="shrink-0 font-normal text-[10px] h-6 px-2.5 text-muted-foreground bg-muted/30 rounded-lg"
           >
             {workflowStatus}
           </Badge>
@@ -63,15 +63,22 @@ export function TaskStatusBadge({
 
   // If workflow status is provided, show it instead of the mapped status
   if (workflowStatus) {
+    // Map "Running" to "Pending" with highlighted styling
+    const displayText = workflowStatus === 'Running' ? 'Pending' : workflowStatus;
+    const isRunning = workflowStatus === 'Running';
+    
     return (
       <Badge 
         variant="outline"
         className={cn(
-          "shrink-0 font-normal text-xs",
+          "shrink-0 font-medium text-[10px] h-6 px-2.5 rounded-lg",
+          isRunning 
+            ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800/50'
+            : 'bg-muted/30',
           className
         )}
       >
-        {workflowStatus}
+        {displayText}
       </Badge>
     );
   }
@@ -79,9 +86,9 @@ export function TaskStatusBadge({
   // Default: show the mapped status
   return (
     <Badge 
-      variant={config.variant} 
+      variant="outline"
       className={cn(
-        "shrink-0 font-normal text-xs",
+        "shrink-0 font-medium text-[10px] h-6 px-2.5 border rounded-lg",
         config.colors.badge,
         className
       )}

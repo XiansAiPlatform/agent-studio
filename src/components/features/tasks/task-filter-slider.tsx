@@ -166,23 +166,23 @@ export function TaskFilterSlider({
           }
         }}
       >
-        <SheetHeader className="px-6 pt-6 pb-4 border-b">
-          <SheetTitle>Filter Tasks</SheetTitle>
+        <SheetHeader className="px-6 pt-6 pb-5 border-b border-border/50">
+          <SheetTitle className="text-lg font-semibold">Filter Tasks</SheetTitle>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto flex flex-col">
-          <div className="p-6 space-y-8 flex-1 flex flex-col">
+          <div className="p-6 space-y-7 flex-1 flex flex-col">
             {/* Status Filter */}
             <div className="space-y-3">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <p className="text-sm text-muted-foreground">Show me</p>
+                <p className="text-sm text-muted-foreground font-medium">Show me</p>
                 <div className="inline-flex items-center gap-2">
                   {(Object.keys(STATUS_LABELS) as TaskStatusFilter[]).map((status, index) => (
                     <span key={status} className="inline-flex items-center gap-2">
                       <button
                         onClick={() => toggleStatus(status)}
                         className={cn(
-                          'px-3 py-1 rounded-md text-sm font-medium transition-all',
+                          'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
                           localStatusFilter === status
                             ? 'bg-primary text-primary-foreground shadow-sm'
                             : 'bg-muted/50 text-foreground hover:bg-muted hover:shadow-sm'
@@ -196,20 +196,20 @@ export function TaskFilterSlider({
                     </span>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground">tasks</p>
+                <p className="text-sm text-muted-foreground font-medium">tasks</p>
               </div>
             </div>
 
             {/* Activation Filter */}
             <div className="space-y-4">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <p className="text-sm text-muted-foreground">from</p>
+                <p className="text-sm text-muted-foreground font-medium">from</p>
                 {!localSelectedActivation ? (
                   <span className="text-sm text-muted-foreground italic">any agent</span>
                 ) : (
                   <button
                     onClick={() => toggleActivation(localSelectedActivation.activationName, localSelectedActivation.agentName)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
                   >
                     {localSelectedActivation.activationName}
                     <X className="h-3 w-3" />
@@ -219,17 +219,17 @@ export function TaskFilterSlider({
 
               {/* Search Input */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search for agents..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-9 border-dashed"
+                  className="pl-10 pr-10 border-dashed rounded-lg h-10"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -237,7 +237,7 @@ export function TaskFilterSlider({
               </div>
 
               {/* Grouped Activations List */}
-              <div className="space-y-4 flex-1 overflow-y-auto">
+              <div className="space-y-3 flex-1 overflow-y-auto">
                 {filteredGroups.size > 0 ? (
                   Array.from(filteredGroups.entries()).map(([agentName, activationList]) => {
                     const isExpanded = expandedAgents.has(agentName) || !!searchQuery;
@@ -247,21 +247,21 @@ export function TaskFilterSlider({
                         {/* Agent Header */}
                         <button
                           onClick={() => toggleAgentExpanded(agentName)}
-                          className="w-full flex items-center gap-2 group"
+                          className="w-full flex items-center gap-2 group py-1"
                         >
                           {isExpanded ? (
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
                           ) : (
-                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform" />
                           )}
-                          <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground">
+                          <span className="text-sm font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
                             {agentName}
                           </span>
                         </button>
 
                         {/* Activation List */}
                         {isExpanded && (
-                          <div className="ml-5 pl-3 border-l border-dashed space-y-1">
+                          <div className="ml-6 pl-3 border-l border-dashed border-border/60 space-y-1">
                             {activationList.map((activation) => {
                               const isSelected = isActivationSelected(activation.name, agentName);
                               return (
@@ -269,17 +269,17 @@ export function TaskFilterSlider({
                                   key={activation.name}
                                   onClick={() => toggleActivation(activation.name, agentName)}
                                   className={cn(
-                                    'w-full text-left px-2 py-1.5 text-sm rounded transition-colors flex items-center justify-between gap-2',
+                                    'w-full text-left px-3 py-2 text-xs rounded-lg transition-all duration-200 flex items-center justify-between gap-2',
                                     isSelected
-                                      ? 'text-primary font-medium bg-primary/5'
-                                      : 'text-foreground/70 hover:text-foreground hover:bg-muted/50'
+                                      ? 'text-primary font-semibold bg-primary/10 shadow-sm'
+                                      : 'text-foreground/70 hover:text-foreground hover:bg-muted/50 font-medium'
                                   )}
                                 >
                                   <span className="flex-1 truncate">{activation.name}</span>
                                   {activation.isActive && (
                                     <Badge 
                                       variant="default" 
-                                      className="text-[10px] h-4 px-1.5 bg-green-500 hover:bg-green-500 shrink-0"
+                                      className="text-[9px] h-4 px-1.5 bg-green-500 hover:bg-green-500 shrink-0 rounded-md"
                                     >
                                       Active
                                     </Badge>
@@ -293,11 +293,11 @@ export function TaskFilterSlider({
                     );
                   })
                 ) : searchQuery ? (
-                  <p className="text-sm text-muted-foreground/70 text-center py-8 italic">
+                  <p className="text-xs text-muted-foreground/70 text-center py-10 italic">
                     No agents found matching "{searchQuery}"
                   </p>
                 ) : groupedActivations.size === 0 ? (
-                  <p className="text-sm text-muted-foreground/70 text-center py-8 italic">
+                  <p className="text-xs text-muted-foreground/70 text-center py-10 italic">
                     No agents available
                   </p>
                 ) : null}
@@ -307,22 +307,23 @@ export function TaskFilterSlider({
         </div>
 
         {/* Footer */}
-        <div className="border-t p-6 space-y-3">
-          <div className="flex items-center justify-between text-sm">
+        <div className="border-t border-border/50 p-6 space-y-3">
+          <div className="flex items-center justify-between">
             {hasActiveFilters ? (
               <button
                 onClick={clearFilters}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
               >
                 Clear filters
               </button>
             ) : (
-              <span className="text-muted-foreground/50 italic">No filters applied</span>
+              <span className="text-xs text-muted-foreground/50 italic">No filters applied</span>
             )}
             <Button
               variant="default"
               size="sm"
               onClick={applyFilters}
+              className="rounded-lg h-9 px-6"
             >
               Apply
             </Button>

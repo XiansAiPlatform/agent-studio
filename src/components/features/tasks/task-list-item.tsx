@@ -67,37 +67,44 @@ function formatDate(dateString: string): string {
 
 export function TaskListItem({ task, onClick, isSelected, isHighlighted, currentUserEmail }: TaskListItemProps) {
   const isCurrentUser = currentUserEmail && task.assignedTo && task.assignedTo.id === currentUserEmail;
+  const isRunning = task.content?.data?.workflowStatus === 'Running';
   
   return (
     <div
       onClick={() => onClick(task)}
       className={cn(
-        'group relative py-4 px-5 cursor-pointer transition-all duration-500',
-        'border-b border-border/30 last:border-b-0',
-        'hover:bg-muted/30',
-        isSelected && 'bg-muted/60 border-l-4 border-l-primary',
-        isHighlighted && 'bg-primary/10 animate-pulse-slow',
+        'group relative rounded-xl cursor-pointer transition-all duration-300 ease-out',
+        'bg-card border border-border/50 hover:border-border',
+        'hover:shadow-md hover:shadow-primary/5 hover:-translate-y-0.5',
+        'overflow-hidden',
+        isSelected && 'ring-2 ring-primary/30 border-primary/50 shadow-md shadow-primary/10',
+        isHighlighted && 'bg-primary/5 animate-pulse-slow',
       )}
     >
-      <div className="flex items-start gap-4">
-        {/* Simplified Avatar Section */}
-        <div className="shrink-0 pt-1">
+      {/* Selection Indicator */}
+      {isSelected && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+      )}
+      
+      <div className="flex items-start gap-4 p-5">
+        {/* Avatar Section */}
+        <div className="shrink-0 pt-0.5">
           {task.status === 'pending' && (
-            <IconAvatar icon={Bot} variant="agent" size="sm" rounded="lg" />
+            <IconAvatar icon={Bot} variant="agent" size="sm" rounded="full" pulse={isRunning} />
           )}
           {(task.status === 'approved' || task.status === 'rejected') && (
-            <IconAvatar icon={User} variant="user" size="sm" rounded="lg" />
+            <IconAvatar icon={User} variant="user" size="sm" rounded="full" />
           )}
           {task.status === 'obsolete' && (
-            <IconAvatar icon={Bot} variant="agent" size="sm" rounded="lg" />
+            <IconAvatar icon={Bot} variant="agent" size="sm" rounded="full" />
           )}
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex-1 min-w-0 space-y-3">
           {/* Title & Status */}
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-sm font-medium text-foreground leading-snug flex-1">
+            <h3 className="text-sm font-semibold text-foreground leading-snug flex-1 group-hover:text-primary transition-colors">
               {decodeText(task.title)}
             </h3>
             <TaskStatusBadge 
@@ -109,65 +116,63 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
           </div>
 
           {/* Description */}
-          <div className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2 markdown-list-compact">
+          <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2 markdown-list-compact">
             <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
               {decodeText(task.description)}
             </ReactMarkdown>
           </div>
 
           {/* Metadata */}
-          <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground/60 flex-wrap">
-            <span className="inline-flex items-center gap-1">
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap pt-1">
+            <div className="inline-flex items-center gap-1.5 bg-muted/40 px-2 py-1 rounded-md">
               <Bot className="h-3 w-3" />
-              <span className="font-medium text-foreground/70">
+              <span className="font-medium text-foreground/80">
                 {task.createdBy.name}
               </span>
-            </span>
+            </div>
 
             {task.content?.data?.agentName && (
-              <>
-                <span className="text-muted-foreground/30">•</span>
-                <Badge 
-                  variant="outline" 
-                  className="text-[10px] h-5 px-1.5 bg-primary/5 border-primary/20 text-primary font-medium"
-                >
-                  {task.content.data.agentName}
-                </Badge>
-              </>
+              <Badge 
+                variant="outline" 
+                className="text-[10px] h-6 px-2 bg-primary/5 border-primary/30 text-primary font-medium rounded-md"
+              >
+                {task.content.data.agentName}
+              </Badge>
             )}
             
             {task.assignedTo && (
-              <>
-                <span className="text-muted-foreground/30">•</span>
-                <span className="inline-flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  <span className="font-medium text-foreground/70">
-                    Owner:
-                  </span>
-                  {isCurrentUser ? (
-                    <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                      me
-                    </span>
-                  ) : (
-                    <span>{task.assignedTo.name}</span>
-                  )}
+              <div className="inline-flex items-center gap-1.5">
+                <User className="h-3 w-3" />
+                <span className="text-muted-foreground/70">
+                  Owner:
                 </span>
-              </>
+                {isCurrentUser ? (
+                  <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                    me
+                  </span>
+                ) : (
+                  <span className="font-medium text-foreground/70">{task.assignedTo.name}</span>
+                )}
+              </div>
             )}
             
-            <span className="text-muted-foreground/30">•</span>
-            
-            <span>{formatDate(task.createdAt)}</span>
+            <div className="inline-flex items-center gap-1.5">
+              <Clock className="h-3 w-3" />
+              <span>{formatDate(task.createdAt)}</span>
+            </div>
 
             {task.dueDate && (
-              <>
-                <span className="text-muted-foreground/30">•</span>
-                <span className={cn('font-medium', priorityColors[task.priority])}>
-                  Due {formatDate(task.dueDate)}
-                </span>
-              </>
+              <div className={cn('inline-flex items-center gap-1.5 font-medium', priorityColors[task.priority])}>
+                <Flag className="h-3 w-3" />
+                <span>Due {formatDate(task.dueDate)}</span>
+              </div>
             )}
           </div>
+        </div>
+
+        {/* Hover Indicator */}
+        <div className="shrink-0 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
     </div>

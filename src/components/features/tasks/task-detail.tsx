@@ -305,37 +305,40 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-medium text-foreground leading-tight">
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-foreground leading-tight tracking-tight">
           {decodeText(task.title)}
         </h2>
-        <div className="flex items-center gap-2.5 flex-wrap text-[11px] text-muted-foreground/70">
+        <div className="flex items-center gap-2 flex-wrap">
           <TaskStatusBadge 
             status={task.status}
             workflowStatus={taskDetail?.status || task.content?.data?.workflowStatus}
             isCompleted={taskDetail?.isCompleted || task.content?.data?.isCompleted}
             performedAction={taskDetail?.performedAction || task.content?.data?.performedAction}
           />
-          <span className="flex items-center gap-1">
-            <Flag className={`h-3 w-3 ${priorityColors[task.priority]}`} />
-            {task.priority}
-          </span>
-          <span className="flex items-center gap-1">
-            <Bot className="h-3 w-3" />
-            {task.createdBy.name}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {formatDate(task.createdAt)}
-          </span>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Flag className={`h-3.5 w-3.5 ${priorityColors[task.priority]}`} />
+            <span className="font-medium capitalize">{task.priority}</span>
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Bot className="h-3.5 w-3.5" />
+            <span className="font-medium">{task.createdBy.name}</span>
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{formatDate(task.createdAt)}</span>
+          </div>
         </div>
       </div>
 
       {/* Description */}
       {task.description && (
-        <div className="px-4 py-3 rounded-lg bg-muted/30 text-sm text-foreground/90 markdown-preview-compact">
+        <div className="px-4 py-3.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-foreground/90 markdown-preview-compact">
           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
             {decodeText(task.description)}
           </ReactMarkdown>
@@ -344,9 +347,9 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
       {/* Initial Work */}
       {taskDetail?.initialWork && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Agent's Draft
             </h3>
             {!isEditingInitialWork && (
@@ -354,7 +357,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsEditingInitialWork(true)}
-                className="h-7 px-2 text-xs"
+                className="h-7 px-2 text-xs rounded-lg"
               >
                 <Edit className="h-3 w-3 mr-1" />
                 Edit
@@ -366,7 +369,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               <textarea
                 value={editedInitialWork}
                 onChange={(e) => setEditedInitialWork(e.target.value)}
-                className="w-full min-h-[150px] px-3 py-2.5 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 font-mono resize-none"
+                className="w-full min-h-[150px] px-3.5 py-3 bg-background border border-border/50 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono resize-none transition-all"
                 placeholder="Edit initial work..."
                 disabled={isSavingDraft}
               />
@@ -376,7 +379,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
                   size="sm"
                   onClick={handleCancelInitialWork}
                   disabled={isSavingDraft}
-                  className="text-xs"
+                  className="text-xs rounded-lg"
                 >
                   <X className="mr-1 h-3 w-3" />
                   Cancel
@@ -385,7 +388,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
                   size="sm"
                   onClick={handleSaveInitialWork}
                   disabled={isSavingDraft}
-                  className="text-xs"
+                  className="text-xs rounded-lg"
                 >
                   {isSavingDraft ? (
                     <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -397,7 +400,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               </div>
             </>
           ) : (
-            <div className="px-4 py-3 bg-muted/30 rounded-lg text-sm text-foreground markdown-preview-compact overflow-x-auto">
+            <div className="px-4 py-3.5 bg-muted/30 border border-border/30 rounded-xl text-sm text-foreground markdown-preview-compact overflow-x-auto">
               <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                 {decodeText(taskDetail.initialWork)}
               </ReactMarkdown>
@@ -408,8 +411,8 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
       {/* Proposed Action */}
       {task.content.proposedAction && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Proposed Action
           </h3>
           {isEditing ? (
@@ -421,11 +424,11 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
                   proposedAction: e.target.value,
                 })
               }
-              className="w-full min-h-[150px] px-3 py-2.5 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 font-mono resize-none"
+              className="w-full min-h-[150px] px-3.5 py-3 bg-background border border-border/50 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono resize-none transition-all"
               placeholder="Edit proposed action..."
             />
           ) : (
-            <div className="px-3 py-2.5 bg-muted/30 rounded-lg text-sm text-foreground whitespace-pre-wrap">
+            <div className="px-4 py-3.5 bg-muted/30 border border-border/30 rounded-xl text-sm text-foreground whitespace-pre-wrap">
               {task.content.proposedAction}
             </div>
           )}
@@ -449,23 +452,23 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
         (task.content?.data?.availableActions && task.content.data.availableActions.length > 0)) && 
         !taskDetail?.isCompleted && (
         <>
-          <div className="h-px bg-border/30 my-5" />
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">
+          <div className="h-px bg-border/30 my-6" />
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Comment (Optional)
               </h3>
               <textarea
                 value={actionComment}
                 onChange={(e) => setActionComment(e.target.value)}
                 placeholder="Add a note about this action..."
-                className="w-full min-h-[70px] px-3 py-2.5 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 resize-none placeholder:text-muted-foreground/50"
+                className="w-full min-h-[70px] px-3.5 py-3 bg-background border border-border/50 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none placeholder:text-muted-foreground/50 transition-all"
                 disabled={isPerformingAction}
               />
             </div>
 
-            <div className="space-y-2.5">
-              <h3 className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Actions
               </h3>
               <div className="flex gap-2 flex-wrap">
@@ -476,7 +479,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
                       variant="outline"
                       onClick={() => handleAction(action)}
                       disabled={isPerformingAction}
-                      className="text-xs"
+                      className="text-xs rounded-lg h-9"
                     >
                       {isPerformingAction && (
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -493,16 +496,16 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
       {/* Performed Action */}
       {taskDetail?.performedAction && (
-        <div className="px-4 py-3 bg-muted/30 rounded-lg border border-border/30">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground/80 mb-1.5">
-            <CheckCircle className="h-3.5 w-3.5" />
-            <span className="font-medium uppercase tracking-wide">Action Performed</span>
+        <div className="px-4 py-4 bg-muted/30 rounded-xl border border-border/30">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <CheckCircle className="h-4 w-4" />
+            <span className="font-semibold uppercase tracking-wider">Action Performed</span>
           </div>
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-sm font-semibold text-foreground">
             {taskDetail.performedAction}
           </p>
           {taskDetail.comment && (
-            <p className="text-xs text-muted-foreground/70 mt-2">
+            <p className="text-xs text-muted-foreground mt-2.5 leading-relaxed">
               {taskDetail.comment}
             </p>
           )}
