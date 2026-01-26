@@ -358,9 +358,7 @@ export function ChatInterface({
                   <div className="h-20 w-20 rounded-3xl bg-primary/20 flex items-center justify-center mb-5 shadow-2xl border border-primary/40">
                     <Bot className="h-10 w-10 text-primary" />
                   </div>
-                  <p className="text-base text-foreground font-bold mb-2">
-                    No messages yet
-                  </p>
+
                   <p className="text-sm text-primary/70 max-w-sm font-semibold">
                     Start a conversation by typing a message below
                   </p>
