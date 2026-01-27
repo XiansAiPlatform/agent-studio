@@ -7,3 +7,4 @@ export { TopicStatusBadge } from './topic-status-badge';
 export { AgentStatusBadge } from './agent-status-badge';
 export { AgentActivationSelector, type ActivationOption } from './agent-activation-selector';
 export { ConversationHeader } from './conversation-header';
+export { AgentSelectionPanel } from './agent-selection-panel';

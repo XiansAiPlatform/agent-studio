@@ -3,6 +3,15 @@
 import { Button } from "@/components/ui/button"
 import { showToast } from "@/lib/toast"
 import { Card } from "@/components/ui/card"
+import { 
+  Palette, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle, 
+  Info, 
+  RefreshCw, 
+  FileText 
+} from "lucide-react"
 
 export function ToastDemo() {
   return (
@@ -27,7 +36,8 @@ export function ToastDemo() {
             })
           }
         >
-          🎨 Show Persistent Toast (For Styling)
+          <Palette className="mr-2 h-4 w-4" />
+          Show Persistent Toast (For Styling)
         </Button>
 
         {/* Success Toast */}
@@ -41,7 +51,8 @@ export function ToastDemo() {
             })
           }
         >
-          ✅ Show Success
+          <CheckCircle className="mr-2 h-4 w-4" />
+          Show Success
         </Button>
 
         {/* Error Toast */}
@@ -55,7 +66,8 @@ export function ToastDemo() {
             })
           }
         >
-          ❌ Show Error
+          <XCircle className="mr-2 h-4 w-4" />
+          Show Error
         </Button>
 
         {/* Warning Toast */}
@@ -69,7 +81,8 @@ export function ToastDemo() {
             })
           }
         >
-          ⚠️ Show Warning
+          <AlertTriangle className="mr-2 h-4 w-4" />
+          Show Warning
         </Button>
 
         {/* Info Toast */}
@@ -83,7 +96,8 @@ export function ToastDemo() {
             })
           }
         >
-          ℹ️ Show Info
+          <Info className="mr-2 h-4 w-4" />
+          Show Info
         </Button>
 
         {/* Error with Action */}
@@ -106,7 +120,8 @@ export function ToastDemo() {
             })
           }
         >
-          ❌ Error + Action
+          <XCircle className="mr-2 h-4 w-4" />
+          Error + Action
         </Button>
 
         {/* Success with Action */}
@@ -126,7 +141,8 @@ export function ToastDemo() {
             })
           }
         >
-          ✅ Success + Action
+          <CheckCircle className="mr-2 h-4 w-4" />
+          Success + Action
         </Button>
 
         {/* Loading Toast */}
@@ -148,7 +164,8 @@ export function ToastDemo() {
             }, 3000)
           }}
         >
-          🔄 Loading Toast
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Loading Toast
         </Button>
 
         {/* Long Text */}
@@ -164,21 +181,46 @@ export function ToastDemo() {
             })
           }
         >
-          📝 Long Message
+          <FileText className="mr-2 h-4 w-4" />
+          Long Message
         </Button>
       </div>
 
       <div className="border-t pt-4 mt-4">
         <h4 className="text-sm font-medium mb-2">Features</h4>
         <ul className="text-xs text-muted-foreground space-y-1">
-          <li>✅ Official shadcn/ui Sonner component</li>
-          <li>✅ Custom 20px icons from Lucide React</li>
-          <li>✅ Working close button in every toast</li>
-          <li>✅ Clean 4px left border accent for status</li>
-          <li>✅ Supports action buttons</li>
-          <li>✅ Professional minimalist design</li>
-          <li>✅ Theme-aware (works in light/dark mode)</li>
-          <li>✅ Fully integrated with your component library</li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Official shadcn/ui Sonner component
+          </li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Custom 20px icons from Lucide React
+          </li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Working close button in every toast
+          </li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Clean 4px left border accent for status
+          </li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Supports action buttons
+          </li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Professional minimalist design
+          </li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Theme-aware (works in light/dark mode)
+          </li>
+          <li className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 flex-shrink-0" />
+            Fully integrated with your component library
+          </li>
         </ul>
       </div>
     </Card>

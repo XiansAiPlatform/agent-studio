@@ -6,20 +6,29 @@ import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-// Context to manage expanded state
+// Context to manage expanded state and header content
 const SheetContext = React.createContext<{
   isExpanded: boolean
   setIsExpanded: (expanded: boolean) => void
+  headerIcon?: React.ReactNode
+  headerTitle?: React.ReactNode
+  headerDescription?: React.ReactNode
 }>({
   isExpanded: false,
   setIsExpanded: () => {},
 })
 
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
+interface SheetProps extends React.ComponentProps<typeof SheetPrimitive.Root> {
+  headerIcon?: React.ReactNode
+  headerTitle?: React.ReactNode
+  headerDescription?: React.ReactNode
+}
+
+function Sheet({ headerIcon, headerTitle, headerDescription, ...props }: SheetProps) {
   const [isExpanded, setIsExpanded] = React.useState(false)
   
   return (
-    <SheetContext.Provider value={{ isExpanded, setIsExpanded }}>
+    <SheetContext.Provider value={{ isExpanded, setIsExpanded, headerIcon, headerTitle, headerDescription }}>
       <SheetPrimitive.Root data-slot="sheet" {...props} />
     </SheetContext.Provider>
   )
@@ -75,7 +84,8 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
-  const { isExpanded } = useSheet()
+  const { isExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
+  const hasHeaderContent = headerIcon || headerTitle || headerDescription
   
   return (
     <SheetPortal>
@@ -83,7 +93,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "bg-gray-50 dark:bg-gray-900 data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition-all ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "bg-gray-50 dark:bg-gray-900 data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-lg transition-all ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full border-l",
           side === "right" && !isExpanded && "w-3/4 sm:max-w-4xl",
@@ -98,7 +108,11 @@ function SheetContent({
         )}
         {...props}
       >
+        {/* Auto-render header if content is provided via Sheet props */}
+        {hasHeaderContent && <SheetHeader />}
+        
         {children}
+        
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
@@ -109,7 +123,10 @@ function SheetContent({
 }
 
 function SheetHeader({ className, children, ...props }: React.ComponentProps<"div">) {
-  const { isExpanded, setIsExpanded } = useSheet()
+  const { isExpanded, setIsExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
+  
+  // If header content is provided via context, render it automatically
+  const hasContextContent = headerIcon || headerTitle || headerDescription
   
   return (
     <div
@@ -117,8 +134,28 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
       className={cn("flex items-start justify-between gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b sticky top-0 z-10", className)}
       {...props}
     >
-      <div className="flex-1 flex flex-col gap-1.5">
-        {children}
+      <div className="flex-1 flex items-start gap-3">
+        {hasContextContent ? (
+          <>
+            {headerIcon && <div className="shrink-0 mt-0.5">{headerIcon}</div>}
+            <div className="flex-1 flex flex-col gap-1.5">
+              {headerTitle && (
+                <SheetPrimitive.Title className="text-foreground font-semibold text-base">
+                  {headerTitle}
+                </SheetPrimitive.Title>
+              )}
+              {headerDescription && (
+                <SheetPrimitive.Description className="text-muted-foreground text-sm">
+                  {headerDescription}
+                </SheetPrimitive.Description>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col gap-1.5">
+            {children}
+          </div>
+        )}
       </div>
       <button
         onClick={() => setIsExpanded(!isExpanded)}

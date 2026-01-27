@@ -97,20 +97,11 @@ export function AgentActionsSlider({
                   <p className="text-xs text-muted-foreground mt-0.5">See all tasks and track progress</p>
                 </div>
               </Link>
-              
-              <Link 
-                href={`/knowledge?agents=${encodeURIComponent(agent.name)}`}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-orange-500/5 transition-colors cursor-pointer"
-              >
-                <BookOpen className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="font-medium text-sm group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Knowledge Base</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Browse agent resources and documents</p>
-                </div>
-              </Link>
+              <Separator className="opacity-40" />
+
             </div>
 
-            <Separator className="opacity-40" />
+
 
             {/* Insights - More Fluid */}
             <div className="space-y-2">
@@ -124,7 +115,17 @@ export function AgentActionsSlider({
                   <p className="text-xs text-muted-foreground mt-0.5">Review and update workflow settings</p>
                 </div>
               </button>
-              
+              <Link 
+                href={`/knowledge?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-orange-500/5 transition-colors cursor-pointer"
+              >
+                <BookOpen className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-medium text-sm group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Knowledge</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Browse agent resources and documents</p>
+                </div>
+              </Link>
+
               <Link
                 href={`/settings/logs?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
                 className="group flex items-start gap-3 p-3 rounded-lg hover:bg-emerald-500/5 transition-colors cursor-pointer w-full text-left"

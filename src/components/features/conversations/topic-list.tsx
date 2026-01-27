@@ -141,7 +141,7 @@ export function TopicList({
           const isSelected = topic.id === selectedTopicId;
           const isGeneralTopic = topic.id === 'general-discussions';
           const unreadCount = unreadCounts[topic.id] || 0;
-          const isLastGeneralTopic = isGeneralTopic && topics[index + 1] && !topics[index + 1].isDefault;
+          const isLastGeneralTopic = isGeneralTopic && (index === topics.length - 1 || (topics[index + 1] && !topics[index + 1].isDefault));
 
           return (
             <Fragment key={topic.id}>

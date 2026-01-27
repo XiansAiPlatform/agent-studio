@@ -1,9 +1,11 @@
+import React from 'react'
 import { toast } from 'sonner'
 
 interface ToastOptions {
   title: string
   description?: string
   duration?: number
+  icon?: string | React.ReactNode
   action?: {
     label: string
     onClick: () => void
@@ -11,10 +13,11 @@ interface ToastOptions {
 }
 
 export const showToast = {
-  success: ({ title, description, duration = 4000, action }: ToastOptions) => {
+  success: ({ title, description, duration = 4000, icon, action }: ToastOptions) => {
     return toast.success(title, {
       description,
       duration,
+      icon,
       action: action ? {
         label: action.label,
         onClick: action.onClick,

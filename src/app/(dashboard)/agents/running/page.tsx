@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
-import { Bot, Play, Loader2 } from 'lucide-react';
+import { Bot, Play, Loader2, Activity } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
@@ -334,8 +334,7 @@ export default function AgentsPage() {
 
       showSuccessToast(
         'Agent Activated Successfully',
-        `${wizardData.agent.name} is now active and ready to use`,
-        { icon: '✅' }
+        `${wizardData.agent.name} is now active and ready to use`
       );
 
       setShowActivationWizard(false);
@@ -467,7 +466,17 @@ export default function AgentsPage() {
       )}
 
       {/* Right Slider for Agent Actions */}
-      <Sheet open={sliderType !== null} onOpenChange={closeSlider}>
+      <Sheet 
+        open={sliderType !== null} 
+        onOpenChange={closeSlider}
+        headerIcon={selectedAgent && sliderType === 'activity' ? <Activity className="h-5 w-5 text-blue-500" /> : 
+                    selectedAgent && sliderType === 'performance' ? <Activity className="h-5 w-5 text-emerald-500" /> : 
+                    undefined}
+        headerTitle={selectedAgent && sliderType === 'activity' ? 'Activity Logs' :
+                     selectedAgent && sliderType === 'performance' ? 'Performance Metrics' :
+                     undefined}
+        headerDescription={selectedAgent && (sliderType === 'activity' || sliderType === 'performance') ? selectedAgent.name : undefined}
+      >
         {selectedAgent && sliderType === 'actions' && (
           <AgentActionsSlider
             agent={selectedAgent}

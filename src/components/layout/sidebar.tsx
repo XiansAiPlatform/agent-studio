@@ -18,6 +18,12 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AgentSelectionPanel } from '@/components/features/conversations/agent-selection-panel';
+import { useRouter } from 'next/navigation';
+
+// Menu items that should trigger the agent selection panel
+const PANEL_TRIGGER_ITEMS = ['Conversations', 'Knowledge'] as const;
+type PanelTriggerItem = typeof PANEL_TRIGGER_ITEMS[number];
 
 const navigation = [
   {
@@ -39,6 +45,13 @@ const navigation = [
     name: 'Conversations',
     href: '/conversations',
     icon: MessageSquare,
+    triggersPanel: true,
+  },
+  {
+    name: 'Knowledge',
+    href: '/knowledge',
+    icon: Database,
+    triggersPanel: true,
   },
   {
     name: 'Settings',
@@ -46,7 +59,6 @@ const navigation = [
     icon: Settings,
     children: [
       { name: 'Agent Store', href: '/settings/agent-store' },
-      { name: 'Knowledge', href: '/settings/knowledge' },
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' }
     ],
@@ -58,16 +70,21 @@ function NavItem({
   collapsed,
   active,
   pathname,
+  onPanelTriggerClick,
+  isPanelOpen,
 }: {
   item: (typeof navigation)[0];
   collapsed: boolean;
   active: boolean;
   pathname: string;
+  onPanelTriggerClick?: (itemName: string) => void;
+  isPanelOpen?: boolean;
 }) {
   const [expanded, setExpanded] = useState(active);
   const Icon = item.icon;
 
   const hasChildren = item.children;
+  const triggersPanelItem = item.triggersPanel === true;
 
   // Check if any child is active
   const isChildActive = (child: { href: string }) => pathname === child.href;
@@ -84,38 +101,68 @@ function NavItem({
     <div>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link
-            href={item.href}
-            onClick={(e) => {
-              if (hasChildren && !collapsed) {
+          {triggersPanelItem ? (
+            <button
+              onClick={(e) => {
                 e.preventDefault();
-                setExpanded(!expanded);
-              }
-            }}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all relative group',
-              'hover:bg-accent/30 hover:translate-x-0.5',
-              active
-                ? 'bg-accent/20 text-foreground border-l-2 border-l-primary rounded-r-md'
-                : 'text-muted-foreground border-l-2 border-l-transparent rounded-md',
-              collapsed && 'justify-center'
-            )}
-          >
-            <Icon className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && (
-              <>
-                <span className="flex-1 truncate">{item.name}</span>
-                {hasChildren && (
+                onPanelTriggerClick?.(item.name);
+              }}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all relative group',
+                'hover:bg-accent/30 hover:translate-x-0.5',
+                active
+                  ? 'bg-accent/20 text-foreground border-l-2 border-l-primary rounded-r-md'
+                  : 'text-muted-foreground border-l-2 border-l-transparent rounded-md',
+                collapsed && 'justify-center'
+              )}
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 truncate text-left">{item.name}</span>
                   <ChevronRight
                     className={cn(
                       'h-4 w-4 transition-all group-hover:translate-x-0.5',
-                      expanded && 'rotate-90'
+                      isPanelOpen && 'rotate-90'
                     )}
                   />
-                )}
-              </>
-            )}
-          </Link>
+                </>
+              )}
+            </button>
+          ) : (
+            <Link
+              href={item.href}
+              onClick={(e) => {
+                if (hasChildren && !collapsed) {
+                  e.preventDefault();
+                  setExpanded(!expanded);
+                }
+              }}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all relative group',
+                'hover:bg-accent/30 hover:translate-x-0.5',
+                active
+                  ? 'bg-accent/20 text-foreground border-l-2 border-l-primary rounded-r-md'
+                  : 'text-muted-foreground border-l-2 border-l-transparent rounded-md',
+                collapsed && 'justify-center'
+              )}
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 truncate">{item.name}</span>
+                  {hasChildren && (
+                    <ChevronRight
+                      className={cn(
+                        'h-4 w-4 transition-all group-hover:translate-x-0.5',
+                        expanded && 'rotate-90'
+                      )}
+                    />
+                  )}
+                </>
+              )}
+            </Link>
+          )}
         </TooltipTrigger>
         <TooltipContent side="right">
           <p>{item.name}</p>
@@ -155,9 +202,34 @@ function NavItem({
   );
 }
 
+// Configuration for panel-triggering menu items
+const PANEL_CONFIGS: Record<string, {
+  title: string;
+  description: string;
+  basePath: string;
+  queryParams?: string;
+  useQueryParams?: boolean; // If true, use query params instead of path params for agent/activation
+}> = {
+  'Conversations': {
+    title: 'Select an Agent',
+    description: 'Choose an activation to start chatting',
+    basePath: '/conversations',
+    queryParams: 'topic=general-discussions',
+    useQueryParams: false,
+  },
+  'Knowledge': {
+    title: 'Select an Agent',
+    description: 'Choose an agent to view its knowledge base',
+    basePath: '/knowledge',
+    useQueryParams: true,
+  },
+};
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [activePanelMode, setActivePanelMode] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -188,19 +260,63 @@ export function Sidebar() {
               const isActive = isExactMatch || hasActiveChild || 
                 (pathname.startsWith(item.href) && item.href !== '/');
               
+              // When panel is open, only the triggering item should be active
+              const finalActive = activePanelMode
+                ? item.name === activePanelMode
+                : isActive;
+              
               return (
                 <NavItem
                   key={item.name}
                   item={item}
                   collapsed={collapsed}
-                  active={isActive}
+                  active={finalActive}
                   pathname={pathname}
+                  onPanelTriggerClick={(itemName) => {
+                    // Toggle: if same item clicked, close panel; otherwise switch to new item
+                    setActivePanelMode(activePanelMode === itemName ? null : itemName);
+                  }}
+                  isPanelOpen={activePanelMode === item.name}
                 />
               );
             })}
           </nav>
         </div>
       </aside>
+
+      {/* Agent Selection Panel */}
+      {activePanelMode && PANEL_CONFIGS[activePanelMode] && (
+        <AgentSelectionPanel
+          isOpen={!!activePanelMode}
+          onClose={() => setActivePanelMode(null)}
+          sidebarCollapsed={collapsed}
+          title={PANEL_CONFIGS[activePanelMode].title}
+          description={PANEL_CONFIGS[activePanelMode].description}
+          onActivationSelect={(activationName, agentName) => {
+            const config = PANEL_CONFIGS[activePanelMode];
+            let url: string;
+            
+            if (config.useQueryParams) {
+              // Use query parameters for agent and activation
+              const params = new URLSearchParams({
+                agentName,
+                activationName,
+              });
+              if (config.queryParams) {
+                // Add any additional query params
+                const additionalParams = new URLSearchParams(config.queryParams);
+                additionalParams.forEach((value, key) => params.set(key, value));
+              }
+              url = `${config.basePath}?${params.toString()}`;
+            } else {
+              // Use path parameters for agent and activation
+              url = `${config.basePath}/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}${config.queryParams ? `?${config.queryParams}` : ''}`;
+            }
+            
+            router.push(url);
+          }}
+        />
+      )}
     </TooltipProvider>
   );
 }

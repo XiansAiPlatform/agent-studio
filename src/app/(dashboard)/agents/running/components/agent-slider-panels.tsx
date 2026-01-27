@@ -90,8 +90,7 @@ export function ConfigurePanel({ agent, tenantId, onDeactivate }: ConfigurePanel
       
       showSuccessToast(
         'Description Updated',
-        'The agent description has been updated successfully',
-        { icon: '✅' }
+        'The agent description has been updated successfully'
       );
       console.log('[ConfigurePanel] Description updated successfully');
     } catch (error) {
@@ -335,12 +334,6 @@ export function ActivityPanel({ agent }: ActivityPanelProps) {
 
   return (
     <SheetContent className="flex flex-col p-0">
-      <SheetHeader className="px-6 pt-6">
-        <SheetTitle className="text-base">Activity Logs</SheetTitle>
-        <SheetDescription className="text-sm whitespace-normal break-words">
-          {agent.name}
-        </SheetDescription>
-      </SheetHeader>
       <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
         <div className="space-y-3">
           {logs.map((log, index) => (
@@ -375,12 +368,6 @@ interface PerformancePanelProps {
 export function PerformancePanel({ agent }: PerformancePanelProps) {
   return (
     <SheetContent className="flex flex-col p-0">
-      <SheetHeader className="px-6 pt-6">
-        <SheetTitle className="text-base">Performance Metrics</SheetTitle>
-        <SheetDescription className="text-sm whitespace-normal break-words">
-          {agent.name}
-        </SheetDescription>
-      </SheetHeader>
       <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
         <div className="space-y-5">
           <div>

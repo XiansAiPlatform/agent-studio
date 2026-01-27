@@ -23,7 +23,6 @@ import { DUMMY_TASKS } from '@/lib/data/dummy-tasks';
 import { DUMMY_CONVERSATIONS } from '@/lib/data/dummy-conversations';
 import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { cn } from '@/lib/utils';
-import { ToastDemo } from '@/components/toast-demo';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { useAgents } from '@/app/(dashboard)/agents/running/hooks/use-agents';
@@ -449,11 +448,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* Temporary Toast Demo for Styling */}
-      {/* <div className="mt-8">
-        <ToastDemo />
-      </div> */}
       </div>
     </div>
   );

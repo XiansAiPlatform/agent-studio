@@ -1,0 +1,299 @@
+/* Monochrome theme for JSONEditor */
+
+/* Override default blue colors with monochrome palette */
+.jsoneditor-react-container {
+  --primary-color: #333333;
+  --primary-hover: #555555;
+  --border-color: #d0d0d0;
+  --background-light: #f5f5f5;
+  --text-color: #1a1a1a;
+}
+
+/* Main editor container */
+.jsoneditor {
+  border-color: var(--border-color) !important;
+}
+
+/* Remove frame background */
+.jsoneditor-frame {
+  background-color: transparent !important;
+}
+
+/* Menu bar */
+.jsoneditor-menu {
+  background-color: var(--background-light) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+/* Menu buttons */
+.jsoneditor-menu > button,
+.jsoneditor-menu > div.jsoneditor-modes > button {
+  background-color: transparent !important;
+  color: var(--primary-color) !important;
+  filter: invert(1) brightness(0.3) !important;
+}
+
+.jsoneditor-menu > button:hover,
+.jsoneditor-menu > div.jsoneditor-modes > button:hover,
+.jsoneditor-menu > button:focus,
+.jsoneditor-menu > div.jsoneditor-modes > button:focus {
+  background-color: #e0e0e0 !important;
+  color: var(--text-color) !important;
+  filter: none !important;
+}
+
+.jsoneditor-menu > button.jsoneditor-selected,
+.jsoneditor-menu > div.jsoneditor-modes > button.jsoneditor-selected {
+  background-color: #666666 !important;
+  color: white !important;
+  filter: none !important;
+}
+
+/* Tree mode */
+.jsoneditor-tree button.jsoneditor-button {
+  background-color: transparent !important;
+  color: var(--primary-color) !important;
+}
+
+.jsoneditor-tree button.jsoneditor-button:hover {
+  background-color: #e0e0e0 !important;
+}
+
+/* Expand/collapse buttons */
+.jsoneditor-button.jsoneditor-collapsed::before,
+.jsoneditor-button.jsoneditor-expanded::before {
+  color: var(--primary-color) !important;
+}
+
+/* Selected node */
+.jsoneditor-tree tr.jsoneditor-selected,
+.jsoneditor-tree tr.jsoneditor-selected.jsoneditor-first,
+.jsoneditor-tree tr.jsoneditor-selected.jsoneditor-last {
+  background-color: #e8e8e8 !important;
+}
+
+.jsoneditor-tree tr.jsoneditor-selected > td,
+.jsoneditor-tree tr.jsoneditor-selected > th {
+  background-color: #e8e8e8 !important;
+}
+
+/* Highlight */
+.jsoneditor-highlight,
+.jsoneditor-highlight-active {
+  background-color: #d0d0d0 !important;
+}
+
+/* Search box */
+.jsoneditor-search input {
+  border-color: var(--border-color) !important;
+}
+
+.jsoneditor-search input:focus {
+  border-color: var(--primary-color) !important;
+  outline-color: var(--primary-color) !important;
+}
+
+.jsoneditor-search button {
+  background-color: transparent !important;
+  color: var(--primary-color) !important;
+}
+
+.jsoneditor-search button:hover {
+  background-color: #e0e0e0 !important;
+}
+
+/* Search results text */
+.jsoneditor-results {
+  color: #333333 !important;
+}
+
+/* Code editor (ACE editor) */
+.ace-jsoneditor {
+  background-color: white !important;
+}
+
+.ace-jsoneditor .ace_gutter {
+  background-color: var(--background-light) !important;
+  color: #666666 !important;
+}
+
+.ace-jsoneditor .ace_gutter-active-line {
+  background-color: #e0e0e0 !important;
+}
+
+.ace-jsoneditor .ace_cursor {
+  color: var(--text-color) !important;
+}
+
+.ace-jsoneditor .ace_marker-layer .ace_selection {
+  background-color: #d0d0d0 !important;
+}
+
+.ace-jsoneditor .ace_marker-layer .ace_active-line {
+  background-color: #f8f8f8 !important;
+}
+
+/* Context menu */
+.jsoneditor-contextmenu {
+  border-color: var(--border-color) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.jsoneditor-contextmenu .jsoneditor-menu button {
+  color: var(--text-color) !important;
+}
+
+.jsoneditor-contextmenu .jsoneditor-menu button:hover,
+.jsoneditor-contextmenu .jsoneditor-menu button:focus {
+  background-color: #e8e8e8 !important;
+  color: var(--text-color) !important;
+}
+
+.jsoneditor-contextmenu .jsoneditor-menu li button.jsoneditor-selected,
+.jsoneditor-contextmenu .jsoneditor-menu li button.jsoneditor-selected:hover,
+.jsoneditor-contextmenu .jsoneditor-menu li button.jsoneditor-selected:focus {
+  background-color: #666666 !important;
+  color: #ffffff !important;
+}
+
+/* Validation errors */
+.jsoneditor-validation-error {
+  background-color: #f5f5f5 !important;
+  border-color: #999999 !important;
+  color: #333333 !important;
+}
+
+.jsoneditor-text-errors tr.jump-to-line:hover {
+  background-color: #e8e8e8 !important;
+}
+
+/* Status bar */
+.jsoneditor-statusbar {
+  background-color: var(--background-light) !important;
+  border-top-color: var(--border-color) !important;
+  color: #666666 !important;
+}
+
+/* Navigation bar */
+.jsoneditor-navigation-bar {
+  background-color: var(--background-light) !important;
+  border-top-color: var(--border-color) !important;
+}
+
+/* Field/value styling */
+.jsoneditor-tree .jsoneditor-field,
+.jsoneditor-tree .jsoneditor-value {
+  color: var(--text-color) !important;
+}
+
+/* String values */
+.jsoneditor-tree .jsoneditor-value.jsoneditor-string {
+  color: #555555 !important;
+}
+
+/* Number values */
+.jsoneditor-tree .jsoneditor-value.jsoneditor-number {
+  color: #333333 !important;
+}
+
+/* Boolean values */
+.jsoneditor-tree .jsoneditor-value.jsoneditor-boolean {
+  color: #444444 !important;
+}
+
+/* Null values */
+.jsoneditor-tree .jsoneditor-value.jsoneditor-null {
+  color: #777777 !important;
+}
+
+/* Dark mode support */
+[data-color-mode="dark"] .jsoneditor-react-container {
+  --primary-color: #e0e0e0;
+  --primary-hover: #cccccc;
+  --border-color: #404040;
+  --background-light: #1a1a1a;
+  --text-color: #e8e8e8;
+}
+
+[data-color-mode="dark"] .jsoneditor {
+  background-color: #0d0d0d !important;
+  color: var(--text-color) !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-menu {
+  background-color: var(--background-light) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree {
+  background-color: #0d0d0d !important;
+  color: var(--text-color) !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree tr.jsoneditor-selected,
+[data-color-mode="dark"] .jsoneditor-tree tr.jsoneditor-selected > td,
+[data-color-mode="dark"] .jsoneditor-tree tr.jsoneditor-selected > th {
+  background-color: #2a2a2a !important;
+}
+
+[data-color-mode="dark"] .ace-jsoneditor {
+  background-color: #0d0d0d !important;
+}
+
+[data-color-mode="dark"] .ace-jsoneditor .ace_gutter {
+  background-color: var(--background-light) !important;
+  color: #999999 !important;
+}
+
+[data-color-mode="dark"] .ace-jsoneditor .ace_marker-layer .ace_selection {
+  background-color: #2a2a2a !important;
+}
+
+[data-color-mode="dark"] .ace-jsoneditor .ace_marker-layer .ace_active-line {
+  background-color: #1a1a1a !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-field,
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value {
+  color: var(--text-color) !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-string {
+  color: #cccccc !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-number {
+  color: #e0e0e0 !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-boolean {
+  color: #d0d0d0 !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-null {
+  color: #999999 !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-results {
+  color: #e0e0e0 !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-contextmenu .jsoneditor-menu li button.jsoneditor-selected,
+[data-color-mode="dark"] .jsoneditor-contextmenu .jsoneditor-menu li button.jsoneditor-selected:hover,
+[data-color-mode="dark"] .jsoneditor-contextmenu .jsoneditor-menu li button.jsoneditor-selected:focus {
+  background-color: #4a4a4a !important;
+  color: #ffffff !important;
+}
+
+/* Read-only mode styling */
+[data-readonly="true"] .jsoneditor {
+  opacity: 0.9;
+}
+
+[data-readonly="true"] .jsoneditor-tree {
+  background-color: #fafafa !important;
+}
+
+[data-color-mode="dark"][data-readonly="true"] .jsoneditor-tree {
+  background-color: #0a0a0a !important;
+}

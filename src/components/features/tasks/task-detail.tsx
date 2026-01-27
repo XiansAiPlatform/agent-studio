@@ -277,8 +277,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
       // Show success toast
       showSuccessToast(
         'Action Performed',
-        `The action "${action}" has been successfully executed`,
-        { icon: '✅' }
+        `The action "${action}" has been successfully executed`
       );
 
       // Call the callback to trigger parent component refresh and highlight

@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast } from '@/lib/utils/error-handler';
-import { Loader2, Filter, X, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { Loader2, Filter, X, ChevronLeft, ChevronRight, ClipboardList, CheckSquare } from 'lucide-react';
 
 type XiansTask = {
   taskId: string;
@@ -647,21 +647,22 @@ function TasksContent() {
       )}
 
       {/* Task Detail Slider */}
-      <Sheet open={!!selectedTask} onOpenChange={handleCloseSlider}>
+      <Sheet 
+        open={!!selectedTask} 
+        onOpenChange={handleCloseSlider}
+        headerIcon={selectedTask ? <CheckSquare className="h-5 w-5 text-blue-500" /> : undefined}
+        headerTitle={selectedTask ? 'Task Details' : undefined}
+        headerDescription={selectedTask ? selectedTask.title : undefined}
+      >
         <SheetContent className="flex flex-col p-0">
           {selectedTask && (
-            <>
-              <SheetHeader className="flex-row items-start">
-                <SheetTitle className="flex-1">Task Details</SheetTitle>
-              </SheetHeader>
-              <div className="flex-1 overflow-y-auto px-6 py-6">
-                <TaskDetail
-                  task={selectedTask}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                />
-              </div>
-            </>
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <TaskDetail
+                task={selectedTask}
+                onApprove={handleApprove}
+                onReject={handleReject}
+              />
+            </div>
           )}
         </SheetContent>
       </Sheet>

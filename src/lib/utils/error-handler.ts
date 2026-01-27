@@ -5,6 +5,7 @@
  * proper error message extraction and user-friendly notifications
  */
 
+import React from 'react'
 import { showToast } from '@/lib/toast'
 
 export interface ApiError {
@@ -94,7 +95,7 @@ export function showErrorToast(error: any, customMessage?: string) {
 
   // Log full error for debugging (only in development)
   if (process.env.NODE_ENV === 'development') {
-    console.group('🔴 [Error Handler] Error Details')
+    console.group('[Error Handler] Error Details')
     console.warn('Message:', message)
     console.warn('Status:', apiError.status)
     console.warn('Code:', apiError.code)
@@ -124,6 +125,7 @@ export function showSuccessToast(
     title: message,
     description,
     duration: 4000,
+    icon: options?.icon,
     action: options?.action,
   })
 }
