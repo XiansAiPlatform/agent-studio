@@ -191,6 +191,11 @@ export function ActivationConfigWizard({
     if (!wizardData) return false;
 
     const currentWorkflow = wizardData.workflows[currentWorkflowIndex];
+    if (!currentWorkflow) {
+      // No workflow at this index - nothing to validate
+      return true;
+    }
+    
     const inputs = workflowInputs[currentWorkflow.workflowType] || {};
     const errors: Record<string, string> = {};
     let isValid = true;
@@ -223,6 +228,14 @@ export function ActivationConfigWizard({
   };
 
   const validateCurrentStep = (): boolean => {
+    // If no workflows exist, no validation needed for workflow config
+    if (!wizardData || wizardData.workflows.length === 0) {
+      if (isMetadataStep) {
+        return validateMetadata();
+      }
+      return true; // No workflows to validate
+    }
+    
     if (isMetadataStep) {
       return validateMetadata();
     } else {
@@ -321,10 +334,12 @@ export function ActivationConfigWizard({
           <>
             <div className="flex-1 px-6 py-8">
               <div className="text-center space-y-3">
-                <CheckCircle className="h-12 w-12 mx-auto text-green-600" />
+                <div className="h-12 w-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                  <Play className="h-6 w-6 text-primary" />
+                </div>
                 <h3 className="text-lg font-medium">No Configuration Needed</h3>
                 <p className="text-muted-foreground">
-                  This agent doesn&apos;t require any workflow parameters.
+                  This agent doesn&apos;t require any workflow parameters. Click Activate below to proceed.
                 </p>
               </div>
             </div>

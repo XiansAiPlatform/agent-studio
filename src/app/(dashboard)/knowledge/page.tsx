@@ -74,6 +74,8 @@ function KnowledgeContent() {
       console.error('[KnowledgePage] Error fetching knowledge:', err);
       setError(err.message || 'Failed to fetch knowledge');
       showErrorToast(err, 'Failed to load knowledge');
+      // Set lastFetchedParams even on error to prevent infinite retry loop
+      setLastFetchedParams({ agent, activation });
     } finally {
       setIsLoading(false);
     }

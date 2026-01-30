@@ -1,19 +1,22 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Building2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useTenant } from '@/hooks/use-tenant';
 
 export function UserMenu() {
   const { data: session, status } = useSession();
+  const { currentTenant } = useTenant();
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' });
@@ -68,6 +71,21 @@ export function UserMenu() {
         </div>
 
         <DropdownMenuSeparator />
+
+        {currentTenant && (
+          <>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex items-center gap-2 py-1">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Current Tenant</p>
+                  <p className="text-sm font-medium truncate">{currentTenant.tenant.name}</p>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
 
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="h-4 w-4" />

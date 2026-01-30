@@ -186,7 +186,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <ul
                     {...props}
                     className={cn(
-                      'list-disc list-inside my-1 space-y-0.5',
+                      'list-disc list-outside my-1 space-y-0.5 pl-5',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -195,7 +195,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <ol
                     {...props}
                     className={cn(
-                      'list-decimal list-inside my-1 space-y-0.5',
+                      'list-decimal list-outside my-1 space-y-0.5 pl-5',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -203,7 +203,10 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                 li: ({ node, ...props }) => (
                   <li
                     {...props}
-                    className={isUser ? 'text-primary-foreground' : 'text-foreground'}
+                    className={cn(
+                      'break-inside-avoid',
+                      isUser ? 'text-primary-foreground' : 'text-foreground'
+                    )}
                   />
                 ),
                 strong: ({ node, ...props }) => (
@@ -433,13 +436,13 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                           <p {...props} className="my-1 text-foreground" />
                         ),
                         ul: ({ node, ...props }) => (
-                          <ul {...props} className="list-disc list-inside my-1 space-y-0.5 text-foreground" />
+                          <ul {...props} className="list-disc list-outside my-1 space-y-0.5 pl-5 text-foreground" />
                         ),
                         ol: ({ node, ...props }) => (
-                          <ol {...props} className="list-decimal list-inside my-1 space-y-0.5 text-foreground" />
+                          <ol {...props} className="list-decimal list-outside my-1 space-y-0.5 pl-5 text-foreground" />
                         ),
                         li: ({ node, ...props }) => (
-                          <li {...props} className="text-foreground" />
+                          <li {...props} className="break-inside-avoid text-foreground" />
                         ),
                         strong: ({ node, ...props }) => (
                           <strong {...props} className="font-bold text-foreground" />

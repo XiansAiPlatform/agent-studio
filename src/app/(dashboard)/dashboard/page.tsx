@@ -31,6 +31,7 @@ import { LogLevelBadge } from '@/components/features/logs';
 import { XiansTenantStats } from '@/lib/xians/types';
 import { useLogs } from '@/app/(dashboard)/settings/logs/hooks/use-logs';
 import { formatDistanceToNow } from 'date-fns';
+import { showToast } from '@/lib/toast';
 
 type TimePeriod = '7d' | '30d' | '90d';
 
@@ -100,7 +101,10 @@ export default function DashboardPage() {
         const stats = await response.json();
         setTenantStats(stats);
       } catch (error) {
-        console.error('Error fetching tenant stats:', error);
+        showToast.error({
+          title: 'Failed to fetch tenant stats',
+          description: error instanceof Error ? error.message : 'An error occurred while loading dashboard statistics',
+        });
         // Fallback to default values on error
         setTenantStats({
           tasks: {
@@ -290,16 +294,16 @@ export default function DashboardPage() {
               </div>
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium text-foreground">
-                  Your agents are ready to go!
+                  Your agents are ready to take action!
                 </p>
                 <p className="text-xs text-muted-foreground max-w-xs">
-                  Activity will appear here as your agents start working
+                  Activity logs will appear here as your agents start working
                 </p>
               </div>
               <Button variant="outline" size="sm" asChild className="mt-2">
                 <Link href="/agents/running">
                   <Bot className="mr-2 h-3.5 w-3.5" />
-                  View Agents
+                  View Active Agents
                 </Link>
               </Button>
             </div>

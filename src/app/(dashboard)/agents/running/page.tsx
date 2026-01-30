@@ -218,17 +218,13 @@ export default function AgentsPage() {
       const data = await response.json();
 
       const workflowsWithParams = data.definitions
-        .filter((def: any) => 
-          def.parameterDefinitions && 
-          def.parameterDefinitions.length > 0 && 
-          def.activable === true
-        )
+        .filter((def: any) => def.activable === true)
         .map((def: any) => ({
           id: def.id,
           workflowType: def.workflowType,
           name: def.name,
           summary: def.summary,
-          parameterDefinitions: def.parameterDefinitions,
+          parameterDefinitions: def.parameterDefinitions || [],
           activable: def.activable,
         }));
 
