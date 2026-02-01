@@ -20,7 +20,7 @@ export function Header() {
       <div className="flex h-14 items-center gap-4 px-6">
         {/* Tenant Logo / Branding */}
         <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="flex items-center justify-center h-20 w-20">
+          <div className="flex items-center justify-center h-20 w-20 bg-transparent">
             {logoSrc ? (
               <Image 
                 src={logoSrc} 
