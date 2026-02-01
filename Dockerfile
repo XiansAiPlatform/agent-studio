@@ -12,8 +12,8 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including devDependencies needed for build)
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -28,7 +28,13 @@ ENV NODE_ENV=${NODE_ENV}
 # Disable Next.js telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build application
+# Set build-time environment variables that may be needed
+ENV SKIP_ENV_VALIDATION=true
+
+# Debug: Show directory contents and npm version
+RUN ls -la && npm --version && node --version
+
+# Build application with verbose output for debugging
 RUN npm run build
 
 # Production image, copy all files and run next

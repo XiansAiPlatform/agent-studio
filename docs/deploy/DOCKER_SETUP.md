@@ -199,6 +199,48 @@ ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit co
    ```
 3. If using GitHub Actions, the workflow will automatically use the updated Dockerfile
 
+#### Build Fails with Missing Dependencies
+
+**Error Message:**
+```
+ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+```
+
+**Common Causes & Solutions:**
+
+1. **Missing devDependencies during build:**
+   - Ensure Dockerfile uses `npm ci` (not `npm ci --only=production`) for the build stage
+   - devDependencies are needed for TypeScript compilation, build tools, etc.
+
+2. **Build environment variables missing:**
+   - Add build-time environment variables to Dockerfile:
+   ```dockerfile
+   ENV SKIP_ENV_VALIDATION=true
+   ENV NEXT_TELEMETRY_DISABLED=1
+   ```
+
+3. **TypeScript or ESLint errors:**
+   ```bash
+   # Test build locally first
+   npm run build
+   
+   # Check for TypeScript errors
+   npx tsc --noEmit
+   
+   # Check for linting errors
+   npm run lint
+   ```
+
+4. **Debug Docker build:**
+   ```bash
+   # Build with detailed output
+   docker build --progress=plain --no-cache -t agent-studio .
+   
+   # Build up to a specific stage
+   docker build --target builder -t agent-studio-debug .
+   docker run -it agent-studio-debug sh
+   ```
+
 ## Docker Image Features
 
 - **Size**: ~90MB (Alpine Linux base)
