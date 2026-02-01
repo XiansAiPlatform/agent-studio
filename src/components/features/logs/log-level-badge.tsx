@@ -54,7 +54,7 @@ export function LogLevelBadge({ level, className }: LogLevelBadgeProps) {
       )}
     >
       <Icon className="h-3 w-3" />
-      {config.label}
+      {/* {config.label} */}
     </Badge>
   );
 }

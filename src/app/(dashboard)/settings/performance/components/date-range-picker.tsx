@@ -27,7 +27,7 @@ const PRESET_OPTIONS: { value: DateRangePreset; label: string }[] = [
 ];
 
 export function DateRangePicker({ startDate, endDate, onDateRangeChange }: DateRangePickerProps) {
-  const [selectedPreset, setSelectedPreset] = useState<DateRangePreset>('lastMonth');
+  const [selectedPreset, setSelectedPreset] = useState<DateRangePreset>('last30days');
 
   const handlePresetChange = (preset: DateRangePreset) => {
     setSelectedPreset(preset);

@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -30,161 +29,144 @@ export function DeployedAgentCard({
   const showExpandButton = hasSummary && hasDescription && deployment.summary !== deployment.description;
 
   return (
-    <Card 
-      className={`group hover:shadow-lg transition-all duration-300 hover:border-primary/50 cursor-pointer flex flex-col ${
+    <div 
+      className={`group py-6 px-6 cursor-pointer transition-all duration-200 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 border-b border-slate-200/60 dark:border-slate-700/60 last:border-b-0 ${
         isNewlyDeployed 
-          ? 'ring-2 ring-green-500 ring-offset-2 shadow-xl shadow-green-500/30 bg-green-50 dark:bg-green-950/20 border-green-500' 
+          ? 'bg-emerald-50/30 dark:bg-emerald-900/10 border-b-emerald-200 dark:border-b-emerald-700' 
           : ''
       }`}
       onClick={onClick}
     >
-      <CardHeader className="pb-4 flex-grow flex flex-col justify-start">
-        <div className="flex items-start justify-between gap-3 min-h-[56px]">
-          <div className="h-14 w-14 rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 flex items-center justify-center ring-1 ring-green-500/10 flex-shrink-0">
-            <Icon className="h-7 w-7 text-green-600" />
+      {/* Main Content Row */}
+      <div className="grid grid-cols-12 gap-6 items-start">
+        {/* Icon & Name Column */}
+        <div className="col-span-4 flex items-start gap-3">
+          <div className="flex-shrink-0 mt-0.5">
+            <Icon className="h-5 w-5 text-slate-500 dark:text-slate-400" />
           </div>
-          <div className="flex flex-col gap-1.5 items-end min-h-[56px] justify-start">
-            {isNewlyDeployed && (
-              <Badge 
-                variant="default" 
-                className="text-xs font-semibold bg-green-600 hover:bg-green-600 animate-pulse"
-              >
-                NEW
-              </Badge>
-            )}
-            <Badge 
-              variant={deployment.status === 'active' ? 'default' : 'secondary'} 
-              className="text-xs font-medium"
-            >
-              {deployment.status}
-            </Badge>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
+                {deployment.name}
+              </h3>
+              {isNewlyDeployed && (
+                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 rounded">
+                  New
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded ${
+                deployment.status === 'active' 
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+              }`}>
+                {deployment.status}
+              </span>
+              {deployment.version && (
+                <span className="text-xs text-slate-400">v{deployment.version}</span>
+              )}
+            </div>
           </div>
         </div>
-        <div className="mt-2 space-y-3">
-          <CardTitle className="text-xl leading-tight group-hover:text-primary transition-colors">
-            {deployment.name}
-          </CardTitle>
-          
-          {/* Stats Row */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-500" />
-              <span>{deployment.activationCount ?? 0} activation{(deployment.activationCount ?? 0) !== 1 ? 's' : ''}</span>
-            </div>
-            <span className="text-muted-foreground/50">•</span>
-            <div className="flex items-center gap-1.5">
-              <span>
-                {new Date(deployment.createdAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </span>
-            </div>
-          </div>
 
+        {/* Description Column */}
+        <div className="col-span-5">
           {(deployment.summary || deployment.description) && (
             <div className="space-y-2">
-              <CardDescription className="text-sm leading-relaxed line-clamp-2">
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">
                 {deployment.summary ? deployment.summary : deployment.description}
-              </CardDescription>
+              </p>
               {showExpandButton && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleExpanded?.();
                   }}
-                  className="text-xs text-primary hover:text-primary/80 font-medium transition-colors flex items-center gap-1"
+                  className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 font-medium transition-colors"
                 >
-                  {isExpanded ? (
-                    <>
-                      Show less
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                      </svg>
-                    </>
-                  ) : (
-                    <>
-                      Show more
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </>
-                  )}
+                  {isExpanded ? 'Show less' : 'Show more'}
                 </button>
-              )}
-              {isExpanded && hasDescription && (
-                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground font-semibold mb-1">Full Description</p>
-                  <CardDescription className="text-sm leading-relaxed">
-                    {deployment.description}
-                  </CardDescription>
-                </div>
               )}
             </div>
           )}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3 mt-auto">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {deployment.version && (
-            <>
-              <div className="flex items-center gap-1.5">
-                <Badge variant="outline" className="text-xs font-normal">
-                  v{deployment.version}
-                </Badge>
-              </div>
-            </>
-          )}
-          {deployment.author && (
-            <>
-              {deployment.version && <span className="text-muted-foreground/50">•</span>}
-              <span>by {deployment.author}</span>
-            </>
-          )}
-          {!deployment.version && !deployment.author && (
-            <span className="text-muted-foreground/60">No version info</span>
-          )}
+
+        {/* Stats Column */}
+        <div className="col-span-2 text-sm text-slate-500 dark:text-slate-400">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="text-xs">{deployment.activationCount ?? 0} runs</span>
+            </div>
+            <div className="text-xs">
+              {new Date(deployment.createdAt).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric'
+              })}
+            </div>
+            {deployment.author && (
+              <div className="text-xs text-slate-400">by {deployment.author}</div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="default" 
-            size="sm" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onStartNewRun?.();
-            }}
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Activate New
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem
-                className="text-destructive focus:text-white hover:text-white cursor-pointer group"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete?.();
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2 text-red-600 group-hover:text-white" />
-                Offboard from Tenant
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+        {/* Actions Column */}
+        <div className="col-span-1 flex items-start justify-end">
+          <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-8 px-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartNewRun?.();
+              }}
+            >
+              <Play className="h-3.5 w-3.5" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                  <span className="sr-only">More options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem
+                  className="text-red-600 dark:text-red-400 focus:text-red-700 dark:focus:text-red-300 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.();
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Offboard from Organization
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && hasDescription && (
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-12 gap-6">
+          <div className="col-span-9 col-start-2">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Full Description</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                {deployment.description}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

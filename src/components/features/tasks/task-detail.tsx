@@ -449,7 +449,8 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
       {/* Actions */}
       {((taskDetail?.availableActions && taskDetail.availableActions.length > 0) || 
         (task.content?.data?.availableActions && task.content.data.availableActions.length > 0)) && 
-        !taskDetail?.isCompleted && (
+        !taskDetail?.isCompleted && 
+        (taskDetail?.status === 'Running' || task.content?.data?.workflowStatus === 'Running') && (
         <>
           <div className="h-px bg-border/30 my-6" />
           <div className="space-y-5">

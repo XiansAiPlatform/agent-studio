@@ -28,6 +28,19 @@ export function StoreSliderSheet({
   onDeploy
 }: StoreSliderSheetProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  const handleToggleExpanded = (templateId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(templateId)) {
+        newSet.delete(templateId);
+      } else {
+        newSet.add(templateId);
+      }
+      return newSet;
+    });
+  };
 
   const filteredTemplates = templates.filter((template) => {
     if (!searchQuery.trim()) return true;
@@ -47,6 +60,7 @@ export function StoreSliderSheet({
         onOpenChange(isOpen);
         if (!isOpen) {
           setSearchQuery('');
+          setExpandedCards(new Set());
         }
       }}
     >
@@ -67,7 +81,7 @@ export function StoreSliderSheet({
         </SheetHeader>
 
         {/* Search Box */}
-        <div className="px-6 pb-4">
+        <div className="px-6 pt-4 pb-4">
           <Input
             type="text"
             placeholder="Search agents..."
@@ -76,6 +90,7 @@ export function StoreSliderSheet({
             className="w-full"
           />
         </div>
+
 
         <div className="px-6 py-2">
           {isLoading ? (
@@ -106,8 +121,8 @@ export function StoreSliderSheet({
                   key={template.agent.id}
                   template={template}
                   isDeploying={deployingTemplateId === template.agent.id}
-                  isExpanded={allExpanded}
-                  onToggleExpanded={onToggleExpanded}
+                  isExpanded={expandedCards.has(template.agent.id)}
+                  onToggleExpanded={() => handleToggleExpanded(template.agent.id)}
                   onDeploy={(e) => onDeploy(template, e)}
                 />
               ))}

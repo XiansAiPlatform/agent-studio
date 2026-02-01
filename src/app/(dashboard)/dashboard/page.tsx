@@ -316,8 +316,7 @@ export default function DashboardPage() {
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="flex items-start gap-2.5">
-                    {/* Only show badge for non-Information logs */}
-                    {log.level !== 'Information' && (
+                    {(
                       <LogLevelBadge level={log.level} className="mt-0.5 shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">

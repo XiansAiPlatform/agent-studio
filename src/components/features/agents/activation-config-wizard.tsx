@@ -10,6 +10,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Power, ChevronLeft, ChevronRight, CheckCircle, RefreshCw, Sparkles, Play, Lock } from 'lucide-react';
 
+// Utility function to format parameter names into human-readable format
+const formatParameterName = (name: string): string => {
+  return name
+    // Handle camelCase: convert to space-separated words
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    // Handle snake_case: replace underscores with spaces
+    .replace(/_/g, ' ')
+    // Handle kebab-case: replace hyphens with spaces
+    .replace(/-/g, ' ')
+    // Capitalize first letter of each word
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    // Clean up multiple spaces
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 export type WorkflowParameter = {
   name: string;
   type: string;
@@ -526,7 +542,7 @@ export function ActivationConfigWizard({
                             return (
                               <div key={param.name} className="space-y-2">
                                 <Label htmlFor={param.name}>
-                                  {param.name}
+                                  {formatParameterName(param.name)}
                                   {!param.optional && <span className="text-red-500 ml-1">*</span>}
                                 </Label>
                                 {param.description && (
@@ -536,7 +552,7 @@ export function ActivationConfigWizard({
                                   id={param.name}
                                   type={param.type === 'Int32' || param.type === 'Decimal' ? 'number' : 'text'}
                                   step={param.type === 'Decimal' ? '0.01' : undefined}
-                                  placeholder={`Enter ${param.name.toLowerCase()}`}
+                                  placeholder={`Enter ${formatParameterName(param.name).toLowerCase()}`}
                                   value={
                                     workflowInputs[currentWorkflow.workflowType]?.[param.name] || ''
                                   }

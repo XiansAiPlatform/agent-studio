@@ -22,8 +22,8 @@ function PerformanceContent() {
   const { currentTenantId } = useTenant();
   const { user } = useAuth();
 
-  // Get initial date range (default to this month)
-  const initialRange = getThisMonthRange();
+  // Get initial date range (default to last 30 days)
+  const initialRange = getDateRangeFromPreset('last30days');
   const [startDate, setStartDate] = useState(initialRange.startDate);
   const [endDate, setEndDate] = useState(initialRange.endDate);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);

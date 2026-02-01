@@ -15,6 +15,7 @@ interface AgentSelectionPanelProps {
   sidebarCollapsed?: boolean;
   title?: string;
   description?: string;
+  icon?: React.ComponentType<{ className?: string }>;
   onActivationSelect?: (activationName: string, agentName: string) => void;
 }
 
@@ -30,6 +31,7 @@ export function AgentSelectionPanel({
   sidebarCollapsed = false, 
   title = 'Select an Agent',
   description = 'Choose an activation to start chatting',
+  icon: Icon,
   onActivationSelect: externalOnActivationSelect,
 }: AgentSelectionPanelProps) {
   const router = useRouter();
@@ -49,8 +51,7 @@ export function AgentSelectionPanel({
     const query = searchQuery.toLowerCase();
     return (
       activation.name.toLowerCase().includes(query) ||
-      activation.agentName.toLowerCase().includes(query) ||
-      (activation.description && activation.description.toLowerCase().includes(query))
+      activation.agentName.toLowerCase().includes(query)
     );
   });
 
@@ -89,7 +90,7 @@ export function AgentSelectionPanel({
       <div
         className={cn(
           "fixed top-14 bottom-0 z-40",
-          "w-full max-w-xl bg-background shadow-lg border-r border-border",
+          "w-full max-w-xl bg-gray-50 dark:bg-gray-900/95 shadow-lg border-r border-border",
           "transition-all duration-300 ease-out animate-in slide-in-from-left",
           sidebarCollapsed ? "left-16" : "left-64"
         )}
@@ -97,7 +98,8 @@ export function AgentSelectionPanel({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              {Icon && <Icon className="h-5 w-5" />}
               {title}
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">

@@ -380,7 +380,7 @@ export default function AgentsPage() {
         <Button asChild>
           <Link href="/settings/agent-store">
             <Play className="mr-2 h-4 w-4" />
-            Add from Store
+            Activate from Store
           </Link>
         </Button>
       </div>

@@ -70,7 +70,7 @@ export function DeleteAgentDialog({
             ) : (
               <>
                 <Trash2 className="mr-2 h-4 w-4" />
-                Remove from Tenant
+                Offboard from Organization
               </>
             )}
           </Button>

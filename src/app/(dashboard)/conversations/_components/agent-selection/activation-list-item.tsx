@@ -47,11 +47,6 @@ export function ActivationListItem({
               showOnlyWhenActive={true}
             />
           </div>
-          {activation.description && (
-            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-              {activation.description}
-            </p>
-          )}
         </div>
 
         {/* Arrow */}

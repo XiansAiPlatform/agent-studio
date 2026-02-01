@@ -424,11 +424,16 @@ export default function AgentTemplatesPage() {
             </Badge>
           </p>
         </div>
-        <Button variant="outline" className="transition-all hover:bg-primary/10 hover:text-primary hover:border-primary/50" asChild>
-          <Link href="/agents/running">
-            View Activated Agents
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleOpenStore}>
+            Import Template
+          </Button>
+          <Button variant="default" asChild>
+            <Link href="/agents/running">
+              View Activated Agents
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -460,42 +465,57 @@ export default function AgentTemplatesPage() {
 
       {!isLoading && !error && (
         <>
-          {/* Section: Available Agents (Deployed) */}
-          <section className="space-y-4">
-            
-
+          {/* Available Agents */}
+          <section className="space-y-6">
             {deployedAgents.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-                  <CardTitle className="text-lg mb-2">No Agents Added</CardTitle>
-                  <CardDescription className="text-center">
-                    Add your first agent from the store below to get started
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {deployedAgents.map((deployment) => (
-                  <DeployedAgentCard
-                    key={deployment.id}
-                    deployment={deployment}
-                    isNewlyDeployed={newlyDeployedId === deployment.id}
-                    isExpanded={mainGridExpanded}
-                    onToggleExpanded={toggleMainGridExpanded}
-                    onClick={() => handleDeploymentClick(deployment)}
-                    onStartNewRun={() => handleStartNewRun(deployment)}
-                    onDelete={() => handleDeleteClick(deployment)}
-                  />
-                ))}
-                
-                {/* Add from Store Placeholder Card */}
-                <AddFromStoreCard
-                  templatesLoaded={templatesLoaded}
-                  availableTemplatesCount={availableTemplates.length}
-                  onClick={handleOpenStore}
-                />
+              <div className="text-center py-16">
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+                      <Bot className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-medium text-foreground">No agents added yet</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
+                      Browse the agent store below to discover and add your first agent to your organization
+                    </p>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-6 px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b bg-muted/30">
+                  <div className="col-span-4">Agent</div>
+                  <div className="col-span-5">Description</div>
+                  <div className="col-span-2">Stats</div>
+                  <div className="col-span-1">Actions</div>
+                </div>
+
+                {/* Agent List */}
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-lg overflow-hidden shadow-sm">
+                  {deployedAgents.map((deployment) => (
+                    <DeployedAgentCard
+                      key={deployment.id}
+                      deployment={deployment}
+                      isNewlyDeployed={newlyDeployedId === deployment.id}
+                      isExpanded={mainGridExpanded}
+                      onToggleExpanded={toggleMainGridExpanded}
+                      onClick={() => handleDeploymentClick(deployment)}
+                      onStartNewRun={() => handleStartNewRun(deployment)}
+                      onDelete={() => handleDeleteClick(deployment)}
+                    />
+                  ))}
+                  
+                  {/* Add from Store Placeholder */}
+                  <AddFromStoreCard
+                    templatesLoaded={templatesLoaded}
+                    availableTemplatesCount={availableTemplates.length}
+                    onClick={handleOpenStore}
+                  />
+                </div>
+              </>
             )}
           </section>
         </>
