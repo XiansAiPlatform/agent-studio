@@ -1,7 +1,7 @@
 # Agent Studio Dockerfile
 # Multi-stage build for Next.js application following best practices
 
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps

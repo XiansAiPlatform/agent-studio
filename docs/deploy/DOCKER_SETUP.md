@@ -7,6 +7,7 @@ Quick reference for containerizing and deploying the Agent Studio application.
 - Docker Engine 20.10+
 - Docker Compose 2.0+
 - DockerHub account (for publishing)
+- Node.js 20+ (for Next.js 16+ compatibility)
 
 ## Environment Setup
 
@@ -158,6 +159,8 @@ docker rmi your-username/agent-studio:v1.0.0
 | Environment variables not working | Verify `.env.production` exists and has correct values |
 | Image build fails | Run `docker system prune -a` and rebuild |
 | Health check fails | Check `/api/health` endpoint accessibility |
+| "Node.js version required" error | Ensure Dockerfile uses `node:20-alpine` (Next.js 16+ requires Node 20+) |
+| GitHub Actions build fails | Check workflow logs for Node.js version compatibility |
 
 ### Debug Commands
 
@@ -175,9 +178,31 @@ docker inspect agent-studio
 curl http://localhost:3000/api/health
 ```
 
+### Specific Error Solutions
+
+#### Node.js Version Compatibility Error
+
+**Error Message:**
+```
+You are using Node.js 18.20.8. For Next.js, Node.js version ">=20.9.0" is required.
+ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+```
+
+**Solution:**
+1. Ensure Dockerfile uses Node.js 20:
+   ```dockerfile
+   FROM node:20-alpine AS base
+   ```
+2. Rebuild the image:
+   ```bash
+   docker-compose build --no-cache
+   ```
+3. If using GitHub Actions, the workflow will automatically use the updated Dockerfile
+
 ## Docker Image Features
 
 - **Size**: ~90MB (Alpine Linux base)
+- **Runtime**: Node.js 20 (required for Next.js 16+)
 - **Security**: Runs as non-root user (`nextjs`)
 - **Architecture**: Multi-platform (AMD64, ARM64)  
 - **Health Checks**: Built-in monitoring
