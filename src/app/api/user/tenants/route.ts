@@ -18,13 +18,13 @@ export async function GET() {
   }
   
   try {
-    console.log('[User Tenants API] Fetching tenants from Xians for user:', session.user.email)
+    console.log('[User Tenants API] Fetching tenants from Xians for user:', (session as any)?.user?.email)
     
     const tenantProvider = useTenantProvider()
     const userTenants = await tenantProvider.getUserTenants(
-      session.user.id,
-      session.accessToken,
-      session.user.email || undefined
+      (session as any)?.user?.id,
+      (session as any)?.accessToken,
+      (session as any)?.user?.email || undefined
     )
     
     console.log('[User Tenants API] Found', userTenants.length, 'tenant(s) in Xians')
@@ -35,8 +35,8 @@ export async function GET() {
     
     return NextResponse.json({
       tenants: userTenants,
-      userId: session.user.id,
-      userEmail: session.user.email,
+      userId: (session as any)?.user?.id,
+      userEmail: (session as any)?.user?.email,
       count: userTenants.length
     })
   } catch (error) {

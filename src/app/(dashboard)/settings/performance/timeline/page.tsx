@@ -309,8 +309,8 @@ function TimelineContent() {
                         color: 'hsl(var(--muted-foreground))',
                         fontSize: '13px',
                       }}
-                      formatter={(value: number) => [
-                        `${formatMetricValue(value, unit).value} ${unitDisplay}`,
+                      formatter={(value: number | undefined) => [
+                        `${formatMetricValue(value ?? 0, unit).value} ${unitDisplay}`,
                         type
                       ]}
                       cursor={{ fill: 'hsl(var(--accent))' }}

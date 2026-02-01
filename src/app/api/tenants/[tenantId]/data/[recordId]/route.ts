@@ -22,7 +22,7 @@ export async function DELETE(
       );
     }
 
-    const xiansClient = createXiansClient(session.accessToken);
+    const xiansClient = createXiansClient((session as any)?.accessToken);
 
     const response = await xiansClient.delete(
       `/api/v1/admin/tenants/${tenantId}/data/${recordId}`

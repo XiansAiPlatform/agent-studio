@@ -25,7 +25,7 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
     const userTenants = await tenantProvider.getUserTenants(
       session.user.id,
       session.accessToken,
-      session.user.email
+      session.user.email ?? undefined
     )
     
     console.log('[Server] Fetched', userTenants.length, 'tenant(s) for user:', session.user.email)

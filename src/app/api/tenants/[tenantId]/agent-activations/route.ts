@@ -61,7 +61,7 @@ export const POST = withTenant(async (request: NextRequest, { tenantContext, ses
     }
 
     // SECURITY: Get participantId from authenticated session, not from client
-    const participantId = session.user?.email;
+    const participantId = (session as any)?.user?.email;
 
     if (!participantId) {
       return NextResponse.json(

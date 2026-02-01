@@ -8,9 +8,10 @@ import { authOptions } from '@/lib/auth';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string; activationId: string } }
+  { params }: { params: Promise<{ tenantId: string; activationId: string }> }
 ) {
   try {
+    const { tenantId, activationId } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -19,8 +20,6 @@ export async function POST(
         { status: 401 }
       );
     }
-
-    const { tenantId, activationId } = params;
 
     if (!tenantId) {
       return NextResponse.json(

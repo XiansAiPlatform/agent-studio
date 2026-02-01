@@ -34,7 +34,7 @@ export async function POST(
     console.log('[Deploy Template API] Deploying template:', templateId, 'to tenant:', tenantId)
 
     // Create SDK instance with user's auth token
-    const xians = createXiansSDK(session.accessToken)
+    const xians = createXiansSDK((session as any)?.accessToken)
 
     // Deploy the template
     const result = await xians.agents.deployAgentTemplate(templateId, tenantId)

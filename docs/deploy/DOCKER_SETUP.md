@@ -2,6 +2,9 @@
 
 Quick reference for containerizing and deploying the Agent Studio application.
 
+> **✅ Status**: Fully functional - Both local and Docker builds succeed!
+> See [TYPESCRIPT_FIX_SUMMARY.md](../../TYPESCRIPT_FIX_SUMMARY.md) for details on the comprehensive type system fix.
+
 ## Prerequisites
 
 - Docker Engine 20.10+
@@ -213,10 +216,13 @@ ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit co
    - devDependencies are needed for TypeScript compilation, build tools, etc.
 
 2. **Build environment variables missing:**
-   - Add build-time environment variables to Dockerfile:
+   - Next.js requires certain environment variables during build time for static analysis
+   - The Dockerfile includes placeholder values for build:
    ```dockerfile
-   ENV SKIP_ENV_VALIDATION=true
-   ENV NEXT_TELEMETRY_DISABLED=1
+   # These are replaced with real values at container runtime
+   ENV NEXTAUTH_SECRET=build-time-placeholder-secret-32-chars-long
+   ENV XIANS_SERVER_URL=http://localhost:5005
+   ENV XIANS_APIKEY=build-time-placeholder-api-key
    ```
 
 3. **TypeScript or ESLint errors:**

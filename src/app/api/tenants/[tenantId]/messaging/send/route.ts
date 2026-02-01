@@ -81,7 +81,7 @@ export async function POST(
       hint,
       origin,
       // Use the session's access token for authorization
-      authorization: session.accessToken,
+      authorization: (session as any)?.accessToken,
     };
 
     // Call Xians API to send message

@@ -9,7 +9,7 @@ import { createXiansSDK } from '@/lib/xians'
 export const GET = withTenant(async (request, { tenantContext, session }) => {
   try {
     // Create SDK instance with user's auth token
-    const xians = createXiansSDK(session.accessToken)
+    const xians = createXiansSDK((session as any)?.accessToken)
     
     // Fetch agent deployments (returns { agents: [...], pagination: {...} })
     const response = await xians.agents.listAgentDeployments(tenantContext.tenant.id)
@@ -41,7 +41,7 @@ export const POST = withTenant(async (request, { tenantContext, session }) => {
     const data = await request.json()
     
     // Create SDK instance with user's auth token
-    const xians = createXiansSDK(session.accessToken)
+    const xians = createXiansSDK((session as any)?.accessToken)
     
     // Create agent deployment
     const deployment = await xians.agents.createAgentDeployment(

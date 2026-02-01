@@ -78,6 +78,12 @@ const statusConfig: Record<ConnectionStatus, {
     color: 'text-gray-500',
     bgColor: 'bg-gray-50 border-gray-300',
     label: 'Disabled'
+  },
+  draft: {
+    icon: <Clock className="h-3 w-3" />,
+    color: 'text-gray-700',
+    bgColor: 'bg-gray-50 border-gray-200',
+    label: 'Draft'
   }
 }
 

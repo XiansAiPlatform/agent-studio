@@ -29,7 +29,7 @@ interface ConversationViewProps {
   isConnected: boolean;
   sseError?: Error | null;
   onCreateTopic?: (topicName: string) => void;
-  chatInputRef?: React.RefObject<HTMLInputElement>;
+  chatInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 /**

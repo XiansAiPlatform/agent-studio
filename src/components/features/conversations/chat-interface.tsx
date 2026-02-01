@@ -21,7 +21,7 @@ interface ChatInterfaceProps {
   activationName?: string;
   hideHeader?: boolean;
   isActivationActive?: boolean;
-  inputRef?: React.RefObject<HTMLInputElement>;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function ChatInterface({

@@ -100,7 +100,7 @@ export class AuthErrorBoundary extends Component<Props, State> {
       error.message.includes('auth') ||
       error.message.includes('session') ||
       error.message.includes('NextAuth') ||
-      error.stack?.includes('next-auth')
+      (error.stack?.includes('next-auth') ?? false)
     )
   }
 

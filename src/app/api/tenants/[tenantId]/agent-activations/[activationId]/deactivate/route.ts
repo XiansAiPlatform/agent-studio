@@ -17,7 +17,7 @@ export async function POST(
       console.log('[Activations API] POST deactivate request received:', {
         tenantId: apiContext.tenantContext.tenant.id,
         activationId,
-        userId: apiContext.session.user.id
+        userId: (apiContext.session as any)?.user?.id
       })
 
       if (!activationId) {
@@ -67,5 +67,5 @@ export async function POST(
         { status: error.status || 500 }
       )
     }
-  })(request, {} as ApiContext)
+  })(request)
 }

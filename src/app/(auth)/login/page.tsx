@@ -14,7 +14,7 @@ export default async function LoginPage() {
       const userTenants = await tenantProvider.getUserTenants(
         session.user.id,
         session.accessToken,
-        session.user.email
+        session.user.email ?? undefined
       )
       
       if (userTenants.length === 0) {

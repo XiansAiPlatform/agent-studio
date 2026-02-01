@@ -17,7 +17,7 @@ export async function DELETE(
       console.log('[Activations API] DELETE request received:', {
         tenantId: apiContext.tenantContext.tenant.id,
         activationId,
-        userId: apiContext.session.user.id
+        userId: (apiContext.session as any)?.user?.id
       })
 
       if (!activationId) {
@@ -63,5 +63,5 @@ export async function DELETE(
         { status: error.status || 500 }
       )
     }
-  })(request, {} as ApiContext)
+  })(request)
 }

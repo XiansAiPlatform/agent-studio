@@ -49,6 +49,7 @@ export type ConnectionStatus =
   | 'expired'         // Tokens expired, needs refresh
   | 'error'           // Connection has errors
   | 'disabled'        // Manually disabled by user
+  | 'draft'           // Connection in draft state
 
 export interface CreateConnectionRequest {
   name: string

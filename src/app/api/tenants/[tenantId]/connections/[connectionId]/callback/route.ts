@@ -61,7 +61,6 @@ export const GET = withTenant(async (request, { tenantContext }) => {
     const url = new URL(request.url)
     const pathParts = url.pathname.split('/')
     const connectionId = pathParts[pathParts.length - 2] // callback is the last part
-    const url = new URL(request.url)
     const code = url.searchParams.get('code')
     const state = url.searchParams.get('state')
     const error = url.searchParams.get('error')

@@ -57,7 +57,7 @@ export const POST = withTenant(async (request, { tenantContext, session }) => {
     }
 
     // In production, this would call the Xians backend to create a pending connection
-    // const xians = createXiansSDK((session as any).accessToken)
+    // const xians = createXiansSDK(session.accessToken)
     // const result = await xians.connections.initiateConnection(tenantContext.tenant.id, data)
     
     // Mock implementation - Create a pending connection
@@ -170,7 +170,7 @@ export const POST = withTenant(async (request, { tenantContext, session }) => {
       state
     }
     
-    return Response.json(response)
+    return NextResponse.json(response)
   } catch (error) {
     console.error('Failed to initiate connection:', error)
     return NextResponse.json(

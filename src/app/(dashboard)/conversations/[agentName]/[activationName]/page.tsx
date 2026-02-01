@@ -490,15 +490,10 @@ function ConversationContent() {
   // Loading state
   if (isLoadingTopics) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
-        <div className="h-24 w-24 rounded-3xl bg-primary/20 flex items-center justify-center mb-6 shadow-2xl border border-primary/40">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-        <h2 className="text-2xl font-bold text-foreground mb-3 tracking-tight">
-          Loading Conversation
-        </h2>
-        <p className="text-primary/80 max-w-md font-semibold">
-          Fetching topics for {activationName}...
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">
+          Loading conversation...
         </p>
       </div>
     );

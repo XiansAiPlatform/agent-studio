@@ -13,7 +13,7 @@ interface ChatPanelProps {
   hasMoreMessages: boolean;
   activationName: string | null;
   isAgentActive: boolean;
-  chatInputRef?: React.RefObject<HTMLInputElement>;
+  chatInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 /**

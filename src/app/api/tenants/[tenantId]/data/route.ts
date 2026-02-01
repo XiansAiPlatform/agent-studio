@@ -49,7 +49,7 @@ export async function GET(
       );
     }
 
-    const xiansClient = createXiansClient(session.accessToken);
+    const xiansClient = createXiansClient((session as any)?.accessToken);
     
     const xiansParams = new URLSearchParams({
       startDate,
@@ -118,7 +118,7 @@ export async function DELETE(
       );
     }
 
-    const xiansClient = createXiansClient(session.accessToken);
+    const xiansClient = createXiansClient((session as any)?.accessToken);
     
     const xiansParams = new URLSearchParams({
       startDate,

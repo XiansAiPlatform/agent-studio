@@ -31,9 +31,9 @@ export async function DELETE(
     // Validate tenant access
     const tenantProvider = useTenantProvider()
     const tenantContext = await tenantProvider.getTenantContext(
-      session.user.id,
+      (session as any)?.user?.id,
       tenantId,
-      session.accessToken
+      (session as any)?.accessToken
     )
     
     if (!tenantContext) {
@@ -43,7 +43,7 @@ export async function DELETE(
     console.log('[Delete Agent Deployment API] Deleting agent:', agentId, 'from tenant:', tenantId)
 
     // Create SDK instance with user's auth token
-    const xians = createXiansSDK(session.accessToken)
+    const xians = createXiansSDK((session as any)?.accessToken)
 
     // Delete the agent deployment (agentId is actually the agent name)
     await xians.agents.deleteAgentDeployment(tenantId, agentId)

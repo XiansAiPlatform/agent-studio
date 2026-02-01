@@ -89,7 +89,7 @@ function ConnectionsContent() {
     deleteConnection,
     testConnection,
     authorizeConnection
-  } = useConnections(currentTenantId);
+  } = useConnections(currentTenantId ?? undefined);
 
   // Filter connections based on search and filters
   const filteredConnections = connections?.filter(conn => {
@@ -165,6 +165,7 @@ function ConnectionsContent() {
     expired: 'bg-yellow-100 text-yellow-800 border-yellow-200', 
     error: 'bg-red-100 text-red-800 border-red-200',
     draft: 'bg-gray-100 text-gray-800 border-gray-200',
+    pending: 'bg-amber-100 text-amber-800 border-amber-200',
     authorizing: 'bg-blue-100 text-blue-800 border-blue-200',
     disabled: 'bg-gray-100 text-gray-600 border-gray-200'
   };
@@ -174,6 +175,7 @@ function ConnectionsContent() {
     expired: <Clock className="h-3 w-3" />,
     error: <AlertCircle className="h-3 w-3" />,
     draft: <Settings className="h-3 w-3" />,
+    pending: <Clock className="h-3 w-3" />,
     authorizing: <Loader2 className="h-3 w-3 animate-spin" />,
     disabled: <X className="h-3 w-3" />
   };
