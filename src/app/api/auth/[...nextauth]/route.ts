@@ -19,13 +19,15 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
   )
 }
 
-export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  
-  providers: [
+// Build providers array dynamically based on available environment variables
+const providers = []
+
+// Add Google provider if credentials are available
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       authorization: {
         params: {
           prompt: "consent",
@@ -36,10 +38,18 @@ export const authOptions: NextAuthOptions = {
       httpOptions: {
         timeout: 10000, // Increase timeout to 10 seconds
       }
-    }),
+    })
+  )
+} else {
+  console.log('[Auth] Google SSO disabled - GOOGLE_CLIENT_ID and/or GOOGLE_CLIENT_SECRET not configured')
+}
+
+// Add Azure AD provider if credentials are available
+if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
+  providers.push(
     AzureADProvider({
-      clientId: process.env.AZURE_AD_CLIENT_ID!,
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+      clientId: process.env.AZURE_AD_CLIENT_ID,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
       tenantId: process.env.AZURE_AD_TENANT_ID,
       authorization: {
         params: {
@@ -49,8 +59,16 @@ export const authOptions: NextAuthOptions = {
       httpOptions: {
         timeout: 10000, // Increase timeout to 10 seconds
       }
-    }),
-  ],
+    })
+  )
+} else {
+  console.log('[Auth] Microsoft SSO disabled - AZURE_AD_CLIENT_ID and/or AZURE_AD_CLIENT_SECRET not configured')
+}
+
+export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+  
+  providers,
   
   callbacks: {
     async signIn({ user, account, profile }) {

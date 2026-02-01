@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  agent-studio-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    ports:
+      - "3010:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    env_file:
+      - .env.local
+    volumes:
+      # Enable hot reloading by mounting source code
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+      - ./next.config.ts:/app/next.config.ts:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./tailwind.config.ts:/app/tailwind.config.ts:ro
+      - ./postcss.config.mjs:/app/postcss.config.mjs:ro
+    command: npm run dev
+    restart: unless-stopped
+    networks:
+      - agent-studio-dev-network
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
+
+networks:
+  agent-studio-dev-network:
+    driver: bridge
