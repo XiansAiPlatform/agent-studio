@@ -20,14 +20,14 @@ export function Header() {
       <div className="flex h-14 items-center gap-4 px-6">
         {/* Tenant Logo / Branding */}
         <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="flex items-center justify-center h-20 w-20 bg-transparent">
+          <div className="flex items-center justify-center max-h-10 max-w-[80px]">
             {logoSrc ? (
               <Image 
                 src={logoSrc} 
                 alt={currentTenant?.tenant.name || 'Logo'}
                 width={logo?.width || 40}
                 height={logo?.height || 40}
-                className="object-contain h-full w-full"
+                className="object-contain max-h-10 w-auto"
                 priority
               />
             ) : (

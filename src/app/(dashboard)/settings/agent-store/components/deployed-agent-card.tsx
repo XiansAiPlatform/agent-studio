@@ -30,7 +30,7 @@ export function DeployedAgentCard({
 
   return (
     <div 
-      className={`group py-6 px-6 cursor-pointer transition-all duration-200 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 border-b border-slate-200/60 dark:border-slate-700/60 last:border-b-0 ${
+      className={`group py-7 px-6 cursor-pointer transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/30 border-b border-slate-200/60 dark:border-slate-700/60 last:border-b-0 ${
         isNewlyDeployed 
           ? 'bg-emerald-50/30 dark:bg-emerald-900/10 border-b-emerald-200 dark:border-b-emerald-700' 
           : ''
@@ -42,7 +42,7 @@ export function DeployedAgentCard({
         {/* Icon & Name Column */}
         <div className="col-span-4 flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
-            <Icon className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+            <Icon className="h-6 w-6 text-slate-500 dark:text-slate-400" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -56,16 +56,21 @@ export function DeployedAgentCard({
               )}
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded ${
-                deployment.status === 'active' 
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-              }`}>
-                {deployment.status}
-              </span>
+              
               {deployment.version && (
                 <span className="text-xs text-slate-400">v{deployment.version}</span>
               )}
+              .
+              {deployment.author && (
+                <span className="text-xs text-slate-400">by {deployment.author}</span>
+              )}
+              .
+              <span className="text-xs text-slate-400">
+                published on {new Date(deployment.createdAt).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric'
+                })}
+              </span>
             </div>
           </div>
         </div>
@@ -99,15 +104,6 @@ export function DeployedAgentCard({
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span className="text-xs">{deployment.activationCount ?? 0} runs</span>
             </div>
-            <div className="text-xs">
-              {new Date(deployment.createdAt).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric'
-              })}
-            </div>
-            {deployment.author && (
-              <div className="text-xs text-slate-400">by {deployment.author}</div>
-            )}
           </div>
         </div>
 
@@ -117,13 +113,14 @@ export function DeployedAgentCard({
             <Button 
               variant="ghost" 
               size="sm"
-              className="h-8 px-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="h-8 px-3 text-slate-600 hover:text-white dark:text-slate-400 dark:hover:text-white hover:bg-primary dark:hover:bg-primary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 onStartNewRun?.();
               }}
             >
-              <Play className="h-3.5 w-3.5" />
+              <Play className="h-3.5 w-3.5 mr-1.5" />
+              <span className="text-xs font-medium">Activate New</span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

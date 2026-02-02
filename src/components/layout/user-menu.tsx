@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { LogOut, Building2 } from 'lucide-react';
+import { LogOut, Building2, ShieldCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/use-tenant';
 
 export function UserMenu() {
@@ -64,9 +65,15 @@ export function UserMenu() {
               {user.initials}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0 gap-1">
             <p className="text-sm font-medium truncate">{user.name}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            {session?.user?.isSystemAdmin && (
+              <Badge variant="secondary" className="w-fit text-[10px] px-1.5 py-0 h-4 gap-1">
+                <ShieldCheck className="h-3 w-3" />
+                System Admin
+              </Badge>
+            )}
           </div>
         </div>
 

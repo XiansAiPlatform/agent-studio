@@ -417,9 +417,9 @@ export default function AgentsPage() {
               <Bot className="h-6 w-6 text-muted-foreground/60" />
             </div>
             <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-foreground">No agents</p>
+              <p className="text-sm font-medium text-foreground">No activated agents</p>
               <p className="text-xs text-muted-foreground">
-                You haven&apos;t activated any agents yet. Click &quot;Add from Store&quot; to get started.
+                You haven&apos;t activated any agents yet. Click &quot;Activate from Store&quot; to get started.
               </p>
             </div>
           </div>

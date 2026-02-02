@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { LogLevel } from '@/app/(dashboard)/settings/logs/types';
 
 interface LogLevelBadgeProps {
-  level: LogLevel;
+  level: LogLevel | string;
   className?: string;
 }
 
@@ -28,6 +28,11 @@ const LOG_LEVEL_CONFIG: Record<LogLevel, {
     icon: Info,
     className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-900',
   },
+  Info: {
+    label: 'Info',
+    icon: Info,
+    className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-900',
+  },
   Debug: {
     label: 'Debug',
     icon: Bug,
@@ -41,7 +46,23 @@ const LOG_LEVEL_CONFIG: Record<LogLevel, {
 };
 
 export function LogLevelBadge({ level, className }: LogLevelBadgeProps) {
-  const config = LOG_LEVEL_CONFIG[level];
+  // Normalize the level to match our config keys
+  // Handle various formats: lowercase, uppercase, etc.
+  let normalizedLevel: LogLevel = 'Information';
+  
+  if (level) {
+    const levelStr = String(level);
+    const capitalizedLevel = levelStr.charAt(0).toUpperCase() + levelStr.slice(1).toLowerCase() as LogLevel;
+    
+    // Check if this is a valid log level in our config
+    if (capitalizedLevel in LOG_LEVEL_CONFIG) {
+      normalizedLevel = capitalizedLevel;
+    } else if (level in LOG_LEVEL_CONFIG) {
+      normalizedLevel = level as LogLevel;
+    }
+  }
+  
+  const config = LOG_LEVEL_CONFIG[normalizedLevel];
   const Icon = config.icon;
 
   return (

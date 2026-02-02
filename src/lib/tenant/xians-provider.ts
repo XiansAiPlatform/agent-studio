@@ -65,17 +65,17 @@ export class XiansTenantProvider implements TenantProvider {
     
     // Get participant tenants using the new API
     // This returns tenant IDs and names where user has TenantParticipant role
-    const participantTenants = await tenantsApi.getParticipantTenants(userEmail)
+    const response = await tenantsApi.getParticipantTenants(userEmail)
     
-    if (participantTenants.length === 0) {
+    if (response.tenants.length === 0) {
       console.log('[XiansTenantProvider] User has no tenant access')
       return []
     }
     
-    console.log('[XiansTenantProvider] User has access to', participantTenants.length, 'tenant(s)')
+    console.log('[XiansTenantProvider] User has access to', response.tenants.length, 'tenant(s), isSystemAdmin:', response.isSystemAdmin)
     
     // Fetch full tenant details for each participant tenant
-    const tenantPromises = participantTenants.map(async (participantTenant) => {
+    const tenantPromises = response.tenants.map(async (participantTenant) => {
       const tenantId = participantTenant.tenantId
       try {
         const xiansTenant = await tenantsApi.getTenant(tenantId)

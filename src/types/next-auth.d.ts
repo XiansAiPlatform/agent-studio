@@ -23,6 +23,8 @@ declare module "next-auth" {
       role: string
       /** Whether user has access to at least one tenant */
       hasTenantAccess?: boolean
+      /** Whether user is a system administrator */
+      isSystemAdmin?: boolean
     } & DefaultSession["user"]
     /** OAuth access token for API calls */
     accessToken?: string
@@ -35,6 +37,7 @@ declare module "next-auth" {
   interface User extends DefaultUser {
     role?: string
     hasTenantAccess?: boolean
+    isSystemAdmin?: boolean
   }
 }
 
@@ -56,5 +59,7 @@ declare module "next-auth/jwt" {
     provider?: string
     /** Whether user has tenant access */
     hasTenantAccess?: boolean
+    /** Whether user is a system administrator */
+    isSystemAdmin?: boolean
   }
 }

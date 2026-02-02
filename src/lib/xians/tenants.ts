@@ -5,7 +5,7 @@
  */
 
 import { XiansClient } from './client'
-import { XiansTenant, XiansParticipantTenant } from './types'
+import { XiansTenant, XiansParticipantTenant, XiansParticipantTenantsResponse } from './types'
 
 export class XiansTenantsApi {
   constructor(private client: XiansClient) {}
@@ -62,29 +62,32 @@ export class XiansTenantsApi {
   /**
    * Get participant tenants by email
    * GET /api/v1/admin/participants/{email}/tenants
-   * Returns list of tenants where user has TenantParticipant role
+   * Returns list of tenants where user has TenantParticipant role plus system admin flag
    */
-  async getParticipantTenants(email: string): Promise<XiansParticipantTenant[]> {
+  async getParticipantTenants(email: string): Promise<XiansParticipantTenantsResponse> {
     console.log(`[Xians Tenants] Fetching participant tenants for: ${email}`)
     
     try {
-      const participantTenants = await this.client.get<XiansParticipantTenant[]>(
+      const response = await this.client.get<XiansParticipantTenantsResponse>(
         `/api/v1/admin/participants/${encodeURIComponent(email)}/tenants`
       )
       
-      console.log(`[Xians Tenants] Found ${participantTenants.length} tenants for ${email}:`, 
-        participantTenants.map(t => `${t.tenantId} (${t.tenantName})`).join(', '))
+      console.log(`[Xians Tenants] Found ${response.tenants.length} tenants for ${email} (isSystemAdmin: ${response.isSystemAdmin}):`, 
+        response.tenants.map(t => `${t.tenantId} (${t.tenantName})`).join(', '))
       
-      return participantTenants
+      return response
     } catch (error: any) {
       console.error(`[Xians Tenants] Failed to fetch participant tenants for ${email}:`, {
         error: error.message,
         status: error.status
       })
       
-      // If 404, user has no tenants - return empty array
+      // If 404, user has no tenants - return empty response
       if (error.status === 404) {
-        return []
+        return {
+          isSystemAdmin: false,
+          tenants: []
+        }
       }
       
       throw error

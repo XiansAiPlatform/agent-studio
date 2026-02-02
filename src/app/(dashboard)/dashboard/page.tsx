@@ -144,12 +144,12 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <div className="container mx-auto p-6 space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">
+      <div className="flex items-center justify-between mb-2">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold text-foreground">
             Welcome, {user?.name || user?.email || 'User'}!
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-base text-muted-foreground">
             Let's get started with your AI agent team.
           </p>
         </div>
@@ -169,20 +169,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Task Overview - Textual */}
-      <div className="space-y-3">
+      {/* Performance Metrics */}
+      <div className="space-y-4 pt-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <h2 className="text-lg font-medium text-foreground">Tasks overview</h2>
+          <div className="flex items-center gap-2.5">
+            <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-xl font-medium text-foreground">Organizational Overview</h2>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {(['7d', '30d', '90d'] as const).map((period) => (
               <button
                 key={period}
                 onClick={() => setTimePeriod(period)}
                 className={cn(
-                  'px-2 py-1 rounded transition-colors',
+                  'px-3 py-1.5 rounded transition-colors',
                   timePeriod === period
                     ? 'text-foreground font-medium underline underline-offset-4'
                     : 'hover:text-foreground'
@@ -193,72 +193,73 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+
         {isLoadingStats ? (
-          <div className="flex items-center gap-2 py-2">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Loading task stats...</span>
+          <div className="flex items-center gap-2 py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Loading statistics...</span>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Your organization has{' '}
-            <Link 
-              href="/tasks?viewType=everyone&status=pending" 
-              className="font-medium text-yellow-600 dark:text-yellow-500 hover:underline cursor-pointer"
-            >
-              {taskStats.pending} pending
-            </Link>{' '}
-            tasks awaiting review, with{' '}
-            <span className="font-medium text-green-600 dark:text-green-500">{taskStats.completed} completed</span>, {' '}
-            <span className="font-medium text-red-600 dark:text-red-500">{taskStats.cancelled} cancelled</span>, and{' '}
-            <span className="font-medium text-orange-600 dark:text-orange-500">{taskStats.timedOut} timed out</span>.
-            {' '}Total of <span className="font-medium text-foreground">{taskStats.total} tasks</span> in this period.
-          </p>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {/* Pending Tasks */}
+            <Link href="/tasks?viewType=everyone&status=pending" className="group block">
+              <div className="flex items-baseline gap-3 mb-1.5">
+                <div className="text-5xl font-light tabular-nums tracking-tight text-foreground group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors">
+                  {taskStats.pending}
+                </div>
+                <div className="h-8 w-0.5 bg-yellow-500/60 dark:bg-yellow-400/60" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium text-foreground/80 group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors">Pending Tasks</div>
+                <div className="text-xs text-muted-foreground">Awaiting review</div>
+              </div>
+            </Link>
+
+            {/* Completed Tasks */}
+            <div className="group">
+              <div className="flex items-baseline gap-3 mb-1.5">
+                <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+                  {taskStats.completed}
+                </div>
+                <div className="h-8 w-0.5 bg-green-500/60 dark:bg-green-400/60" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium text-foreground/80">Completed Tasks</div>
+                <div className="text-xs text-muted-foreground">In this period</div>
+              </div>
+            </div>
+
+            
+
+            {/* Active Users */}
+            <div className="group">
+              <div className="flex items-baseline gap-3 mb-1.5">
+                <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+                  {messageStats.activeUsers}
+                </div>
+                <div className="h-8 w-0.5 bg-blue-500/60 dark:bg-blue-400/60" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium text-foreground/80">Active Users</div>
+                <div className="text-xs text-muted-foreground">In this period</div>
+              </div>
+            </div>
+
+            {/* Total Messages */}
+            <div className="group">
+              <div className="flex items-baseline gap-3 mb-1.5">
+                <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+                  {messageStats.totalMessages}
+                </div>
+                <div className="h-8 w-0.5 bg-purple-500/60 dark:bg-purple-400/60" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium text-foreground/80">Total Messages</div>
+                <div className="text-xs text-muted-foreground">Exchanged</div>
+              </div>
+            </div>
+          </div>
         )}
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 py-4">
-        {/* Running Agents */}
-        <div className="group">
-          <div className="flex items-baseline gap-3 mb-1.5">
-            <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
-              {activeAgents.length}
-            </div>
-            <div className="h-8 w-0.5 bg-emerald-500/60 dark:bg-emerald-400/60" />
-          </div>
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium text-foreground/80">Running Agents</div>
-            <div className="text-xs text-muted-foreground">Currently active</div>
-          </div>
-        </div>
-
-        {/* Active Users */}
-        <div className="group">
-          <div className="flex items-baseline gap-3 mb-1.5">
-            <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
-              {messageStats.activeUsers}
-            </div>
-            <div className="h-8 w-0.5 bg-blue-500/60 dark:bg-blue-400/60" />
-          </div>
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium text-foreground/80">Active Users</div>
-            <div className="text-xs text-muted-foreground">In this period</div>
-          </div>
-        </div>
-
-        {/* Total Messages */}
-        <div className="group">
-          <div className="flex items-baseline gap-3 mb-1.5">
-            <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
-              {messageStats.totalMessages}
-            </div>
-            <div className="h-8 w-0.5 bg-purple-500/60 dark:bg-purple-400/60" />
-          </div>
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium text-foreground/80">Total Messages</div>
-            <div className="text-xs text-muted-foreground">Exchanged</div>
-          </div>
-        </div>
       </div>
 
       {/* Main Content - Textual Layout */}
@@ -293,9 +294,6 @@ export default function DashboardPage() {
                 <Zap className="h-8 w-8 text-muted-foreground/60" />
               </div>
               <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-foreground">
-                  Your agents are ready to take action!
-                </p>
                 <p className="text-xs text-muted-foreground max-w-xs">
                   Activity logs will appear here as your agents start working
                 </p>
@@ -391,9 +389,9 @@ export default function DashboardPage() {
                 </p>
               </div>
               <Button variant="outline" size="sm" asChild className="mt-2">
-                <Link href="/agents/running">
+                <Link href="/settings/agent-store">
                   <Zap className="mr-2 h-3.5 w-3.5" />
-                  Activate Agents
+                  Activate New Agents
                 </Link>
               </Button>
             </div>

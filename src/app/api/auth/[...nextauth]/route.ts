@@ -77,16 +77,18 @@ export const authOptions: NextAuthOptions = {
         try {
           const client = createXiansClient()
           const tenantsApi = new XiansTenantsApi(client)
-          const tenantNames = await tenantsApi.getParticipantTenants(user.email)
+          const response = await tenantsApi.getParticipantTenants(user.email)
           
-          // Store tenant check result in user object (temporary)
-          user.hasTenantAccess = tenantNames.length > 0
+          // Store tenant check result and system admin flag in user object (temporary)
+          user.hasTenantAccess = response.tenants.length > 0
+          user.isSystemAdmin = response.isSystemAdmin
           
-          console.log(`[Auth] User ${user.email} has access to ${tenantNames.length} tenant(s)`)
+          console.log(`[Auth] User ${user.email} has access to ${response.tenants.length} tenant(s), isSystemAdmin: ${response.isSystemAdmin}`)
         } catch (error) {
           console.error('[Auth] Error checking tenant access during sign-in:', error)
           // Allow sign in even if check fails - we'll validate again on redirect
           user.hasTenantAccess = true
+          user.isSystemAdmin = false
         }
       }
       
@@ -107,6 +109,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role || 'user' // Default role
         token.email = user.email
         token.hasTenantAccess = user.hasTenantAccess
+        token.isSystemAdmin = user.isSystemAdmin
       }
       
       return token
@@ -119,6 +122,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
         session.accessToken = token.accessToken as string
         session.user.hasTenantAccess = token.hasTenantAccess as boolean
+        session.user.isSystemAdmin = token.isSystemAdmin as boolean
       }
       
       return session

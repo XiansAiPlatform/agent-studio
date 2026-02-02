@@ -37,6 +37,15 @@ export interface XiansParticipantTenant {
   }
 }
 
+/**
+ * Response from GET /api/v1/admin/participants/{email}/tenants
+ * Includes system admin flag and list of tenants
+ */
+export interface XiansParticipantTenantsResponse {
+  isSystemAdmin: boolean
+  tenants: XiansParticipantTenant[]
+}
+
 // Agent types
 export interface XiansAgent {
   id: string

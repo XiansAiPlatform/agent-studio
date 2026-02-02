@@ -425,9 +425,11 @@ export default function AgentTemplatesPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleOpenStore}>
-            Import Template
-          </Button>
+          {session?.user?.isSystemAdmin && (
+            <Button variant="outline" onClick={handleOpenStore}>
+              Import Template
+            </Button>
+          )}
           <Button variant="default" asChild>
             <Link href="/agents/running">
               View Activated Agents
@@ -468,21 +470,33 @@ export default function AgentTemplatesPage() {
           {/* Available Agents */}
           <section className="space-y-6">
             {deployedAgents.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="space-y-4">
-                  <div className="flex justify-center">
-                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-                      <Bot className="h-8 w-8 text-muted-foreground" />
+              session?.user?.isSystemAdmin ? (
+                // System admin: Show Browse Agent Templates card
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-lg overflow-hidden shadow-sm">
+                  <AddFromStoreCard
+                    templatesLoaded={templatesLoaded}
+                    availableTemplatesCount={availableTemplates.length}
+                    onClick={handleOpenStore}
+                  />
+                </div>
+              ) : (
+                // Non-admin: Show empty state message
+                <div className="text-center py-16">
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+                        <Bot className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-medium text-foreground">No agents added yet</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
+                        Contact your system administrator to add agents to your organization
+                      </p>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium text-foreground">No agents added yet</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                      Browse the agent store below to discover and add your first agent to your organization
-                    </p>
-                  </div>
                 </div>
-              </div>
+              )
             ) : (
               <>
                 {/* Table Header */}
@@ -507,14 +521,18 @@ export default function AgentTemplatesPage() {
                       onDelete={() => handleDeleteClick(deployment)}
                     />
                   ))}
-                  
-                  {/* Add from Store Placeholder */}
-                  <AddFromStoreCard
-                    templatesLoaded={templatesLoaded}
-                    availableTemplatesCount={availableTemplates.length}
-                    onClick={handleOpenStore}
-                  />
                 </div>
+                
+                {/* Add from Store Card - Separate from main list, Only for System Admins */}
+                {session?.user?.isSystemAdmin && (
+                  <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-lg overflow-hidden shadow-sm">
+                    <AddFromStoreCard
+                      templatesLoaded={templatesLoaded}
+                      availableTemplatesCount={availableTemplates.length}
+                      onClick={handleOpenStore}
+                    />
+                  </div>
+                )}
               </>
             )}
           </section>

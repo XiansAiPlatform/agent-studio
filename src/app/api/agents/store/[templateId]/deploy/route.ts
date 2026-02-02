@@ -2,22 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { createXiansSDK } from '@/lib/xians'
-import { handleApiError, unauthorizedError, validationError } from '@/lib/api/error-handler'
+import { handleApiError, validationError } from '@/lib/api/error-handler'
+import { requireSystemAdmin } from '@/lib/api/auth'
 
 /**
  * POST /api/agents/store/{templateId}/deploy
  * Deploy an agent template to the current tenant
+ * Requires system administrator access
  */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
+    // Verify user is authenticated and is a system admin
     const session = await getServerSession(authOptions)
-    
-    if (!session) {
-      return unauthorizedError()
-    }
+    const authError = await requireSystemAdmin(session)
+    if (authError) return authError
 
     // Get tenantId from request body or query params
     const body = await request.json().catch(() => ({}))
