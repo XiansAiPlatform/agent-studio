@@ -9,6 +9,7 @@ interface TopicSidebarProps {
   selectedTopicId: string;
   onSelectTopic: (topicId: string) => void;
   onCreateTopic?: (topicName: string) => void;
+  onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   unreadCounts: Record<string, number>;
   activations: ActivationOption[];
   selectedActivationName: string | null;
@@ -31,6 +32,7 @@ export function TopicSidebar({
   selectedTopicId,
   onSelectTopic,
   onCreateTopic,
+  onDeleteTopic,
   unreadCounts,
   activations,
   selectedActivationName,
@@ -50,6 +52,7 @@ export function TopicSidebar({
           selectedTopicId={selectedTopicId}
           onSelectTopic={onSelectTopic}
           onCreateTopic={onCreateTopic}
+          onDeleteTopic={onDeleteTopic}
           unreadCounts={unreadCounts}
           activations={activations}
           selectedActivationName={selectedActivationName}

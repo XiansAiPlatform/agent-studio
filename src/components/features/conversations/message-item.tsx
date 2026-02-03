@@ -127,7 +127,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
               : 'bg-muted/50 text-foreground'
           )}
         >
-          <div className="text-sm leading-relaxed markdown-content">
+          <div className="text-sm leading-relaxed markdown-content [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkBreaks]}
               components={{
@@ -160,7 +160,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                     <code
                       {...props}
                       className={cn(
-                        'block px-3 py-2 my-2 rounded text-xs font-mono overflow-x-auto',
+                        'block px-4 py-3 rounded-md text-xs font-mono overflow-x-auto leading-relaxed',
                         isUser
                           ? 'bg-primary-foreground/20'
                           : 'bg-muted-foreground/20'
@@ -170,14 +170,14 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                 },
                 // Customize pre block styling (wraps code blocks)
                 pre: ({ node, ...props }) => (
-                  <pre {...props} className="my-2" />
+                  <pre {...props} className="my-3" />
                 ),
                 // Ensure proper text color and spacing
                 p: ({ node, ...props }) => (
                   <p
                     {...props}
                     className={cn(
-                      'my-1',
+                      'my-2 leading-relaxed',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -186,7 +186,8 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <ul
                     {...props}
                     className={cn(
-                      'list-disc list-outside my-1 space-y-0.5 pl-5',
+                      'list-disc my-3 space-y-1.5 pl-6 marker:text-current',
+                      '[&>li]:pl-1.5',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -195,7 +196,8 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <ol
                     {...props}
                     className={cn(
-                      'list-decimal list-outside my-1 space-y-0.5 pl-5',
+                      'list-decimal my-3 space-y-1.5 pl-6 marker:text-current',
+                      '[&>li]:pl-1.5',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -204,7 +206,9 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <li
                     {...props}
                     className={cn(
-                      'break-inside-avoid',
+                      'leading-relaxed',
+                      '[&>ul]:mt-1.5 [&>ol]:mt-1.5',
+                      '[&>ul]:mb-0 [&>ol]:mb-0',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -228,7 +232,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <h1
                     {...props}
                     className={cn(
-                      'text-lg font-bold mt-3 mb-2',
+                      'text-lg font-bold mt-4 mb-2 leading-tight',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -237,7 +241,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <h2
                     {...props}
                     className={cn(
-                      'text-base font-bold mt-2 mb-1',
+                      'text-base font-bold mt-4 mb-2 leading-tight',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -246,7 +250,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <h3
                     {...props}
                     className={cn(
-                      'text-sm font-bold mt-2 mb-1',
+                      'text-sm font-bold mt-3 mb-1.5 leading-tight',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -255,7 +259,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <blockquote
                     {...props}
                     className={cn(
-                      'border-l-2 pl-3 my-2 italic',
+                      'border-l-3 pl-4 my-3 italic leading-relaxed',
                       isUser
                         ? 'border-primary-foreground/40 text-primary-foreground/90'
                         : 'border-muted-foreground/40 text-muted-foreground'
@@ -266,7 +270,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <hr
                     {...props}
                     className={cn(
-                      'my-2',
+                      'my-4',
                       isUser
                         ? 'border-primary-foreground/30'
                         : 'border-muted-foreground/30'
@@ -274,7 +278,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   />
                 ),
                 table: ({ node, ...props }) => (
-                  <div className="overflow-x-auto my-2">
+                  <div className="overflow-x-auto my-3">
                     <table
                       {...props}
                       className={cn(
@@ -288,7 +292,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <th
                     {...props}
                     className={cn(
-                      'border px-2 py-1 text-left font-semibold',
+                      'border px-3 py-2 text-left font-semibold text-sm',
                       isUser
                         ? 'border-primary-foreground/30 bg-primary-foreground/10'
                         : 'border-border bg-muted/50'
@@ -299,7 +303,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                   <td
                     {...props}
                     className={cn(
-                      'border px-2 py-1',
+                      'border px-3 py-2 text-sm',
                       isUser
                         ? 'border-primary-foreground/30'
                         : 'border-border'
@@ -403,7 +407,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
 
                 {/* Draft Body */}
                 <div className="px-4 py-3 max-h-96 overflow-y-auto">
-                  <div className="text-sm leading-relaxed markdown-content">
+                  <div className="text-sm leading-relaxed markdown-content [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkBreaks]}
                       components={{
@@ -425,24 +429,24 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                           ) : (
                             <code
                               {...props}
-                              className="block px-3 py-2 my-2 rounded text-xs font-mono overflow-x-auto bg-muted-foreground/20"
+                              className="block px-4 py-3 rounded-md text-xs font-mono overflow-x-auto leading-relaxed bg-muted-foreground/20"
                             />
                           );
                         },
                         pre: ({ node, ...props }) => (
-                          <pre {...props} className="my-2" />
+                          <pre {...props} className="my-3" />
                         ),
                         p: ({ node, ...props }) => (
-                          <p {...props} className="my-1 text-foreground" />
+                          <p {...props} className="my-2 leading-relaxed text-foreground" />
                         ),
                         ul: ({ node, ...props }) => (
-                          <ul {...props} className="list-disc list-outside my-1 space-y-0.5 pl-5 text-foreground" />
+                          <ul {...props} className="list-disc my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground" />
                         ),
                         ol: ({ node, ...props }) => (
-                          <ol {...props} className="list-decimal list-outside my-1 space-y-0.5 pl-5 text-foreground" />
+                          <ol {...props} className="list-decimal my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground" />
                         ),
                         li: ({ node, ...props }) => (
-                          <li {...props} className="break-inside-avoid text-foreground" />
+                          <li {...props} className="leading-relaxed [&>ul]:mt-1.5 [&>ol]:mt-1.5 [&>ul]:mb-0 [&>ol]:mb-0 text-foreground" />
                         ),
                         strong: ({ node, ...props }) => (
                           <strong {...props} className="font-bold text-foreground" />
@@ -451,36 +455,36 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
                           <em {...props} className="italic text-foreground" />
                         ),
                         h1: ({ node, ...props }) => (
-                          <h1 {...props} className="text-lg font-bold mt-3 mb-2 text-foreground" />
+                          <h1 {...props} className="text-lg font-bold mt-4 mb-2 leading-tight text-foreground" />
                         ),
                         h2: ({ node, ...props }) => (
-                          <h2 {...props} className="text-base font-bold mt-2 mb-1 text-foreground" />
+                          <h2 {...props} className="text-base font-bold mt-4 mb-2 leading-tight text-foreground" />
                         ),
                         h3: ({ node, ...props }) => (
-                          <h3 {...props} className="text-sm font-bold mt-2 mb-1 text-foreground" />
+                          <h3 {...props} className="text-sm font-bold mt-3 mb-1.5 leading-tight text-foreground" />
                         ),
                         blockquote: ({ node, ...props }) => (
                           <blockquote
                             {...props}
-                            className="border-l-2 border-muted-foreground/40 pl-3 my-2 italic text-muted-foreground"
+                            className="border-l-3 border-muted-foreground/40 pl-4 my-3 italic leading-relaxed text-muted-foreground"
                           />
                         ),
                         hr: ({ node, ...props }) => (
-                          <hr {...props} className="my-2 border-muted-foreground/30" />
+                          <hr {...props} className="my-4 border-muted-foreground/30" />
                         ),
                         table: ({ node, ...props }) => (
-                          <div className="overflow-x-auto my-2">
+                          <div className="overflow-x-auto my-3">
                             <table {...props} className="min-w-full border-collapse text-foreground" />
                           </div>
                         ),
                         th: ({ node, ...props }) => (
                           <th
                             {...props}
-                            className="border border-border px-2 py-1 text-left font-semibold bg-muted/50"
+                            className="border border-border px-3 py-2 text-left font-semibold text-sm bg-muted/50"
                           />
                         ),
                         td: ({ node, ...props }) => (
-                          <td {...props} className="border border-border px-2 py-1" />
+                          <td {...props} className="border border-border px-3 py-2 text-sm" />
                         ),
                       }}
                     >

@@ -2,21 +2,36 @@
 
 import { useState, useRef, useEffect, Fragment } from 'react';
 import { Topic } from '@/lib/data/dummy-conversations';
-import { getTaskById } from '@/lib/data/dummy-tasks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Check, X } from 'lucide-react';
+import { Plus, Check, X, Trash2, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TOPIC_STATUS_CONFIG } from '@/lib/conversation-status-config';
-import { TaskStatusBadge } from '@/components/features/tasks';
 import { AgentActivationSelector, ActivationOption } from './agent-activation-selector';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TopicListProps {
   topics: Topic[];
   selectedTopicId: string;
   onSelectTopic: (topicId: string) => void;
   onCreateTopic?: (topicName: string) => void;
+  onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   unreadCounts?: Record<string, number>;
   // Agent activation selector props
   activations?: ActivationOption[];
@@ -49,6 +64,7 @@ export function TopicList({
   selectedTopicId,
   onSelectTopic,
   onCreateTopic,
+  onDeleteTopic,
   unreadCounts = {},
   // Agent activation selector props
   activations = [],
@@ -61,6 +77,8 @@ export function TopicList({
 }: TopicListProps) {
   const [isCreatingTopic, setIsCreatingTopic] = useState(false);
   const [newTopicName, setNewTopicName] = useState('');
+  const [topicToDelete, setTopicToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingTopic, setIsDeletingTopic] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when creating new topic
@@ -96,6 +114,30 @@ export function TopicList({
       e.preventDefault();
       handleCreateCancel();
     }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, topicId: string, topicName: string) => {
+    e.stopPropagation();
+    setTopicToDelete({ id: topicId, name: topicName });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!topicToDelete || !onDeleteTopic) return;
+
+    setIsDeletingTopic(true);
+    try {
+      await onDeleteTopic(topicToDelete.id, topicToDelete.name);
+      setTopicToDelete(null);
+    } catch (error) {
+      // Error handling is done in the parent component
+      console.error('[TopicList] Error deleting topic:', error);
+    } finally {
+      setIsDeletingTopic(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setTopicToDelete(null);
   };
 
   return (
@@ -145,10 +187,18 @@ export function TopicList({
 
           return (
             <Fragment key={topic.id}>
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelectTopic(topic.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectTopic(topic.id);
+                  }
+                }}
                 className={cn(
-                  'w-full text-left px-6 py-3 transition-all duration-200 relative group/topic',
+                  'w-full text-left px-6 py-3 transition-all duration-200 relative group/topic cursor-pointer',
                   'hover:bg-muted/50',
                   isSelected && 'bg-muted',
                   'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:transition-all before:duration-200',
@@ -161,20 +211,48 @@ export function TopicList({
                 <div className="space-y-1">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className={cn(
-                      "font-medium text-sm leading-tight",
+                      "font-medium text-sm leading-tight flex-1",
                       isSelected && "text-foreground",
                       !isSelected && "text-foreground/90"
                     )}>
                       {topic.name}
                     </h3>
-                    {unreadCount > 0 && (
-                      <Badge 
-                        variant="default" 
-                        className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold flex-shrink-0"
-                      >
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {unreadCount > 0 && (
+                        <Badge 
+                          variant="default" 
+                          className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold"
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                      )}
+                      {onDeleteTopic && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-6 w-6 p-0 opacity-0 group-hover/topic:opacity-100 transition-opacity hover:bg-muted"
+                            >
+                              <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(e, topic.id, topic.name);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -189,7 +267,7 @@ export function TopicList({
                     )}
                   </div>
                 </div>
-              </button>
+              </div>
 
               {/* Inline topic creation - appears after General Discussions */}
               {isCreatingTopic && isLastGeneralTopic && (
@@ -233,6 +311,28 @@ export function TopicList({
           );
         })}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!topicToDelete} onOpenChange={(open) => !open && handleDeleteCancel()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Topic Messages</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all messages in &quot;{topicToDelete?.name}&quot;? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingTopic}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeletingTopic}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingTopic ? 'Deleting...' : 'Delete Messages'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

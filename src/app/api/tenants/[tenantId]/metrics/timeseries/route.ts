@@ -59,17 +59,22 @@ export async function GET(
     );
   }
 
+  // SECURITY: Get participantId from authenticated session, not from client
+  // Only admins should be able to filter by participantId, regular users should only see their own data
+  const sessionParticipantId = session.user?.email;
+  
   // Get optional filter parameters
   const filters = {
     agentName: searchParams.get('agentName') || undefined,
     activationName: searchParams.get('activationName') || undefined,
-    participantId: searchParams.get('participantId') || undefined,
+    // SECURITY: Always use session participantId, never accept from query params
+    participantId: sessionParticipantId,
     workflowType: searchParams.get('workflowType') || undefined,
     model: searchParams.get('model') || undefined,
   };
 
   try {
-    console.log(`[Metrics Timeseries API] Fetching timeseries for tenant: ${tenantId}, category: ${category}, type: ${type}, groupBy: ${groupBy}, period: ${startDate} to ${endDate}, filters:`, filters);
+    console.log(`[Metrics Timeseries API] Fetching timeseries for tenant: ${tenantId}, category: ${category}, type: ${type}, groupBy: ${groupBy}, period: ${startDate} to ${endDate}, participantId: ${sessionParticipantId}, filters:`, filters);
     
     const data = await getMetricsTimeseries(
       tenantId,

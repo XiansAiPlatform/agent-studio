@@ -37,11 +37,15 @@ export async function PUT(
 
       console.log('[Activations API] Calling Xians SDK to update activation...')
 
+      // SECURITY: Remove participantId from body if present - it should never be updated from frontend
+      // participantId is set during activation creation and should not be changed
+      const { participantId: _, ...safeBody } = body
+
       // Update the activation
       const result = await xians.agents.updateActivation(
         apiContext.tenantContext.tenant.id,
         activationId,
-        body
+        safeBody
       )
 
       console.log('[Activations API] Successfully updated activation:', activationId)

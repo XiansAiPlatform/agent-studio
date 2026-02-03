@@ -29,6 +29,7 @@ interface ConversationViewProps {
   isConnected: boolean;
   sseError?: Error | null;
   onCreateTopic?: (topicName: string) => void;
+  onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -61,6 +62,7 @@ export function ConversationView({
   isConnected,
   sseError,
   onCreateTopic,
+  onDeleteTopic,
   chatInputRef,
 }: ConversationViewProps) {
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
@@ -79,6 +81,7 @@ export function ConversationView({
         selectedTopicId={selectedTopicId}
         onSelectTopic={onTopicSelect}
         onCreateTopic={onCreateTopic}
+        onDeleteTopic={onDeleteTopic}
         unreadCounts={unreadCounts}
         activations={activations}
         selectedActivationName={selectedActivationName}

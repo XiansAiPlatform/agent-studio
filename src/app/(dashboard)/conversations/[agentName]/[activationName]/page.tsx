@@ -56,6 +56,7 @@ function ConversationContent() {
     totalPages,
     hasMore,
     addTopic,
+    refetch: refetchTopics,
   } = useTopics({
     tenantId: currentTenantId,
     agentName,
@@ -173,6 +174,72 @@ function ConversationContent() {
       chatInputRef.current?.focus();
     }, 100);
   }, [addTopic, updateTopicInURL]);
+
+  // Handle topic deletion
+  const handleDeleteTopic = useCallback(async (topicId: string, topicName: string) => {
+    if (!currentTenantId || !agentName || !activationName) {
+      showErrorToast(new Error('Missing required parameters'), 'Unable to delete topic');
+      return;
+    }
+
+    try {
+      // Determine the topic parameter for the API call
+      // 'general-discussions' means no topic parameter (scope=null)
+      // Any other topicId is the actual topic name
+      const topicParam = topicId === 'general-discussions' ? '' : topicId;
+
+      const queryParams = new URLSearchParams({
+        agentName,
+        activationName,
+        topic: topicParam,
+      });
+
+      const response = await fetch(
+        `/api/tenants/${currentTenantId}/messaging/messages?${queryParams.toString()}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete topic messages');
+      }
+
+      // Clear messages from state for the deleted topic
+      setMessageStates(prev => {
+        const newStates = { ...prev };
+        delete newStates[topicId];
+        
+        // If the deleted topic was selected and we're switching to general discussions,
+        // also clear general discussions state to force a reload of its messages
+        if (selectedTopicId === topicId) {
+          delete newStates['general-discussions'];
+        }
+        
+        return newStates;
+      });
+
+      // If the deleted topic was selected, switch to general discussions
+      if (selectedTopicId === topicId) {
+        const generalTopicId = 'general-discussions';
+        setSelectedTopicId(generalTopicId);
+        updateTopicInURL(generalTopicId);
+      }
+
+      // Reload topics to reflect the updated message counts
+      await refetchTopics();
+
+      toast.success('Topic messages deleted', {
+        description: `All messages in "${topicName}" have been deleted.`,
+      });
+
+      console.log('[ConversationPage] Topic messages deleted successfully:', topicId);
+    } catch (error) {
+      console.error('[ConversationPage] Error deleting topic:', error);
+      showErrorToast(error, 'Failed to delete topic messages');
+      throw error; // Re-throw to let the component handle the error state
+    }
+  }, [currentTenantId, agentName, activationName, selectedTopicId, updateTopicInURL, refetchTopics]);
 
   // Handle topic selection
   const handleTopicSelect = useCallback((topicId: string) => {
@@ -551,6 +618,7 @@ function ConversationContent() {
         isConnected={isConnected}
         sseError={sseError}
         onCreateTopic={handleCreateTopic}
+        onDeleteTopic={handleDeleteTopic}
         chatInputRef={chatInputRef}
       />
     </div>

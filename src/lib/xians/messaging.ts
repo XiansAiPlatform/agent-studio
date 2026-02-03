@@ -6,7 +6,6 @@
 
 import { XiansClient } from './client'
 import { 
-  XiansMessageHistoryParams, 
   XiansMessageHistoryResponse,
   XiansTopicsResponse,
   SendMessageRequest,
@@ -19,15 +18,27 @@ export class XiansMessagingApi {
   /**
    * Get message history for an agent activation
    * 
+   * @param tenantId - Tenant ID
+   * @param participantId - Participant ID (must be from authenticated session)
    * @param params - Message history request parameters
    * @returns Array of messages
    */
-  async getMessageHistory(params: XiansMessageHistoryParams): Promise<XiansMessageHistoryResponse> {
+  async getMessageHistory(
+    tenantId: string,
+    participantId: string,
+    params: {
+      agentName: string
+      activationName: string
+      topic?: string
+      page?: number
+      pageSize?: number
+      chatOnly?: boolean
+      sortOrder?: 'asc' | 'desc'
+    }
+  ): Promise<XiansMessageHistoryResponse> {
     const { 
-      tenantId, 
       agentName, 
       activationName, 
-      participantId,
       topic,
       page = 1,
       pageSize = 50,
@@ -60,6 +71,7 @@ export class XiansMessagingApi {
    * Get topics list for an agent activation
    * 
    * @param tenantId - Tenant ID
+   * @param participantId - Participant ID (must be from authenticated session)
    * @param agentName - Agent name
    * @param activationName - Activation name
    * @param page - Page number (default: 1)
@@ -68,6 +80,7 @@ export class XiansMessagingApi {
    */
   async getTopics(
     tenantId: string,
+    participantId: string,
     agentName: string,
     activationName: string,
     page = 1,
@@ -76,6 +89,7 @@ export class XiansMessagingApi {
     const queryParams = new URLSearchParams({
       agentName,
       activationName,
+      participantId,
       page: page.toString(),
       pageSize: pageSize.toString(),
     })
@@ -89,16 +103,17 @@ export class XiansMessagingApi {
    * Send a message to an agent activation
    * 
    * @param tenantId - Tenant ID
+   * @param participantId - Participant ID (must be from authenticated session)
    * @param params - Message parameters
    * @param authorization - User's auth token
    * @returns Message response with ID and status
    */
   async sendMessage(
     tenantId: string,
+    participantId: string,
     params: {
       agentName: string
       activationName: string
-      participantId: string
       text: string
       topic?: string
       data?: any
@@ -112,7 +127,7 @@ export class XiansMessagingApi {
     const requestBody: SendMessageRequest = {
       agentName: params.agentName,
       activationName: params.activationName,
-      participantId: params.participantId,
+      participantId,
       text: params.text,
       topic: params.topic,
       data: params.data,
@@ -130,17 +145,59 @@ export class XiansMessagingApi {
   }
 
   /**
+   * Delete messages for a specific topic
+   * 
+   * @param tenantId - Tenant ID
+   * @param participantId - Participant ID (must be from authenticated session)
+   * @param params - Delete parameters
+   * @returns void
+   */
+  async deleteMessages(
+    tenantId: string,
+    participantId: string,
+    params: {
+      agentName: string
+      activationName: string
+      topic?: string  // Omit for all messages, undefined for general discussions (scope=null), or specify topic name
+    }
+  ): Promise<void> {
+    const queryParams = new URLSearchParams({
+      agentName: params.agentName,
+      activationName: params.activationName,
+      participantId,
+    })
+
+    // Add topic parameter if provided
+    // undefined = general discussions (scope=null)
+    // specific string = that topic
+    if (params.topic !== undefined) {
+      queryParams.append('topic', params.topic)
+    }
+
+    return this.client.delete(
+      `/api/v1/admin/tenants/${tenantId}/messaging/messages?${queryParams.toString()}`
+    )
+  }
+
+  /**
    * Subscribe to new messages via SSE (to be implemented)
    * Placeholder for future SSE implementation
+   * 
+   * @param tenantId - Tenant ID
+   * @param participantId - Participant ID (must be from authenticated session)
+   * @param params - SSE subscription parameters
+   * @returns Unsubscribe function
    */
-  subscribeToMessages(params: {
-    tenantId: string
-    agentName: string
-    activationName: string
-    participantId: string
-    onMessage: (message: any) => void
-    onError?: (error: Error) => void
-  }): () => void {
+  subscribeToMessages(
+    tenantId: string,
+    participantId: string,
+    params: {
+      agentName: string
+      activationName: string
+      onMessage: (message: any) => void
+      onError?: (error: Error) => void
+    }
+  ): () => void {
     // TODO: Implement SSE connection when endpoint is available
     throw new Error('Not implemented yet')
   }

@@ -43,6 +43,11 @@ export async function getMetricsCategories(
 /**
  * Get metrics statistics for a tenant
  * GET /api/v1/admin/tenants/{tenantId}/metrics/stats
+ * 
+ * SECURITY WARNING: This function is designed to be called from Next.js API routes only.
+ * The participantId filter MUST be derived from the authenticated session, NEVER from client input.
+ * API routes should always pass session.user?.email as participantId to ensure users can only
+ * view their own metrics.
  */
 export async function getMetricsStats(
   tenantId: string,
@@ -51,7 +56,7 @@ export async function getMetricsStats(
   filters?: {
     agentName?: string;
     activationName?: string;
-    participantId?: string;
+    participantId?: string;  // MUST be from session, never from client
     workflowType?: string;
     model?: string;
   },
@@ -89,6 +94,11 @@ export async function getMetricsStats(
 /**
  * Get metrics timeseries data for a tenant
  * GET /api/v1/admin/tenants/{tenantId}/metrics/timeseries
+ * 
+ * SECURITY WARNING: This function is designed to be called from Next.js API routes only.
+ * The participantId filter MUST be derived from the authenticated session, NEVER from client input.
+ * API routes should always pass session.user?.email as participantId to ensure users can only
+ * view their own metrics.
  */
 export async function getMetricsTimeseries(
   tenantId: string,
@@ -100,7 +110,7 @@ export async function getMetricsTimeseries(
   filters?: {
     agentName?: string;
     activationName?: string;
-    participantId?: string;
+    participantId?: string;  // MUST be from session, never from client
     workflowType?: string;
     model?: string;
   },
