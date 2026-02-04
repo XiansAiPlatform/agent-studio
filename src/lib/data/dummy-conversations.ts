@@ -6,6 +6,7 @@ export interface Message {
   role: 'user' | 'agent' | 'system';
   timestamp: string;
   status?: 'sent' | 'delivered' | 'read';
+  taskId?: string; // Associated task ID for the message
   attachments?: {
     type: 'task' | 'file' | 'link';
     id: string;

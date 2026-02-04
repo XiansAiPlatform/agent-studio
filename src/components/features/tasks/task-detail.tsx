@@ -125,7 +125,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
         const workflowId = task.content.data.workflowId;
         
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/tasks/${encodeURIComponent(workflowId)}`
+          `/api/tenants/${currentTenantId}/tasks?taskId=${encodeURIComponent(workflowId)}`
         );
 
         if (!response.ok) {
@@ -185,7 +185,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
     setIsSavingDraft(true);
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/tasks/${encodeURIComponent(taskDetail.workflowId)}/draft`,
+        `/api/tenants/${currentTenantId}/tasks/draft?taskId=${encodeURIComponent(taskDetail.workflowId)}`,
         {
           method: 'PUT',
           headers: {
@@ -240,7 +240,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
     setIsPerformingAction(true);
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/tasks/${encodeURIComponent(taskDetail.workflowId)}/actions`,
+        `/api/tenants/${currentTenantId}/tasks/actions?taskId=${encodeURIComponent(taskDetail.workflowId)}`,
         {
           method: 'POST',
           headers: {
@@ -266,7 +266,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
       
       // Refresh task details
       const detailResponse = await fetch(
-        `/api/tenants/${currentTenantId}/tasks/${encodeURIComponent(taskDetail.workflowId)}`
+        `/api/tenants/${currentTenantId}/tasks?taskId=${encodeURIComponent(taskDetail.workflowId)}`
       );
 
       if (detailResponse.ok) {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Message } from '@/lib/data/dummy-conversations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, User, Copy, ThumbsUp, ThumbsDown, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit } from 'lucide-react';
+import { Bot, User, Copy, ThumbsUp, ThumbsDown, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -344,6 +344,24 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
             </div>
           )}
         </div>
+
+        {/* View Task Link - Show when message has taskId */}
+        {message.taskId && !isUser && (
+          <Link
+            href={`http://localhost:3010/tasks?task=${message.taskId}`}
+            className="mt-2 flex items-center gap-2 p-3 rounded-lg border border-border bg-card hover:bg-primary transition-colors group"
+          >
+            <div className="h-8 w-8 rounded-md bg-primary/10 group-hover:bg-primary-foreground/20 flex items-center justify-center flex-shrink-0 transition-colors">
+              <FileText className="h-4 w-4 text-primary group-hover:text-primary-foreground transition-colors" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground group-hover:text-primary-foreground transition-colors">
+                View Related Task
+              </p>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary-foreground transition-colors flex-shrink-0" />
+          </Link>
+        )}
 
         {/* Content Draft Section */}
         {message.contentDraft && !isUser && (

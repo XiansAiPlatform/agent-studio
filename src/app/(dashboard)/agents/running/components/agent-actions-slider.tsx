@@ -22,6 +22,7 @@ import {
   Info,
   CheckCircle,
   AlertCircle,
+  Database,
 } from 'lucide-react';
 import { AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
 import { Agent, SliderType } from '../types';
@@ -88,7 +89,7 @@ export function AgentActionsSlider({
               </Link>
               
               <Link 
-                href={`/tasks?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
+                href={`/tasks?status=pending&agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
                 className="group flex items-start gap-3 p-3 rounded-lg hover:bg-blue-500/5 transition-colors cursor-pointer"
               >
                 <ListTodo className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -103,49 +104,44 @@ export function AgentActionsSlider({
 
 
 
-            {/* Insights - More Fluid */}
-            <div className="space-y-2">
+            {/* Secondary Actions - Simplified */}
+            <div className="space-y-1">
               <button
                 onClick={() => onSliderTypeChange('configure')}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-purple-500/5 transition-colors cursor-pointer w-full text-left"
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
               >
-                <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0 transition-transform group-hover:rotate-90" />
-                <div>
-                  <div className="font-medium text-sm group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Configuration</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Review and update workflow settings</p>
-                </div>
+                <Settings className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Configuration</span>
               </button>
               <Link 
-                href={`/knowledge?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-orange-500/5 transition-colors cursor-pointer"
+                href={`https://studio.agentri.ai/settings/database?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
               >
-                <BookOpen className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="font-medium text-sm group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Knowledge</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Browse agent resources and documents</p>
-                </div>
+                <Database className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Explore Data</span>
+              </Link>
+              <Link 
+                href={`/knowledge?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              >
+                <BookOpen className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Knowledge</span>
               </Link>
 
               <Link
                 href={`/settings/logs?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-emerald-500/5 transition-colors cursor-pointer w-full text-left"
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
               >
-                <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="font-medium text-sm group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Activity Logs</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">View recent actions and history</p>
-                </div>
+                <Activity className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Activity Logs</span>
               </Link>
               
               <button
                 onClick={() => onSliderTypeChange('performance')}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-amber-500/5 transition-colors cursor-pointer w-full text-left"
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
               >
-                <TrendingUp className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="font-medium text-sm group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Performance</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Check metrics and analytics</p>
-                </div>
+                <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Performance</span>
               </button>
             </div>
 

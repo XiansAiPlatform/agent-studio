@@ -275,6 +275,7 @@ export interface XiansMessage {
   participantId: string
   scope: string | null
   hint: string | null
+  taskId?: string | null
   workflowId: string
   workflowType: string
   messageType: string

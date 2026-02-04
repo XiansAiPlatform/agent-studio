@@ -75,6 +75,7 @@ export function useConversationState({
       role: 'agent',
       timestamp: xiansMessage.createdAt,
       status: 'delivered',
+      taskId: xiansMessage.taskId || undefined,
     };
 
     const topicId = xiansMessage.scope ?? 'general-discussions';

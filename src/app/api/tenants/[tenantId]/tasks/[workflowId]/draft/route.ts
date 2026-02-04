@@ -6,22 +6,16 @@ export const PUT = withTenant(async (request: NextRequest, context: ApiContext) 
   try {
     const { tenantId } = context;
     
-    // Extract workflowId from the URL path
-    const url = new URL(request.url);
-    const pathParts = url.pathname.split('/');
-    // The path is: /api/tenants/{tenantId}/tasks/{workflowId}/draft
-    // So workflowId is at index length - 2
-    const encodedWorkflowId = pathParts[pathParts.length - 2];
+    // Extract workflowId from query parameters
+    const { searchParams } = new URL(request.url);
+    const workflowId = searchParams.get('taskId');
 
-    if (!encodedWorkflowId) {
+    if (!workflowId) {
       return NextResponse.json(
-        { error: 'Workflow ID is required' },
+        { error: 'taskId query parameter is required' },
         { status: 400 }
       );
     }
-
-    // Decode the workflowId since it comes URL encoded from the path
-    const workflowId = decodeURIComponent(encodedWorkflowId);
 
     // Get request body
     const body = await request.json();
@@ -42,9 +36,9 @@ export const PUT = withTenant(async (request: NextRequest, context: ApiContext) 
 
     const client = createXiansClient();
     
-    // Call Xians API
+    // Call Xians API using query parameter
     const response = await client.put<any>(
-      `/api/v1/admin/tenants/${tenantId}/tasks/${encodeURIComponent(workflowId)}/draft`,
+      `/api/v1/admin/tenants/${tenantId}/tasks/draft?taskId=${encodeURIComponent(workflowId)}`,
       {
         updatedDraft,
       }

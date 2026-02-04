@@ -366,6 +366,7 @@ function ConversationContent() {
           role: xiansMsg.direction === 'Incoming' ? 'user' as const : 'agent' as const,
           timestamp: xiansMsg.createdAt,
           status: 'delivered' as const,
+          taskId: xiansMsg.taskId,
         })).reverse();
 
         setMessageStates(prev => ({
@@ -519,6 +520,7 @@ function ConversationContent() {
         role: xiansMsg.direction === 'Incoming' ? 'user' as const : 'agent' as const,
         timestamp: xiansMsg.createdAt,
         status: 'delivered' as const,
+        taskId: xiansMsg.taskId,
       })).reverse();
 
       // Filter out duplicates
