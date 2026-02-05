@@ -5,7 +5,28 @@ import { createXiansClient } from '@/lib/xians/client';
 export const GET = withTenant(async (request: NextRequest, { tenantId, session }: ApiContext) => {
   try {
     const { searchParams } = new URL(request.url);
-    
+    const taskId = searchParams.get('taskId');
+
+    // If taskId is provided, fetch a single task by ID
+    if (taskId) {
+      console.log('[Task Detail API] Fetching task:', {
+        tenantId,
+        taskId,
+      });
+
+      const client = createXiansClient();
+      
+      // Call Xians API using query parameter
+      const response = await client.get<any>(
+        `/api/v1/admin/tenants/${tenantId}/tasks/by-id?taskId=${encodeURIComponent(taskId)}`
+      );
+
+      console.log('[Task Detail API] Task fetched successfully');
+
+      return NextResponse.json(response);
+    }
+
+    // Otherwise, list tasks with filters
     const agentName = searchParams.get('agentName');
     const activationName = searchParams.get('activationName');
     const topic = searchParams.get('topic');
@@ -68,7 +89,7 @@ export const GET = withTenant(async (request: NextRequest, { tenantId, session }
 
     return NextResponse.json(response);
   } catch (error: any) {
-    console.error('[Tasks API] Error fetching tasks:', error);
+    console.error('[Tasks API] Error:', error);
 
     const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch tasks';
     const errorDetails = error.response?.data?.details || error.response?.data;

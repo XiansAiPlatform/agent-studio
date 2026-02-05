@@ -171,12 +171,14 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
   };
 
   const handleSaveInitialWork = async () => {
-    if (!currentTenantId || !taskDetail?.workflowId) {
+    const workflowId = taskDetail?.workflowId || task.content?.data?.workflowId;
+    
+    if (!currentTenantId || !workflowId) {
       showErrorToast(new Error('Missing required data'), 'Cannot save draft');
       return;
     }
 
-    if (editedInitialWork.trim() === taskDetail.initialWork?.trim()) {
+    if (editedInitialWork.trim() === taskDetail?.initialWork?.trim()) {
       // No changes made
       setIsEditingInitialWork(false);
       return;
@@ -185,7 +187,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
     setIsSavingDraft(true);
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/tasks/draft?taskId=${encodeURIComponent(taskDetail.workflowId)}`,
+        `/api/tenants/${currentTenantId}/tasks/draft?taskId=${encodeURIComponent(workflowId)}`,
         {
           method: 'PUT',
           headers: {
@@ -204,11 +206,13 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
       console.log('[TaskDetail] Draft saved successfully');
       
-      // Update the task detail in state
-      setTaskDetail({
-        ...taskDetail,
-        initialWork: editedInitialWork,
-      });
+      // Update the task detail in state if it exists
+      if (taskDetail) {
+        setTaskDetail({
+          ...taskDetail,
+          initialWork: editedInitialWork,
+        });
+      }
       
       setIsEditingInitialWork(false);
 
@@ -232,7 +236,9 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
   };
 
   const handleAction = async (action: string) => {
-    if (!currentTenantId || !taskDetail?.workflowId) {
+    const workflowId = taskDetail?.workflowId || task.content?.data?.workflowId;
+    
+    if (!currentTenantId || !workflowId) {
       showErrorToast(new Error('Missing required data'), 'Cannot perform action');
       return;
     }
@@ -240,7 +246,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
     setIsPerformingAction(true);
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/tasks/actions?taskId=${encodeURIComponent(taskDetail.workflowId)}`,
+        `/api/tenants/${currentTenantId}/tasks/actions?taskId=${encodeURIComponent(workflowId)}`,
         {
           method: 'POST',
           headers: {
@@ -266,7 +272,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
       
       // Refresh task details
       const detailResponse = await fetch(
-        `/api/tenants/${currentTenantId}/tasks?taskId=${encodeURIComponent(taskDetail.workflowId)}`
+        `/api/tenants/${currentTenantId}/tasks?taskId=${encodeURIComponent(workflowId)}`
       );
 
       if (detailResponse.ok) {

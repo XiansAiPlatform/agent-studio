@@ -58,7 +58,7 @@ showToast.error({
 ## Design
 
 ### Visual Style
-- **Position**: Top-right
+- **Position**: Bottom-right
 - **Width**: 400-500px (wider for better readability)
 - **Background**: Card with subtle color tints (5% opacity light, 10% dark)
 - **Border**: 1px solid + 4px left accent
