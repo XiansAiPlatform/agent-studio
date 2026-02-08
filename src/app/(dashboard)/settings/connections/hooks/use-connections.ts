@@ -2,7 +2,7 @@
  * Hook for managing OIDC connections
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { 
   OIDCConnection, 
   CreateConnectionRequest, 
@@ -21,6 +21,8 @@ interface UseConnectionsOptions {
   status?: string
   providerId?: string
   onlyActive?: boolean
+  agentName?: string
+  activationName?: string
 }
 
 interface MutationState {
@@ -67,6 +69,51 @@ async function fetchConnections(
 ): Promise<OIDCConnection[]> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
+  // If agentName and activationName are provided, fetch from integrations endpoint
+  if (options?.agentName && options?.activationName) {
+    const params = new URLSearchParams()
+    params.set('agentName', options.agentName)
+    params.set('activationName', options.activationName)
+    
+    const queryString = params.toString()
+    const url = `/api/tenants/${tenantId}/integrations${queryString ? `?${queryString}` : ''}`
+    
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch integrations: ${response.statusText}`)
+    }
+    
+    // Map integration response to OIDCConnection format
+    const integrations = await response.json()
+    
+    // Transform integration data to match OIDCConnection interface
+    return integrations.map((integration: any): OIDCConnection => ({
+      id: integration.id,
+      tenantId: integration.tenantId,
+      userId: integration.createdBy || 'system',
+      name: integration.name,
+      providerId: integration.platformId,
+      clientId: integration.configuration?.appId || integration.configuration?.botToken || '',
+      status: integration.isEnabled ? 'connected' : 'disabled',
+      createdAt: integration.createdAt,
+      updatedAt: integration.updatedAt,
+      createdBy: integration.createdBy,
+      hasValidToken: integration.isEnabled,
+      description: integration.description,
+      isActive: integration.isEnabled,
+      usageCount: 0,
+      // Additional integration-specific fields
+      platformId: integration.platformId,
+      agentName: integration.agentName,
+      activationName: integration.activationName,
+      workflowId: integration.workflowId,
+      webhookUrl: integration.webhookUrl,
+      configuration: integration.configuration,
+      mappingConfig: integration.mappingConfig,
+    }))
+  }
+  
+  // Otherwise, fetch from connections endpoint
   const params = new URLSearchParams()
   if (options?.search) params.set('search', options.search)
   if (options?.status) params.set('status', options.status)
@@ -205,30 +252,137 @@ async function authorizeConnection(
   return response.json()
 }
 
+async function createIntegration(
+  tenantId: string,
+  data: any
+): Promise<{ id: string; webhookUrl: string }> {
+  if (!tenantId) throw new Error('Tenant ID is required')
+  
+  const response = await fetch(`/api/tenants/${tenantId}/integrations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error || `Failed to create integration: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+
 // Main hook
 export function useConnections(tenantId?: string, options?: UseConnectionsOptions) {
   const [connections, setConnections] = useState<OIDCConnection[] | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const lastFetchKeyRef = useRef<string | null>(null)
+  
+  // Create stable string key using useMemo
+  const optionsKey = useMemo(() => JSON.stringify({
+    tenantId,
+    search: options?.search,
+    status: options?.status,
+    providerId: options?.providerId,
+    onlyActive: options?.onlyActive,
+    agentName: options?.agentName,
+    activationName: options?.activationName,
+  }), [
+    tenantId,
+    options?.search,
+    options?.status,
+    options?.providerId,
+    options?.onlyActive,
+    options?.agentName,
+    options?.activationName,
+  ])
+
+  useEffect(() => {
+    if (!tenantId) return
+    
+    // Skip if already fetched with these exact parameters
+    if (lastFetchKeyRef.current === optionsKey) {
+      console.log('[useConnections] Skipping fetch - already fetched with these params:', optionsKey)
+      return
+    }
+    
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController()
+
+    const fetchData = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const data = await fetchConnections(tenantId, options)
+        setConnections(data)
+        
+        // Mark these parameters as fetched
+        lastFetchKeyRef.current = optionsKey
+        console.log('[useConnections] ✅ Fetched successfully, marked params:', optionsKey)
+      } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log('[useConnections] Request aborted')
+          return
+        }
+        
+        setError(err instanceof Error ? err : new Error('Failed to fetch connections'))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchData()
+
+    // Cleanup function to abort request if component unmounts or dependencies change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [tenantId, optionsKey, options])
 
   const refetch = useCallback(async () => {
+    // Reset the last fetch key to force a new fetch
+    lastFetchKeyRef.current = null
+    
     if (!tenantId) return
+    
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController()
     
     setIsLoading(true)
     setError(null)
     try {
       const data = await fetchConnections(tenantId, options)
       setConnections(data)
+      lastFetchKeyRef.current = optionsKey
     } catch (err) {
+      // Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('[useConnections] Request aborted')
+        return
+      }
+      
       setError(err instanceof Error ? err : new Error('Failed to fetch connections'))
     } finally {
       setIsLoading(false)
     }
-  }, [tenantId, options])
-
-  useEffect(() => {
-    refetch()
-  }, [refetch])
+  }, [tenantId, optionsKey, options])
 
   // Mutations
   const createConnectionMutation = createMutationState<CreateConnectionRequest>(
@@ -261,6 +415,11 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
     refetch
   )
 
+  const createIntegrationMutation = createMutationState<any>(
+    (data) => createIntegration(tenantId!, data),
+    refetch
+  )
+
   return {
     connections,
     isLoading,
@@ -272,6 +431,7 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
     deleteConnection: deleteConnectionMutation,
     testConnection: testConnectionMutation,
     authorizeConnection: authorizeConnectionMutation,
+    createIntegration: createIntegrationMutation,
   }
 }
 

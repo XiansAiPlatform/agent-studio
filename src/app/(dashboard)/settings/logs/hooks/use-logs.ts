@@ -43,7 +43,7 @@ export function useLogs(
     filters.page,
   ]);
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (signal?: AbortSignal) => {
     if (!tenantId || !enabled) {
       setLogs([]);
       setIsLoading(false);
@@ -85,6 +85,7 @@ export function useLogs(
           'Content-Type': 'application/json',
         },
         credentials: 'same-origin', // Include cookies for authentication
+        signal, // Pass abort signal
       });
 
       if (!response.ok) {
@@ -112,6 +113,12 @@ export function useLogs(
       setPageSize(data.pageSize);
       setTotalPages(data.totalPages);
     } catch (err) {
+      // Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('[useLogs] Request aborted');
+        return;
+      }
+      
       const error = err instanceof Error ? err : new Error('Unknown error');
       console.error('[useLogs] Error fetching logs:', error);
       setError(error);
@@ -126,7 +133,13 @@ export function useLogs(
   }, [tenantId, enabled, filtersKey]);
 
   useEffect(() => {
-    fetchLogs();
+    const abortController = new AbortController();
+    fetchLogs(abortController.signal);
+
+    // Cleanup function to abort request if component unmounts or dependencies change
+    return () => {
+      abortController.abort();
+    };
   }, [fetchLogs]);
 
   return {
@@ -137,6 +150,6 @@ export function useLogs(
     totalPages,
     isLoading,
     error,
-    refetch: fetchLogs,
+    refetch: () => fetchLogs(),
   };
 }

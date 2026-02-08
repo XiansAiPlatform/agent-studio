@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { 
   Dialog, 
   DialogContent, 
@@ -10,240 +11,272 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, ExternalLink, Info, ChevronDown, ChevronRight } from 'lucide-react'
-import { 
-  OIDC_PROVIDERS, 
-  getProvidersByCategory, 
-  PROVIDER_CATEGORIES,
-  OIDCProviderConfig 
-} from '@/config/oidc-providers'
-import { CreateConnectionRequest } from '../types'
+import { Loader2, ExternalLink, Info, Eye, EyeOff, Plug } from 'lucide-react'
+import { useIntegrationTypes, IntegrationType } from '../hooks/use-integration-types'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface CreateConnectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (data: CreateConnectionRequest) => void
+  onSubmit: (data: any) => Promise<{ id: string; webhookUrl: string } | void>
   isSubmitting?: boolean
+  onSlackSelected?: () => void
+  onTeamsSelected?: () => void
 }
 
 interface FormData {
   name: string
-  providerId: string
   description: string
-  clientId: string
-  clientSecret: string
-  customScopes: string
-  wellKnownUrl: string
+  platformId: string
+  configFields: Record<string, string>
 }
 
 export function CreateConnectionDialog({
   open,
   onOpenChange,
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  onSlackSelected,
+  onTeamsSelected
 }: CreateConnectionDialogProps) {
-  const [step, setStep] = useState<'provider' | 'config'>('provider')
-  const [selectedProvider, setSelectedProvider] = useState<OIDCProviderConfig | null>(null)
+  const { integrationTypes, isLoading: loadingTypes, error: typesError } = useIntegrationTypes()
+  const [step, setStep] = useState<'select' | 'configure'>('select')
+  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationType | null>(null)
   const [formData, setFormData] = useState<FormData>({
     name: '',
-    providerId: '',
     description: '',
-    clientId: '',
-    clientSecret: '',
-    customScopes: '',
-    wellKnownUrl: ''
+    platformId: '',
+    configFields: {}
   })
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [failedIcons, setFailedIcons] = useState<Set<string>>(new Set())
 
-  const categorizedProviders = getProvidersByCategory()
+  // Reset failed icons when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setFailedIcons(new Set())
+    }
+  }, [open])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Connection name is required'
+      newErrors.name = 'Integration name is required'
     }
 
-    if (!formData.providerId) {
-      newErrors.providerId = 'Provider selection is required'
+    if (!formData.platformId) {
+      newErrors.platformId = 'Integration type is required'
     }
 
-    if (!formData.clientId.trim()) {
-      newErrors.clientId = 'Client ID is required'
-    }
-
-    if (!formData.clientSecret.trim()) {
-      newErrors.clientSecret = 'Client Secret is required'
-    }
-
-    // Validate custom scopes format if provided
-    if (formData.customScopes.trim()) {
-      const scopes = formData.customScopes.split(',').map(s => s.trim())
-      if (scopes.some(scope => !scope)) {
-        newErrors.customScopes = 'Invalid scope format. Use comma-separated values.'
+    // Validate required configuration fields
+    selectedIntegration?.requiredConfigurationFields.forEach(field => {
+      if (!formData.configFields[field.fieldName]?.trim()) {
+        newErrors[field.fieldName] = `${field.displayName} is required`
       }
-    }
+    })
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleProviderSelect = (provider: OIDCProviderConfig) => {
-    setSelectedProvider(provider)
-    setFormData(prev => ({
-      ...prev,
-      providerId: provider.id,
-      name: `${provider.displayName} Connection`,
-      description: provider.description,
-      customScopes: provider.defaultScopes.join(', '),
-      wellKnownUrl: provider.wellKnownUrl
-    }))
-    setStep('config')
+  const handleIntegrationSelect = (integration: IntegrationType) => {
+    // For Slack, close dialog and notify parent to open wizard sheet
+    if (integration.platformId === 'slack') {
+      onOpenChange(false) // Close the dialog
+      onSlackSelected?.() // Notify parent to open Slack wizard
+      return
+    }
+    
+    // For Teams, close dialog and notify parent to open wizard sheet
+    if (integration.platformId === 'msteams' || integration.platformId === 'teams') {
+      onOpenChange(false) // Close the dialog
+      onTeamsSelected?.() // Notify parent to open Teams wizard
+      return
+    }
+    
+    // For other integrations, continue with normal flow
+    setSelectedIntegration(integration)
+    const initialConfigFields: Record<string, string> = {}
+    integration.requiredConfigurationFields.forEach(field => {
+      initialConfigFields[field.fieldName] = ''
+    })
+    
+    setFormData({
+      name: `${integration.displayName} Connection`,
+      description: integration.description,
+      platformId: integration.platformId,
+      configFields: initialConfigFields
+    })
+    
+    setStep('configure')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {
       return
     }
 
-    const submitData: CreateConnectionRequest = {
-      name: formData.name.trim(),
-      providerId: formData.providerId,
-      description: formData.description.trim() || undefined,
-      clientId: formData.clientId.trim(),
-      clientSecret: formData.clientSecret.trim(),
-      customScopes: formData.customScopes.trim() 
-        ? formData.customScopes.split(',').map(s => s.trim()).filter(Boolean)
-        : undefined,
-      wellKnownUrl: formData.wellKnownUrl.trim() || undefined
-    }
+    try {
+      const submitData = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        platformId: formData.platformId,
+        configuration: formData.configFields
+      }
 
-    onSubmit(submitData)
+      await onSubmit(submitData)
+      
+      // Reset form and close dialog on success
+      handleClose()
+    } catch (error) {
+      // Error is handled by parent component's showErrorToast
+      console.error('Error creating integration:', error)
+    }
   }
 
   const handleClose = () => {
     if (isSubmitting) return
     
-    setStep('provider')
-    setSelectedProvider(null)
+    setStep('select')
+    setSelectedIntegration(null)
     setFormData({
       name: '',
-      providerId: '',
       description: '',
-      clientId: '',
-      clientSecret: '',
-      customScopes: '',
-      wellKnownUrl: ''
+      platformId: '',
+      configFields: {}
     })
-    setShowAdvanced(false)
+    setShowSecrets({})
     setErrors({})
     onOpenChange(false)
   }
 
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>
-            {step === 'provider' ? 'Choose a Provider' : 'Configure Connection'}
-          </DialogTitle>
-          <DialogDescription>
-            {step === 'provider' 
-              ? 'Select the OIDC service provider you want to connect to'
-              : `Configure your ${selectedProvider?.displayName} connection`
-            }
-          </DialogDescription>
-        </DialogHeader>
+  const getIconUrl = (icon: string): string => {
+    const iconMap: Record<string, string> = {
+      'slack': '/slack.png',
+      'teams': '/microsoft_teams.png',
+      'msteams': '/microsoft_teams.png',
+      'outlook': '/outlook.png',
+      'webhook': '/webhook.png'
+    }
+    // Return mapped icon or a non-existent path to trigger fallback
+    return iconMap[icon?.toLowerCase()] || '/_non_existent_icon.png'
+  }
 
-        {step === 'provider' ? (
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-6">
-              {Object.entries(categorizedProviders).map(([category, providers]) => (
-                <div key={category}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">
-                      {PROVIDER_CATEGORIES[category as keyof typeof PROVIDER_CATEGORIES]?.icon}
-                    </span>
-                    <h3 className="font-semibold">
-                      {PROVIDER_CATEGORIES[category as keyof typeof PROVIDER_CATEGORIES]?.name}
-                    </h3>
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-5xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-light">
+              {step === 'select' ? 'Choose Integration' : 'Configure Connection'}
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              {step === 'select' 
+                ? 'Select the service you want to integrate with'
+                : `Configure your ${selectedIntegration?.displayName} connection`
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+        {loadingTypes ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : typesError ? (
+          <div className="text-center py-16 px-6">
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+                <Info className="h-6 w-6 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-900">Backend API Required</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Unable to connect to the integration metadata service. Please ensure the backend API endpoint is running:
+              </p>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-left">
+                <code className="text-xs text-slate-700">
+                  GET {process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/integrations/metadata/types
+                </code>
+              </div>
+              <p className="text-xs text-slate-500">
+                See <code className="bg-slate-100 px-1 py-0.5 rounded">CONNECTIONS_API_REQUIREMENTS.md</code> for implementation details.
+              </p>
+            </div>
+          </div>
+        ) : step === 'select' ? (
+          <div className="py-6">
+            <div className="flex flex-col gap-4">
+              {integrationTypes.map((integration) => (
+                <button
+                  key={integration.platformId}
+                  onClick={() => handleIntegrationSelect(integration)}
+                  className="group relative p-6 text-left bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all duration-200 hover:border-slate-300 hover:shadow-sm"
+                >
+                  <div className="flex items-center gap-6">
+                    {/* Icon */}
+                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-slate-100 rounded-lg">
+                      {failedIcons.has(integration.platformId) ? (
+                        <Plug className="h-8 w-8 text-slate-500" />
+                      ) : (
+                        <Image 
+                          src={getIconUrl(integration.icon)} 
+                          alt={integration.displayName}
+                          width={64}
+                          height={64}
+                          className="object-contain"
+                          onError={() => {
+                            setFailedIcons(prev => new Set(prev).add(integration.platformId))
+                          }}
+                        />
+                      )}
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 space-y-1 text-left">
+                      <h3 className="text-base font-normal text-slate-900 group-hover:text-slate-950">
+                        {integration.displayName}
+                      </h3>
+                      <p className="text-sm text-slate-500 leading-relaxed">
+                        {integration.description}
+                      </p>
+                    </div>
+
+                    {/* Documentation link */}
+                    {integration.documentationUrl && (
+                      <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(integration.documentationUrl!, '_blank')
+                          }}
+                          className="p-1.5 rounded-md hover:bg-slate-100 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4 text-slate-400" />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {PROVIDER_CATEGORIES[category as keyof typeof PROVIDER_CATEGORIES]?.description}
-                  </p>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {providers.map((provider) => (
-                      <Card 
-                        key={provider.id}
-                        className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-                        onClick={() => handleProviderSelect(provider)}
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start gap-3">
-                            <span className="text-2xl">{provider.icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-sm">{provider.displayName}</CardTitle>
-                              <CardDescription className="text-xs line-clamp-2">
-                                {provider.description}
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              {provider.category}
-                            </Badge>
-                            {provider.documentation && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-xs"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  window.open(provider.documentation, '_blank')
-                                }}
-                              >
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                Docs
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
+                </button>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <ScrollArea className="max-h-[50vh] pr-4">
-              <div className="space-y-4">
-                {/* Basic Configuration */}
-                <div className="grid gap-4">
+            <ScrollArea className="max-h-[55vh] pr-4">
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
                   <div>
                     <Label htmlFor="name">Connection Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Company SharePoint"
+                      placeholder={`e.g., ${selectedIntegration?.displayName} Integration`}
                     />
                     {errors.name && (
                       <p className="text-sm text-destructive mt-1">{errors.name}</p>
@@ -251,145 +284,99 @@ export function CreateConnectionDialog({
                   </div>
 
                   <div>
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">Description (optional)</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Optional description of this connection"
+                      placeholder="Describe the purpose of this connection"
                       rows={2}
                     />
                   </div>
                 </div>
 
-                <Separator />
-
-                {/* OAuth Configuration */}
-                <div className="space-y-4">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    OAuth Configuration
-                  </h4>
-                  
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <Label htmlFor="clientId">Client ID *</Label>
-                      <Input
-                        id="clientId"
-                        value={formData.clientId}
-                        onChange={(e) => setFormData(prev => ({ ...prev, clientId: e.target.value }))}
-                        placeholder="OAuth Client ID"
-                      />
-                      {errors.clientId && (
-                        <p className="text-sm text-destructive mt-1">{errors.clientId}</p>
-                      )}
+                {/* Configuration Fields */}
+                {selectedIntegration && selectedIntegration.requiredConfigurationFields.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="font-medium">Configuration</h4>
                     </div>
-
-                    <div>
-                      <Label htmlFor="clientSecret">Client Secret *</Label>
-                      <Input
-                        id="clientSecret"
-                        type="password"
-                        value={formData.clientSecret}
-                        onChange={(e) => setFormData(prev => ({ ...prev, clientSecret: e.target.value }))}
-                        placeholder="OAuth Client Secret"
-                      />
-                      {errors.clientSecret && (
-                        <p className="text-sm text-destructive mt-1">{errors.clientSecret}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {selectedProvider?.documentation && (
-                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                        <p className="text-sm text-blue-800">
-                          Need help getting OAuth credentials?{' '}
-                          <Button
-                            type="button"
-                            variant="link"
-                            className="p-0 h-auto text-blue-800"
-                            onClick={() => window.open(selectedProvider.documentation, '_blank')}
-                          >
-                            Check the documentation <ExternalLink className="h-3 w-3 ml-1" />
-                          </Button>
-                        </p>
-                      </div>
-                    )}
                     
-                    <div className="bg-amber-50 border border-amber-200 rounded p-3">
-                      <div className="flex items-start gap-2">
-                        <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                        <div className="text-sm text-amber-800">
-                          <p className="font-medium mb-1">OAuth Authorization Required</p>
-                          <p>
-                            After clicking "Connect via {selectedProvider?.displayName}", you'll be redirected 
-                            to {selectedProvider?.displayName} to authorize access to your account. 
-                            You'll be redirected back here once authorization is complete.
-                          </p>
+                    {selectedIntegration.requiredConfigurationFields.map((field) => (
+                      <div key={field.fieldName}>
+                        <Label htmlFor={field.fieldName}>
+                          {field.displayName} *
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id={field.fieldName}
+                            type={field.isSecret && !showSecrets[field.fieldName] ? 'password' : 'text'}
+                            value={formData.configFields[field.fieldName] || ''}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              configFields: {
+                                ...prev.configFields,
+                                [field.fieldName]: e.target.value
+                              }
+                            }))}
+                            placeholder={field.description}
+                            className={field.isSecret ? 'pr-10' : ''}
+                          />
+                          {field.isSecret && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={() => setShowSecrets(prev => ({
+                                ...prev,
+                                [field.fieldName]: !prev[field.fieldName]
+                              }))}
+                            >
+                              {showSecrets[field.fieldName] ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Advanced Configuration */}
-                <div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="p-0 h-auto text-sm"
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                  >
-                    {showAdvanced ? (
-                      <ChevronDown className="h-4 w-4 mr-1" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 mr-1" />
-                    )}
-                    Advanced Configuration
-                  </Button>
-
-                  {showAdvanced && (
-                    <div className="mt-4 space-y-4 pl-4 border-l-2 border-muted">
-                      <div>
-                        <Label htmlFor="customScopes">Custom Scopes</Label>
-                        <Input
-                          id="customScopes"
-                          value={formData.customScopes}
-                          onChange={(e) => setFormData(prev => ({ ...prev, customScopes: e.target.value }))}
-                          placeholder="scope1, scope2, scope3"
-                        />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Comma-separated list of OAuth scopes. Leave empty to use defaults.
+                          {field.description}
                         </p>
-                        {errors.customScopes && (
-                          <p className="text-sm text-destructive mt-1">{errors.customScopes}</p>
+                        {errors[field.fieldName] && (
+                          <p className="text-sm text-destructive mt-1">{errors[field.fieldName]}</p>
                         )}
                       </div>
+                    ))}
+                  </div>
+                )}
 
-                      <div>
-                        <Label htmlFor="wellKnownUrl">Well-Known URL</Label>
-                        <Input
-                          id="wellKnownUrl"
-                          value={formData.wellKnownUrl}
-                          onChange={(e) => setFormData(prev => ({ ...prev, wellKnownUrl: e.target.value }))}
-                          placeholder="https://..."
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Override the default OIDC well-known endpoint URL.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Documentation Link */}
+                {selectedIntegration?.documentationUrl && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-900">
+                      Need help configuring this integration?{' '}
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto text-blue-900 font-semibold"
+                        onClick={() => window.open(selectedIntegration.documentationUrl!, '_blank')}
+                      >
+                        View documentation <ExternalLink className="h-3 w-3 ml-1 inline" />
+                      </Button>
+                    </p>
+                  </div>
+                )}
               </div>
             </ScrollArea>
 
-            <div className="flex items-center justify-between pt-4">
+            <div className="flex items-center justify-between pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setStep('provider')}
+                onClick={() => setStep('select')}
                 disabled={isSubmitting}
               >
                 Back
@@ -408,13 +395,10 @@ export function CreateConnectionDialog({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Redirecting to {selectedProvider?.displayName}...
+                      Creating...
                     </>
                   ) : (
-                    <>
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Connect via {selectedProvider?.displayName}
-                    </>
+                    'Create Connection'
                   )}
                 </Button>
               </div>
@@ -423,5 +407,6 @@ export function CreateConnectionDialog({
         )}
       </DialogContent>
     </Dialog>
+    </>
   )
 }

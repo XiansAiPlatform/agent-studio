@@ -40,6 +40,22 @@ export interface OIDCConnection {
   usageCount?: number
   lastError?: string
   lastErrorAt?: string
+  
+  // Integration-specific fields (when fetched from integrations endpoint)
+  platformId?: string
+  agentName?: string
+  activationName?: string
+  workflowId?: string
+  webhookUrl?: string
+  configuration?: Record<string, any>
+  mappingConfig?: {
+    participantIdSource?: string
+    participantIdCustomField?: string | null
+    scopeSource?: string | null
+    scopeCustomField?: string | null
+    defaultParticipantId?: string | null
+    defaultScope?: string | null
+  }
 }
 
 export type ConnectionStatus = 

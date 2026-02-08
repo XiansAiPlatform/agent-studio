@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useMemo, useEffect, useCallback } from 'react';
+import { Suspense, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -37,6 +37,9 @@ function KnowledgeContent() {
   const [selectedItemLevel, setSelectedItemLevel] = useState<KnowledgeScopeLevel | null>(null);
   const [isLoadingItem, setIsLoadingItem] = useState(false);
 
+  // AbortController for fetch requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Find selected group
   const selectedGroup = useMemo(() => {
     if (!selectedGroupName) return null;
@@ -49,6 +52,14 @@ function KnowledgeContent() {
       return;
     }
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     setError(null);
 
@@ -59,7 +70,10 @@ function KnowledgeContent() {
       });
 
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/knowledge?${params.toString()}`
+        `/api/tenants/${currentTenantId}/knowledge?${params.toString()}`,
+        {
+          signal: abortControllerRef.current.signal,
+        }
       );
 
       if (!response.ok) {
@@ -71,6 +85,12 @@ function KnowledgeContent() {
       setKnowledgeGroups(data.groups || []);
       setLastFetchedParams({ agent, activation });
     } catch (err: any) {
+      // Ignore abort errors
+      if (err.name === 'AbortError') {
+        console.log('[KnowledgePage] Request aborted');
+        return;
+      }
+      
       console.error('[KnowledgePage] Error fetching knowledge:', err);
       setError(err.message || 'Failed to fetch knowledge');
       showErrorToast(err, 'Failed to load knowledge');
@@ -93,11 +113,18 @@ function KnowledgeContent() {
       lastFetchedParams.agent !== agentName ||
       lastFetchedParams.activation !== activationName;
 
-    if (paramsChanged && !isLoading) {
+    if (paramsChanged) {
       console.log('[KnowledgePage] Auto-fetching knowledge for:', { agentName, activationName });
       fetchKnowledge(agentName, activationName);
     }
-  }, [agentName, activationName, currentTenantId, lastFetchedParams, isLoading, fetchKnowledge]);
+
+    // Cleanup function to abort request if component unmounts or dependencies change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [agentName, activationName, currentTenantId, fetchKnowledge]); // Removed lastFetchedParams and isLoading from dependencies
 
   const handleRefresh = () => {
     if (agentName && activationName) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { redirect } from "next/navigation"
 import { withTenant } from "@/lib/api/with-tenant"
-import { getProviderById } from "@/config/oidc-providers"
+// Provider info now comes from the backend API
 import { 
   OIDCConnection,
   UserTokenInfo
@@ -39,8 +39,8 @@ async function exchangeCodeForTokens(
   // In production, this would make actual OAuth token exchange requests
   // For mock purposes, we'll simulate successful token exchange with user info
   
-  const provider = getProviderById(connection.providerId)
-  if (!provider) {
+  // Basic validation
+  if (!connection.providerId) {
     throw new Error('Invalid provider')
   }
 

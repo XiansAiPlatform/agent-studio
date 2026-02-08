@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export interface Activation {
   id: string;
@@ -17,6 +17,7 @@ export function useActivations(tenantId: string | null, shouldFetch: boolean = t
   const [activations, setActivations] = useState<Activation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!tenantId || !shouldFetch) {
@@ -25,13 +26,24 @@ export function useActivations(tenantId: string | null, shouldFetch: boolean = t
       return;
     }
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     const fetchActivations = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
         const response = await fetch(
-          `/api/tenants/${tenantId}/agent-activations`
+          `/api/tenants/${tenantId}/agent-activations`,
+          {
+            signal: abortControllerRef.current!.signal,
+          }
         );
 
         if (!response.ok) {
@@ -62,6 +74,12 @@ export function useActivations(tenantId: string | null, shouldFetch: boolean = t
 
         setActivations(mappedActivations);
       } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log('[useActivations] Request aborted');
+          return;
+        }
+        
         console.error('[useActivations] Error fetching activations:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
         setActivations([]);
@@ -71,6 +89,13 @@ export function useActivations(tenantId: string | null, shouldFetch: boolean = t
     };
 
     fetchActivations();
+
+    // Cleanup function to abort request if component unmounts or dependencies change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [tenantId, shouldFetch]);
 
   return { activations, isLoading, error };

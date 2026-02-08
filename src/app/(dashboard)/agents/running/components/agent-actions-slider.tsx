@@ -23,6 +23,7 @@ import {
   CheckCircle,
   AlertCircle,
   Database,
+  Plug,
 } from 'lucide-react';
 import { AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
 import { Agent, SliderType } from '../types';
@@ -126,6 +127,13 @@ export function AgentActionsSlider({
               >
                 <BookOpen className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Knowledge</span>
+              </Link>
+              <Link 
+                href={`/settings/connections?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              >
+                <Plug className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Connections</span>
               </Link>
 
               <Link

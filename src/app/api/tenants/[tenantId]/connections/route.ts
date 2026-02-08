@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { withTenant, withTenantPermission } from "@/lib/api/with-tenant"
 import { createXiansSDK } from "@/lib/xians"
-import { OIDC_PROVIDERS, getProviderById } from "@/config/oidc-providers"
 import { 
   OIDCConnection, 
   CreateConnectionRequest, 
@@ -97,7 +96,7 @@ export const GET = withTenant(async (request, { tenantContext, session }) => {
       connections = connections.filter(conn => 
         conn.name.toLowerCase().includes(searchLower) ||
         conn.description?.toLowerCase().includes(searchLower) ||
-        getProviderById(conn.providerId)?.displayName.toLowerCase().includes(searchLower)
+        conn.providerId.toLowerCase().includes(searchLower)
       )
     }
 
@@ -140,11 +139,10 @@ export const POST = withTenantPermission('write', async (request, { tenantContex
   try {
     const data: CreateConnectionRequest = await request.json()
     
-    // Validate provider ID
-    const provider = getProviderById(data.providerId)
-    if (!provider) {
+    // Basic validation (provider validation would be done by the backend API)
+    if (!data.providerId) {
       return NextResponse.json(
-        { error: 'Invalid provider ID' },
+        { error: 'Provider ID is required' },
         { status: 400 }
       )
     }

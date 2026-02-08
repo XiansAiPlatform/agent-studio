@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Topic } from '@/lib/data/dummy-conversations';
 import { XiansTopicsResponse } from '@/lib/xians/types';
 import { showErrorToast } from '@/lib/utils/error-handler';
@@ -22,11 +22,20 @@ export function useTopics({
   const [isLoading, setIsLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchTopics = useCallback(async () => {
     if (!tenantId || !agentName || !activationName) {
       return;
     }
+
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     setIsLoading(true);
     try {
@@ -38,7 +47,10 @@ export function useTopics({
       });
 
       const response = await fetch(
-        `/api/tenants/${tenantId}/messaging/topics?${queryParams.toString()}`
+        `/api/tenants/${tenantId}/messaging/topics?${queryParams.toString()}`,
+        {
+          signal: abortControllerRef.current.signal,
+        }
       );
 
       if (!response.ok) {
@@ -99,6 +111,12 @@ export function useTopics({
       
       setTopics(allTopics);
     } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[useTopics] Request aborted');
+        return;
+      }
+      
       console.error('[useTopics] Error fetching topics:', error);
       showErrorToast(error, 'Failed to load conversation topics');
       setTopics([]);
@@ -109,6 +127,13 @@ export function useTopics({
 
   useEffect(() => {
     fetchTopics();
+
+    // Cleanup function to abort request if component unmounts or dependencies change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchTopics]);
 
   // Add a new topic to the list (for newly created topics)

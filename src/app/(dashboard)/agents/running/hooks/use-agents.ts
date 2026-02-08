@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Agent } from '../types';
 import { AgentStatus } from '@/lib/agent-status-config';
 import { showErrorToast } from '@/lib/utils/error-handler';
@@ -6,6 +6,7 @@ import { showErrorToast } from '@/lib/utils/error-handler';
 export function useAgents(currentTenantId: string | null) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchActivations = async () => {
     if (!currentTenantId) {
@@ -13,9 +14,19 @@ export function useAgents(currentTenantId: string | null) {
       return;
     }
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/tenants/${currentTenantId}/agent-activations`);
+      const response = await fetch(`/api/tenants/${currentTenantId}/agent-activations`, {
+        signal: abortControllerRef.current.signal,
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch activations');
@@ -69,6 +80,12 @@ export function useAgents(currentTenantId: string | null) {
 
       setAgents(mappedAgents);
     } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[useAgents] Request aborted');
+        return;
+      }
+      
       console.error('[useAgents] Error fetching activations:', error);
       showErrorToast(error, 'Failed to load agent activations');
       setAgents([]);
@@ -79,6 +96,13 @@ export function useAgents(currentTenantId: string | null) {
 
   useEffect(() => {
     fetchActivations();
+
+    // Cleanup function to abort request if component unmounts or tenantId changes
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [currentTenantId]);
 
   return {

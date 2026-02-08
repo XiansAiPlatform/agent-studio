@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { withTenant } from "@/lib/api/with-tenant"
-import { getProviderById } from "@/config/oidc-providers"
+// Provider info now comes from the backend API
 import { 
   ConnectionTestResult,
   ConnectionTestResponse 
@@ -25,9 +25,7 @@ async function simulateConnectionTest(connection: any): Promise<ConnectionTestRe
   
   try {
     // Simulate testing different aspects of the connection
-    const provider = getProviderById(connection.providerId)
-    
-    if (!provider) {
+    if (!connection.providerId) {
       return {
         success: false,
         error: 'Unknown provider',

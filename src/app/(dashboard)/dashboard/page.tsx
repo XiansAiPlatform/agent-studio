@@ -81,6 +81,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!currentTenantId) return;
 
+    const abortController = new AbortController();
+
     const fetchTenantStats = async () => {
       setIsLoadingStats(true);
       try {
@@ -92,7 +94,9 @@ export default function DashboardPage() {
           endDate,
         });
         
-        const response = await fetch(`/api/tenants/${currentTenantId}/stats?${params.toString()}`);
+        const response = await fetch(`/api/tenants/${currentTenantId}/stats?${params.toString()}`, {
+          signal: abortController.signal,
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch tenant stats');
@@ -101,6 +105,12 @@ export default function DashboardPage() {
         const stats = await response.json();
         setTenantStats(stats);
       } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('[Dashboard] Stats request aborted');
+          return;
+        }
+        
         showToast.error({
           title: 'Failed to fetch tenant stats',
           description: error instanceof Error ? error.message : 'An error occurred while loading dashboard statistics',
@@ -125,6 +135,11 @@ export default function DashboardPage() {
     };
 
     fetchTenantStats();
+
+    // Cleanup function to abort request if component unmounts or dependencies change
+    return () => {
+      abortController.abort();
+    };
   }, [currentTenantId, timePeriod]);
 
   // Extract stats from API or use defaults

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { withTenant } from "@/lib/api/with-tenant"
-import { getProviderById } from "@/config/oidc-providers"
+// Provider info now comes from the backend API
 import { 
   InitiateConnectionRequest,
   InitiateConnectionResponse,
@@ -39,11 +39,10 @@ export const POST = withTenant(async (request, { tenantContext, session }) => {
   try {
     const data: InitiateConnectionRequest = await request.json()
     
-    // Validate provider ID
-    const provider = getProviderById(data.providerId)
-    if (!provider) {
+    // Basic validation (provider validation would be done by the backend API)
+    if (!data.providerId) {
       return NextResponse.json(
-        { error: 'Invalid provider ID' },
+        { error: 'Provider ID is required' },
         { status: 400 }
       )
     }

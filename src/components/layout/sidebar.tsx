@@ -109,7 +109,18 @@ const navigation: NavigationItem[] = [
           icon: Database,
         },
       },
-      // { name: 'Connections', href: '/settings/connections' },
+      { 
+        name: 'Connections', 
+        href: '/settings/connections',
+        triggersPanel: true,
+        panelConfig: {
+          title: 'Select an Agent',
+          description: 'Choose an agent to manage connections',
+          basePath: '/settings/connections',
+          useQueryParams: true,
+          icon: Server,
+        },
+      },
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' },
 

@@ -26,8 +26,9 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
   return (
     <Card 
       className={cn(
-        'border-border/50 transition-all hover:border-border cursor-pointer',
-        hasException && 'border-l-4 border-l-red-500',
+        'border-border/50 transition-all cursor-pointer',
+        !hasException && 'hover:border-border',
+        hasException && 'border-l-4 border-l-red-500 rounded-l-none hover:shadow-lg hover:bg-accent/5',
         isExpanded && 'shadow-md'
       )}
       onClick={() => {

@@ -1,22 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  MoreVertical, 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  X, 
-  Settings, 
-  Loader2, 
-  TestTube, 
-  ExternalLink,
-  Edit,
-  Trash2,
-  BarChart,
-  Power,
-  PowerOff
-} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { MoreHorizontal } from 'lucide-react'
+import Image from 'next/image'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +9,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { OIDCConnection, ConnectionStatus } from '../types'
-import { OIDC_PROVIDERS } from '@/config/oidc-providers'
+
+// Icon mapping for integration types
+const INTEGRATION_ICONS: Record<string, string> = {
+  'slack': '/slack.png',
+  'msteams': '/microsoft_teams.png',
+  'teams': '/microsoft_teams.png',
+  'outlook': '/outlook.png',
+  'webhook': '/webhook.png'
+}
+
+const INTEGRATION_NAMES: Record<string, string> = {
+  'slack': 'Slack',
+  'msteams': 'Microsoft Teams',
+  'teams': 'Microsoft Teams',
+  'outlook': 'Outlook',
+  'webhook': 'Custom Webhook'
+}
 
 interface ConnectionCardProps {
   connection: OIDCConnection
@@ -35,56 +35,17 @@ interface ConnectionCardProps {
   onToggleActive: (connectionId: string, active: boolean) => void
   onViewUsage: (connectionId: string) => void
   onAuthorize?: (connectionId: string) => void
+  onClick?: (connectionId: string) => void
 }
 
-const statusConfig: Record<ConnectionStatus, { 
-  icon: React.ReactNode
-  color: string 
-  bgColor: string
-  label: string
-}> = {
-  connected: {
-    icon: <CheckCircle className="h-3 w-3" />,
-    color: 'text-green-700',
-    bgColor: 'bg-green-50 border-green-200',
-    label: 'Connected'
-  },
-  expired: {
-    icon: <Clock className="h-3 w-3" />,
-    color: 'text-yellow-700',
-    bgColor: 'bg-yellow-50 border-yellow-200',
-    label: 'Token Expired'
-  },
-  error: {
-    icon: <AlertCircle className="h-3 w-3" />,
-    color: 'text-red-700',
-    bgColor: 'bg-red-50 border-red-200',
-    label: 'Error'
-  },
-  pending: {
-    icon: <Clock className="h-3 w-3" />,
-    color: 'text-amber-700',
-    bgColor: 'bg-amber-50 border-amber-200',
-    label: 'Pending Authorization'
-  },
-  authorizing: {
-    icon: <Loader2 className="h-3 w-3 animate-spin" />,
-    color: 'text-blue-700',
-    bgColor: 'bg-blue-50 border-blue-200',
-    label: 'Authorizing'
-  },
-  disabled: {
-    icon: <X className="h-3 w-3" />,
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-50 border-gray-300',
-    label: 'Disabled'
-  },
-  draft: {
-    icon: <Clock className="h-3 w-3" />,
-    color: 'text-gray-700',
-    bgColor: 'bg-gray-50 border-gray-200',
-    label: 'Draft'
-  }
+const statusText: Record<ConnectionStatus, { text: string; color: string }> = {
+  connected: { text: 'active', color: 'text-emerald-600' },
+  expired: { text: 'expired', color: 'text-amber-600' },
+  error: { text: 'error', color: 'text-red-600' },
+  pending: { text: 'pending', color: 'text-slate-500' },
+  authorizing: { text: 'authorizing', color: 'text-blue-600' },
+  disabled: { text: 'disabled', color: 'text-slate-400' },
+  draft: { text: 'draft', color: 'text-slate-500' }
 }
 
 export function ConnectionCard({ 
@@ -94,205 +55,121 @@ export function ConnectionCard({
   onTest, 
   onToggleActive, 
   onViewUsage,
-  onAuthorize 
+  onAuthorize,
+  onClick 
 }: ConnectionCardProps) {
-  const provider = OIDC_PROVIDERS[connection.providerId]
-  const statusInfo = statusConfig[connection.status]
-  
-  const needsAuthorization = ['pending', 'expired', 'error'].includes(connection.status)
-  const canTest = connection.status !== 'authorizing'
+  const status = statusText[connection.status]
+  const iconUrl = INTEGRATION_ICONS[connection.providerId] || '/default-icon.png'
+  const displayName = INTEGRATION_NAMES[connection.providerId] || connection.providerId
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Never'
-    return new Date(dateString).toLocaleDateString()
-  }
-
-  const formatRelativeTime = (dateString?: string) => {
-    if (!dateString) return 'Never'
+    if (!dateString) return 'unknown'
     const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffHours / 24)
-    
-    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
-    if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
-    return 'Recently'
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    })
   }
 
   return (
-    <Card className={`transition-all hover:shadow-md ${!connection.isActive ? 'opacity-60' : ''}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-3 min-w-0 flex-1">
-            <div className="text-2xl flex-shrink-0">
-              {provider?.icon || '🔗'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <CardTitle className="text-base truncate">{connection.name}</CardTitle>
-              <CardDescription className="text-sm">
-                {provider?.displayName || connection.providerId}
-              </CardDescription>
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => onEdit(connection)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              
-              {canTest && (
-                <DropdownMenuItem onClick={() => onTest(connection.id)}>
-                  <TestTube className="h-4 w-4 mr-2" />
-                  Test Connection
-                </DropdownMenuItem>
-              )}
-              
-              {needsAuthorization && onAuthorize && (
-                <DropdownMenuItem onClick={() => onAuthorize(connection.id)}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Authorize
-                </DropdownMenuItem>
-              )}
-              
-              <DropdownMenuItem onClick={() => onViewUsage(connection.id)}>
-                <BarChart className="h-4 w-4 mr-2" />
-                View Usage
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                onClick={() => onToggleActive(connection.id, !connection.isActive)}
-              >
-                {connection.isActive ? (
-                  <>
-                    <PowerOff className="h-4 w-4 mr-2" />
-                    Disable
-                  </>
-                ) : (
-                  <>
-                    <Power className="h-4 w-4 mr-2" />
-                    Enable
-                  </>
-                )}
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                onClick={() => onDelete(connection.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div 
+      onClick={() => onClick?.(connection.id)}
+      className={cn(
+        "group relative p-6 rounded-xl border-0 transition-all duration-200",
+        connection.isActive 
+          ? "bg-white/80 hover:bg-white" 
+          : "bg-slate-100/50 hover:bg-slate-100/70",
+        onClick && "cursor-pointer"
+      )}
+    >
+      <div className="flex items-start gap-4">
+        {/* Icon */}
+        <div className={cn(
+          "flex-shrink-0 mt-0.5",
+          !connection.isActive && "opacity-50 grayscale"
+        )}>
+          <Image 
+            src={iconUrl} 
+            alt={displayName}
+            width={40}
+            height={40}
+            className="object-contain"
+          />
         </div>
         
-        <div className="flex items-center justify-between mt-2">
-          <Badge 
-            variant="outline" 
-            className={`flex items-center gap-1 text-xs ${statusInfo.color} ${statusInfo.bgColor}`}
-          >
-            {statusInfo.icon}
-            {statusInfo.label}
-          </Badge>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Connection name */}
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className={cn(
+              "text-base font-normal",
+              connection.isActive ? "text-slate-900" : "text-slate-500"
+            )}>
+              {connection.name}
+            </h3>
+            <span className={cn(
+              "text-xs px-2 py-0.5 rounded",
+              connection.isActive 
+                ? "text-emerald-600 bg-emerald-50/50" 
+                : "text-slate-400 bg-slate-200/50"
+            )}>
+              {connection.isActive ? 'enabled' : 'disabled'}
+            </span>
+          </div>
           
-          {!connection.isActive && (
-            <Badge variant="secondary" className="text-xs">
-              Disabled
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0 space-y-3">
-        {connection.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            {connection.description}
-          </p>
-        )}
-        
-        <div className="space-y-1 text-xs text-muted-foreground">
-          {connection.externalUserName && (
-            <div className="flex justify-between">
-              <span>Authorized as:</span>
-              <span className="font-medium">{connection.externalUserName}</span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <span>Created:</span>
-            <span>{formatDate(connection.createdAt)}</span>
+          {/* Type and Date */}
+          <div className="flex items-center gap-2 text-sm text-slate-500 flex-wrap">
+            <span>{displayName}</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-xs">created {formatDate(connection.createdAt)}</span>
+            {connection.status !== 'connected' && connection.isActive && (
+              <>
+                <span className="text-slate-300">•</span>
+                <span className={cn("text-xs", status.color)}>{status.text}</span>
+              </>
+            )}
           </div>
-          {connection.authorizedAt && (
-            <div className="flex justify-between">
-              <span>Authorized:</span>
-              <span>{formatDate(connection.authorizedAt)}</span>
-            </div>
-          )}
-          {connection.lastUsed && (
-            <div className="flex justify-between">
-              <span>Last used:</span>
-              <span>{formatRelativeTime(connection.lastUsed)}</span>
-            </div>
-          )}
-          {connection.usageCount !== undefined && (
-            <div className="flex justify-between">
-              <span>Usage count:</span>
-              <span>{connection.usageCount}</span>
-            </div>
-          )}
         </div>
-        
-        {connection.lastError && (
-          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
-            <p className="text-red-700 font-medium">Last Error:</p>
-            <p className="text-red-600 mt-1">{connection.lastError}</p>
-          </div>
-        )}
-        
-        <div className="flex gap-2 pt-2">
-          {needsAuthorization && onAuthorize ? (
-            <Button 
-              size="sm" 
-              className="flex-1 text-xs"
-              onClick={() => onAuthorize(connection.id)}
-              disabled={connection.status === 'authorizing'}
-            >
-              {connection.status === 'authorizing' ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Authorizing...
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="h-3 w-3 mr-1" />
+
+        {/* Actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600 transition-all p-1 flex-shrink-0">
+              <MoreHorizontal className="h-5 w-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            {['pending', 'expired', 'error'].includes(connection.status) && onAuthorize && (
+              <>
+                <DropdownMenuItem onClick={() => onAuthorize(connection.id)}>
                   Authorize
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 text-xs"
-              onClick={() => onTest(connection.id)}
-              disabled={!canTest}
-            >
-              <TestTube className="h-3 w-3 mr-1" />
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem onClick={() => onTest(connection.id)}>
               Test
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onViewUsage(connection.id)}>
+              Usage
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(connection)}>
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onToggleActive(connection.id, !connection.isActive)}>
+              {connection.isActive ? 'Disable' : 'Enable'}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => onDelete(connection.id)}
+              className="text-red-600 focus:text-red-600"
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   )
 }

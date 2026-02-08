@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,8 @@ function LogsContent() {
   const [allActivations, setAllActivations] = useState<ActivationWithAgent[]>([]);
   const [isLoadingActivations, setIsLoadingActivations] = useState(true);
   const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
+  const activationsAbortControllerRef = useRef<AbortController | null>(null);
+  const hasFetchedActivationsRef = useRef(false);
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -96,10 +98,27 @@ function LogsContent() {
         return;
       }
 
+      // Skip if already fetched (for React Strict Mode)
+      if (hasFetchedActivationsRef.current) {
+        console.log('[LogsPage] Skipping activations fetch - already fetched');
+        return;
+      }
+
+      // Cancel any pending request
+      if (activationsAbortControllerRef.current) {
+        activationsAbortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this request
+      activationsAbortControllerRef.current = new AbortController();
+
       setIsLoadingActivations(true);
       try {
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/activations`
+          `/api/tenants/${currentTenantId}/activations`,
+          {
+            signal: activationsAbortControllerRef.current.signal,
+          }
         );
 
         if (!response.ok) {
@@ -125,7 +144,14 @@ function LogsContent() {
 
         console.log('[LogsPage] Mapped activations:', activationsWithAgents);
         setAllActivations(activationsWithAgents);
+        hasFetchedActivationsRef.current = true;
       } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('[LogsPage] Activations request aborted');
+          return;
+        }
+        
         console.error('[LogsPage] Error fetching activations:', error);
         setAllActivations([]);
       } finally {
@@ -134,6 +160,13 @@ function LogsContent() {
     };
 
     fetchActivations();
+
+    // Cleanup function to abort request if component unmounts or tenantId changes
+    return () => {
+      if (activationsAbortControllerRef.current) {
+        activationsAbortControllerRef.current.abort();
+      }
+    };
   }, [currentTenantId]);
 
   // Build filters for the hook

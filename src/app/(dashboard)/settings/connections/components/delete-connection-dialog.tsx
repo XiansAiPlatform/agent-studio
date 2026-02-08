@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -10,7 +11,23 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Loader2, AlertTriangle } from 'lucide-react'
 import { OIDCConnection } from '../types'
-import { OIDC_PROVIDERS } from '@/config/oidc-providers'
+
+// Icon mapping for integration types
+const INTEGRATION_ICONS: Record<string, string> = {
+  'slack': '/slack.png',
+  'msteams': '/microsoft_teams.png',
+  'teams': '/microsoft_teams.png',
+  'outlook': '/outlook.png',
+  'webhook': '/webhook.png'
+}
+
+const INTEGRATION_NAMES: Record<string, string> = {
+  'slack': 'Slack',
+  'msteams': 'Microsoft Teams',
+  'teams': 'Microsoft Teams',
+  'outlook': 'Outlook',
+  'webhook': 'Custom Webhook'
+}
 
 interface DeleteConnectionDialogProps {
   open: boolean
@@ -29,7 +46,8 @@ export function DeleteConnectionDialog({
 }: DeleteConnectionDialogProps) {
   if (!connection) return null
 
-  const provider = OIDC_PROVIDERS[connection.providerId]
+  const iconUrl = INTEGRATION_ICONS[connection.providerId] || '/default-icon.png'
+  const displayName = INTEGRATION_NAMES[connection.providerId] || connection.providerId
   
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -46,9 +64,15 @@ export function DeleteConnectionDialog({
             </p>
             
             <div className="bg-muted p-3 rounded-md text-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">{provider?.icon || '🔗'}</span>
-                <span className="font-medium">{provider?.displayName || connection.providerId}</span>
+              <div className="flex items-center gap-3 mb-2">
+                <Image 
+                  src={iconUrl} 
+                  alt={displayName}
+                  width={24}
+                  height={24}
+                  className="object-contain"
+                />
+                <span className="font-medium">{displayName}</span>
               </div>
               <div className="space-y-1 text-muted-foreground">
                 <div className="flex justify-between">

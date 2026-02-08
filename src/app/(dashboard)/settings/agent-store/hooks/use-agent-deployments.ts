@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { XiansAgentDeployment } from '@/lib/xians/types';
 import { EnhancedDeployment } from '../types';
 import { getAgentIcon, getAgentColor } from '../utils/agent-helpers';
@@ -8,16 +8,27 @@ export const useAgentDeployments = (tenantId: string | null) => {
   const [deployedAgents, setDeployedAgents] = useState<EnhancedDeployment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     async function fetchDeployments() {
       if (!tenantId) return;
       
+      // Cancel any pending request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
       try {
         setIsLoading(true);
         setError(null);
         
-        const deploymentsRes = await fetch(`/api/tenants/${tenantId}/agent-deployments`);
+        const deploymentsRes = await fetch(`/api/tenants/${tenantId}/agent-deployments`, {
+          signal: abortControllerRef.current.signal,
+        });
         const deploymentsData = await deploymentsRes.json();
         
         if (!deploymentsRes.ok) {
@@ -50,6 +61,12 @@ export const useAgentDeployments = (tenantId: string | null) => {
         
         setDeployedAgents(enhancedDeployments);
       } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log('[useAgentDeployments] Request aborted');
+          return;
+        }
+        
         const errorMessage = err instanceof Error ? err.message : 'Failed to load agents';
         setError(errorMessage);
         showErrorToast(err, 'Failed to load agents');
@@ -59,6 +76,13 @@ export const useAgentDeployments = (tenantId: string | null) => {
     }
 
     fetchDeployments();
+
+    // Cleanup function to abort request if component unmounts or tenantId changes
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [tenantId]);
 
   const refetch = () => {

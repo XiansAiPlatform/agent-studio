@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useMemo, useEffect, useCallback } from 'react';
+import { Suspense, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -125,6 +125,8 @@ function TasksContent() {
   }, [searchParams]);
 
   // Fetch all activations (both active and inactive)
+  const activationsAbortControllerRef = useRef<AbortController | null>(null);
+  
   useEffect(() => {
     const fetchActivations = async () => {
       if (!currentTenantId) {
@@ -133,10 +135,21 @@ function TasksContent() {
         return;
       }
 
+      // Cancel any pending request
+      if (activationsAbortControllerRef.current) {
+        activationsAbortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this request
+      activationsAbortControllerRef.current = new AbortController();
+
       setIsLoadingActivations(true);
       try {
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/activations`
+          `/api/tenants/${currentTenantId}/activations`,
+          {
+            signal: activationsAbortControllerRef.current.signal,
+          }
         );
 
         if (!response.ok) {
@@ -167,32 +180,34 @@ function TasksContent() {
         console.log('[TasksPage] Mapped activations:', activationsWithAgents);
         setAllActivations(activationsWithAgents);
       } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('[TasksPage] Activations request aborted');
+          return;
+        }
+        
         console.error('[TasksPage] Error fetching activations:', error);
-        // Fallback: extract activations from current tasks
-        const activationMap = new Map<string, string>();
-        tasks.forEach((task) => {
-          const activationName = task.createdBy.name;
-          const agentName = task.content?.data?.agentName || 'Unknown Agent';
-          if (!activationMap.has(activationName)) {
-            activationMap.set(activationName, agentName);
-          }
-        });
-        const fallbackActivations = Array.from(activationMap.entries()).map(([activationName, agentName]) => ({
-          activationName,
-          agentName,
-          isActive: false, // We don't know the status in fallback mode
-        }));
-        console.log('[TasksPage] Using fallback activations from tasks:', fallbackActivations);
-        setAllActivations(fallbackActivations);
+        // Fallback: use empty array instead of extracting from tasks
+        // to avoid creating a dependency cycle
+        setAllActivations([]);
       } finally {
         setIsLoadingActivations(false);
       }
     };
 
     fetchActivations();
-  }, [currentTenantId, tasks]);
+
+    // Cleanup function to abort request if component unmounts or tenantId changes
+    return () => {
+      if (activationsAbortControllerRef.current) {
+        activationsAbortControllerRef.current.abort();
+      }
+    };
+  }, [currentTenantId]); // Removed 'tasks' from dependencies to prevent infinite loop
 
   // Fetch all tasks from API
+  const tasksAbortControllerRef = useRef<AbortController | null>(null);
+  
   const fetchTasks = useCallback(async () => {
     if (!currentTenantId) {
       setTasks([]);
@@ -205,6 +220,14 @@ function TasksContent() {
       console.log('[TasksPage] Waiting for URL params to initialize...');
       return;
     }
+
+    // Cancel any pending request
+    if (tasksAbortControllerRef.current) {
+      tasksAbortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    tasksAbortControllerRef.current = new AbortController();
 
     setIsLoadingTasks(true);
     try {
@@ -231,7 +254,9 @@ function TasksContent() {
       const apiUrl = `/api/tenants/${currentTenantId}/tasks?${params.toString()}`;
       console.log('[TasksPage] Fetching tasks from:', apiUrl);
       
-      const response = await fetch(apiUrl);
+      const response = await fetch(apiUrl, {
+        signal: tasksAbortControllerRef.current.signal,
+      });
 
       if (!response.ok) {
         // Try to get the actual error message from the server
@@ -309,6 +334,12 @@ function TasksContent() {
 
       setTasks(mappedTasks);
     } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[TasksPage] Tasks request aborted');
+        return;
+      }
+      
       console.error('[TasksPage] Error fetching tasks:', error);
       showErrorToast(error, 'Failed to load tasks');
       setTasks([]);
@@ -319,6 +350,13 @@ function TasksContent() {
 
   useEffect(() => {
     fetchTasks();
+
+    // Cleanup function to abort request if component unmounts or dependencies change
+    return () => {
+      if (tasksAbortControllerRef.current) {
+        tasksAbortControllerRef.current.abort();
+      }
+    };
   }, [fetchTasks]);
 
   // Update URL when filters change

@@ -1,6 +1,7 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,25 +18,37 @@ import {
   Settings,
   ExternalLink,
   Loader2,
-  RefreshCw 
+  RefreshCw,
+  Bot,
+  Server 
 } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
-import { OIDC_PROVIDERS, getProvidersByCategory, PROVIDER_CATEGORIES } from '@/config/oidc-providers';
 import { OIDCConnection, ConnectionStatus } from './types';
 import { useConnections } from './hooks/use-connections';
 import { CreateConnectionDialog } from './components/create-connection-dialog';
 import { ConnectionCard } from './components/connection-card';
 import { DeleteConnectionDialog } from './components/delete-connection-dialog';
+import { IntegrationDetailsSheet } from './components/integration-details-sheet';
+import { SlackWizardSheet } from './components/slack-wizard-sheet';
+import { TeamsWizardSheet } from './components/teams-wizard-sheet';
 
 function ConnectionsContent() {
   const { currentTenantId } = useTenant();
+  const searchParams = useSearchParams();
+  const agentName = searchParams.get('agentName');
+  const activationName = searchParams.get('activationName');
+  
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<OIDCConnection | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ConnectionStatus | 'all'>('all');
   const [providerFilter, setProviderFilter] = useState<string>('all');
+  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
+  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | null>(null);
+  const [showSlackWizard, setShowSlackWizard] = useState(false);
+  const [showTeamsWizard, setShowTeamsWizard] = useState(false);
 
   // Handle OAuth completion messages
   useEffect(() => {
@@ -78,6 +91,12 @@ function ConnectionsContent() {
     }
   }, []);
 
+  // Memoize options to prevent infinite loop
+  const connectionOptions = useMemo(() => ({
+    agentName: agentName ?? undefined,
+    activationName: activationName ?? undefined,
+  }), [agentName, activationName]);
+
   const {
     connections,
     isLoading,
@@ -88,15 +107,16 @@ function ConnectionsContent() {
     updateConnection,
     deleteConnection,
     testConnection,
-    authorizeConnection
-  } = useConnections(currentTenantId ?? undefined);
+    authorizeConnection,
+    createIntegration
+  } = useConnections(currentTenantId ?? undefined, connectionOptions);
 
   // Filter connections based on search and filters
   const filteredConnections = connections?.filter(conn => {
     const matchesSearch = !searchQuery || 
       conn.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conn.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      OIDC_PROVIDERS[conn.providerId]?.displayName.toLowerCase().includes(searchQuery.toLowerCase());
+      conn.providerId.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || conn.status === statusFilter;
     const matchesProvider = providerFilter === 'all' || conn.providerId === providerFilter;
@@ -105,21 +125,114 @@ function ConnectionsContent() {
   }) || [];
 
   const handleCreateConnection = async (data: any) => {
+    console.log('[Page] handleCreateConnection called with data:', data)
+    
     try {
-      // Use the new OAuth-first flow
-      const result = await initiateConnection.mutateAsync({
-        ...data,
-        returnUrl: '/settings/connections'
-      });
+      // For Slack, use direct integration creation
+      if (data.platformId === 'slack') {
+        console.log('[Page] Slack integration - starting creation')
+        
+        const integrationData = {
+          platformId: data.platformId,
+          name: data.name,
+          description: data.description,
+          agentName: agentName || 'DefaultAgent',
+          activationName: activationName || 'DefaultActivation',
+          configuration: data.configuration,
+          mappingConfig: {
+            participantIdSource: 'userEmail',
+            scopeSource: null,
+            defaultScope: 'Slack'
+          },
+          isEnabled: true
+        };
+        
+        console.log('[Page] Creating Slack integration with data:', integrationData)
+        
+        // Call the API directly without the mutation wrapper to avoid refetch
+        const response = await fetch(`/api/tenants/${currentTenantId}/integrations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(integrationData),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}))
+          throw new Error(error.error || 'Failed to create integration')
+        }
+        
+        const result = await response.json()
+        
+        console.log('[Page] ✅ Integration created successfully!')
+        console.log('[Page] Result:', result)
+        console.log('[Page] Webhook URL:', result?.webhookUrl)
+        
+        return result
+      }
       
-      // Close dialog and redirect user to OAuth provider
-      setShowCreateDialog(false);
-      
-      // Open OAuth URL in the same window to complete the flow
-      window.location.href = result.authUrl;
+      // For Teams, use direct integration creation
+      if (data.platformId === 'msteams') {
+        console.log('[Page] Teams integration - starting creation')
+        
+        const integrationData = {
+          platformId: data.platformId,
+          name: data.name,
+          description: data.description,
+          agentName: agentName || 'DefaultAgent',
+          activationName: activationName || 'DefaultActivation',
+          configuration: data.configuration,
+          mappingConfig: data.mappingConfig,
+          isEnabled: true
+        };
+        
+        console.log('[Page] Creating Teams integration with data:', integrationData)
+        
+        // Call the API directly
+        const response = await fetch(`/api/tenants/${currentTenantId}/integrations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(integrationData),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}))
+          throw new Error(error.error || 'Failed to create integration')
+        }
+        
+        const result = await response.json()
+        
+        console.log('[Page] ✅ Teams integration created successfully!')
+        console.log('[Page] Result:', result)
+        console.log('[Page] Webhook URL:', result?.webhookUrl)
+        console.log('[Page] Returning result to wizard...')
+        
+        // Show success message (wizard continues to next step)
+        showSuccessToast('Slack integration created successfully');
+        
+        // IMPORTANT: Return the result so wizard can access webhookUrl and advance
+        // DO NOT refetch or close anything - wizard handles the flow
+        // Refetch will happen when wizard is complete
+        return result;
+      } else {
+        console.log('[Page] Non-Slack integration - using OAuth flow')
+        
+        // Use the OAuth-first flow for other providers
+        const result = await initiateConnection.mutateAsync({
+          ...data,
+          returnUrl: '/settings/connections'
+        });
+        
+        // Close dialog and redirect user to OAuth provider
+        setShowCreateDialog(false);
+        
+        // Open OAuth URL in the same window to complete the flow
+        window.location.href = result.authUrl;
+      }
       
     } catch (error) {
+      console.error('[Page] ❌ Error creating connection:', error)
       showErrorToast(error as Error);
+      throw error;
     }
   };
 
@@ -160,6 +273,11 @@ function ConnectionsContent() {
     }
   };
 
+  const handleViewDetails = (connectionId: string) => {
+    setSelectedIntegrationId(connectionId);
+    setShowDetailsSheet(true);
+  };
+
   const statusColors: Record<ConnectionStatus, string> = {
     connected: 'bg-green-100 text-green-800 border-green-200',
     expired: 'bg-yellow-100 text-yellow-800 border-yellow-200', 
@@ -182,11 +300,13 @@ function ConnectionsContent() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading connections...</p>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-center py-24">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading connections...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -194,141 +314,179 @@ function ConnectionsContent() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground">Connections</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage OIDC connections to external services
-          </p>
-        </div>
-        <Button 
-          onClick={() => setShowCreateDialog(true)} 
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Connection
-        </Button>
-      </div>
-
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search connections..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as ConnectionStatus | 'all')}
-                className="px-3 py-2 border border-input bg-background text-sm rounded-md"
-              >
-                <option value="all">All Status</option>
-                <option value="connected">Connected</option>
-                <option value="pending">Pending Authorization</option>
-                <option value="expired">Expired</option>
-                <option value="error">Error</option>
-                <option value="authorizing">Authorizing</option>
-                <option value="disabled">Disabled</option>
-              </select>
-              <select
-                value={providerFilter}
-                onChange={(e) => setProviderFilter(e.target.value)}
-                className="px-3 py-2 border border-input bg-background text-sm rounded-md"
-              >
-                <option value="all">All Providers</option>
-                {Object.values(OIDC_PROVIDERS).map(provider => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.displayName}
-                  </option>
-                ))}
-              </select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                disabled={isLoading}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      {/* Header */}
+      <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground flex items-center gap-3">
+                <Server className="h-6 w-6 text-primary" />
+                Connections
+              </h1>
+              {agentName && activationName && (
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-sm text-muted-foreground">Managing connections for</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1">
+                      <Bot className="h-3 w-3" />
+                      {agentName}
+                    </Badge>
+                    <Badge variant="outline" className="px-3 py-1">
+                      {activationName}
+                    </Badge>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Connections List */}
-      {filteredConnections.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Link2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <CardTitle className="text-lg mb-2">
-              {connections?.length === 0 ? 'No connections yet' : 'No matching connections'}
-            </CardTitle>
-            <CardDescription className="text-center mb-4">
-              {connections?.length === 0 
-                ? 'Create your first OIDC connection to external services'
-                : 'Try adjusting your search or filter criteria'
-              }
-            </CardDescription>
-            {connections?.length === 0 && (
-              <Button onClick={() => setShowCreateDialog(true)} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Create Connection
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredConnections.map((connection) => (
-            <ConnectionCard
-              key={connection.id}
-              connection={connection}
-              onEdit={() => {/* TODO: Implement edit */}}
-              onDelete={(id) => {
-                setSelectedConnection(connection);
-                setShowDeleteDialog(true);
-              }}
-              onTest={handleTestConnection}
-              onToggleActive={(id, active) => {
-                updateConnection.mutate({ 
-                  id, 
-                  data: { isActive: active } 
-                });
-              }}
-              onViewUsage={() => {/* TODO: Implement usage view */}}
-              onAuthorize={handleAuthorizeConnection}
-            />
-          ))}
         </div>
-      )}
+      </div>
 
-      {/* Create Connection Dialog */}
-      <CreateConnectionDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onSubmit={handleCreateConnection}
-        isSubmitting={initiateConnection.isPending}
-      />
+      {/* Main Content */}
+      <div className="container mx-auto p-6">
+        {filteredConnections.length === 0 ? (
+          /* Empty State */
+          <div className="bg-white/40 rounded-xl p-16 text-center">
+            <div className="flex flex-col items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                <Link2 className="h-8 w-8 text-slate-400" />
+              </div>
+              <div>
+                <p className="text-slate-400 mb-6">No connections yet</p>
+                <button
+                  onClick={() => setShowCreateDialog(true)}
+                  className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create your first connection</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Connections Grid */
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredConnections.map((connection) => (
+              <ConnectionCard
+                key={connection.id}
+                connection={connection}
+                onEdit={() => {/* TODO: Implement edit */}}
+                onDelete={(id) => {
+                  setSelectedConnection(connection);
+                  setShowDeleteDialog(true);
+                }}
+                onTest={handleTestConnection}
+                onToggleActive={(id, active) => {
+                  updateConnection.mutate({ 
+                    id, 
+                    data: { isActive: active } 
+                  });
+                }}
+                onViewUsage={() => {/* TODO: Implement usage view */}}
+                onAuthorize={handleAuthorizeConnection}
+                onClick={handleViewDetails}
+              />
+            ))}
+            
+            {/* Add New Connection */}
+            <button
+              onClick={() => setShowCreateDialog(true)}
+              className="group p-6 rounded-xl bg-white/40 hover:bg-white/60 border-0 transition-all duration-200 text-left"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors flex-shrink-0 mt-0.5">
+                  <Plus className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-normal text-slate-600 group-hover:text-slate-900 transition-colors mb-1">
+                    Add new connection
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Connect a service to enable integrations
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
-      {/* Delete Connection Dialog */}
-      <DeleteConnectionDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        connection={selectedConnection}
-        onConfirm={handleDeleteConnection}
-        isDeleting={deleteConnection.isPending}
-      />
+        {/* Create Connection Dialog - Only render when not showing Slack or Teams wizard */}
+        {!showSlackWizard && !showTeamsWizard && (
+          <CreateConnectionDialog
+            open={showCreateDialog}
+            onOpenChange={setShowCreateDialog}
+            onSubmit={handleCreateConnection}
+            isSubmitting={initiateConnection.isPending}
+            onSlackSelected={() => {
+              setShowCreateDialog(false)
+              setShowSlackWizard(true)
+            }}
+            onTeamsSelected={() => {
+              setShowCreateDialog(false)
+              setShowTeamsWizard(true)
+            }}
+          />
+        )}
+
+        {/* Slack Wizard Sheet - Persists while open to maintain state */}
+        {showSlackWizard && (
+          <SlackWizardSheet
+            key="slack-wizard-persistent"
+            open={showSlackWizard}
+            onOpenChange={(open) => {
+              console.log('[Page] Slack wizard onOpenChange:', open)
+              setShowSlackWizard(open)
+              if (!open) {
+                // Refetch connections when wizard closes
+                console.log('[Page] Wizard closed, refetching connections')
+                refetch()
+              }
+            }}
+            onSubmit={handleCreateConnection}
+            isSubmitting={createIntegration.isPending}
+          />
+        )}
+
+        {/* Teams Wizard Sheet - Persists while open to maintain state */}
+        {showTeamsWizard && (
+          <TeamsWizardSheet
+            key="teams-wizard-persistent"
+            open={showTeamsWizard}
+            onOpenChange={(open) => {
+              console.log('[Page] Teams wizard onOpenChange:', open)
+              setShowTeamsWizard(open)
+              if (!open) {
+                // Refetch connections when wizard closes
+                console.log('[Page] Wizard closed, refetching connections')
+                refetch()
+              }
+            }}
+            onSubmit={handleCreateConnection}
+            isSubmitting={createIntegration.isPending}
+          />
+        )}
+
+        {/* Delete Connection Dialog */}
+        <DeleteConnectionDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          connection={selectedConnection}
+          onConfirm={handleDeleteConnection}
+          isDeleting={deleteConnection.isPending}
+        />
+
+        {/* Integration Details Sheet */}
+        <IntegrationDetailsSheet
+          open={showDetailsSheet}
+          onOpenChange={setShowDetailsSheet}
+          integrationId={selectedIntegrationId}
+          onDeleted={() => {
+            refetch()
+            setSelectedIntegrationId(null)
+          }}
+        />
+      </div>
     </div>
   );
 }

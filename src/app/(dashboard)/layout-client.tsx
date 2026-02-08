@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Header } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
@@ -26,9 +26,17 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const [isValidating, setIsValidating] = useState(true)
+  const hasInitializedRef = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Initialize store and validate selected tenant
   useEffect(() => {
+    // Prevent duplicate calls in React Strict Mode
+    if (hasInitializedRef.current) {
+      console.log('[Dashboard Client] Already initialized, skipping duplicate call')
+      return
+    }
+
     const initializeAndValidate = async () => {
       if (initialTenants && initialTenants.length > 0) {
         console.log('[Dashboard Client] Initializing with', initialTenants.length, 'tenant(s)')
@@ -59,9 +67,13 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
         if (finalSelectedTenantId && finalTenantExistsInList) {
           console.log('[Dashboard Client] Validating current tenant in Xians:', finalSelectedTenantId)
           
+          // Create abort controller for this request
+          abortControllerRef.current = new AbortController()
+          
           try {
             const response = await fetch(`/api/tenants/${finalSelectedTenantId}/validate`, {
               cache: 'no-store',
+              signal: abortControllerRef.current.signal,
             })
             
             const data = await response.json()
@@ -80,6 +92,12 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
               return
             }
           } catch (error) {
+            // Ignore abort errors
+            if (error instanceof Error && error.name === 'AbortError') {
+              console.log('[Dashboard Client] Validation request aborted')
+              return
+            }
+            
             console.error('[Dashboard Client] Network error while validating tenant:', error)
             // Don't redirect on network errors - the tenant might be valid, we just can't check right now
             // Allow the user to continue using the app with the selected tenant
@@ -90,14 +108,23 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
         }
         
         setIsValidating(false)
+        hasInitializedRef.current = true
       } else {
         // No tenants at all - just finish validation
         setIsValidating(false)
+        hasInitializedRef.current = true
       }
     }
     
     initializeAndValidate()
-  }, [initialTenants, setTenants, router])
+
+    // Cleanup function to abort request if component unmounts
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [initialTenants, setTenants, router, clearTenants])
 
   // Show loading while validating selected tenant
   if (isValidating) {

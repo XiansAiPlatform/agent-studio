@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { withTenant, withTenantPermission } from "@/lib/api/with-tenant"
 import { createXiansSDK } from "@/lib/xians"
-import { getProviderById } from "@/config/oidc-providers"
+// Provider info now comes from the backend API
 import { 
   OIDCConnection, 
   UpdateConnectionRequest, 
@@ -113,8 +113,7 @@ export const PUT = withTenantPermission('write', async (request, { tenantContext
     
     // Validate provider ID if it's being updated
     if (data.providerId && data.providerId !== existingConnection.providerId) {
-      const provider = getProviderById(data.providerId)
-      if (!provider) {
+      if (!data.providerId.trim()) {
         return NextResponse.json(
           { error: 'Invalid provider ID' },
           { status: 400 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { redirect } from "next/navigation"
 import { withTenant } from "@/lib/api/with-tenant"
-import { getProviderById } from "@/config/oidc-providers"
+// Provider info now comes from the backend API
 import { 
   ConnectionCallbackRequest,
   ConnectionToken 
@@ -34,8 +34,8 @@ async function exchangeCodeForTokens(connection: any, code: string): Promise<Con
   // In production, this would make actual OAuth token exchange requests
   // For mock purposes, we'll simulate successful token exchange
   
-  const provider = getProviderById(connection.providerId)
-  if (!provider) {
+  // Basic validation
+  if (!connection.providerId) {
     throw new Error('Invalid provider')
   }
 
@@ -46,11 +46,16 @@ async function exchangeCodeForTokens(connection: any, code: string): Promise<Con
   const now = Date.now()
   const expiresIn = 3600 // 1 hour in seconds
   
+  // Default scopes based on provider type
+  const defaultScopes = connection.providerId === 'slack' 
+    ? ['channels:read', 'chat:write', 'users:read']
+    : ['email', 'profile'];
+  
   return {
     accessToken: `mock_access_token_${Math.random().toString(36).substr(2, 15)}`,
     refreshToken: `mock_refresh_token_${Math.random().toString(36).substr(2, 15)}`,
     expiresAt: now + (expiresIn * 1000),
-    scope: (connection.customScopes || provider.defaultScopes).join(' '),
+    scope: (connection.customScopes || defaultScopes).join(' '),
     tokenType: 'Bearer'
   }
 }
