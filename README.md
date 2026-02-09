@@ -59,6 +59,17 @@ npm run dev
 
 5. Open [http://localhost:3010](http://localhost:3010) in your browser.
 
+## Releases
+
+```bash
+# Define the version
+export VERSION=3.10.1 # or 1.3.7-beta for pre-release
+
+# Create and push a version tag
+git tag -a v$VERSION -m "Release v$VERSION"
+git push origin v$VERSION
+```
+
 ## Project Structure
 
 ```
