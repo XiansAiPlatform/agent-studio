@@ -31,7 +31,7 @@ export const GET = withTenant(async (request, { tenantContext }) => {
 
     // Call the backend API
     const client = createXiansClient()
-    const data = await client.get(backendPath)
+    const data = await client.get<any>(backendPath)
 
     console.log(`[API /integrations] ✅ Successfully fetched ${Array.isArray(data) ? data.length : 0} integrations`)
 
@@ -103,7 +103,7 @@ export const POST = withTenant(async (request, { tenantContext }) => {
 
     // Call the backend API
     const client = createXiansClient()
-    const data = await client.post(backendPath, body)
+    const data = await client.post<any>(backendPath, body)
 
     console.log(`[API /integrations POST] ✅ Successfully created integration:`, data)
 

@@ -92,7 +92,7 @@ export const POST = withTenant(async (request, { tenantContext, session }) => {
     saveMockConnections(tenantContext.tenant.id, connections)
 
     // Build OAuth authorization URL
-    const scopes = data.customScopes || provider.defaultScopes
+    const scopes = data.customScopes || []
     const redirectUri = `${process.env.NEXTAUTH_URL}/api/tenants/${tenantContext.tenant.id}/connections/complete?connectionId=${connectionId}`
     
     let authUrl: string
@@ -154,8 +154,14 @@ export const POST = withTenant(async (request, { tenantContext, session }) => {
         
       default:
         // Generic OIDC endpoint
-        const wellKnownUrl = data.wellKnownUrl || provider.wellKnownUrl
-        authUrl = wellKnownUrl.replace('/.well-known/openid_configuration', '/oauth2/authorize') +
+        const wellKnownUrl = data.wellKnownUrl
+        if (!wellKnownUrl) {
+          return NextResponse.json(
+            { error: 'Well-known URL is required for generic OIDC providers' },
+            { status: 400 }
+          )
+        }
+        authUrl = wellKnownUrl.replace('/.well-known/openid-configuration', '/oauth2/authorize') +
           `?client_id=${encodeURIComponent(data.clientId)}&` +
           `response_type=code&` +
           `redirect_uri=${encodeURIComponent(redirectUri)}&` +

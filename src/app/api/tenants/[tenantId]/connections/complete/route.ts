@@ -100,7 +100,7 @@ async function exchangeCodeForTokens(
     accessToken: `${connection.providerId}_access_token_${Math.random().toString(36).substr(2, 15)}`,
     refreshToken: `${connection.providerId}_refresh_token_${Math.random().toString(36).substr(2, 15)}`,
     expiresAt: now + (expiresIn * 1000),
-    scope: (connection.customScopes || provider.defaultScopes).join(' '),
+    scope: (connection.customScopes || []).join(' '),
     tokenType: 'Bearer',
     ...userInfo
   }

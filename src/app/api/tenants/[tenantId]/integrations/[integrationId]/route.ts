@@ -25,7 +25,7 @@ export const GET = withTenant(async (request, { tenantContext }) => {
 
     // Call the backend API
     const client = createXiansClient()
-    const data = await client.get(backendPath)
+    const data = await client.get<any>(backendPath)
 
     console.log(`[API /integrations/${integrationId}] ✅ Successfully fetched integration`)
 
@@ -103,7 +103,7 @@ export const DELETE = withTenant(async (request, { tenantContext }) => {
 
     // Call the backend API
     const client = createXiansClient()
-    await client.delete(backendPath)
+    await client.delete<any>(backendPath)
 
     console.log(`[API DELETE /integrations/${integrationId}] ✅ Successfully deleted integration`)
 

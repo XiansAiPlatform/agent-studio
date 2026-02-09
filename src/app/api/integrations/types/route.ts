@@ -96,7 +96,7 @@ export async function GET() {
     const client = createXiansClient()
     
     // Call the backend API endpoint
-    const data = await client.get(endpoint)
+    const data = await client.get<any>(endpoint)
     
     console.log('[API /integrations/types] ✅ Successfully fetched', Array.isArray(data) ? data.length : 0, 'integration types from backend')
     

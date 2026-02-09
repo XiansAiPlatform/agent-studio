@@ -44,7 +44,7 @@ export async function POST(
     const client = createXiansClient();
 
     // Call Xians API to activate the agent
-    const result = await client.post(
+    const result = await client.post<any>(
       `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/activate`,
       { workflowConfiguration }
     );
