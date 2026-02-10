@@ -115,7 +115,7 @@ export function AgentActionsSlider({
                 <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Configuration</span>
               </button>
               <Link 
-                href={`https://studio.agentri.ai/settings/database?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                href={`/settings/database?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
                 className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
               >
                 <Database className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
