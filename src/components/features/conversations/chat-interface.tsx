@@ -201,9 +201,9 @@ export function ChatInterface({
     onSendMessage?.(messageInput, selectedTopicId);
     setMessageInput('');
     
-    // Show typing indicator for up to 6 seconds (will be cleared when agent responds)
+    // Show typing indicator for up to some seconds (will be cleared when agent responds)
     setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 6000);
+    setTimeout(() => setIsTyping(false), 20000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

@@ -76,6 +76,15 @@ export function JsonEditorWrapper({
       try {
         const json = JSON.parse(value);
         editorRef.current.set(json);
+        if (readOnly) {
+          requestAnimationFrame(() => {
+            editorRef.current?.expand({
+              path: [],
+              isExpand: true,
+              recursive: true,
+            });
+          });
+        }
         initializedRef.current = true;
       } catch (error) {
         editorRef.current.setText(value);
@@ -108,13 +117,22 @@ export function JsonEditorWrapper({
         // Only update if the value actually changed
         if (JSON.stringify(currentJson) !== JSON.stringify(json)) {
           editorRef.current.update(json);
+          if (readOnly) {
+            requestAnimationFrame(() => {
+              editorRef.current?.expand({
+                path: [],
+                isExpand: true,
+                recursive: true,
+              });
+            });
+          }
         }
       } catch (error) {
         // If invalid JSON, set as text
         editorRef.current.setText(value);
       }
     }
-  }, [value]);
+  }, [value, readOnly]);
 
   return (
     <div 
