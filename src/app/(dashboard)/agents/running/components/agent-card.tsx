@@ -14,10 +14,15 @@ interface AgentCardProps {
 
 export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: AgentCardProps) {
   const isCurrentUser = currentUserEmail && agent.participantId === currentUserEmail;
+  const isInactive = agent.status === 'inactive';
   return (
     <Card 
       className={`hover:bg-muted/50 transition-all duration-200 cursor-pointer border ${
-        isNewlyCreated ? 'border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-border/50'
+        isInactive 
+          ? 'border-muted-foreground/20 bg-muted/30 dark:bg-muted/20' 
+          : isNewlyCreated 
+            ? 'border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/20' 
+            : 'border-border/50'
       }`}
       onClick={onClick}
     >
@@ -31,7 +36,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
             pulse={agent.status === 'active'} 
           />
           <div className="flex items-center gap-2">
-            {isNewlyCreated && (
+            {isNewlyCreated && !isInactive && (
               <Badge 
                 variant="default" 
                 className="text-xs bg-emerald-600 hover:bg-emerald-600"

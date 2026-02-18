@@ -111,9 +111,9 @@ export function DeployedAgentCard({
         <div className="col-span-1 flex items-start justify-end">
           <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
             <Button 
-              variant="ghost" 
+              variant="default" 
               size="sm"
-              className="h-8 px-3 text-slate-600 hover:text-white dark:text-slate-400 dark:hover:text-white hover:bg-primary dark:hover:bg-primary transition-colors"
+              className="h-8 px-3"
               onClick={(e) => {
                 e.stopPropagation();
                 onStartNewRun?.();

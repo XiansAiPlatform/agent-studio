@@ -159,11 +159,11 @@ export function AgentActionsSlider({
             <div className="space-y-2">
               <button
                 onClick={onDeactivateClick}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-orange-500/5 transition-colors cursor-pointer w-full text-left"
+                className="group flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer w-full text-left"
               >
-                <Power className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                <Power className="h-5 w-5 text-muted-foreground group-hover:text-foreground mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="font-medium text-sm group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Deactivate</div>
+                  <div className="font-medium text-sm text-muted-foreground group-hover:text-foreground transition-colors">Deactivate</div>
                   <p className="text-xs text-muted-foreground mt-0.5">Pause this agent instance</p>
                 </div>
               </button>

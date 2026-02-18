@@ -430,7 +430,7 @@ export default function AgentTemplatesPage() {
               Import Template
             </Button>
           )}
-          <Button variant="default" asChild>
+          <Button variant="outline" asChild>
             <Link href="/agents/running">
               View Activated Agents
             </Link>
