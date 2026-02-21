@@ -10,7 +10,7 @@ import { showErrorToast } from '@/lib/utils/error-handler';
 import { toast } from 'sonner';
 import { Message, Topic } from '@/lib/data/dummy-conversations';
 import { useActivations, useTopics, useConversationState } from '../../hooks';
-import { getTopicParam } from '../../utils';
+import { getTopicParam, mapXiansMessageToMessage } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
 import type { FileUploadPayload } from '@/components/features/conversations';
 import { ConversationView } from '../../_components';
@@ -342,7 +342,7 @@ function ConversationContent() {
           topic: topicParamValue,
           page: '1',
           pageSize: '10',
-          chatOnly: 'true',
+          chatOnly: 'false',
           sortOrder: 'desc',
         });
 
@@ -361,14 +361,9 @@ function ConversationContent() {
           throw new Error('Invalid response format from server');
         }
 
-        const messages: Message[] = data.map((xiansMsg: any) => ({
-          id: xiansMsg.id,
-          content: xiansMsg.text,
-          role: xiansMsg.direction === 'Incoming' ? 'user' as const : 'agent' as const,
-          timestamp: xiansMsg.createdAt,
-          status: 'delivered' as const,
-          taskId: xiansMsg.taskId,
-        })).reverse();
+        const messages: Message[] = data.map((xiansMsg: Record<string, unknown>) =>
+          mapXiansMessageToMessage(xiansMsg as Parameters<typeof mapXiansMessageToMessage>[0])
+        ).reverse();
 
         setMessageStates(prev => ({
           ...prev,
@@ -566,7 +561,7 @@ function ConversationContent() {
         topic: topicParamValue,
         page: nextPage.toString(),
         pageSize: '10',
-        chatOnly: 'true',
+        chatOnly: 'false',
         sortOrder: 'desc',
       });
 
@@ -585,14 +580,9 @@ function ConversationContent() {
         throw new Error('Invalid response format from server');
       }
 
-      const newMessages: Message[] = data.map((xiansMsg: any) => ({
-        id: xiansMsg.id,
-        content: xiansMsg.text,
-        role: xiansMsg.direction === 'Incoming' ? 'user' as const : 'agent' as const,
-        timestamp: xiansMsg.createdAt,
-        status: 'delivered' as const,
-        taskId: xiansMsg.taskId,
-      })).reverse();
+      const newMessages: Message[] = data.map((xiansMsg: Record<string, unknown>) =>
+        mapXiansMessageToMessage(xiansMsg as Parameters<typeof mapXiansMessageToMessage>[0])
+      ).reverse();
 
       // Filter out duplicates
       const existingIds = new Set(currentState.messages.map(m => m.id));

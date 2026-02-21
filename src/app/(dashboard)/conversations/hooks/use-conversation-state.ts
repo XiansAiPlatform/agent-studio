@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Conversation, Topic, Message } from '@/lib/data/dummy-conversations';
 import { XiansMessage } from '@/lib/xians/types';
 import { toast } from 'sonner';
+import { mapXiansMessageToMessage } from '../utils';
 
 interface UseConversationStateParams {
   tenantId: string;
@@ -87,15 +88,7 @@ export function useConversationState({
       return;
     }
 
-    const message: Message = {
-      id: xiansMessage.id,
-      content: xiansMessage.text,
-      role: 'agent',
-      timestamp: xiansMessage.createdAt,
-      status: 'delivered',
-      taskId: xiansMessage.taskId || undefined,
-    };
-
+    const message = mapXiansMessageToMessage(xiansMessage);
     const topicId = xiansMessage.scope ?? 'general-discussions';
 
     // Update conversation state
@@ -120,8 +113,9 @@ export function useConversationState({
       };
     });
 
-    // Handle unread counts and notifications
-    if (topicId !== selectedTopicId) {
+    // Handle unread counts and notifications - only for Chat messages
+    const isChatMessage = (xiansMessage.messageType ?? 'Chat').toLowerCase() === 'chat';
+    if (isChatMessage && topicId !== selectedTopicId) {
       setUnreadCounts((prev) => ({
         ...prev,
         [topicId]: (prev[topicId] || 0) + 1,
@@ -129,7 +123,7 @@ export function useConversationState({
 
       const topicName = topicId === 'general-discussions' ? 'General Discussions' : topicId;
       toast.info(`New message in ${topicName}`, {
-        description: xiansMessage.text.substring(0, 100) + (xiansMessage.text.length > 100 ? '...' : ''),
+        description: message.content.substring(0, 100) + (message.content.length > 100 ? '...' : ''),
         duration: 3000,
       });
     }

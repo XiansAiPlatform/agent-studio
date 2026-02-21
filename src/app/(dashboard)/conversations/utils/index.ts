@@ -22,6 +22,63 @@ export function isGeneralTopic(topicId: string): boolean {
 }
 
 /**
+ * Extract content from XiansMessage.
+ * For Chat: content is in `text`.
+ * For Reasoning/Tool: content is in `data` (may be JSON-encoded string like "thinking step 1").
+ */
+function extractContent(xiansMsg: { text?: string; data?: unknown }): string {
+  if (xiansMsg.text && xiansMsg.text.trim()) {
+    return xiansMsg.text;
+  }
+  if (xiansMsg.data == null) return '';
+  if (typeof xiansMsg.data === 'string') {
+    try {
+      const parsed = JSON.parse(xiansMsg.data);
+      return typeof parsed === 'string' ? parsed : String(xiansMsg.data);
+    } catch {
+      return xiansMsg.data.replace(/^"|"$/g, '');
+    }
+  }
+  return typeof xiansMsg.data === 'object' ? JSON.stringify(xiansMsg.data) : String(xiansMsg.data);
+}
+
+/**
+ * Map Xians API message to our Message format.
+ * Handles messageType (Reasoning, Tool, Chat) and content from text or data.
+ */
+export function mapXiansMessageToMessage(
+  xiansMsg: {
+    id: string;
+    direction: string;
+    text?: string;
+    data?: unknown;
+    createdAt: string;
+    messageType?: string;
+    taskId?: string | null;
+  }
+): import('@/lib/data/dummy-conversations').Message {
+  const content = extractContent(xiansMsg);
+  const role = xiansMsg.direction === 'Incoming' ? ('user' as const) : ('agent' as const);
+  const rawType = (xiansMsg.messageType ?? 'Chat').toLowerCase();
+  const messageType =
+    rawType === 'reasoning'
+      ? ('reasoning' as const)
+      : rawType === 'tool'
+        ? ('tool' as const)
+        : undefined;
+
+  return {
+    id: xiansMsg.id,
+    content,
+    role,
+    timestamp: xiansMsg.createdAt,
+    status: 'delivered',
+    taskId: xiansMsg.taskId ?? undefined,
+    ...(messageType && { messageType }),
+  };
+}
+
+/**
  * Constants for the conversations page
  */
 export const CONVERSATIONS_CONSTANTS = {

@@ -1,9 +1,14 @@
 // Dummy conversation data for development (Phase 1)
 
+/** Message type for rendering. 'chat' is default; 'tool' and 'reasoning' for agent sub-types. */
+export type MessageType = 'chat' | 'tool' | 'reasoning';
+
 export interface Message {
   id: string;
   content: string;
   role: 'user' | 'agent' | 'system';
+  /** Optional type for routing to ChatMessageItem, ToolMessageItem, or ReasoningMessageItem */
+  messageType?: MessageType;
   timestamp: string;
   status?: 'sent' | 'delivered' | 'read';
   taskId?: string; // Associated task ID for the message
@@ -102,6 +107,27 @@ export const DUMMY_CONVERSATIONS: Conversation[] = [
             role: 'user',
             timestamp: new Date(Date.now() - 118 * 60 * 1000).toISOString(),
             status: 'read',
+          },
+          {
+            id: 'msg-003a',
+            content: 'User provided order number ORDER-12345 and reported damaged product. I need to fetch order details and verify refund eligibility.',
+            role: 'agent',
+            messageType: 'reasoning',
+            timestamp: new Date(Date.now() - 117.5 * 60 * 1000).toISOString(),
+          },
+          {
+            id: 'msg-003b',
+            content: 'fetch_order_details(order_id="ORDER-12345")\n→ Success: Order verified, $129.99, purchased 5 days ago',
+            role: 'agent',
+            messageType: 'tool',
+            timestamp: new Date(Date.now() - 117.3 * 60 * 1000).toISOString(),
+          },
+          {
+            id: 'msg-003c',
+            content: 'Order is within 30-day refund window. Damaged goods qualify for full refund. Proceeding to create refund request.',
+            role: 'agent',
+            messageType: 'reasoning',
+            timestamp: new Date(Date.now() - 117.1 * 60 * 1000).toISOString(),
           },
           {
             id: 'msg-004',

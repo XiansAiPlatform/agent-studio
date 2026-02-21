@@ -1,6 +1,7 @@
 export { ConversationListItem } from './conversation-list-item';
 export { ChatInterface, type FileUploadPayload } from './chat-interface';
 export { MessageItem } from './message-item';
+export { MessageRenderer } from './message-renderer';
 export { TopicSelector } from './topic-selector';
 export { TopicList } from './topic-list';
 export { TopicStatusBadge } from './topic-status-badge';

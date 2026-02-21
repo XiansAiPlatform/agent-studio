@@ -154,6 +154,38 @@ export function useMessageListener(
         }
       });
 
+      // Handle 'Reasoning' event type (agent thinking/reasoning steps)
+      eventSource.addEventListener('Reasoning', (event) => {
+        try {
+          const message = JSON.parse(event.data) as XiansMessage;
+          
+          if (onMessageRef.current) {
+            onMessageRef.current(message);
+          }
+        } catch (err) {
+          console.error('[SSE] Error parsing Reasoning message:', err);
+          const parseError = err instanceof Error ? err : new Error('Failed to parse Reasoning message');
+          setError(parseError);
+          onErrorRef.current?.(parseError);
+        }
+      });
+
+      // Handle 'Tool' event type (agent tool execution steps)
+      eventSource.addEventListener('Tool', (event) => {
+        try {
+          const message = JSON.parse(event.data) as XiansMessage;
+          
+          if (onMessageRef.current) {
+            onMessageRef.current(message);
+          }
+        } catch (err) {
+          console.error('[SSE] Error parsing Tool message:', err);
+          const parseError = err instanceof Error ? err : new Error('Failed to parse Tool message');
+          setError(parseError);
+          onErrorRef.current?.(parseError);
+        }
+      });
+
       // Handle 'Data' event type (structured data messages)
       eventSource.addEventListener('Data', (event) => {
         try {
