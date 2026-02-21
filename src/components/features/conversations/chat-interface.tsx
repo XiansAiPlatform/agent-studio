@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Conversation, Topic } from '@/lib/data/dummy-conversations';
 import { ChatHeader } from './chat-header';
 import { ChatInputArea } from './chat-input-area';
@@ -46,8 +46,19 @@ export function ChatInterface({
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const lastAgentMessageIdRef = useRef<string | null>(null);
+  const lastProgressMessageIdRef = useRef<string | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
+
+  const scheduleTypingEnd = useCallback(() => {
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 20000);
+  }, []);
+
+  useEffect(() => () => {
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+  }, []);
 
   const { messagesEndRef, messagesContainerRef } = useChatScroll({
     messages: selectedTopic?.messages ?? [],
@@ -68,9 +79,26 @@ export function ChatInterface({
 
     if (lastChatMessage && lastChatMessage.id !== lastAgentMessageIdRef.current) {
       lastAgentMessageIdRef.current = lastChatMessage.id;
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
       setIsTyping(false);
     }
   }, [selectedTopic?.messages, isTyping]);
+
+  // Reset typing timeout when a new progress message arrives
+  useEffect(() => {
+    if (!selectedTopic || !isTyping) return;
+
+    const progressMessages = selectedTopic.messages.filter(
+      m => m.role === 'agent' && (m.messageType?.toLowerCase() === 'reasoning' || m.messageType?.toLowerCase() === 'tool')
+    );
+    const lastProgress = progressMessages[progressMessages.length - 1];
+    if (!lastProgress) return;
+    if (lastProgress.id === lastProgressMessageIdRef.current) return;
+
+    lastProgressMessageIdRef.current = lastProgress.id;
+    scheduleTypingEnd();
+  }, [selectedTopic?.messages, isTyping, scheduleTypingEnd]);
 
   const handleSendMessage = () => {
     if (!messageInput.trim() || !selectedTopicId || !isActivationActive) return;
@@ -85,8 +113,9 @@ export function ChatInterface({
 
     onSendMessage?.(messageInput, selectedTopicId);
     setMessageInput('');
+    lastProgressMessageIdRef.current = null;
     setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 20000);
+    scheduleTypingEnd();
   };
 
   const handleSendFile = (payload: FileUploadPayload, topicId: string) => {
@@ -98,8 +127,9 @@ export function ChatInterface({
       lastAgentMessageIdRef.current = agentChatMessages[agentChatMessages.length - 1]?.id ?? null;
     }
     onSendFile?.(payload, topicId);
+    lastProgressMessageIdRef.current = null;
     setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 20000);
+    scheduleTypingEnd();
   };
 
   if (!selectedTopic) {
