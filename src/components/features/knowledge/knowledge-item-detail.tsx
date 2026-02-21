@@ -342,12 +342,12 @@ export function KnowledgeItemDetail({
       const deletedCount = result.deletedCount || 0;
 
       showToast.success({
-        title: 'All Versions Deleted',
+        title: level === 'tenant' ? 'Deleted' : 'All Versions Deleted',
         description: `Successfully deleted ${deletedCount} version(s) at ${level} level.`,
       });
 
       setShowDeleteAllDialog(false);
-      onDeleteAllVersions?.();
+      level === 'tenant' ? onDelete?.(item.id) : onDeleteAllVersions?.();
     } catch (error: any) {
       console.error('Error deleting all versions:', error);
       showToast.error({
@@ -540,7 +540,7 @@ export function KnowledgeItemDetail({
             <Button
               variant="outline"
               size="default"
-              onClick={() => onDelete?.(item.id)}
+              onClick={() => setShowDeleteAllDialog(true)}
               className="flex-1 max-w-[140px]"
             >
               <Trash2 className="mr-2 h-4 w-4" />

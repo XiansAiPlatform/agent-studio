@@ -253,9 +253,12 @@ function KnowledgeContent() {
     // TODO: Implement duplicate logic
   };
 
-  const handleDelete = (itemId: string) => {
-    console.log('Deleting knowledge item:', itemId);
-    // TODO: Implement delete logic
+  const handleDelete = (_itemId?: string) => {
+    // Refresh the knowledge list and close the detail slider
+    // (API call is made in KnowledgeItemDetail before this callback)
+    if (agentName && activationName) {
+      fetchKnowledge(agentName, activationName);
+    }
     handleCloseSlider();
   };
 
