@@ -12,6 +12,7 @@ interface ConversationViewProps {
   selectedTopicId: string;
   onTopicSelect: (topicId: string) => void;
   onSendMessage: (content: string, topicId: string) => void;
+  onSendFile?: (file: import('@/components/features/conversations').FileUploadPayload, topicId: string) => void;
   isLoadingMessages: boolean;
   onLoadMoreMessages: () => void;
   isLoadingMoreMessages: boolean;
@@ -45,6 +46,7 @@ export function ConversationView({
   selectedTopicId,
   onTopicSelect,
   onSendMessage,
+  onSendFile,
   isLoadingMessages,
   onLoadMoreMessages,
   isLoadingMoreMessages,
@@ -111,6 +113,7 @@ export function ConversationView({
               selectedTopic={selectedTopic}
               selectedTopicId={selectedTopicId}
               onSendMessage={onSendMessage}
+              onSendFile={onSendFile}
               isLoadingMessages={isLoadingMessages}
               onLoadMoreMessages={onLoadMoreMessages}
               isLoadingMoreMessages={isLoadingMoreMessages}
@@ -126,6 +129,7 @@ export function ConversationView({
             selectedTopic={undefined}
             selectedTopicId={''}
             onSendMessage={onSendMessage}
+            onSendFile={onSendFile}
             isLoadingMessages={isLoadingMessages}
             onLoadMoreMessages={onLoadMoreMessages}
             isLoadingMoreMessages={isLoadingMoreMessages}

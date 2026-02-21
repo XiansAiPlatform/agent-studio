@@ -33,6 +33,8 @@ export async function POST(
       origin,
     } = body;
 
+    const isFileUpload = type === 'File';
+
     // SECURITY: Get participantId from authenticated session, not from client
     const participantId = session.user?.email;
 
@@ -58,7 +60,16 @@ export async function POST(
       );
     }
 
-    if (!text) {
+    // For File type: text is optional, data is required
+    // For Chat type: text is required
+    if (isFileUpload) {
+      if (!data) {
+        return NextResponse.json(
+          { error: 'data (base64 file content) is required for file uploads' },
+          { status: 400 }
+        );
+      }
+    } else if (!text) {
       return NextResponse.json(
         { error: 'text is required' },
         { status: 400 }
@@ -73,10 +84,10 @@ export async function POST(
       agentName,
       activationName,
       participantId,
-      text,
+      text: text ?? (isFileUpload ? '' : undefined),
       topic,
       data,
-      type: type ?? 0, // Default to Chat type (0)
+      type: isFileUpload ? 'File' : (type ?? 0),
       requestId,
       hint,
       origin,

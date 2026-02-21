@@ -319,28 +319,48 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
           {/* Attachments - Only show if no content draft is present */}
           {message.attachments && message.attachments.length > 0 && !message.contentDraft && (
             <div className="mt-3 space-y-2">
-              {message.attachments.map((attachment) => (
-                <Link
-                  key={attachment.id}
-                  href={`/tasks?task=${attachment.id}`}
-                  className={cn(
-                    'flex items-center gap-2 p-2 rounded border transition-colors',
-                    isUser
-                      ? 'border-primary-foreground/20 hover:bg-primary-foreground/10'
-                      : 'border-border hover:bg-accent'
-                  )}
-                >
-                  <FileText className="h-4 w-4 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">
-                      {attachment.name}
-                    </p>
-                    <p className="text-[10px] opacity-70 capitalize">
-                      {attachment.type}
-                    </p>
+              {message.attachments.map((attachment) => {
+                const isFileAttachment = attachment.type === 'file';
+                const content = (
+                  <>
+                    <FileText className="h-4 w-4 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">
+                        {attachment.name}
+                      </p>
+                      <p className="text-[10px] opacity-70 capitalize">
+                        {attachment.type}
+                      </p>
+                    </div>
+                  </>
+                );
+                return isFileAttachment ? (
+                  <div
+                    key={attachment.id}
+                    className={cn(
+                      'flex items-center gap-2 p-2 rounded border',
+                      isUser
+                        ? 'border-primary-foreground/20'
+                        : 'border-border bg-muted/30'
+                    )}
+                  >
+                    {content}
                   </div>
-                </Link>
-              ))}
+                ) : (
+                  <Link
+                    key={attachment.id}
+                    href={`/tasks?task=${attachment.id}`}
+                    className={cn(
+                      'flex items-center gap-2 p-2 rounded border transition-colors',
+                      isUser
+                        ? 'border-primary-foreground/20 hover:bg-primary-foreground/10'
+                        : 'border-border hover:bg-accent'
+                    )}
+                  >
+                    {content}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

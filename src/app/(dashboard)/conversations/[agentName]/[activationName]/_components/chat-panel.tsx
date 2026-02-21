@@ -1,5 +1,5 @@
 import { Bot } from 'lucide-react';
-import { ChatInterface } from '@/components/features/conversations';
+import { ChatInterface, FileUploadPayload } from '@/components/features/conversations';
 import { Conversation, Topic } from '@/lib/data/dummy-conversations';
 
 interface ChatPanelProps {
@@ -7,6 +7,7 @@ interface ChatPanelProps {
   selectedTopic: Topic | undefined;
   selectedTopicId: string;
   onSendMessage: (content: string, topicId: string) => void;
+  onSendFile?: (file: FileUploadPayload, topicId: string) => void;
   isLoadingMessages: boolean;
   onLoadMoreMessages: () => void;
   isLoadingMoreMessages: boolean;
@@ -26,6 +27,7 @@ export function ChatPanel({
   selectedTopic,
   selectedTopicId,
   onSendMessage,
+  onSendFile,
   isLoadingMessages,
   onLoadMoreMessages,
   isLoadingMoreMessages,
@@ -56,6 +58,7 @@ export function ChatPanel({
         conversation={conversation}
         selectedTopicId={selectedTopicId}
         onSendMessage={onSendMessage}
+        onSendFile={onSendFile}
         isLoadingMessages={isLoadingMessages}
         onLoadMoreMessages={onLoadMoreMessages}
         isLoadingMoreMessages={isLoadingMoreMessages}

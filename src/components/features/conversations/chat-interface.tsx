@@ -8,12 +8,21 @@ import { Badge } from '@/components/ui/badge';
 import { Send, Paperclip, MoreVertical, Bot, Circle, Loader2, ArrowUp } from 'lucide-react';
 import { MessageItem } from './message-item';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { AGENT_STATUS_CONFIG } from '@/lib/conversation-status-config';
+
+export interface FileUploadPayload {
+  base64: string;
+  fileName: string;
+  contentType: string;
+  fileSize?: number;
+}
 
 interface ChatInterfaceProps {
   conversation: Conversation;
   selectedTopicId: string;
   onSendMessage?: (content: string, topicId: string) => void;
+  onSendFile?: (file: FileUploadPayload, topicId: string) => void;
   isLoadingMessages?: boolean;
   onLoadMoreMessages?: () => void;
   isLoadingMoreMessages?: boolean;
@@ -24,10 +33,14 @@ interface ChatInterfaceProps {
   inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export function ChatInterface({
   conversation,
   selectedTopicId,
   onSendMessage,
+  onSendFile,
   isLoadingMessages = false,
   onLoadMoreMessages,
   isLoadingMoreMessages = false,
@@ -39,7 +52,9 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const localInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef || localInputRef;
@@ -211,6 +226,62 @@ export function ChatInterface({
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedTopicId || !isActivationActive || !onSendFile) return;
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error('File too large', {
+        description: `Maximum file size is ${MAX_FILE_SIZE_MB}MB`,
+      });
+      e.target.value = '';
+      return;
+    }
+
+    setIsUploadingFile(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Strip data URL prefix (e.g. "data:application/pdf;base64,")
+          const base64Content = result.includes(',') ? result.split(',')[1] : result;
+          resolve(base64Content ?? '');
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+
+      onSendFile(
+        {
+          base64,
+          fileName: file.name,
+          contentType: file.type || 'application/octet-stream',
+          fileSize: file.size,
+        },
+        selectedTopicId
+      );
+
+      // Capture last agent message for typing indicator
+      const currentTopic = conversation.topics.find(t => t.id === selectedTopicId);
+      if (currentTopic) {
+        const agentMessages = currentTopic.messages.filter(m => m.role === 'agent');
+        const lastAgentMessage = agentMessages[agentMessages.length - 1];
+        lastAgentMessageIdRef.current = lastAgentMessage?.id ?? null;
+      }
+      setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 20000);
+    } finally {
+      setIsUploadingFile(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAttachClick = () => {
+    if (!isActivationActive || isUploadingFile) return;
+    fileInputRef.current?.click();
   };
 
   if (!selectedTopic) {
@@ -396,6 +467,33 @@ export function ChatInterface({
             </div>
           )}
           <div className="flex items-center gap-2">
+            {onSendFile && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="*/*"
+                  onChange={handleFileSelect}
+                  disabled={!isActivationActive || isUploadingFile}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleAttachClick}
+                  disabled={!isActivationActive || isUploadingFile}
+                  className="flex-shrink-0 h-11 w-11 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Upload file"
+                >
+                  {isUploadingFile ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
+            )}
             <div className="flex-1 relative">
               <Input
                 ref={inputRef}

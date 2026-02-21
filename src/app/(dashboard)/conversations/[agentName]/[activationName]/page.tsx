@@ -12,6 +12,7 @@ import { Message, Topic } from '@/lib/data/dummy-conversations';
 import { useActivations, useTopics, useConversationState } from '../../hooks';
 import { getTopicParam } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
+import type { FileUploadPayload } from '@/components/features/conversations';
 import { ConversationView } from '../../_components';
 
 /**
@@ -466,6 +467,76 @@ function ConversationContent() {
     }
   };
 
+  // Handle sending file uploads (type=File per messaging doc)
+  const handleSendFile = async (file: FileUploadPayload, topicId: string) => {
+    if (!currentTenantId || !agentName || !activationName || !session?.user?.email) {
+      console.error('[ConversationPage] Missing required parameters for file upload');
+      showErrorToast(new Error('Missing required parameters'), 'Unable to upload file');
+      return;
+    }
+
+    try {
+      const topicParamValue = topicId === 'general-discussions' ? undefined : topicId;
+
+      const requestBody = {
+        agentName,
+        activationName,
+        type: 'File',
+        text: file.fileName,
+        topic: topicParamValue,
+        data: {
+          content: file.base64,
+          fileName: file.fileName,
+          contentType: file.contentType,
+          ...(file.fileSize != null && { fileSize: file.fileSize }),
+        },
+      };
+
+      const response = await fetch(
+        `/api/tenants/${currentTenantId}/messaging/send`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      // Optimistically add the file message to the UI
+      const newMessage: Message = {
+        id: `temp-file-${Date.now()}`,
+        content: file.fileName,
+        role: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'delivered',
+        attachments: [{ type: 'file', id: `file-${Date.now()}`, name: file.fileName }],
+      };
+
+      setMessageStates(prev => ({
+        ...prev,
+        [topicId]: {
+          messages: [...(prev[topicId]?.messages || []), newMessage],
+          isLoading: prev[topicId]?.isLoading ?? false,
+          isLoadingMore: prev[topicId]?.isLoadingMore ?? false,
+          hasMore: prev[topicId]?.hasMore ?? false,
+          page: prev[topicId]?.page ?? 1,
+        },
+      }));
+
+      addMessageToTopic(topicId, newMessage);
+
+      console.log('[ConversationPage] File uploaded successfully');
+    } catch (error) {
+      console.error('[ConversationPage] Error uploading file:', error);
+      showErrorToast(error, 'Failed to upload file');
+    }
+  };
+
   // Handle loading more messages
   const handleLoadMoreMessages = useCallback(async () => {
     if (!currentTenantId || !agentName || !activationName || !selectedTopicId || !session?.user?.email) {
@@ -603,6 +674,7 @@ function ConversationContent() {
         selectedTopicId={selectedTopicId}
         onTopicSelect={handleTopicSelect}
         onSendMessage={handleSendMessage}
+        onSendFile={handleSendFile}
         isLoadingMessages={currentMessageState.isLoading}
         onLoadMoreMessages={handleLoadMoreMessages}
         isLoadingMoreMessages={currentMessageState.isLoadingMore}
