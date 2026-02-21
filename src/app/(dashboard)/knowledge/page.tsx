@@ -128,8 +128,7 @@ function KnowledgeContent() {
 
   const handleRefresh = () => {
     if (agentName && activationName) {
-      // Reset last fetched params to force a refetch
-      setLastFetchedParams(null);
+      fetchKnowledge(agentName, activationName);
     }
   };
 
@@ -238,7 +237,7 @@ function KnowledgeContent() {
 
       // Refresh the knowledge list
       if (agentName && activationName) {
-        setLastFetchedParams(null);
+        fetchKnowledge(agentName, activationName);
       }
 
       showSuccessToast('Knowledge updated successfully');
@@ -265,7 +264,7 @@ function KnowledgeContent() {
     
     // Refresh the knowledge list to show the reverted version
     if (agentName && activationName) {
-      setLastFetchedParams(null);
+      fetchKnowledge(agentName, activationName);
     }
 
     // Close the detail slider since the current version no longer exists
@@ -277,7 +276,7 @@ function KnowledgeContent() {
     
     // Refresh the knowledge list to show the updated state
     if (agentName && activationName) {
-      setLastFetchedParams(null);
+      fetchKnowledge(agentName, activationName);
     }
 
     // Close the detail slider since all versions have been deleted
@@ -315,7 +314,7 @@ function KnowledgeContent() {
 
       // Refresh the knowledge list to show the new override
       if (agentName && activationName) {
-        setLastFetchedParams(null);
+        fetchKnowledge(agentName, activationName);
       }
 
       // Close the detail slider since we'll want to see the updated list
