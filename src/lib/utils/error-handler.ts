@@ -73,30 +73,51 @@ export function showErrorToast(error: any, customMessage?: string) {
   const apiError = createApiError(error)
   
   // Use custom message if provided, otherwise use extracted message
-  const message = customMessage || apiError.message
+  const title = customMessage || apiError.message
   
-  // Create description with status code and trace ID
-  let description = ''
+  // Build description: show actual error message when using custom title, plus status/traceId/details
+  const parts: string[] = []
+  
+  // When using a generic custom title, include the actual error message so users see what went wrong
+  if (customMessage && apiError.message && apiError.message !== customMessage) {
+    parts.push(apiError.message)
+  }
+  
   if (apiError.status && apiError.status !== 500) {
-    description = `Status: ${apiError.status}`
+    parts.push(`Status: ${apiError.status}`)
     if (apiError.code && apiError.code !== 'unknown_error') {
-      description += ` (${apiError.code})`
+      parts[parts.length - 1] += ` (${apiError.code})`
     }
   }
   if (apiError.traceId) {
-    description += description ? ` • Trace ID: ${apiError.traceId}` : `Trace ID: ${apiError.traceId}`
+    parts.push(`Trace ID: ${apiError.traceId}`)
   }
   
+  // Include details when available (string or stringifiable object)
+  if (apiError.details != null) {
+    if (typeof apiError.details === 'string') {
+      parts.push(apiError.details)
+    } else if (typeof apiError.details === 'object' && Object.keys(apiError.details).length > 0) {
+      const detailsStr = JSON.stringify(apiError.details)
+      if (detailsStr.length <= 200) {
+        parts.push(detailsStr)
+      }
+    }
+  }
+  
+  const description = parts.join(' • ') || undefined
+  
   showToast.error({
-    title: message,
-    description: description || undefined,
+    title,
+    description,
     duration: 8000, // Longer duration for errors
   })
 
   // Log full error for debugging (only in development)
   if (process.env.NODE_ENV === 'development') {
     console.group('[Error Handler] Error Details')
-    console.warn('Message:', message)
+    console.warn('Title:', title)
+    console.warn('Description:', description)
     console.warn('Status:', apiError.status)
     console.warn('Code:', apiError.code)
     if (apiError.traceId) console.warn('Trace ID:', apiError.traceId)

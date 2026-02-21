@@ -1,7 +1,8 @@
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
-import { Bot } from 'lucide-react';
+import { Bot, ListTodo, MessageSquare } from 'lucide-react';
 import { AgentStatusBadge } from '@/components/features/agents';
 import { Agent } from '../types';
 
@@ -36,6 +37,26 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
             pulse={agent.status === 'active'} 
           />
           <div className="flex items-center gap-2">
+            {agent.status === 'active' && (
+              <>
+                <Link
+                  href={`/conversations/${encodeURIComponent(agent.template)}/${encodeURIComponent(agent.name)}?topic=general-discussions`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded-full p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  title="Talk to Agent"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={`/tasks?status=pending&agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded-full p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 dark:hover:text-blue-400 transition-colors"
+                  title="View Tasks"
+                >
+                  <ListTodo className="h-4 w-4" />
+                </Link>
+              </>
+            )}
             {isNewlyCreated && !isInactive && (
               <Badge 
                 variant="default" 
