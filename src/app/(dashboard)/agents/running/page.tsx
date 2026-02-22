@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
-import { Bot, Play, Loader2, Activity } from 'lucide-react';
+import { Bot, Play, Loader2 } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
@@ -18,7 +18,7 @@ import { AgentFilters } from './components/agent-filters';
 import { AgentActionsSlider } from './components/agent-actions-slider';
 import { AgentDeleteDialog } from './components/agent-delete-dialog';
 import { AgentDeactivateDialog } from './components/agent-deactivate-dialog';
-import { ConfigurePanel, ActivityPanel, PerformancePanel } from './components/agent-slider-panels';
+import { ConfigurePanel } from './components/agent-slider-panels';
 
 export default function AgentsPage() {
   const { currentTenantId } = useTenant();
@@ -465,13 +465,6 @@ export default function AgentsPage() {
       <Sheet 
         open={sliderType !== null} 
         onOpenChange={closeSlider}
-        headerIcon={selectedAgent && sliderType === 'activity' ? <Activity className="h-5 w-5 text-blue-500" /> : 
-                    selectedAgent && sliderType === 'performance' ? <Activity className="h-5 w-5 text-emerald-500" /> : 
-                    undefined}
-        headerTitle={selectedAgent && sliderType === 'activity' ? 'Activity Logs' :
-                     selectedAgent && sliderType === 'performance' ? 'Performance Metrics' :
-                     undefined}
-        headerDescription={selectedAgent && (sliderType === 'activity' || sliderType === 'performance') ? selectedAgent.name : undefined}
       >
         {selectedAgent && sliderType === 'actions' && (
           <AgentActionsSlider
@@ -492,12 +485,6 @@ export default function AgentsPage() {
               handleDeactivateClick(selectedAgent);
             }}
           />
-        )}
-        {selectedAgent && sliderType === 'activity' && (
-          <ActivityPanel agent={selectedAgent} />
-        )}
-        {selectedAgent && sliderType === 'performance' && (
-          <PerformancePanel agent={selectedAgent} />
         )}
       </Sheet>
 

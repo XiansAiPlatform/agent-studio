@@ -260,17 +260,7 @@ toastOptions={{
 
 - `/src/components/ui/sonner.tsx` - Toaster component
 - `/src/lib/toast.tsx` - Toast utility functions
-- `/src/components/toast-demo.tsx` - Demo component
 - `/docs/TOAST.md` - This documentation
-
-## Demo
-
-Test all toast types:
-```typescript
-import { ToastDemo } from '@/components/toast-demo'
-
-<ToastDemo />
-```
 
 ## Support
 

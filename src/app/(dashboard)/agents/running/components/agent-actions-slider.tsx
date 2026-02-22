@@ -144,13 +144,13 @@ export function AgentActionsSlider({
                 <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Activity Logs</span>
               </Link>
               
-              <button
-                onClick={() => onSliderTypeChange('performance')}
-                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
+              <Link
+                href={`/settings/performance?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
+                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
               >
                 <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Performance</span>
-              </button>
+              </Link>
             </div>
 
             <Separator className="opacity-40" />

@@ -13,4 +13,4 @@ export type Agent = {
   participantId?: string;
 };
 
-export type SliderType = 'actions' | 'configure' | 'activity' | 'performance' | null;
+export type SliderType = 'actions' | 'configure' | null;

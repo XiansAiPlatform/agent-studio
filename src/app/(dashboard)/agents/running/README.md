@@ -14,7 +14,7 @@ agents/running/
 │   ├── agent-card.tsx                # Individual agent card component
 │   ├── agent-filters.tsx             # Filter controls (All/Active, agent types)
 │   ├── agent-actions-slider.tsx      # Actions slider for active/inactive agents
-│   ├── agent-slider-panels.tsx       # Configure, Activity, Performance panels
+│   ├── agent-slider-panels.tsx       # Configure panel
 │   ├── agent-delete-dialog.tsx       # Delete confirmation dialog
 │   └── agent-deactivate-dialog.tsx   # Deactivate confirmation dialog
 └── README.md                         # This file
@@ -58,14 +58,14 @@ Filter controls including:
 
 ### `components/agent-actions-slider.tsx`
 Side panel that shows different content based on agent status:
-- **Active agents**: Links to conversations, tasks, knowledge, plus configure/activity/performance options
+- **Active agents**: Links to conversations, tasks, knowledge, configure panel, Activity Logs (/settings/logs), Performance (/settings/performance)
 - **Inactive agents**: Activate and delete options
 
 ### `components/agent-slider-panels.tsx`
-Contains three slider panel components:
+Contains one slider panel component:
 - `ConfigurePanel`: **Read-only** view of agent workflow configurations with instructions on how to modify (deactivate then re-activate)
-- `ActivityPanel`: Activity logs display
-- `PerformancePanel`: Performance metrics and statistics
+
+Activity Logs and Performance link directly to `/settings/logs` and `/settings/performance` with agent/activation query params.
 
 ### `components/agent-delete-dialog.tsx`
 Confirmation dialog for deleting an agent instance with:
@@ -110,6 +110,6 @@ All existing features are preserved:
 - Agent listing with filters
 - Agent activation/deactivation
 - Agent deletion
-- Activity logs, performance metrics, configuration
+- Activity logs, configuration (performance links to settings page)
 - Activation wizard integration
 - URL parameter handling for newly created agents
