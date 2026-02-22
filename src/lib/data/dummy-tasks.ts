@@ -380,21 +380,6 @@ export const DUMMY_TASKS: Task[] = [
   },
 ];
 
-// Filter functions
-export function getPendingTasks(): Task[] {
-  return DUMMY_TASKS.filter((task) => task.status === 'pending');
-}
-
-export function getAssignedTasks(userId: string = 'user-001'): Task[] {
-  return DUMMY_TASKS.filter((task) => task.assignedTo?.id === userId);
-}
-
-export function getCompletedTasks(): Task[] {
-  return DUMMY_TASKS.filter((task) => 
-    task.status === 'approved' || task.status === 'rejected' || task.status === 'obsolete'
-  );
-}
-
 export function getTaskById(id: string): Task | undefined {
   return DUMMY_TASKS.find((task) => task.id === id);
 }

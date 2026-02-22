@@ -18,7 +18,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
   const isInactive = agent.status === 'inactive';
   return (
     <Card 
-      className={`hover:bg-muted/50 transition-all duration-200 cursor-pointer border ${
+      className={`group transition-all duration-200 cursor-pointer border ${
         isInactive 
           ? 'border-muted-foreground/20 bg-muted/30 dark:bg-muted/20' 
           : isNewlyCreated 
@@ -38,7 +38,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
           />
           <div className="flex items-center gap-2">
             {agent.status === 'active' && (
-              <>
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Link
                   href={`/conversations/${encodeURIComponent(agent.template)}/${encodeURIComponent(agent.name)}?topic=general-discussions`}
                   onClick={(e) => e.stopPropagation()}
@@ -55,7 +55,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
                 >
                   <ListTodo className="h-4 w-4" />
                 </Link>
-              </>
+              </div>
             )}
             {isNewlyCreated && !isInactive && (
               <Badge 
@@ -78,7 +78,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
       </CardHeader>
       {(agent.uptime || agent.lastActive || agent.participantId) && (
         <CardContent className="pt-0 pb-4">
-          <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {agent.participantId && (
               <div className="flex items-center gap-1.5">
                 <span className="font-medium">Owner:</span>
@@ -94,9 +94,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
             {(agent.uptime || agent.lastActive) && (
               <div className="flex items-center gap-3">
                 {agent.uptime && (
-                  <>
-                    <span>Uptime: {agent.uptime}</span>
-                  </>
+                  <span>Uptime: {agent.uptime}</span>
                 )}
                 {agent.lastActive && (
                   <>

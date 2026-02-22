@@ -165,7 +165,7 @@ export function showInfoToast(message: string, description?: string) {
 /**
  * Show warning toast notification
  */
-export function showWarningToast(message: string, description?: string) {
+function showWarningToast(message: string, description?: string) {
   showToast.warning({
     title: message,
     description,
@@ -222,7 +222,7 @@ export function handleApiError(
 /**
  * Map HTTP status codes to user-friendly messages
  */
-export function getStatusMessage(status: number): string {
+function getStatusMessage(status: number): string {
   const messages: Record<number, string> = {
     400: 'Invalid request. Please check your input.',
     401: 'Authentication required. Please log in.',

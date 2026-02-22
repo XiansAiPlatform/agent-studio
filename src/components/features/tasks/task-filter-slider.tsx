@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ export function TaskFilterSlider({
   const [localSelectedActivation, setLocalSelectedActivation] = useState<SelectedActivation | null>(selectedActivation);
 
   // Sync local state when props change
-  useMemo(() => {
+  useEffect(() => {
     setLocalStatusFilter(statusFilter);
     setLocalSelectedActivation(selectedActivation);
   }, [statusFilter, selectedActivation]);

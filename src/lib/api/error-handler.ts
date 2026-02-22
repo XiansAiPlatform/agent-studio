@@ -96,7 +96,7 @@ function getErrorCode(status: number): string {
 /**
  * Async wrapper for API route handlers with automatic error handling
  */
-export async function withErrorHandler<T>(
+async function withErrorHandler<T>(
   handler: () => Promise<NextResponse<T>>,
   context?: string
 ): Promise<NextResponse<T | ApiErrorResponse>> {
@@ -110,7 +110,7 @@ export async function withErrorHandler<T>(
 /**
  * Validate required fields in request body
  */
-export function validateRequired(
+function validateRequired(
   data: any,
   fields: string[]
 ): { valid: boolean; missing?: string[] } {
@@ -143,7 +143,7 @@ export function validationError(
 /**
  * Create a not found error response
  */
-export function notFoundError(
+function notFoundError(
   resource: string
 ): NextResponse<ApiErrorResponse> {
   return NextResponse.json(

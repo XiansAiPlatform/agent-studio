@@ -6,13 +6,7 @@ import { ChatHeader } from './chat-header';
 import { ChatInputArea } from './chat-input-area';
 import { MessagesArea } from './messages-area';
 import { useChatScroll } from './hooks/use-chat-scroll';
-
-export interface FileUploadPayload {
-  base64: string;
-  fileName: string;
-  contentType: string;
-  fileSize?: number;
-}
+import type { FileUploadPayload } from './types';
 
 interface ChatInterfaceProps {
   conversation: Conversation;
@@ -53,7 +47,7 @@ export function ChatInterface({
 
   const scheduleTypingEnd = useCallback(() => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 20000);
+    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 60000);
   }, []);
 
   useEffect(() => () => {

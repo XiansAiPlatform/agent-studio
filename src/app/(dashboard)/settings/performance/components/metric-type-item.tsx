@@ -38,6 +38,17 @@ export function MetricTypeItem({
             <h4 className="text-base font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
               {metricType.type}
             </h4>
+            {/* Sample value - primary focus */}
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-2xl font-bold text-foreground tabular-nums tracking-tight">
+                {formatted.value}
+              </span>
+              {unitDisplay && (
+                <span className="text-sm font-medium text-muted-foreground">
+                  {unitDisplay}
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50">
                 <span className="font-medium text-foreground">{metricType.sampleCount}</span>

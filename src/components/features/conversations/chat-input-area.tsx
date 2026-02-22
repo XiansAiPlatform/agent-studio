@@ -5,13 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Paperclip, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-export interface FileUploadPayload {
-  base64: string;
-  fileName: string;
-  contentType: string;
-  fileSize?: number;
-}
+import type { FileUploadPayload } from './types';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;

@@ -16,7 +16,7 @@ The new type system provides:
 ### Phase 1: Core Infrastructure ✅
 - [x] Created comprehensive type definitions (`src/types/api.ts`)
 - [x] Updated `withTenant` wrapper with proper session typing
-- [x] Created route helpers (`src/lib/api/route-helpers.ts`)
+- [x] ~~Created route helpers (`src/lib/api/route-helpers.ts`)~~ (Removed – app uses `withTenant` from `lib/api/with-tenant` instead)
 - [x] Demonstrated migration with connections/initiate route
 
 ### Phase 2: Gradual Migration (Recommended Approach)
@@ -96,17 +96,10 @@ find src/app/api -name "*.ts" -exec sed -i '' \
 ## 🚀 Proper Migration Steps
 
 ### Step 1: Update Route Imports
+> **Note:** `route-helpers.ts` was removed. API routes use `withTenant` from `@/lib/api/with-tenant` instead. The helpers below (createApiRoute, getUserId, etc.) are not currently available; implement equivalent logic in your route handlers.
 ```typescript
-import { 
-  createApiRoute,
-  ApiError,
-  getUserId,
-  getUserEmail,
-  getTenantId,
-  getAccessToken,
-  parseRequestBody,
-  validateRequiredFields
-} from "@/lib/api/route-helpers"
+// Legacy reference (route-helpers.ts was removed):
+// import { createApiRoute, ApiError, getUserId, getUserEmail, ... } from "@/lib/api/route-helpers"
 ```
 
 ### Step 2: Convert Route Handler

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,7 +70,7 @@ export function LogFilterSlider({
   const [localEndDate, setLocalEndDate] = useState<string>(endDate || '');
 
   // Sync local state when props change
-  useMemo(() => {
+  useEffect(() => {
     setLocalSelectedActivation(selectedActivation);
     setLocalLogLevels(selectedLogLevels);
     setLocalStartDate(startDate || '');

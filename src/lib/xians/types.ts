@@ -282,24 +282,6 @@ export interface XiansMessage {
   origin: string | null
 }
 
-/**
- * DEPRECATED: This type is no longer used.
- * Use individual parameters in XiansMessagingApi methods instead.
- * IMPORTANT: participantId must NEVER come from the frontend.
- * It must always be derived from the authenticated session in Next.js API routes.
- */
-// export interface XiansMessageHistoryParams {
-//   tenantId: string
-//   agentName: string
-//   activationName: string
-//   participantId: string
-//   topic?: string  // Omit for all, empty string for no scope, or specify topic name
-//   page?: number
-//   pageSize?: number
-//   chatOnly?: boolean
-//   sortOrder?: 'asc' | 'desc'  // Sort order for messages (default: asc)
-// }
-
 // API returns array of messages directly, not wrapped
 export type XiansMessageHistoryResponse = XiansMessage[]
 

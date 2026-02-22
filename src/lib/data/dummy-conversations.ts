@@ -651,29 +651,3 @@ export const DUMMY_CONVERSATIONS: Conversation[] = [
     ],
   },
 ];
-
-// Filter and utility functions
-export function getActiveConversations(): Conversation[] {
-  return DUMMY_CONVERSATIONS.filter((conv) => conv.status === 'active');
-}
-
-export function getConversationHistory(): Conversation[] {
-  return DUMMY_CONVERSATIONS.filter((conv) => conv.status === 'inactive' || conv.status === 'archived');
-}
-
-export function getConversationById(id: string): Conversation | undefined {
-  return DUMMY_CONVERSATIONS.find((conv) => conv.id === id);
-}
-
-export function getConversationsByAgent(agentId: string): Conversation[] {
-  return DUMMY_CONVERSATIONS.filter((conv) => conv.agent.id === agentId);
-}
-
-export function getConversationsByUser(userId: string): Conversation[] {
-  return DUMMY_CONVERSATIONS.filter((conv) => conv.user.id === userId);
-}
-
-export function getTopicById(conversationId: string, topicId: string): Topic | undefined {
-  const conversation = getConversationById(conversationId);
-  return conversation?.topics.find((topic) => topic.id === topicId);
-}
