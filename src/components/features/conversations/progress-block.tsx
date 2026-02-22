@@ -86,6 +86,7 @@ function ReasoningStep({ message }: { message: Message }) {
 export function ProgressBlock({ messages, isActive }: ProgressBlockProps) {
   const [isExpanded, setIsExpanded] = useState(isActive);
   const prevActiveRef = useRef(isActive);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Collapse when agent response arrives (isActive transitions true → false)
   useEffect(() => {
@@ -94,12 +95,19 @@ export function ProgressBlock({ messages, isActive }: ProgressBlockProps) {
     }
     prevActiveRef.current = isActive;
   }, [isActive]);
+
   const reasoningCount = messages.filter(m => m.messageType?.toLowerCase() === 'reasoning').length;
   const toolCount = messages.filter(m => m.messageType?.toLowerCase() === 'tool').length;
   const stepCount = reasoningCount + toolCount;
 
   // Active (streaming): always expanded, show live updates
   const showExpanded = isActive || isExpanded;
+
+  // Scroll to bottom when new steps are added (reveal latest)
+  useEffect(() => {
+    if (!scrollContainerRef.current || !showExpanded) return;
+    scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+  }, [messages.length, showExpanded]);
 
   return (
     <div className="flex gap-3.5">
@@ -141,7 +149,7 @@ export function ProgressBlock({ messages, isActive }: ProgressBlockProps) {
           </button>
 
           {showExpanded && (
-            <div className="border-t border-border/40 px-2.5 py-1.5 space-y-0 max-h-48 overflow-y-auto">
+            <div ref={scrollContainerRef} className="border-t border-border/40 px-2.5 py-1.5 space-y-0 max-h-48 overflow-y-auto">
               {messages.map((message) =>
                 message.messageType?.toLowerCase() === 'tool' ? (
                   <ToolStep key={message.id} message={message} />

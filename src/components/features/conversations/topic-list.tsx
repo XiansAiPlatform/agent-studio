@@ -314,7 +314,7 @@ export function TopicList({
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!topicToDelete} onOpenChange={(open) => !open && handleDeleteCancel()}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Topic Messages</AlertDialogTitle>
             <AlertDialogDescription>
@@ -326,7 +326,7 @@ export function TopicList({
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={isDeletingTopic}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {isDeletingTopic ? 'Deleting...' : 'Delete Messages'}
             </AlertDialogAction>
