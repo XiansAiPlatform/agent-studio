@@ -161,7 +161,7 @@ export default function AgentsPage() {
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/agent-activations/${agentToDelete.id}`,
+        `/api/tenants/${currentTenantId}/agent-activations/${agentToDelete.id}`, // delete api call
         { method: 'DELETE' }
       );
 
