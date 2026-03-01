@@ -110,8 +110,8 @@ export default function DashboardPage() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('7d');
 
   const { stats, isLoading: isLoadingStats } = useTenantStats(
-    currentTenantId ?? undefined,
-    timePeriod
+    timePeriod,
+    Boolean(currentTenantId)
   );
   const { logs: recentLogs, isLoading: isLoadingLogs } = useLogs(
     currentTenantId,

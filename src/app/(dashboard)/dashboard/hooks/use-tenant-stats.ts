@@ -26,12 +26,19 @@ function getDateRange(period: TimePeriod) {
   };
 }
 
-export function useTenantStats(tenantId: string | undefined, timePeriod: TimePeriod) {
+/**
+ * Fetches tenant stats from the API. Tenant is resolved server-side from the
+ * session cookie — the client does not pass tenantId.
+ *
+ * @param timePeriod - Date range filter (7d, 30d, 90d)
+ * @param enabled - When false, skips fetch (e.g. before tenant is selected)
+ */
+export function useTenantStats(timePeriod: TimePeriod, enabled = true) {
   const [stats, setStats] = useState<XiansTenantStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!tenantId) return;
+    if (!enabled) return;
 
     const abortController = new AbortController();
 
@@ -40,7 +47,7 @@ export function useTenantStats(tenantId: string | undefined, timePeriod: TimePer
       try {
         const { startDate, endDate } = getDateRange(timePeriod);
         const params = new URLSearchParams({ startDate, endDate });
-        const response = await fetch(`/api/tenants/${tenantId}/stats?${params}`, {
+        const response = await fetch(`/api/tenant-stats?${params}`, {
           signal: abortController.signal,
         });
 
@@ -62,7 +69,7 @@ export function useTenantStats(tenantId: string | undefined, timePeriod: TimePer
 
     fetchStats();
     return () => abortController.abort();
-  }, [tenantId, timePeriod]);
+  }, [enabled, timePeriod]);
 
   return {
     stats: stats ?? DEFAULT_STATS,
