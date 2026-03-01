@@ -1,4 +1,4 @@
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface AddFromStoreCardProps {
   templatesLoaded: boolean;
