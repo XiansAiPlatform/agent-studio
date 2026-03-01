@@ -4,7 +4,6 @@ import { Suspense, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Loader2, AlertCircle, FileJson, FileCode, FileText } from 'lucide-react';
-import { useTenant } from '@/hooks/use-tenant';
 import { KnowledgeGroupItem, KnowledgeItemDetail } from '@/components/features/knowledge';
 import { cn } from '@/lib/utils';
 import { useKnowledgePage } from './hooks/use-knowledge-page';
@@ -27,7 +26,6 @@ const FORMAT_COLORS: Record<string, string> = {
 };
 
 function KnowledgeContent() {
-  const { currentTenantId } = useTenant();
   const {
     agentName,
     activationName,
@@ -52,7 +50,7 @@ function KnowledgeContent() {
     handleDeleteVersion,
     handleDeleteAllVersions,
     handleOverride,
-  } = useKnowledgePage(currentTenantId ?? undefined);
+  } = useKnowledgePage();
 
   const sheetHeader = useMemo(() => {
     if (!selectedItem || !selectedItemLevel) {
@@ -67,7 +65,7 @@ function KnowledgeContent() {
     };
   }, [selectedItem, selectedItemLevel, selectedGroup]);
 
-  
+
   return (
     <>
       <div className="container mx-auto p-6 space-y-6">

@@ -14,7 +14,7 @@ import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 
 const KNOWLEDGE_API_LOG = '[KnowledgePage]';
 
-export function useKnowledgePage(currentTenantId: string | undefined) {
+export function useKnowledgePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -47,7 +47,7 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
 
   const fetchKnowledge = useCallback(
     async (agent: string, activation: string) => {
-      if (!currentTenantId || !agent || !activation) return;
+      if (!agent || !activation) return;
 
       abortControllerRef.current?.abort();
       abortControllerRef.current = new AbortController();
@@ -58,7 +58,7 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
       try {
         const params = new URLSearchParams({ agentName: agent, activationName: activation });
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/knowledge?${params}`,
+          `/api/knowledge?${params}`,
           { signal: abortControllerRef.current.signal }
         );
 
@@ -82,11 +82,11 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
         setIsLoading(false);
       }
     },
-    [currentTenantId]
+    []
   );
 
   useEffect(() => {
-    if (!currentTenantId || !agentName || !activationName) return;
+    if (!agentName || !activationName) return;
 
     const paramsChanged =
       !lastFetchedParams ||
@@ -98,15 +98,13 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
     }
 
     return () => abortControllerRef.current?.abort();
-  }, [agentName, activationName, currentTenantId, fetchKnowledge]);
+  }, [agentName, activationName, fetchKnowledge]);
 
   const fetchKnowledgeItem = useCallback(
     async (itemId: string): Promise<KnowledgeItem | null> => {
-      if (!currentTenantId) return null;
-
       setIsLoadingItem(true);
       try {
-        const response = await fetch(`/api/tenants/${currentTenantId}/knowledge/${itemId}`);
+        const response = await fetch(`/api/knowledge/${itemId}`);
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error ?? 'Failed to fetch knowledge item');
@@ -120,11 +118,11 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
         setIsLoadingItem(false);
       }
     },
-    [currentTenantId]
+    []
   );
 
   useEffect(() => {
-    if (!selectedItemId || !currentTenantId) {
+    if (!selectedItemId) {
       setSelectedItem(null);
       setSelectedItemLevel(null);
       return;
@@ -141,7 +139,7 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
           : 'activation';
       setSelectedItemLevel(level);
     });
-  }, [selectedItemId, currentTenantId, fetchKnowledgeItem]);
+  }, [selectedItemId, fetchKnowledgeItem]);
 
   const refreshAndClose = useCallback(() => {
     if (agentName && activationName) fetchKnowledge(agentName, activationName);
@@ -190,10 +188,8 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
 
   const handleSave = useCallback(
     async (itemId: string, content: string, type: string, version: string) => {
-      if (!currentTenantId) return;
-
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/knowledge/${itemId}`,
+        `/api/knowledge/${itemId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -212,7 +208,7 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
       if (agentName && activationName) fetchKnowledge(agentName, activationName);
       showSuccessToast('Knowledge updated successfully');
     },
-    [currentTenantId, agentName, activationName, fetchKnowledge]
+    [agentName, activationName, fetchKnowledge]
   );
 
   const handleDelete = useCallback(() => {
@@ -229,10 +225,8 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
 
   const handleOverride = useCallback(
     async (item: KnowledgeItem, targetLevel: 'tenant' | 'activation') => {
-      if (!currentTenantId) return;
-
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/knowledge/${item.id}/override`,
+        `/api/knowledge/${item.id}/override`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -254,7 +248,7 @@ export function useKnowledgePage(currentTenantId: string | undefined) {
         `Override created at ${targetLevel === 'tenant' ? 'Organization' : 'Agent'} level`
       );
     },
-    [currentTenantId, agentName, activationName, fetchKnowledge, handleCloseSlider]
+    [agentName, activationName, fetchKnowledge, handleCloseSlider]
   );
 
   const stats = useMemo(() => {
