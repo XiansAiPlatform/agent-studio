@@ -32,7 +32,7 @@ export function ConfigurePanel({ agent, tenantId, onDeactivate }: ConfigurePanel
       
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/tenants/${tenantId}/agent-activations`);
+        const response = await fetch(`/api/agent-activations`);
         if (response.ok) {
           const activations = await response.json();
           const currentActivation = Array.isArray(activations)
@@ -66,7 +66,7 @@ export function ConfigurePanel({ agent, tenantId, onDeactivate }: ConfigurePanel
     setIsSaving(true);
     try {
       const response = await fetch(
-        `/api/tenants/${tenantId}/agent-activations/${agent.id}`,
+        `/api/agent-activations/${agent.id}`,
         {
           method: 'PUT',
           headers: {

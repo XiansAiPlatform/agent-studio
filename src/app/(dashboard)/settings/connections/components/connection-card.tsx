@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, Webhook } from 'lucide-react'
 import Image from 'next/image'
 import {
   DropdownMenu,
@@ -16,7 +16,8 @@ const INTEGRATION_ICONS: Record<string, string> = {
   'msteams': '/microsoft_teams.png',
   'teams': '/microsoft_teams.png',
   'outlook': '/outlook.png',
-  'webhook': '/webhook.png'
+  'webhook': '/webhook.png',
+  'builtin_webhook': '/webhook.png'
 }
 
 const INTEGRATION_NAMES: Record<string, string> = {
@@ -24,7 +25,8 @@ const INTEGRATION_NAMES: Record<string, string> = {
   'msteams': 'Microsoft Teams',
   'teams': 'Microsoft Teams',
   'outlook': 'Outlook',
-  'webhook': 'Custom Webhook'
+  'webhook': 'Custom Webhook',
+  'builtin_webhook': 'Webhook'
 }
 
 interface ConnectionCardProps {
@@ -86,16 +88,20 @@ export function ConnectionCard({
       <div className="flex items-start gap-4">
         {/* Icon */}
         <div className={cn(
-          "flex-shrink-0 mt-0.5",
+          "flex-shrink-0 mt-0.5 flex items-center justify-center w-10 h-10",
           !connection.isActive && "opacity-50 grayscale"
         )}>
-          <Image 
-            src={iconUrl} 
-            alt={displayName}
-            width={40}
-            height={40}
-            className="object-contain"
-          />
+          {connection.providerId === 'builtin_webhook' ? (
+            <Webhook className="h-10 w-10 text-slate-500" />
+          ) : (
+            <Image 
+              src={iconUrl} 
+              alt={displayName}
+              width={40}
+              height={40}
+              className="object-contain"
+            />
+          )}
         </div>
         
         {/* Content */}

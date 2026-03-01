@@ -24,7 +24,7 @@ export function useAgents(currentTenantId: string | null) {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/tenants/${currentTenantId}/agent-activations`, {
+      const response = await fetch(`/api/agent-activations`, {
         signal: abortControllerRef.current.signal,
       });
       

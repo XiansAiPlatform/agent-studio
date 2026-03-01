@@ -11,6 +11,15 @@ interface UseTopicsParams {
   pageSize?: number;
 }
 
+/** Detects if the error indicates the agent has no conversational/messaging capability */
+function isNoConversationalCapabilityError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('not registered') ||
+    (normalized.includes('workflow') && normalized.includes('registered workflow types'))
+  );
+}
+
 export function useTopics({
   tenantId,
   agentName,
@@ -22,6 +31,7 @@ export function useTopics({
   const [isLoading, setIsLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [noConversationalCapability, setNoConversationalCapability] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchTopics = useCallback(async () => {
@@ -38,6 +48,7 @@ export function useTopics({
     abortControllerRef.current = new AbortController();
 
     setIsLoading(true);
+    setNoConversationalCapability(false);
     try {
       const queryParams = new URLSearchParams({
         agentName,
@@ -54,7 +65,14 @@ export function useTopics({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch topics');
+        let errorMessage = 'Failed to fetch topics';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error ?? errorData.message ?? errorMessage;
+        } catch {
+          errorMessage = `Failed to fetch topics: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data: XiansTopicsResponse = await response.json();
@@ -117,9 +135,16 @@ export function useTopics({
         return;
       }
       
-      console.error('[useTopics] Error fetching topics:', error);
-      showErrorToast(error, 'Failed to load conversation topics');
-      setTopics([]);
+      const message = error instanceof Error ? error.message : String(error);
+      if (isNoConversationalCapabilityError(message)) {
+        setNoConversationalCapability(true);
+        setTopics([]);
+        // No toast - we show a friendly inline empty state instead
+      } else {
+        console.error('[useTopics] Error fetching topics:', error);
+        showErrorToast(error, 'Failed to load conversation topics');
+        setTopics([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +191,7 @@ export function useTopics({
     isLoading,
     totalPages,
     hasMore,
+    noConversationalCapability,
     refetch: fetchTopics,
     addTopic,
   };

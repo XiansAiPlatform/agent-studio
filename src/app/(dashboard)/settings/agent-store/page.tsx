@@ -91,7 +91,7 @@ export default function AgentTemplatesPage() {
     try {
       // Fetch agent deployment details to get workflows
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/agents/${encodeURIComponent(deployment.name)}`
+        `/api/agents/${encodeURIComponent(deployment.name)}`
       );
 
       if (!response.ok) {
@@ -293,7 +293,7 @@ export default function AgentTemplatesPage() {
       
       // Step 1: Create an agent activation (instance) with workflow configuration
       const createResponse = await fetch(
-        `/api/tenants/${currentTenantId}/agent-activations`,
+        `/api/agent-activations`,
         {
           method: 'POST',
           headers: {
@@ -334,7 +334,7 @@ export default function AgentTemplatesPage() {
       console.log('Activating instance:', newInstanceId);
       
       const activateResponse = await fetch(
-        `/api/tenants/${currentTenantId}/agent-activations/${newInstanceId}/activate`,
+        `/api/agent-activations/${newInstanceId}/activate`,
         {
           method: 'POST',
           headers: {

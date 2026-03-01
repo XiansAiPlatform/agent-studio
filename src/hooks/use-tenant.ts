@@ -35,10 +35,15 @@ export function useTenant() {
     }
   }, [])
 
-  const switchTenant = (tenantId: string) => {
+  const switchTenant = async (tenantId: string) => {
     console.log('[useTenant] Switching to tenant:', tenantId)
     setCurrentTenant(tenantId)
-    // Always redirect to dashboard after switching tenant
+    // Sync tenant to server before redirect so API routes can inject it (never pass from frontend)
+    await fetch('/api/user/current-tenant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId }),
+    }).catch((err) => console.warn('[useTenant] Failed to sync tenant to server:', err))
     window.location.href = '/dashboard'
   }
 
