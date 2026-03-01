@@ -67,6 +67,7 @@ function KnowledgeContent() {
     };
   }, [selectedItem, selectedItemLevel, selectedGroup]);
 
+  
   return (
     <>
       <div className="container mx-auto p-6 space-y-6">
