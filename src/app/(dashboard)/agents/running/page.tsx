@@ -1,30 +1,35 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Bot, Play, Loader2 } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
-import { ActivationConfigWizard, ActivationWizardData } from '@/components/features/agents/activation-config-wizard';
+import { ActivationConfigWizard } from '@/components/features/agents/activation-config-wizard';
 
 import { Agent, SliderType } from './types';
 import { useAgents } from './hooks/use-agents';
+import { useActivationWizard } from './hooks/use-activation-wizard';
 import { AgentCard } from './components/agent-card';
 import { AgentFilters } from './components/agent-filters';
 import { AgentActionsSlider } from './components/agent-actions-slider';
 import { AgentDeleteDialog } from './components/agent-delete-dialog';
 import { AgentDeactivateDialog } from './components/agent-deactivate-dialog';
 import { ConfigurePanel } from './components/agent-slider-panels';
+import { EmptyState } from './components/empty-state';
 
-export default function AgentsPage() {
+function AgentsPageContent() {
   const { currentTenantId } = useTenant();
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const { agents, isLoading, refreshAgents, setAgents } = useAgents(currentTenantId);
-  
+
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [sliderType, setSliderType] = useState<SliderType>(null);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
@@ -37,92 +42,86 @@ export default function AgentsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [showMyAgentsOnly, setShowMyAgentsOnly] = useState(false);
-  
-  // Activation wizard state
-  const [showActivationWizard, setShowActivationWizard] = useState(false);
-  const [wizardData, setWizardData] = useState<ActivationWizardData | null>(null);
-  const [isLoadingWizard, setIsLoadingWizard] = useState(false);
-  const [workflowInputs, setWorkflowInputs] = useState<Record<string, Record<string, string>>>({});
-  const [isActivating, setIsActivating] = useState(false);
-  const [currentActivationId, setCurrentActivationId] = useState<string | null>(null);
+
+  const closeSlider = useCallback(() => {
+    setSliderType(null);
+    setSelectedAgent(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('agentName');
+    params.delete('activationName');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [searchParams, pathname, router]);
+
+  const openSlider = useCallback(
+    (agent: Agent, type: SliderType = 'actions') => {
+      setSelectedAgent(agent);
+      setSliderType(type);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('agentName', agent.template);
+      params.set('activationName', agent.name);
+      router.replace(`${pathname}?${params.toString()}`);
+    },
+    [searchParams, pathname, router]
+  );
+
+  const {
+    showActivationWizard,
+    setShowActivationWizard,
+    wizardData,
+    isLoadingWizard,
+    workflowInputs,
+    isActivating,
+    handleActivateClick,
+    handleConfigWizardComplete,
+    handleWizardCancel,
+  } = useActivationWizard(currentTenantId, {
+    onClose: closeSlider,
+    onSuccess: refreshAgents,
+  });
 
   // Check for newly created instance from URL params
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const newInstanceId = params.get('newInstance');
-      if (newInstanceId) {
-        setNewlyCreatedId(newInstanceId);
-        const timer = setTimeout(() => setNewlyCreatedId(null), 10000);
-        window.history.replaceState({}, '', window.location.pathname);
-        return () => clearTimeout(timer);
-      }
+    const newInstanceId = searchParams.get('newInstance');
+    if (newInstanceId) {
+      setNewlyCreatedId(newInstanceId);
+      const timer = setTimeout(() => setNewlyCreatedId(null), 10000);
+      router.replace(pathname);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [searchParams, pathname, router]);
 
-  // Restore selected agent from URL params
+  // Restore selected agent from URL params when agents load
   useEffect(() => {
-    if (typeof window !== 'undefined' && agents.length > 0) {
-      const params = new URLSearchParams(window.location.search);
-      const agentName = params.get('agentName');
-      const activationName = params.get('activationName');
-      
-      if (agentName && activationName) {
-        const agent = agents.find(
-          (a) => a.template === agentName && a.name === activationName
-        );
-        if (agent) {
-          setSelectedAgent(agent);
-          setSliderType('actions');
-        }
+    if (agents.length === 0) return;
+    const agentName = searchParams.get('agentName');
+    const activationName = searchParams.get('activationName');
+    if (agentName && activationName) {
+      const agent = agents.find(
+        (a) => a.template === agentName && a.name === activationName
+      );
+      if (agent) {
+        setSelectedAgent(agent);
+        setSliderType('actions');
       }
     }
-  }, [agents]);
+  }, [agents, searchParams]);
 
-  const openSlider = (agent: Agent, type: SliderType = 'actions') => {
-    setSelectedAgent(agent);
-    setSliderType(type);
-    
-    // Update URL with agent info
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      params.set('agentName', agent.template);
-      params.set('activationName', agent.name);
-      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
-    }
-  };
-
-  const closeSlider = () => {
-    setSliderType(null);
-    setSelectedAgent(null);
-    
-    // Remove agent params from URL
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      params.delete('agentName');
-      params.delete('activationName');
-      const newUrl = params.toString() 
-        ? `${window.location.pathname}?${params.toString()}`
-        : window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-    }
-  };
-
-  const handleCardClick = (agent: Agent) => {
+  const handleCardClick = useCallback((agent: Agent) => {
     openSlider(agent, 'actions');
-  };
+  }, [openSlider]);
 
-  const handleDeleteClick = (agent: Agent) => {
+  const handleDeleteClick = useCallback((agent: Agent) => {
     setAgentToDelete(agent);
     setShowDeleteDialog(true);
-  };
+  }, []);
 
-  const handleDeactivateClick = (agent: Agent) => {
+  const handleDeactivateClick = useCallback((agent: Agent) => {
     setAgentToDeactivate(agent);
     setShowDeactivateDialog(true);
-  };
+  }, []);
 
-  const handleDeactivate = async () => {
+  const handleDeactivate = useCallback(async () => {
     if (!currentTenantId || !agentToDeactivate) return;
 
     setIsDeactivating(true);
@@ -148,14 +147,13 @@ export default function AgentsPage() {
       await refreshAgents();
       setAgentToDeactivate(null);
     } catch (error) {
-      console.error('[AgentsPage] Error deactivating instance:', error);
       showErrorToast(error, 'Failed to deactivate agent');
     } finally {
       setIsDeactivating(false);
     }
-  };
+  }, [currentTenantId, agentToDeactivate, closeSlider, refreshAgents]);
 
-  const handleDeleteInstance = async () => {
+  const handleDeleteInstance = useCallback(async () => {
     if (!currentTenantId || !agentToDelete) return;
 
     setIsDeleting(true);
@@ -188,183 +186,37 @@ export default function AgentsPage() {
       setAgents((prevAgents) => prevAgents.filter((a) => a.id !== agentToDelete.id));
       setAgentToDelete(null);
     } catch (error) {
-      console.error('[AgentsPage] Error deleting instance:', error);
       showErrorToast(error, 'Failed to delete agent instance');
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [currentTenantId, agentToDelete, closeSlider, setAgents]);
 
-  const handleActivateClick = async (agent: Agent) => {
-    if (!currentTenantId) {
-      showErrorToast(new Error('No tenant selected'), 'Failed to activate agent');
-      return;
-    }
+  const uniqueTemplates = useMemo(
+    () => Array.from(new Set(agents.map((a) => a.template))).sort(),
+    [agents]
+  );
 
-    closeSlider();
-    setIsLoadingWizard(true);
+  const filteredAgents = useMemo(
+    () =>
+      agents.filter((agent) => {
+        if (selectedTemplate && agent.template !== selectedTemplate) return false;
+        if (showActiveOnly && agent.status !== 'active') return false;
+        if (showMyAgentsOnly && agent.participantId !== user?.email) return false;
+        return true;
+      }),
+    [agents, selectedTemplate, showActiveOnly, showMyAgentsOnly, user?.email]
+  );
 
-    try {
-      // Step 1: Fetch agent deployment details
-      const response = await fetch(
-        `/api/agents/${encodeURIComponent(agent.template)}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch agent deployment details');
-      }
-
-      const data = await response.json();
-
-      const workflowsWithParams = data.definitions
-        .filter((def: any) => def.activable === true)
-        .map((def: any) => ({
-          id: def.id,
-          workflowType: def.workflowType,
-          name: def.name,
-          summary: def.summary,
-          parameterDefinitions: def.parameterDefinitions || [],
-          activable: def.activable,
-        }));
-
-      // Step 2: Fetch existing workflow configuration to pre-populate the wizard
-      // This MUST happen before opening the wizard to avoid race conditions
-      let existingInputs: Record<string, Record<string, string>> = {};
-      
-      try {
-        const activationResponse = await fetch(
-          `/api/agent-activations`
-        );
-
-        if (activationResponse.ok) {
-          const activations = await activationResponse.json();
-          const currentActivation = Array.isArray(activations)
-            ? activations.find((a: any) => a.id === agent.id)
-            : null;
-
-          if (currentActivation?.workflowConfiguration?.workflows) {
-            // Extract existing inputs from the saved configuration
-            currentActivation.workflowConfiguration.workflows.forEach((workflow: any) => {
-              if (workflow.inputs && Array.isArray(workflow.inputs)) {
-                existingInputs[workflow.workflowType] = {};
-                workflow.inputs.forEach((input: any) => {
-                  existingInputs[workflow.workflowType][input.name] = input.value;
-                });
-              }
-            });
-            console.log('[AgentsPage] Pre-populating wizard with saved inputs:', existingInputs);
-          } else {
-            console.log('[AgentsPage] No existing workflow configuration found, starting with empty inputs');
-          }
-        } else {
-          console.warn('[AgentsPage] Failed to fetch activations for pre-population');
-        }
-      } catch (activationError) {
-        console.warn('[AgentsPage] Failed to fetch activation record for pre-population:', activationError);
-      }
-
-      // Step 3: Set all state and THEN open the wizard
-      // This ensures the wizard receives the pre-populated inputs immediately
-      setWizardData({
-        agent: {
-          id: data.agent.id,
-          name: data.agent.name,
-          description: data.agent.description,
-        },
-        workflows: workflowsWithParams,
-      });
-      setCurrentActivationId(agent.id);
-      setWorkflowInputs(existingInputs);
-      
-      // Only open the wizard after all data is ready
-      setShowActivationWizard(true);
-      
-    } catch (error) {
-      console.error('[AgentsPage] Error fetching agent deployment:', error);
-      showErrorToast(error, 'Failed to load activation wizard');
-    } finally {
-      setIsLoadingWizard(false);
-    }
-  };
-
-  const handleConfigWizardComplete = async (inputs: Record<string, Record<string, string>>) => {
-    if (!currentTenantId || !wizardData || !currentActivationId) return;
-
-    setIsActivating(true);
-    try {
-      const workflows = wizardData.workflows.map((workflow) => {
-        const workflowInputs = inputs[workflow.workflowType] || {};
-        const validParamNames = new Set(
-          workflow.parameterDefinitions.map((param) => param.name)
-        );
-        
-        const filteredInputs = Object.entries(workflowInputs)
-          .filter(([name]) => validParamNames.has(name))
-          .map(([name, value]) => ({ name, value }));
-        
-        return {
-          workflowType: workflow.workflowType,
-          inputs: filteredInputs,
-        };
-      });
-
-      const response = await fetch(
-        `/api/agent-activations/${currentActivationId}/activate`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ workflowConfiguration: { workflows } }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw {
-          status: response.status,
-          message: errorData.error || errorData.message || 'Failed to activate agent',
-          error: errorData.error,
-          details: errorData.details,
-        };
-      }
-
-      showSuccessToast(
-        'Agent Activated Successfully',
-        `${wizardData.agent.name} is now active and ready to use`
-      );
-
-      setShowActivationWizard(false);
-      setWizardData(null);
-      setWorkflowInputs({});
-      setCurrentActivationId(null);
-      closeSlider();
-      await refreshAgents();
-    } catch (error) {
-      console.error('[AgentsPage] Error activating agent:', error);
-      showErrorToast(error, 'Failed to activate agent');
-    } finally {
-      setIsActivating(false);
-    }
-  };
-
-  const uniqueTemplates = Array.from(new Set(agents.map((agent) => agent.template))).sort();
-  
-  const filteredAgents = agents.filter((agent) => {
-    if (selectedTemplate && agent.template !== selectedTemplate) return false;
-    if (showActiveOnly && agent.status !== 'active') return false;
-    if (showMyAgentsOnly && agent.participantId !== user?.email) return false;
-    return true;
-  });
-
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSelectedTemplate(null);
     setShowActiveOnly(false);
     setShowMyAgentsOnly(false);
-  };
+  }, []);
 
-  const handleTemplateSelect = (template: string) => {
-    // Toggle behavior: if already selected, deselect it
-    setSelectedTemplate(selectedTemplate === template ? null : template);
-  };
+  const handleTemplateSelect = useCallback((template: string) => {
+    setSelectedTemplate((prev) => (prev === template ? null : template));
+  }, []);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -410,39 +262,21 @@ export default function AgentsPage() {
 
       {/* Empty State */}
       {!isLoading && agents.length === 0 && (
-        <Card>
-          <div className="flex flex-col items-center justify-center py-16 px-6 space-y-3">
-            <div className="rounded-full bg-muted/50 p-3">
-              <Bot className="h-6 w-6 text-muted-foreground/60" />
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-foreground">No activated agents</p>
-              <p className="text-xs text-muted-foreground">
-                You haven&apos;t activated any agents yet. Click &quot;Activate from Store&quot; to get started.
-              </p>
-            </div>
-          </div>
-        </Card>
+        <EmptyState
+          icon={Bot}
+          title="No activated agents"
+          description={`You haven't activated any agents yet. Click "Activate from Store" to get started.`}
+        />
       )}
 
       {/* Filtered Empty State */}
       {!isLoading && agents.length > 0 && filteredAgents.length === 0 && (
-        <Card>
-          <div className="flex flex-col items-center justify-center py-16 px-6 space-y-3">
-            <div className="rounded-full bg-muted/50 p-3">
-              <Bot className="h-6 w-6 text-muted-foreground/60" />
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-foreground">No matching agents</p>
-              <p className="text-xs text-muted-foreground">
-                Try adjusting your filters to see more agents
-              </p>
-            </div>
-            <Button variant="outline" onClick={handleClearFilters} className="mt-2">
-              Clear Filter
-            </Button>
-          </div>
-        </Card>
+        <EmptyState
+          icon={Bot}
+          title="No matching agents"
+          description="Try adjusting your filters to see more agents"
+          action={{ label: 'Clear Filter', onClick: handleClearFilters }}
+        />
       )}
 
       {/* Agents Grid */}
@@ -461,9 +295,9 @@ export default function AgentsPage() {
       )}
 
       {/* Right Slider for Agent Actions */}
-      <Sheet 
-        open={sliderType !== null} 
-        onOpenChange={closeSlider}
+      <Sheet
+        open={sliderType !== null}
+        onOpenChange={(open) => !open && closeSlider()}
       >
         {selectedAgent && sliderType === 'actions' && (
           <AgentActionsSlider
@@ -511,15 +345,23 @@ export default function AgentsPage() {
         onOpenChange={setShowActivationWizard}
         wizardData={wizardData}
         isLoading={isLoadingWizard}
+        isSubmitting={isActivating}
         initialWorkflowInputs={workflowInputs}
         onComplete={handleConfigWizardComplete}
-        onCancel={() => {
-          setShowActivationWizard(false);
-          setWizardData(null);
-          setWorkflowInputs({});
-          setCurrentActivationId(null);
-        }}
+        onCancel={handleWizardCancel}
       />
     </div>
+  );
+}
+
+export default function AgentsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto p-6 flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <AgentsPageContent />
+    </Suspense>
   );
 }
