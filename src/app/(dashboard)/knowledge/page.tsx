@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Loader2, AlertCircle, FileJson, FileCode, FileText } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
-import { KnowledgeItem } from '@/lib/xians/knowledge';
 import { KnowledgeGroupItem, KnowledgeItemDetail } from '@/components/features/knowledge';
 import { cn } from '@/lib/utils';
 import { useKnowledgePage } from './hooks/use-knowledge-page';
