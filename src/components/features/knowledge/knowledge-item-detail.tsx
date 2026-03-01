@@ -256,10 +256,10 @@ export function KnowledgeItemDetail({
   };
 
   const handleDeleteVersion = async () => {
-    if (!item.tenantId || !item.id) {
+    if (!item.id) {
       showToast.error({
         title: 'Error',
-        description: 'Missing tenant or knowledge ID',
+        description: 'Missing knowledge ID',
       });
       return;
     }
@@ -267,7 +267,7 @@ export function KnowledgeItemDetail({
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/tenants/${item.tenantId}/knowledge/${item.id}`,
+        `/api/knowledge/${item.id}`,
         {
           method: 'DELETE',
         }
@@ -297,7 +297,7 @@ export function KnowledgeItemDetail({
   };
 
   const handleDeleteAllVersions = async () => {
-    if (!item.tenantId || !item.name || !agentName) {
+    if (!item.name || !agentName) {
       showToast.error({
         title: 'Error',
         description: 'Missing required information for deletion',
@@ -327,7 +327,7 @@ export function KnowledgeItemDetail({
       }
 
       const response = await fetch(
-        `/api/tenants/${item.tenantId}/knowledge/versions?${params}`,
+        `/api/knowledge/versions?${params}`,
         {
           method: 'DELETE',
         }
