@@ -114,6 +114,23 @@ export function IntegrationDetailsSheet({
     showSuccessToast(`${label} copied to clipboard`)
   }
 
+  const copyWebhookUrl = async () => {
+    if (!integrationId || !currentTenantId) return
+    try {
+      const res = await fetch(
+        `/api/tenants/${currentTenantId}/integrations/${integrationId}/webhook-url`
+      )
+      if (!res.ok) throw new Error('Failed to fetch webhook URL')
+      const { webhookUrl } = await res.json()
+      if (webhookUrl) {
+        navigator.clipboard.writeText(webhookUrl)
+        showSuccessToast('Webhook URL copied to clipboard')
+      }
+    } catch (err) {
+      showErrorToast(err as Error)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
@@ -212,7 +229,7 @@ export function IntegrationDetailsSheet({
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Link2 className="h-4 w-4" />
-                  Webhook URL
+                  Full Webhook URL
                 </h3>
                 <div className="pl-6">
                   <div className="flex items-center justify-between gap-2 text-sm bg-muted p-3 rounded-md">
@@ -220,7 +237,7 @@ export function IntegrationDetailsSheet({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => copyToClipboard(integration.webhookUrl, 'Webhook URL')}
+                      onClick={copyWebhookUrl}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>

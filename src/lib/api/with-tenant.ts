@@ -34,6 +34,9 @@ export type ApiHandler = (
   context: ApiContext
 ) => Promise<Response>
 
+/** Cookie name for current tenant (server-side only, httpOnly) */
+export const CURRENT_TENANT_COOKIE = 'current-tenant-id'
+
 /**
  * Extract tenant ID from URL pathname
  * @param pathname - Request pathname
@@ -43,6 +46,14 @@ function extractTenantIdFromPath(pathname: string): string | null {
   // Match pattern: /api/tenants/{tenantId}/...
   const match = pathname.match(/\/api\/tenants\/([^\/]+)/)
   return match ? match[1] : null
+}
+
+/**
+ * Extract tenant ID from request cookie (injected from session context).
+ * Use this for routes that must NOT receive tenant ID from the frontend.
+ */
+function getTenantIdFromCookie(request: NextRequest): string | null {
+  return request.cookies.get(CURRENT_TENANT_COOKIE)?.value ?? null
 }
 
 /**
@@ -107,6 +118,67 @@ export function withTenant(handler: ApiHandler) {
       return handler(request, { session, tenantContext, tenantId })
     } catch (error) {
       console.error('[withTenant] Error:', error)
+      return NextResponse.json(
+        { 
+          error: 'Internal server error',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
+      )
+    }
+  }
+}
+
+/**
+ * Middleware wrapper for tenant-aware API routes that inject tenant from session.
+ * 
+ * Does NOT accept tenant ID from the frontend. Instead, gets tenant from the
+ * httpOnly current-tenant-id cookie (set via POST /api/user/current-tenant).
+ * 
+ * Use for routes that follow the architecture rule: "Presentation layer must not
+ * pass the tenant id to Next.js api routes."
+ * 
+ * @param handler - API route handler function
+ * @returns Wrapped route handler with tenant from session
+ */
+export function withTenantFromSession(handler: ApiHandler) {
+  return async (request: NextRequest) => {
+    try {
+      const session = await getServerSession(authOptions)
+      
+      if (!session || !session.user?.id || !session.user?.email) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        )
+      }
+      
+      const tenantId = getTenantIdFromCookie(request)
+      
+      if (!tenantId) {
+        return NextResponse.json(
+          { error: 'No tenant selected. Please select a tenant in the dashboard.' },
+          { status: 400 }
+        )
+      }
+      
+      const tenantProvider = useTenantProvider()
+      const tenantContext = await tenantProvider.getTenantContext(
+        session.user.id,
+        tenantId,
+        session.accessToken
+      )
+      
+      if (!tenantContext) {
+        return NextResponse.json(
+          { error: 'Access denied to this tenant' },
+          { status: 403 }
+        )
+      }
+      
+      return handler(request, { session, tenantContext, tenantId })
+    } catch (error) {
+      console.error('[withTenantFromSession] Error:', error)
       return NextResponse.json(
         { 
           error: 'Internal server error',

@@ -40,7 +40,7 @@ export function useActivations(tenantId: string | null, shouldFetch: boolean = t
 
       try {
         const response = await fetch(
-          `/api/tenants/${tenantId}/agent-activations`,
+          `/api/agent-activations`,
           {
             signal: abortControllerRef.current!.signal,
           }

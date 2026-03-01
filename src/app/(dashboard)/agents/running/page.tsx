@@ -128,7 +128,7 @@ export default function AgentsPage() {
     setIsDeactivating(true);
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/agent-activations/${agentToDeactivate.id}/deactivate`,
+        `/api/agent-activations/${agentToDeactivate.id}/deactivate`,
         { method: 'POST' }
       );
 
@@ -161,10 +161,9 @@ export default function AgentsPage() {
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/agent-activations/${agentToDelete.id}`,
+        `/api/agent-activations/${agentToDelete.id}`,
         { method: 'DELETE' }
       );
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 409) {
@@ -208,7 +207,7 @@ export default function AgentsPage() {
     try {
       // Step 1: Fetch agent deployment details
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/agents/${encodeURIComponent(agent.template)}`
+        `/api/agents/${encodeURIComponent(agent.template)}`
       );
 
       if (!response.ok) {
@@ -234,7 +233,7 @@ export default function AgentsPage() {
       
       try {
         const activationResponse = await fetch(
-          `/api/tenants/${currentTenantId}/agent-activations`
+          `/api/agent-activations`
         );
 
         if (activationResponse.ok) {
@@ -310,7 +309,7 @@ export default function AgentsPage() {
       });
 
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/agent-activations/${currentActivationId}/activate`,
+        `/api/agent-activations/${currentActivationId}/activate`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

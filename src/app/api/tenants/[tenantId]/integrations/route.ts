@@ -4,25 +4,24 @@ import { createXiansClient, XiansApiError } from "@/lib/xians/client"
 
 /**
  * GET /api/tenants/{tenantId}/integrations
- * Fetches integrations from the backend API with optional filters
+ * Fetches app integrations from the backend API (unified: slack, msteams, builtin_webhook, etc.)
  * Query params:
+ * - platformId: Filter by platform (slack, msteams, builtin_webhook)
  * - agentName: Filter by agent name
  * - activationName: Filter by activation name
  */
 export const GET = withTenant(async (request, { tenantContext }) => {
   try {
     const { searchParams } = new URL(request.url)
+    const platformId = searchParams.get('platformId')
     const agentName = searchParams.get('agentName')
     const activationName = searchParams.get('activationName')
 
     // Build query parameters for backend API
     const params = new URLSearchParams()
-    if (agentName) {
-      params.set('agentName', agentName)
-    }
-    if (activationName) {
-      params.set('activationName', activationName)
-    }
+    if (platformId) params.set('platformId', platformId)
+    if (agentName) params.set('agentName', agentName)
+    if (activationName) params.set('activationName', activationName)
 
     const queryString = params.toString()
     const backendPath = `/api/v1/admin/tenants/${tenantContext.tenant.id}/integrations${queryString ? `?${queryString}` : ''}`

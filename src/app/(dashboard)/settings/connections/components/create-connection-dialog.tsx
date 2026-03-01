@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, ExternalLink, Info, Eye, EyeOff, Plug } from 'lucide-react'
+import { Loader2, ExternalLink, Info, Eye, EyeOff, Plug, Webhook } from 'lucide-react'
 import { useIntegrationTypes, IntegrationType } from '../hooks/use-integration-types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -23,6 +23,7 @@ interface CreateConnectionDialogProps {
   isSubmitting?: boolean
   onSlackSelected?: () => void
   onTeamsSelected?: () => void
+  onWebhooksSelected?: () => void
 }
 
 interface FormData {
@@ -32,13 +33,25 @@ interface FormData {
   configFields: Record<string, string>
 }
 
+const webhookIntegration: IntegrationType = {
+  platformId: 'webhook',
+  displayName: 'Webhooks',
+  description: 'Built-in HTTP webhooks for triggering workflows via POST',
+  icon: 'webhook',
+  requiredConfigurationFields: [],
+  capabilities: ['webhook'],
+  webhookEndpoint: '',
+  documentationUrl: null
+}
+
 export function CreateConnectionDialog({
   open,
   onOpenChange,
   onSubmit,
   isSubmitting = false,
   onSlackSelected,
-  onTeamsSelected
+  onTeamsSelected,
+  onWebhooksSelected
 }: CreateConnectionDialogProps) {
   const { integrationTypes, isLoading: loadingTypes, error: typesError } = useIntegrationTypes()
   const [step, setStep] = useState<'select' | 'configure'>('select')
@@ -94,6 +107,13 @@ export function CreateConnectionDialog({
     if (integration.platformId === 'msteams' || integration.platformId === 'teams') {
       onOpenChange(false) // Close the dialog
       onTeamsSelected?.() // Notify parent to open Teams wizard
+      return
+    }
+
+    // For Webhooks, close dialog and notify parent to open webhooks sheet
+    if (integration.platformId === 'webhook') {
+      onOpenChange(false) // Close the dialog
+      onWebhooksSelected?.() // Notify parent to open Webhooks sheet
       return
     }
     
@@ -210,6 +230,24 @@ export function CreateConnectionDialog({
         ) : step === 'select' ? (
           <div className="py-6">
             <div className="flex flex-col gap-4">
+              {/* Webhooks - always show as first option */}
+              {!integrationTypes.some(t => t.platformId === 'webhook') && (
+                <button
+                  type="button"
+                  onClick={() => handleIntegrationSelect(webhookIntegration)}
+                  className="group relative p-6 text-left bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all duration-200 hover:border-slate-300 hover:shadow-sm"
+                >
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-slate-100 rounded-lg">
+                      <Webhook className="h-8 w-8 text-slate-500" />
+                    </div>
+                    <div className="flex-1 space-y-1 text-left">
+                      <h3 className="text-base font-normal text-slate-900 group-hover:text-slate-950">Webhooks</h3>
+                      <p className="text-sm text-slate-500 leading-relaxed">Built-in HTTP webhooks for triggering workflows via POST</p>
+                    </div>
+                  </div>
+                </button>
+              )}
               {integrationTypes.map((integration) => (
                 <button
                   key={integration.platformId}
@@ -219,7 +257,9 @@ export function CreateConnectionDialog({
                   <div className="flex items-center gap-6">
                     {/* Icon */}
                     <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-slate-100 rounded-lg">
-                      {failedIcons.has(integration.platformId) ? (
+                      {integration.platformId === 'webhook' ? (
+                        <Webhook className="h-8 w-8 text-slate-500" />
+                      ) : failedIcons.has(integration.platformId) ? (
                         <Plug className="h-8 w-8 text-slate-500" />
                       ) : (
                         <Image 

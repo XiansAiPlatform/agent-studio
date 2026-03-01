@@ -214,6 +214,19 @@ async function deleteConnection(tenantId: string, connectionId: string): Promise
   }
 }
 
+async function deleteIntegration(tenantId: string, integrationId: string): Promise<void> {
+  if (!tenantId) throw new Error('Tenant ID is required')
+  
+  const response = await fetch(`/api/tenants/${tenantId}/integrations/${integrationId}`, {
+    method: 'DELETE',
+  })
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error || `Failed to delete integration: ${response.statusText}`)
+  }
+}
+
 async function testConnection(tenantId: string, connectionId: string): Promise<ConnectionTestResult> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
@@ -405,6 +418,11 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
     refetch
   )
 
+  const deleteIntegrationMutation = createMutationState<string>(
+    (integrationId) => deleteIntegration(tenantId!, integrationId),
+    refetch
+  )
+
   const testConnectionMutation = createMutationState<string>(
     (connectionId) => testConnection(tenantId!, connectionId),
     refetch
@@ -429,6 +447,7 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
     initiateConnection: initiateConnectionMutation,
     updateConnection: updateConnectionMutation,
     deleteConnection: deleteConnectionMutation,
+    deleteIntegration: deleteIntegrationMutation,
     testConnection: testConnectionMutation,
     authorizeConnection: authorizeConnectionMutation,
     createIntegration: createIntegrationMutation,

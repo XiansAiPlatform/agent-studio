@@ -56,6 +56,7 @@ function ConversationContent() {
     isLoading: isLoadingTopics,
     totalPages,
     hasMore,
+    noConversationalCapability,
     addTopic,
     refetch: refetchTopics,
   } = useTopics({
@@ -624,6 +625,26 @@ function ConversationContent() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">
           Loading conversation...
+        </p>
+      </div>
+    );
+  }
+
+  // Agent has no conversational capability (workflow not registered for messaging)
+  if (noConversationalCapability) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
+        <div className="h-28 w-28 rounded-3xl bg-muted flex items-center justify-center mb-8 shadow-sm border border-border">
+          <Bot className="h-14 w-14 text-muted-foreground" />
+        </div>
+        <h2 className="text-2xl font-semibold text-foreground mb-2 tracking-tight">
+          No Conversational Capability
+        </h2>
+        <p className="text-muted-foreground max-w-md text-sm">
+          This agent does not support conversations. The activation uses a workflow type that is not configured for chat or messaging.
+        </p>
+        <p className="text-muted-foreground/80 max-w-md text-xs mt-2">
+          Try selecting a different activation, or contact your administrator to enable messaging for this agent.
         </p>
       </div>
     );

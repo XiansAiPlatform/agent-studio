@@ -32,6 +32,7 @@ import { DeleteConnectionDialog } from './components/delete-connection-dialog';
 import { IntegrationDetailsSheet } from './components/integration-details-sheet';
 import { SlackWizardSheet } from './components/slack-wizard-sheet';
 import { TeamsWizardSheet } from './components/teams-wizard-sheet';
+import { WebhooksSheet } from './components/webhooks-sheet';
 
 function ConnectionsContent() {
   const { currentTenantId } = useTenant();
@@ -49,6 +50,7 @@ function ConnectionsContent() {
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | null>(null);
   const [showSlackWizard, setShowSlackWizard] = useState(false);
   const [showTeamsWizard, setShowTeamsWizard] = useState(false);
+  const [showWebhooksSheet, setShowWebhooksSheet] = useState(false);
 
   // Handle OAuth completion messages
   useEffect(() => {
@@ -106,6 +108,7 @@ function ConnectionsContent() {
     initiateConnection,
     updateConnection,
     deleteConnection,
+    deleteIntegration,
     testConnection,
     authorizeConnection,
     createIntegration
@@ -240,7 +243,12 @@ function ConnectionsContent() {
     if (!selectedConnection) return;
     
     try {
-      await deleteConnection.mutateAsync(selectedConnection.id);
+      // When viewing integrations (agentName+activationName), use integrations API
+      if (agentName && activationName) {
+        await deleteIntegration.mutateAsync(selectedConnection.id);
+      } else {
+        await deleteConnection.mutateAsync(selectedConnection.id);
+      }
       setShowDeleteDialog(false);
       setSelectedConnection(null);
       showSuccessToast('Connection deleted successfully');
@@ -411,8 +419,8 @@ function ConnectionsContent() {
           </div>
         )}
 
-        {/* Create Connection Dialog - Only render when not showing Slack or Teams wizard */}
-        {!showSlackWizard && !showTeamsWizard && (
+        {/* Create Connection Dialog - Only render when not showing Slack, Teams, or Webhooks */}
+        {!showSlackWizard && !showTeamsWizard && !showWebhooksSheet && (
           <CreateConnectionDialog
             open={showCreateDialog}
             onOpenChange={setShowCreateDialog}
@@ -425,6 +433,10 @@ function ConnectionsContent() {
             onTeamsSelected={() => {
               setShowCreateDialog(false)
               setShowTeamsWizard(true)
+            }}
+            onWebhooksSelected={() => {
+              setShowCreateDialog(false)
+              setShowWebhooksSheet(true)
             }}
           />
         )}
@@ -445,6 +457,18 @@ function ConnectionsContent() {
             }}
             onSubmit={handleCreateConnection}
             isSubmitting={createIntegration.isPending}
+          />
+        )}
+
+        {/* Webhooks Sheet */}
+        {showWebhooksSheet && (
+          <WebhooksSheet
+            open={showWebhooksSheet}
+            onOpenChange={setShowWebhooksSheet}
+            tenantId={currentTenantId ?? null}
+            agentName={agentName ?? null}
+            activationName={activationName ?? null}
+            onCreated={refetch}
           />
         )}
 
@@ -473,7 +497,7 @@ function ConnectionsContent() {
           onOpenChange={setShowDeleteDialog}
           connection={selectedConnection}
           onConfirm={handleDeleteConnection}
-          isDeleting={deleteConnection.isPending}
+          isDeleting={agentName && activationName ? deleteIntegration.isPending : deleteConnection.isPending}
         />
 
         {/* Integration Details Sheet */}

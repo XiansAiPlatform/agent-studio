@@ -66,7 +66,15 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
         // Only validate if we have a selected tenant that exists in the list
         if (finalSelectedTenantId && finalTenantExistsInList) {
           console.log('[Dashboard Client] Validating current tenant in Xians:', finalSelectedTenantId)
-          
+
+          // Sync current tenant to server (httpOnly cookie) so API routes can inject it
+          // Tenant ID must never be passed from frontend - see docs/arch-tests/rule-tenantid-use.md
+          fetch('/api/user/current-tenant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tenantId: finalSelectedTenantId }),
+          }).catch((err) => console.warn('[Dashboard Client] Failed to sync tenant to server:', err))
+
           // Create abort controller for this request
           abortControllerRef.current = new AbortController()
           

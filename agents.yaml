@@ -1,0 +1,8 @@
+# agents.yaml - Configuration for agents operating in this codebase
+
+agents:
+  pr-review-agent:
+    rulesPath: docs/pr-review-tests/*.md
+  
+  arch-fitness-agent:
+    archTestsPath: docs/.arch-tests/*.md
