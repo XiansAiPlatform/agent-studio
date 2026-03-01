@@ -164,7 +164,6 @@ export default function AgentsPage() {
         `/api/tenants/${currentTenantId}/agent-activations/${agentToDelete.id}`,
         { method: 'DELETE' }
       );
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 409) {
