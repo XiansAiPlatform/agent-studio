@@ -76,7 +76,7 @@ async function fetchConnections(
     params.set('activationName', options.activationName)
     
     const queryString = params.toString()
-    const url = `/api/tenants/${tenantId}/integrations${queryString ? `?${queryString}` : ''}`
+    const url = `/api/integrations${queryString ? `?${queryString}` : ''}`
     
     const response = await fetch(url)
     if (!response.ok) {
@@ -121,7 +121,7 @@ async function fetchConnections(
   if (options?.onlyActive) params.set('onlyActive', 'true')
   
   const queryString = params.toString()
-  const url = `/api/tenants/${tenantId}/connections${queryString ? `?${queryString}` : ''}`
+  const url = `/api/connections${queryString ? `?${queryString}` : ''}`
   
   const response = await fetch(url)
   if (!response.ok) {
@@ -138,7 +138,7 @@ async function createConnection(
 ): Promise<OIDCConnection> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/connections`, {
+  const response = await fetch(`/api/connections`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ async function initiateConnection(
 ): Promise<InitiateConnectionResponse> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/connections/initiate`, {
+  const response = await fetch(`/api/connections/initiate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -184,7 +184,7 @@ async function updateConnection(
 ): Promise<OIDCConnection> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/connections/${connectionId}`, {
+  const response = await fetch(`/api/connections/${connectionId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ async function updateConnection(
 async function deleteConnection(tenantId: string, connectionId: string): Promise<void> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/connections/${connectionId}`, {
+  const response = await fetch(`/api/connections/${connectionId}`, {
     method: 'DELETE',
   })
   
@@ -217,7 +217,7 @@ async function deleteConnection(tenantId: string, connectionId: string): Promise
 async function deleteIntegration(tenantId: string, integrationId: string): Promise<void> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/integrations/${integrationId}`, {
+  const response = await fetch(`/api/integrations/${integrationId}`, {
     method: 'DELETE',
   })
   
@@ -230,7 +230,7 @@ async function deleteIntegration(tenantId: string, integrationId: string): Promi
 async function testConnection(tenantId: string, connectionId: string): Promise<ConnectionTestResult> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/connections/${connectionId}/test`, {
+  const response = await fetch(`/api/connections/${connectionId}/test`, {
     method: 'POST',
   })
   
@@ -249,7 +249,7 @@ async function authorizeConnection(
 ): Promise<AuthorizeConnectionResponse> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/connections/${connectionId}/authorize`, {
+  const response = await fetch(`/api/connections/${connectionId}/authorize`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -271,7 +271,7 @@ async function createIntegration(
 ): Promise<{ id: string; webhookUrl: string }> {
   if (!tenantId) throw new Error('Tenant ID is required')
   
-  const response = await fetch(`/api/tenants/${tenantId}/integrations`, {
+  const response = await fetch(`/api/integrations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -466,7 +466,7 @@ export function useConnection(tenantId?: string, connectionId?: string) {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/tenants/${tenantId}/connections/${connectionId}`)
+      const response = await fetch(`/api/connections/${connectionId}`)
       if (!response.ok) {
         throw new Error(`Failed to fetch connection: ${response.statusText}`)
       }

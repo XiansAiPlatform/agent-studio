@@ -31,9 +31,10 @@ import { signOut } from 'next-auth/react'
 import { useAuth } from '@/hooks/use-auth'
 
 export function MyComponent() {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const { user, isAuthenticated, isLoading, isError, retry } = useAuth()
   
   if (isLoading) return <div>Loading...</div>
+  if (isError) return <div>Auth error. <button onClick={retry}>Retry</button></div>
   if (!isAuthenticated) return <div>Please sign in</div>
   
   return <div>Hello {user?.name}</div>
@@ -165,6 +166,10 @@ export default async function ProfilePage() {
 - **Types**: `src/types/next-auth.d.ts`
 - **Helpers**: `src/lib/auth.ts`
 - **Hook**: `src/hooks/use-auth.ts`
+- **SessionProvider**: `src/components/session-provider.tsx` (auto-retries on network restore)
+
+### useAuth Error Handling
+For network/connectivity issues, `useAuth` provides: `isError`, `isNetworkIssue`, `retry()`, `canRetry`. The SessionProvider automatically refetches on window focus and network reconnection.
 
 ---
 

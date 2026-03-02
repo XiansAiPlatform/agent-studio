@@ -115,7 +115,7 @@ function LogsContent() {
       setIsLoadingActivations(true);
       try {
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/activations`,
+          `/api/agent-activations`,
           {
             signal: activationsAbortControllerRef.current.signal,
           }

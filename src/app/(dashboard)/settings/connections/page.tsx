@@ -153,7 +153,7 @@ function ConnectionsContent() {
         console.log('[Page] Creating Slack integration with data:', integrationData)
         
         // Call the API directly without the mutation wrapper to avoid refetch
-        const response = await fetch(`/api/tenants/${currentTenantId}/integrations`, {
+        const response = await fetch(`/api/integrations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(integrationData),
@@ -191,7 +191,7 @@ function ConnectionsContent() {
         console.log('[Page] Creating Teams integration with data:', integrationData)
         
         // Call the API directly
-        const response = await fetch(`/api/tenants/${currentTenantId}/integrations`, {
+        const response = await fetch(`/api/integrations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(integrationData),

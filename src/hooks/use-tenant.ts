@@ -23,7 +23,10 @@ export function useTenant() {
 
   const validateTenantExists = useCallback(async (tenantId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/tenants/${tenantId}/validate`, {
+      const response = await fetch('/api/tenants/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId }),
         cache: 'no-store',
       })
       

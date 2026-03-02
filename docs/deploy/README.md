@@ -9,17 +9,11 @@ This directory contains deployment guides and configuration for the Agent Studio
 ### Quick Start
 - **[QUICK_START.md](./QUICK_START.md)** - 3-step deployment guide
 
-### Comprehensive Guides
-- **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** - Complete Docker containerization guide
-  - Environment configuration
-  - Image building and publishing
-  - Instance management across environments
-  - Production deployment checklist
-  - Automated CI/CD with GitHub Actions
-
-### Technical References
-- **[API_MIGRATION.md](./API_MIGRATION.md)** - API type system migration guide (optional enhancement)
-- **[TypeScript Fix Summary](../../TYPESCRIPT_FIX_SUMMARY.md)** - Comprehensive type system fixes applied
+### Guides
+- **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** - Complete Docker guide
+  - Environment configuration, image building, CI/CD
+  - Cloud deployment (AWS ECS, Kubernetes)
+  - Production checklist, troubleshooting
 
 ## 🚀 Quick Start
 
@@ -144,7 +138,7 @@ See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for:
 
 ## 📚 Additional Resources
 
-- [Main Docker Guide](../../DOCKER_DEPLOYMENT.md) - Cloud deployment examples (AWS ECS, Kubernetes)
+- [Main Guide](./DOCKER_SETUP.md) - Full reference including cloud deployment (AWS ECS, Kubernetes)
 - [GitHub Workflows](../../.github/workflows/README.md) - CI/CD automation details
 - [Project README](../../README.md) - General project information
 - [Development Guide](../development.md) - Local development setup

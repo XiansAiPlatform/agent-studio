@@ -76,7 +76,7 @@ export function useLogs(
       params.set('pageSize', (currentFilters.pageSize || 20).toString());
       params.set('page', (currentFilters.page || 1).toString());
 
-      const apiUrl = `/api/tenants/${tenantId}/logs?${params.toString()}`;
+      const apiUrl = `/api/logs?${params.toString()}`;
       console.log('[useLogs] Fetching logs from:', apiUrl);
 
       const response = await fetch(apiUrl, {

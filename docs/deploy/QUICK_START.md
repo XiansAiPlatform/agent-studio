@@ -56,8 +56,6 @@ docker-compose logs -f
 
 - **Complete Guide**: [DOCKER_SETUP.md](./DOCKER_SETUP.md)
 - **GitHub Actions**: [.github/workflows/README.md](../../.github/workflows/README.md)
-- **TypeScript Fix**: [TYPESCRIPT_FIX_SUMMARY.md](../../TYPESCRIPT_FIX_SUMMARY.md)
-- **API Migration** (optional): [API_MIGRATION.md](./API_MIGRATION.md)
 
 ## 🎯 Key Features
 
@@ -89,7 +87,7 @@ docker exec agent-studio env | grep -E "(NEXT|XIANS)"
 ```
 
 ### Type Errors During Build
-See [TYPESCRIPT_FIX_SUMMARY.md](../../TYPESCRIPT_FIX_SUMMARY.md) for details on the comprehensive type system fix.
+Run `npm run type-check` to diagnose. Ensure TypeScript and dependencies are up to date.
 
 ## 🚢 GitHub Actions Deployment
 

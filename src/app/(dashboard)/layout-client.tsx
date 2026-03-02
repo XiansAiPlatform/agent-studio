@@ -79,7 +79,10 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
           abortControllerRef.current = new AbortController()
           
           try {
-            const response = await fetch(`/api/tenants/${finalSelectedTenantId}/validate`, {
+            const response = await fetch('/api/tenants/validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tenantId: finalSelectedTenantId }),
               cache: 'no-store',
               signal: abortControllerRef.current.signal,
             })

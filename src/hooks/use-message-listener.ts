@@ -108,7 +108,7 @@ export function useMessageListener(
         heartbeatSeconds: '60',
       });
 
-      const url = `/api/tenants/${tenantId}/messaging/listen?${queryParams.toString()}`;
+      const url = `/api/messaging/listen?${queryParams.toString()}`;
       
       console.log('[SSE] Attempting to connect to:', url);
       

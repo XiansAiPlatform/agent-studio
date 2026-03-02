@@ -73,7 +73,7 @@ export function WebhooksSheet({
     if (!tenantId || !validateCreate()) return;
     setIsCreating(true);
     try {
-      const res = await fetch(`/api/tenants/${tenantId}/webhooks`, {
+      const res = await fetch(`/api/webhooks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

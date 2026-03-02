@@ -26,7 +26,7 @@ export const useAgentDeployments = (tenantId: string | null) => {
         setIsLoading(true);
         setError(null);
         
-        const deploymentsRes = await fetch(`/api/tenants/${tenantId}/agent-deployments`, {
+        const deploymentsRes = await fetch(`/api/agent-deployments`, {
           signal: abortControllerRef.current.signal,
         });
         const deploymentsData = await deploymentsRes.json();
@@ -85,18 +85,9 @@ export const useAgentDeployments = (tenantId: string | null) => {
     };
   }, [tenantId]);
 
-  const refetch = () => {
-    if (tenantId) {
-      setIsLoading(true);
-      // Trigger re-fetch by updating a dependency
-    }
-  };
-
   return { 
     deployedAgents, 
     isLoading, 
     error,
-    refetch,
-    setDeployedAgents 
   };
 };

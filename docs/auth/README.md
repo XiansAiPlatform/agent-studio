@@ -28,7 +28,6 @@ This directory contains comprehensive documentation for the authentication syste
 4. **[Multi-Provider Setup](./MULTI_PROVIDER_SSO_SETUP.md)**
    - Configure both Google and Microsoft
    - User identity management across providers
-   - Advanced configuration options
 
 ### Architecture & Implementation
 
@@ -50,26 +49,17 @@ This directory contains comprehensive documentation for the authentication syste
 
 8. **[Tenant Usage Guide](./TENANT_USAGE.md)**
    - How to use tenant features
+   - API and client quick reference
    - Managing tenant access
 
-9. **[Quick Reference - Tenant](./QUICK_REFERENCE_TENANT.md)**
-   - Tenant API quick reference
-
-10. **[Tenant Client Integration](./TENANT_CLIENT_INTEGRATION.md)**
+9. **[Tenant Client Integration](./TENANT_CLIENT_INTEGRATION.md)**
     - Client-side tenant integration
 
-### Troubleshooting & Fixes
+### Troubleshooting
 
-11. **[Troubleshooting Guide](./TROUBLESHOOTING.md)**
-    - Common issues and solutions
-    - Debug techniques
-
-12. **[Timeout Fix](./TIMEOUT_FIX.md)**
-    - OAuth timeout issues
-    - Performance optimization
-
-13. **[Quick Fix](./QUICK_FIX.md)**
-    - Rapid solutions for common problems
+10. **[Troubleshooting Guide](./TROUBLESHOOTING.md)**
+    - OAuth and network issues
+    - Debug techniques and solutions
 
 ## 🚀 Getting Started
 
@@ -190,13 +180,12 @@ npm run test:network
 |-------|-----------|---------------|
 | Configuration error | Check environment variables | [SSO Quick Reference](./SSO_QUICK_REFERENCE.md) |
 | Callback URL mismatch | Update redirect URI in provider console | [Troubleshooting](./TROUBLESHOOTING.md) |
-| OAuth timeout | Increase timeout in provider config | [Timeout Fix](./TIMEOUT_FIX.md) |
+| OAuth timeout | See Troubleshooting | [Troubleshooting](./TROUBLESHOOTING.md) |
 | No tenant access | Add user to tenant | [Tenant Usage](./TENANT_USAGE.md) |
 
 ## 📖 Additional Documentation
 
-- **[Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)** - Step-by-step implementation guide
-- **[Security Setup](../SECURITY_SETUP.md)** - General security configuration
+- **[Security Setup](./SECURITY_SETUP.md)** - General security configuration
 
 ## 🤝 Contributing
 

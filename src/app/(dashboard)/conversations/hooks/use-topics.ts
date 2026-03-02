@@ -58,7 +58,7 @@ export function useTopics({
       });
 
       const response = await fetch(
-        `/api/tenants/${tenantId}/messaging/topics?${queryParams.toString()}`,
+        `/api/messaging/topics?${queryParams.toString()}`,
         {
           signal: abortControllerRef.current.signal,
         }

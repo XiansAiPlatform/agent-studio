@@ -47,7 +47,7 @@ export function useMetricsTimeseries(
         }
 
         const response = await fetch(
-          `/api/tenants/${tenantId}/metrics/timeseries?${params.toString()}`
+          `/api/metrics/timeseries?${params.toString()}`
         );
 
         if (!response.ok) {

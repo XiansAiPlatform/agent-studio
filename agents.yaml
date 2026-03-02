@@ -4,5 +4,6 @@ agents:
   pr-review-agent:
     rulesPath: docs/pr-review-tests/*.md
   
-  arch-fitness-agent:
-    archTestsPath: docs/.arch-tests/*.md
+  doc-maintainer-agent:
+    docsPath: "docs"
+    maintenanceGuidePath: "docs/README.md"

@@ -110,3 +110,33 @@ export function getTenantProvider(): TenantProvider {
 | 400 | Tenant ID not found | Invalid URL format |
 | 403 | Access denied to this tenant | User has no access |
 | 403 | Permission denied | User lacks required permission |
+
+## Client-Side Quick Reference
+
+### useTenant Hook
+
+```typescript
+'use client'
+import { useTenant } from '@/hooks/use-tenant'
+
+const { currentTenant, currentTenantId, tenants, switchTenant, isLoading } = useTenant()
+
+// Get current tenant
+currentTenant?.tenant.name
+
+// Switch tenant
+switchTenant('xians-main')
+
+// Tenant-scoped API call
+await fetch(`/api/tenants/${currentTenantId}/agents`)
+```
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/user/tenants` | GET | Get all user's tenants |
+| `/api/tenants/{tenantId}/agents` | GET | Get tenant's agents |
+| `/api/tenants/{tenantId}/agents` | POST | Create agent (requires `write`) |
+
+See [Tenant Client Integration](./TENANT_CLIENT_INTEGRATION.md) for detailed client integration patterns.

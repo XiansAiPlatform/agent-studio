@@ -92,7 +92,7 @@ export function IntegrationDetailsSheet({
     setError(null)
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/integrations/${integrationId}`
+        `/api/integrations/${integrationId}`
       )
       
       if (!response.ok) {
@@ -118,7 +118,7 @@ export function IntegrationDetailsSheet({
     if (!integrationId || !currentTenantId) return
     try {
       const res = await fetch(
-        `/api/tenants/${currentTenantId}/integrations/${integrationId}/webhook-url`
+        `/api/integrations/${integrationId}/webhook-url`
       )
       if (!res.ok) throw new Error('Failed to fetch webhook URL')
       const { webhookUrl } = await res.json()
@@ -147,7 +147,7 @@ export function IntegrationDetailsSheet({
     setIsDeleting(true)
     try {
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/integrations/${integrationId}`,
+        `/api/integrations/${integrationId}`,
         {
           method: 'DELETE',
         }

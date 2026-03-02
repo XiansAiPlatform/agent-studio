@@ -115,7 +115,7 @@ store/
 
 **`use-agent-deployments.ts`**
 ```typescript
-const { deployedAgents, isLoading, error, refetch } = useAgentDeployments(tenantId);
+const { deployedAgents, isLoading, error } = useAgentDeployments(tenantId);
 ```
 - Fetches deployed agents from API
 - Enhances with UI metadata (icons, colors)

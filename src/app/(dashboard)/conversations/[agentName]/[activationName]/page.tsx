@@ -197,7 +197,7 @@ function ConversationContent() {
       });
 
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/messaging/messages?${queryParams.toString()}`,
+        `/api/messaging/messages?${queryParams.toString()}`,
         {
           method: 'DELETE',
         }
@@ -348,7 +348,7 @@ function ConversationContent() {
         });
 
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/messaging/history?${queryParams.toString()}`
+          `/api/messaging/history?${queryParams.toString()}`
         );
 
         if (!response.ok) {
@@ -418,7 +418,7 @@ function ConversationContent() {
       };
 
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/messaging/send`,
+        `/api/messaging/send`,
         {
           method: 'POST',
           headers: {
@@ -489,7 +489,7 @@ function ConversationContent() {
       };
 
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/messaging/send`,
+        `/api/messaging/send`,
         {
           method: 'POST',
           headers: {
@@ -567,7 +567,7 @@ function ConversationContent() {
       });
 
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/messaging/history?${queryParams.toString()}`
+        `/api/messaging/history?${queryParams.toString()}`
       );
 
       if (!response.ok) {

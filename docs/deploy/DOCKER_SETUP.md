@@ -3,7 +3,6 @@
 Quick reference for containerizing and deploying the Agent Studio application.
 
 > **✅ Status**: Fully functional - Both local and Docker builds succeed!
-> See [TYPESCRIPT_FIX_SUMMARY.md](../../TYPESCRIPT_FIX_SUMMARY.md) for details on the comprehensive type system fix.
 
 ## Prerequisites
 
@@ -365,6 +364,63 @@ You can also trigger builds manually via GitHub Actions:
 4. Choose branch and click **Run workflow**
 
 See [Workflow Documentation](../../.github/workflows/README.md) for complete setup instructions.
+
+## Cloud Deployment (AWS ECS, Kubernetes)
+
+### AWS ECS Task Definition
+```json
+{
+  "family": "agent-studio",
+  "containerDefinitions": [{
+    "name": "agent-studio",
+    "image": "your-dockerhub-username/agent-studio:latest",
+    "portMappings": [{"containerPort": 3000}],
+    "environment": [{"name": "NODE_ENV", "value": "production"}],
+    "secrets": [{"name": "NEXTAUTH_SECRET", "valueFrom": "arn:aws:secretsmanager:..."}],
+    "healthCheck": {
+      "command": ["CMD-SHELL", "wget -q -O- http://localhost:3000/api/health || exit 1"],
+      "interval": 30,
+      "timeout": 5,
+      "retries": 3
+    }
+  }]
+}
+```
+
+### Kubernetes Deployment
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-studio
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: agent-studio
+  template:
+    metadata:
+      labels:
+        app: agent-studio
+    spec:
+      containers:
+      - name: agent-studio
+        image: your-dockerhub-username/agent-studio:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        envFrom:
+        - secretRef:
+            name: agent-studio-secrets
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+```
 
 ## Production Checklist
 

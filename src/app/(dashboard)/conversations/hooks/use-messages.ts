@@ -45,7 +45,7 @@ export function useMessages({
       });
 
       const response = await fetch(
-        `/api/tenants/${tenantId}/messaging/history?${queryParams.toString()}`
+        `/api/messaging/history?${queryParams.toString()}`
       );
 
       if (!response.ok) {

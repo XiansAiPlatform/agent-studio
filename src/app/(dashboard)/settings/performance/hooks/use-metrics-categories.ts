@@ -41,7 +41,7 @@ export function useMetricsCategories(
         }
 
         const response = await fetch(
-          `/api/tenants/${tenantId}/metrics/categories?${params.toString()}`
+          `/api/metrics/categories?${params.toString()}`
         );
 
         if (!response.ok) {

@@ -40,7 +40,7 @@ export function useMetricsStats(
         }
 
         const response = await fetch(
-          `/api/tenants/${tenantId}/metrics/stats?${params.toString()}`
+          `/api/metrics/stats?${params.toString()}`
         );
 
         if (!response.ok) {

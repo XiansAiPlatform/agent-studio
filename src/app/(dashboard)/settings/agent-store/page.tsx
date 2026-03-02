@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2, Bot } from 'lucide-react';
+import { Loader2, Bot } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 
@@ -38,7 +38,6 @@ export default function AgentTemplatesPage() {
   } = useAgentTemplates(deployedAgents);
 
   // UI State
-  const [selectedTemplate, setSelectedTemplate] = useState<EnhancedTemplate | null>(null);
   const [selectedDeployment, setSelectedDeployment] = useState<EnhancedDeployment | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployingTemplateId, setDeployingTemplateId] = useState<string | null>(null);
@@ -82,7 +81,6 @@ export default function AgentTemplatesPage() {
     if (!currentTenantId) return;
     
     setSelectedDeployment(deployment);
-    setSelectedTemplate(null);
     
     // Load the configuration wizard first
     setIsLoadingWizard(true);
@@ -160,9 +158,7 @@ export default function AgentTemplatesPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          tenantId: currentTenantId,
-        }),
+        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
@@ -208,7 +204,7 @@ export default function AgentTemplatesPage() {
       console.log('Deleting agent:', agentToDelete.name, 'from tenant:', currentTenantId);
       
       const response = await fetch(
-        `/api/tenants/${currentTenantId}/agent-deployments/${encodeURIComponent(agentToDelete.name)}`,
+        `/api/agent-deployments/${encodeURIComponent(agentToDelete.name)}`,
         {
           method: 'DELETE',
         }

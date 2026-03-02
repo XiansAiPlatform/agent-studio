@@ -41,7 +41,7 @@ npm install
 3. Set up environment variables:
 ```bash
 # Create .env.local file with required variables
-# See docs/SECURITY_SETUP.md for detailed instructions
+# See docs/auth/SECURITY_SETUP.md for detailed instructions
 
 # Required:
 NEXTAUTH_SECRET=<generate-with-openssl-rand-base64-32>
@@ -159,7 +159,7 @@ Complete documentation is available in the `docs/` folder:
 - [Layout Structure](./docs/layout.md) - Application layout and routing
 - [Technology Stack](./docs/technology.md) - Technical architecture
 - [Authentication](./docs/auth.md) - Auth setup and RBAC
-- [Security Setup](./docs/SECURITY_SETUP.md) - Security configuration and best practices
+- [Security Setup](./docs/auth/SECURITY_SETUP.md) - Security configuration and best practices
 - [Development Guide](./docs/development.md) - Testing, deployment, best practices
 
 ## Development Workflow

@@ -4,6 +4,8 @@
 
 This error occurs when NextAuth can't reach Google's OAuth discovery endpoint. This is typically due to network connectivity issues.
 
+> **Note:** The Google provider is configured with a 10-second timeout in `src/app/api/auth/[...nextauth]/route.ts`. If you still see timeouts, the issue is likely network-related.
+
 ### Quick Fixes
 
 #### Solution 1: Check Your Internet Connection

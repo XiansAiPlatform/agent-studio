@@ -93,20 +93,41 @@ Welcome to Agent Studio - a general-purpose AI agent platform. This documentatio
 
 ---
 
+## 📂 Domain Documentation
+
+| Domain | Description | Start Here |
+|--------|-------------|------------|
+| [auth/](./auth/README.md) | Authentication, SSO, tenants, security | [SSO Quick Reference](./auth/SSO_QUICK_REFERENCE.md) |
+| [deploy/](./deploy/README.md) | Docker, CI/CD, cloud deployment | [Quick Start](./deploy/QUICK_START.md) |
+| [configuration-wizard/](./configuration-wizard/README.md) | Agent workflow configuration wizard | [Unified Wizard Flow](./configuration-wizard/UNIFIED_WIZARD_FLOW.md) |
+| [implementation-notes/](./implementation-notes/README.md) | Fixes, features (toast, SSE, API) | [README](./implementation-notes/README.md) |
+| [pr-review-tests/](./pr-review-tests/README.md) | PR review rules | [README](./pr-review-tests/README.md) |
+
+---
+
 ## 📁 Document Structure
 
 ```
 docs/
 ├── README.md                    - This file (documentation index)
+├── DOCUMENTATION_GUIDELINES.md  - Documentation standards (read before contributing)
 │
 ├── Core Specifications
 │   ├── requirements.md          - WHAT to build
 │   ├── theme.md                 - Design system
 │   ├── layout.md                - Application structure
 │   ├── technology.md            - Tech stack & architecture
-│   ├── auth.md                  - Authentication
+│   ├── auth.md                  - Authentication (→ auth/auth.md)
 │   └── development.md           - Development & deployment
+│
+├── auth/                        - Authentication domain (SSO, tenant, security)
+├── deploy/                      - Deployment & DevOps (Docker, CI/CD)
+├── configuration-wizard/        - Agent configuration wizard flows
+├── implementation-notes/        - Fixes, features (toast, SSE, API fixes)
+└── pr-review-tests/             - PR review rules & tests
 ```
+
+> **Contributing to docs?** Read [DOCUMENTATION_GUIDELINES.md](./DOCUMENTATION_GUIDELINES.md) for structure, tone, and standards.
 
 ---
 
@@ -127,7 +148,10 @@ docs/
 | How to authenticate users | [auth.md](./auth.md) |
 | How to implement RBAC | [auth.md#role-based-access-control-rbac](./auth.md#role-based-access-control-rbac) |
 | How to test | [development.md#testing-strategy](./development.md#testing-strategy) |
-| How to deploy | [development.md#deployment](./development.md#deployment) |
+| How to deploy | [deploy/README.md](./deploy/README.md) |
+| Configuration wizard flow | [configuration-wizard/README.md](./configuration-wizard/README.md) |
+| Toast notifications | [implementation-notes/TOAST.md](./implementation-notes/TOAST.md) |
+| Real-time messaging (SSE) | [implementation-notes/SSE_REAL_TIME_MESSAGING.md](./implementation-notes/SSE_REAL_TIME_MESSAGING.md) |
 
 ---
 
@@ -142,6 +166,8 @@ docs/
 5. Read [auth.md](./auth.md) - Understand authentication
 6. Read [development.md](./development.md) - Set up dev environment
 7. **Start coding!**
+
+*Contributing to docs?* Read [DOCUMENTATION_GUIDELINES.md](./DOCUMENTATION_GUIDELINES.md) first.
 
 ### For Designers
 
@@ -226,6 +252,10 @@ docs/
 4. Update this README if adding new documents
 5. Commit: `docs: update [document] - [reason]`
 
+### Documentation Standards
+
+For structure, hierarchy, tone, granularity, and naming conventions, see **[DOCUMENTATION_GUIDELINES.md](./DOCUMENTATION_GUIDELINES.md)**.
+
 ---
 
 ## 🏗️ Architecture Overview
@@ -267,6 +297,6 @@ docs/
 
 ---
 
-**Version:** 1.0  
-**Last Updated:** 2026-01-15  
+**Version:** 1.1  
+**Last Updated:** 2026-03-02  
 **Maintained By:** Development Team

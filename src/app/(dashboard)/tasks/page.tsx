@@ -146,7 +146,7 @@ function TasksContent() {
       setIsLoadingActivations(true);
       try {
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/activations`,
+          `/api/agent-activations`,
           {
             signal: activationsAbortControllerRef.current.signal,
           }
@@ -251,7 +251,7 @@ function TasksContent() {
         console.log('[TasksPage] No activation filter applied');
       }
 
-      const apiUrl = `/api/tenants/${currentTenantId}/tasks?${params.toString()}`;
+      const apiUrl = `/api/tasks?${params.toString()}`;
       console.log('[TasksPage] Fetching tasks from:', apiUrl);
       
       const response = await fetch(apiUrl, {

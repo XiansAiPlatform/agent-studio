@@ -45,8 +45,6 @@ Fetches and manages deployed agents for the current tenant.
 - `deployedAgents`: Array of enhanced deployment objects
 - `isLoading`: Loading state
 - `error`: Error message if fetch failed
-- `refetch`: Function to manually refetch data
-- `setDeployedAgents`: State setter for manual updates
 
 ### useAgentTemplates
 Fetches and manages available agent templates from the store.

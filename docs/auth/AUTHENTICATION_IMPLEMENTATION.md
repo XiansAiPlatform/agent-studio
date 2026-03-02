@@ -263,7 +263,7 @@ Your session object contains:
 1. **Role-Based Access Control (RBAC)**
    - Implement user roles (admin, developer, operator, user)
    - Add permission checking utilities
-   - See `docs/auth.md` for detailed RBAC implementation
+   - See [auth.md](./auth.md) for detailed RBAC implementation
 
 2. **Database Integration**
    - Store user data in database
