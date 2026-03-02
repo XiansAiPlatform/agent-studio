@@ -6,4 +6,4 @@ agents:
   
   doc-maintainer-agent:
     docsPath: "docs"
-    maintenanceGuidePath: "docs/README.md"
+    maintenanceGuidePath: "docs/DOCUMENTATION_GUIDELINES.md"
