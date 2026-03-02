@@ -159,7 +159,7 @@ export function useDatabasePage({
         });
 
         const response = await fetch(
-          `/api/tenants/${currentTenantId}/data?${searchParams.toString()}`,
+          `/api/data?${searchParams.toString()}`,
           { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }
         );
 
@@ -195,7 +195,7 @@ export function useDatabasePage({
 
       setDeletingRecord(recordId);
       try {
-        const response = await fetch(`/api/tenants/${currentTenantId}/data/${recordId}`, {
+        const response = await fetch(`/api/data/${recordId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
         });

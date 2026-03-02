@@ -45,7 +45,7 @@ export function useDataRecords(
         }
 
         const response = await fetch(
-          `/api/tenants/${tenantId}/data?${params.toString()}`
+          `/api/data?${params.toString()}`
         );
 
         if (!response.ok) {

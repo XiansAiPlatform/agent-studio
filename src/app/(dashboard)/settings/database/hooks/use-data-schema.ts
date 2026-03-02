@@ -65,7 +65,7 @@ export function useDataSchema(
         });
 
         const response = await fetch(
-          `/api/tenants/${tenantId}/data/schema?${params.toString()}`,
+          `/api/data/schema?${params.toString()}`,
           {
             signal: abortControllerRef.current!.signal,
           }
