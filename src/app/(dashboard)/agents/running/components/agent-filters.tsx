@@ -30,7 +30,7 @@ export function AgentFilters({
   onToggleMyAgentsOnly,
 }: AgentFiltersProps) {
   return (
-    <div className="p-4 rounded-xl border bg-background shadow-sm">
+    <div className="p-4 rounded-xl border border-border bg-white shadow-none dark:bg-card dark:border-border">
       <div className="space-y-2.5">
         <div className="flex items-center gap-2">
           <Bot className="h-3.5 w-3.5 text-muted-foreground" />
@@ -46,7 +46,7 @@ export function AgentFilters({
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Everyone's/Mine Switch */}
-          <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 dark:bg-background/60 dark:border-border">
             <Label 
               htmlFor="ownership-switch" 
               className={cn(
@@ -79,7 +79,7 @@ export function AgentFilters({
           </div>
 
           {/* All/Active Switch */}
-          <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 dark:bg-background/60 dark:border-border">
             <Label 
               htmlFor="status-switch" 
               className={cn(
@@ -122,8 +122,8 @@ export function AgentFilters({
                 key={template}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${
                   isSelected 
-                    ? 'bg-accent border-border text-foreground' 
-                    : 'bg-transparent border-dashed border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                    ? 'bg-white border-border text-foreground dark:bg-accent dark:border-border' 
+                    : 'bg-transparent border-dashed border-border text-muted-foreground hover:bg-white/70 hover:border-border hover:text-foreground dark:hover:bg-accent/30 dark:border-border'
                 }`}
                 onClick={() => onTemplateSelect(template)}
               >

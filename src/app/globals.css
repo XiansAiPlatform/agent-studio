@@ -46,112 +46,113 @@
 }
 
 :root {
-  /* Border Radius - Nordic style: minimal but present */
+  /* Border Radius - minimal but present */
   --radius: 0.5rem;
 
-  /* Nordic Color Palette - Light Mode (oklch format for Tailwind v4) */
-  /* Backgrounds - Snow/Frost layers */
-  --background: oklch(0.93 0.005 247); /* #ECEFF4 - Snow */
-  --foreground: oklch(0.27 0.015 247); /* #2E3440 - Midnight */
-  --card: oklch(1 0 0); /* White */
-  --card-foreground: oklch(0.27 0.015 247);
+  /* Warm cream/beige theme - inspired by Agents design (oklch format) */
+  /* Backgrounds - warm cream layers */
+  --background: oklch(0.985 0.002 85); /* #FBFAF9 - warm off-white */
+  --foreground: oklch(0.21 0 0); /* #1A1A1A - near black */
+  --card: oklch(0.99 0.002 85); /* #FBFBFA - lighter, closer to background */
+  --card-foreground: oklch(0.21 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.27 0.015 247);
+  --popover-foreground: oklch(0.21 0 0);
 
-  /* Brand Colors - Nordic Blues */
-  --primary: oklch(0.58 0.08 247); /* #5E81AC - Nordic Blue */
+  /* Brand Colors - coral accent */
+  --primary: oklch(0.62 0.16 25); /* #E85D4A - coral red */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.72 0.04 193); /* #8FBCBB - Ice */
-  --secondary-foreground: oklch(0.27 0.015 247);
-  --muted: oklch(0.91 0.005 247); /* #E5E9F0 - Frost */
-  --muted-foreground: oklch(0.45 0.015 247); /* #4C566A - Slate Light */
-  --accent: oklch(0.65 0.08 247); /* #81A1C1 - Aurora Blue */
-  --accent-foreground: oklch(1 0 0);
+  --secondary: oklch(0.93 0.012 85); /* #ECE7DF - warm beige */
+  --secondary-foreground: oklch(0.21 0 0);
+  --muted: oklch(0.93 0.01 260); /* #E5E7EB - cool gray divider */
+  --muted-foreground: oklch(0.48 0 0); /* #6B6B6B - muted gray */
+  --accent: oklch(0.93 0.012 85); /* warm beige */
+  --accent-foreground: oklch(0.21 0 0);
 
-  /* Status Colors - Aurora */
-  --destructive: oklch(0.58 0.15 15); /* #BF616A - Aurora Red */
+  /* Status Colors */
+  --destructive: oklch(0.55 0.18 25); /* coral-red for destructive */
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.70 0.09 135); /* #A3BE8C - Aurora Green */
-  --success-foreground: oklch(0.27 0.015 247);
-  --warning: oklch(0.83 0.10 85); /* #EBCB8B - Aurora Yellow */
-  --warning-foreground: oklch(0.27 0.015 247);
-  --info: oklch(0.73 0.06 210); /* #88C0D0 - Frost Blue */
-  --info-foreground: oklch(0.27 0.015 247);
+  --success: oklch(0.70 0.09 135); /* green */
+  --success-foreground: oklch(0.21 0 0);
+  --warning: oklch(0.83 0.10 85); /* yellow */
+  --warning-foreground: oklch(0.21 0 0);
+  --info: oklch(0.62 0.16 25); /* coral for info */
+  --info-foreground: oklch(1 0 0);
 
   /* UI Elements */
-  --border: oklch(0.88 0.005 247); /* #D8DEE9 - Polar */
-  --input: oklch(0.88 0.005 247);
-  --ring: oklch(0.58 0.08 247); /* Focus ring - Nordic Blue */
+  --border: oklch(0.86 0.02 85); /* slightly darker warm beige - more prominent */
+  --input: oklch(0.86 0.02 85);
+  --ring: oklch(0.62 0.16 25); /* Focus ring - coral */
+  --header-bar: oklch(0.86 0.02 85);
 
   /* Charts */
-  --chart-1: oklch(0.58 0.08 247); /* Nordic Blue */
-  --chart-2: oklch(0.72 0.04 193); /* Ice */
-  --chart-3: oklch(0.70 0.09 135); /* Aurora Green */
-  --chart-4: oklch(0.83 0.10 85); /* Aurora Yellow */
-  --chart-5: oklch(0.58 0.15 15); /* Aurora Red */
+  --chart-1: oklch(0.62 0.16 25); /* coral */
+  --chart-2: oklch(0.93 0.012 85);
+  --chart-3: oklch(0.70 0.09 135);
+  --chart-4: oklch(0.83 0.10 85);
+  --chart-5: oklch(0.55 0.18 25);
 
-  /* Sidebar */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.27 0.015 247);
-  --sidebar-primary: oklch(0.58 0.08 247);
+  /* Sidebar - warm beige header/border per SVG */
+  --sidebar: oklch(0.985 0.002 85); /* match main background */
+  --sidebar-foreground: oklch(0.21 0 0);
+  --sidebar-primary: oklch(0.62 0.16 25); /* coral */
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.91 0.005 247);
-  --sidebar-accent-foreground: oklch(0.27 0.015 247);
-  --sidebar-border: oklch(0.88 0.005 247);
-  --sidebar-ring: oklch(0.58 0.08 247);
+  --sidebar-accent: oklch(0.93 0.012 85); /* warm beige */
+  --sidebar-accent-foreground: oklch(0.21 0 0);
+  --sidebar-border: oklch(0.86 0.02 85);
+  --sidebar-ring: oklch(0.62 0.16 25);
 }
 
 .dark {
-  /* Nordic Color Palette - Dark Mode (oklch format) */
-  /* Backgrounds - Midnight/Slate layers */
-  --background: oklch(0.27 0.015 247); /* #2E3440 - Midnight */
-  --foreground: oklch(0.93 0.005 247); /* #ECEFF4 - Snow */
-  --card: oklch(0.32 0.015 247); /* #3B4252 - Slate Dark */
-  --card-foreground: oklch(0.93 0.005 247);
-  --popover: oklch(0.32 0.015 247);
-  --popover-foreground: oklch(0.93 0.005 247);
+  /* Dark mode - warm charcoal tones to complement coral accent */
+  /* Backgrounds */
+  --background: oklch(0.22 0.01 30); /* warm dark */
+  --foreground: oklch(0.93 0.005 85);
+  --card: oklch(0.28 0.012 30); /* warm dark card */
+  --card-foreground: oklch(0.93 0.005 85);
+  --popover: oklch(0.28 0.012 30);
+  --popover-foreground: oklch(0.93 0.005 85);
 
-  /* Brand Colors - Same blues, different context */
-  --primary: oklch(0.58 0.08 247); /* #5E81AC - Nordic Blue */
+  /* Brand Colors - coral accent stays prominent */
+  --primary: oklch(0.65 0.16 25); /* coral - slightly brighter for dark bg */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.36 0.015 247); /* Slate instead of Ice */
-  --secondary-foreground: oklch(0.93 0.005 247);
-  --muted: oklch(0.36 0.015 247); /* #434C5E - Slate */
-  --muted-foreground: oklch(0.55 0.015 247); /* #4C566A - Slate Light */
-  --accent: oklch(0.65 0.08 247); /* #81A1C1 - Aurora Blue */
-  --accent-foreground: oklch(1 0 0);
+  --secondary: oklch(0.32 0.012 30);
+  --secondary-foreground: oklch(0.93 0.005 85);
+  --muted: oklch(0.32 0.012 30);
+  --muted-foreground: oklch(0.58 0 0);
+  --accent: oklch(0.35 0.015 30);
+  --accent-foreground: oklch(0.93 0.005 85);
 
-  /* Status Colors - Slightly adjusted for dark */
-  --destructive: oklch(0.58 0.15 15);
+  /* Status Colors */
+  --destructive: oklch(0.58 0.18 25);
   --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.70 0.09 135);
-  --success-foreground: oklch(0.27 0.015 247);
+  --success-foreground: oklch(0.22 0.01 30);
   --warning: oklch(0.83 0.10 85);
-  --warning-foreground: oklch(0.27 0.015 247);
-  --info: oklch(0.73 0.06 210);
-  --info-foreground: oklch(0.27 0.015 247);
+  --warning-foreground: oklch(0.22 0.01 30);
+  --info: oklch(0.65 0.16 25);
+  --info-foreground: oklch(1 0 0);
 
   /* UI Elements */
-  --border: oklch(0.36 0.015 247);
-  --input: oklch(0.36 0.015 247);
-  --ring: oklch(0.65 0.08 247);
+  --border: oklch(0.42 0.018 30);
+  --input: oklch(0.42 0.018 30);
+  --ring: oklch(0.65 0.16 25);
 
   /* Charts */
-  --chart-1: oklch(0.65 0.08 247);
-  --chart-2: oklch(0.72 0.04 193);
+  --chart-1: oklch(0.65 0.16 25);
+  --chart-2: oklch(0.45 0.05 30);
   --chart-3: oklch(0.70 0.09 135);
   --chart-4: oklch(0.83 0.10 85);
-  --chart-5: oklch(0.58 0.15 15);
+  --chart-5: oklch(0.58 0.18 25);
 
   /* Sidebar */
-  --sidebar: oklch(0.32 0.015 247);
-  --sidebar-foreground: oklch(0.93 0.005 247);
-  --sidebar-primary: oklch(0.65 0.08 247);
+  --sidebar: oklch(0.25 0.01 30);
+  --sidebar-foreground: oklch(0.93 0.005 85);
+  --sidebar-primary: oklch(0.65 0.16 25);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.36 0.015 247);
-  --sidebar-accent-foreground: oklch(0.93 0.005 247);
-  --sidebar-border: oklch(0.36 0.015 247);
-  --sidebar-ring: oklch(0.65 0.08 247);
+  --sidebar-accent: oklch(0.35 0.015 30);
+  --sidebar-accent-foreground: oklch(0.93 0.005 85);
+  --sidebar-border: oklch(0.42 0.018 30);
+  --sidebar-ring: oklch(0.65 0.16 25);
 }
 
 @layer base {
@@ -201,7 +202,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    border: 1px solid rgb(94, 129, 172);
+    border: 1px solid rgb(232, 93, 74); /* coral #E85D4A */
     border-radius: inherit;
     animation: sonar-wave 2s ease-out infinite;
   }
@@ -213,7 +214,7 @@
   /* Dark mode color */
   .dark .sonar-container::before,
   .dark .sonar-container::after {
-    border-color: rgb(129, 161, 193);
+    border-color: rgb(240, 120, 105); /* slightly brighter coral for dark bg */
   }
 
   /* Slow pulse animation for highlighted items */
@@ -237,9 +238,9 @@
 }
 
 [data-sonner-toast] {
-  background: hsl(var(--card)) !important;
-  color: hsl(var(--card-foreground)) !important;
-  border: 1px solid hsl(var(--border)) !important;
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border: 1px solid var(--border) !important;
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
   border-radius: 8px !important;
   padding: 16px !important;
@@ -283,14 +284,14 @@
 }
 
 [data-sonner-toast] [data-description] {
-  color: hsl(var(--muted-foreground)) !important;
+  color: var(--muted-foreground) !important;
   font-size: 12px !important;
   line-height: 1.625 !important;
 }
 
 [data-sonner-toast] [data-button] {
-  background: hsl(var(--primary)) !important;
-  color: hsl(var(--primary-foreground)) !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
   font-size: 12px !important;
   padding: 6px 12px !important;
   border-radius: 6px !important;
@@ -298,19 +299,19 @@
 }
 
 [data-sonner-toast] [data-button]:hover {
-  background: hsl(var(--primary) / 0.9) !important;
+  background: color-mix(in oklch, var(--primary) 90%, transparent) !important;
 }
 
 [data-sonner-toast] [data-cancel-button] {
-  background: hsl(var(--muted)) !important;
-  color: hsl(var(--muted-foreground)) !important;
+  background: var(--muted) !important;
+  color: var(--muted-foreground) !important;
 }
 
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;
   background: transparent !important;
   border: 0 !important;
-  color: hsl(var(--muted-foreground)) !important;
+  color: var(--muted-foreground) !important;
   opacity: 0.7 !important;
   transition: all 0.2s !important;
   left: auto !important;
@@ -320,8 +321,8 @@
 }
 
 [data-sonner-toast] [data-close-button]:hover {
-  background: hsl(var(--muted) / 0.5) !important;
-  color: hsl(var(--foreground)) !important;
+  background: color-mix(in oklch, var(--muted) 50%, transparent) !important;
+  color: var(--foreground) !important;
   opacity: 1 !important;
 }
 
