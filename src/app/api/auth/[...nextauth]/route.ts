@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import GitHubProvider from "next-auth/providers/github"
 import AzureADProvider from "next-auth/providers/azure-ad"
 import type { JWT } from "next-auth/jwt"
 import { createXiansClient } from "@/lib/xians/client"
@@ -42,6 +43,26 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   )
 } else {
   console.log('[Auth] Google SSO disabled - GOOGLE_CLIENT_ID and/or GOOGLE_CLIENT_SECRET not configured')
+}
+
+// Add GitHub provider if credentials are available
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  providers.push(
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope: "read:user user:email",
+        },
+      },
+      httpOptions: {
+        timeout: 10000, // Increase timeout to 10 seconds
+      },
+    })
+  )
+} else {
+  console.log('[Auth] GitHub SSO disabled - GITHUB_CLIENT_ID and/or GITHUB_CLIENT_SECRET not configured')
 }
 
 // Add Azure AD provider if credentials are available
