@@ -280,40 +280,40 @@ function TimelineContent() {
                     <XAxis 
                       dataKey="formattedDate" 
                       className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                      tickLine={{ stroke: 'var(--border)' }}
+                      axisLine={{ stroke: 'var(--border)' }}
                       dy={10}
                     />
                     <YAxis 
                       className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                      tickLine={{ stroke: 'var(--border)' }}
+                      axisLine={{ stroke: 'var(--border)' }}
                       dx={-10}
                     />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
                         borderRadius: '12px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                         padding: '12px',
                       }}
                       labelStyle={{ 
-                        color: 'hsl(var(--foreground))',
+                        color: 'var(--foreground)',
                         fontWeight: 600,
                         marginBottom: '4px',
                       }}
                       itemStyle={{
-                        color: 'hsl(var(--muted-foreground))',
+                        color: 'var(--muted-foreground)',
                         fontSize: '13px',
                       }}
                       formatter={(value: number | undefined) => [
                         `${formatMetricValue(value ?? 0, unit).value} ${unitDisplay}`,
                         type
                       ]}
-                      cursor={{ fill: 'hsl(var(--accent))' }}
+                      cursor={{ fill: 'var(--accent)' }}
                     />
                     <Area 
                       type="monotone" 
@@ -326,12 +326,12 @@ function TimelineContent() {
                         fill: '#6366f1', 
                         strokeWidth: 2, 
                         r: 4,
-                        stroke: 'hsl(var(--card))',
+                        stroke: 'var(--card)',
                       }}
                       activeDot={{ 
                         r: 6, 
                         strokeWidth: 2,
-                        stroke: 'hsl(var(--card))',
+                        stroke: 'var(--card)',
                       }}
                     />
                   </AreaChart>
