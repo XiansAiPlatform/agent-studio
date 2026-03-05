@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Bot, CheckCircle2, Play, MoreVertical, Trash2 } from 'lucide-react';
 import { EnhancedDeployment } from '../types';
+import { getCategoryLabel } from '../utils/category-utils';
 
 interface DeployedAgentCardProps {
   deployment: EnhancedDeployment;
@@ -45,10 +46,15 @@ export function DeployedAgentCard({
             <Icon className="h-6 w-6 text-slate-500 dark:text-slate-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
                 {deployment.name}
               </h3>
+              {deployment.category && (
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary rounded-full">
+                  {getCategoryLabel(deployment.category)}
+                </span>
+              )}
               {isNewlyDeployed && (
                 <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 rounded">
                   New

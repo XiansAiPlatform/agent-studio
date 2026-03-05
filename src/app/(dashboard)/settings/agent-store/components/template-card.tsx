@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bot, Play, Zap, Loader2 } from 'lucide-react';
 import { EnhancedTemplate } from '../types';
+import { getCategoryLabel } from '../utils/category-utils';
 
 interface TemplateCardProps {
   template: EnhancedTemplate;
@@ -42,13 +43,18 @@ export function TemplateCard({
           {/* Header */}
           <div className="flex items-center gap-3">
             <Icon className="h-5 w-5 text-slate-600 dark:text-slate-400 flex-shrink-0" />
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h4 className="text-base font-medium text-slate-900 dark:text-slate-100 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
                 {template.agent.name}
               </h4>
               {template.agent.version && (
                 <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-full">
                   v{template.agent.version}
+                </span>
+              )}
+              {template.agent.category && (
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary rounded-full">
+                  {getCategoryLabel(template.agent.category)}
                 </span>
               )}
             </div>

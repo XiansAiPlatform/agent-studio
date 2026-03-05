@@ -82,6 +82,7 @@ export interface XiansAgentTemplateAgent {
   summary: string | null
   version: string | null
   author: string | null
+  category?: string | null
 }
 
 export interface XiansAgentTemplateDefinition {
@@ -130,6 +131,7 @@ export interface XiansAgentDeployment {
   summary: string | null
   version: string | null
   author: string | null
+  category?: string | null
   updatedAt?: string
   status?: 'active' | 'inactive' | 'suspended'
   config?: Record<string, any>
@@ -163,6 +165,7 @@ export interface XiansAgentDeploymentDetail {
     summary: string | null
     version: string | null
     author: string | null
+    category?: string | null
   }
   definitions: Array<{
     id: string
