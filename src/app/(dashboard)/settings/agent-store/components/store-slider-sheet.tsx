@@ -153,7 +153,7 @@ export function StoreSliderSheet({
                 // Group by category with section headers when viewing "All"
                 [...groupedByCategory.entries()].map(([categoryLabel, categoryTemplates]) => (
                   <div key={categoryLabel} className="space-y-3">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide sticky top-0 py-2 bg-background/95 backdrop-blur-sm -mx-6 px-6 border-b border-transparent">
+                    <h4 className="text-base font-semibold text-foreground uppercase tracking-wide sticky top-0 py-2 bg-background/95 backdrop-blur-sm -mx-6 px-6 border-b border-slate-200/60 dark:border-slate-700/60">
                       {categoryLabel}
                       <span className="ml-2 text-muted-foreground/80 font-normal">
                         ({categoryTemplates.length})

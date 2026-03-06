@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Bot, CheckCircle2, Play, MoreVertical, Trash2 } from 'lucide-react';
+import { Bot, Play, MoreVertical, Trash2 } from 'lucide-react';
 import { EnhancedDeployment } from '../types';
 import { getCategoryLabel } from '../utils/category-utils';
 
@@ -30,113 +30,49 @@ export function DeployedAgentCard({
   const showExpandButton = hasSummary && hasDescription && deployment.summary !== deployment.description;
 
   return (
-    <div 
-      className={`group py-7 px-6 cursor-pointer transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/30 border-b border-slate-200/60 dark:border-slate-700/60 last:border-b-0 ${
+    <article
+      className={`group relative flex flex-col rounded-lg border bg-white dark:bg-slate-900/50 transition-all duration-200 overflow-hidden ${
         isNewlyDeployed 
-          ? 'bg-emerald-50/30 dark:bg-emerald-900/10 border-b-emerald-200 dark:border-b-emerald-700' 
-          : ''
+          ? 'border-emerald-300 dark:border-emerald-700 shadow-sm shadow-emerald-500/5' 
+          : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-md'
       }`}
       onClick={onClick}
     >
-      {/* Main Content Row */}
-      <div className="grid grid-cols-12 gap-6 items-start">
-        {/* Icon & Name Column */}
-        <div className="col-span-4 flex items-start gap-3">
-          <div className="flex-shrink-0 mt-0.5">
-            <Icon className="h-6 w-6 text-slate-500 dark:text-slate-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
+      {/* Top accent / icon area */}
+      <div className="flex items-start gap-4 p-5 pb-4">
+        <div className={`flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl ${
+          isNewlyDeployed 
+            ? 'bg-emerald-100 dark:bg-emerald-900/30' 
+            : 'bg-slate-100 dark:bg-slate-800'
+        }`}>
+          <Icon className={`h-6 w-6 ${isNewlyDeployed ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`} />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {deployment.name}
               </h3>
               {deployment.category && (
-                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary rounded-full">
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary rounded-full shrink-0">
                   {getCategoryLabel(deployment.category)}
                 </span>
               )}
               {isNewlyDeployed && (
-                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 rounded">
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full shrink-0">
                   New
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              
-              {deployment.version && (
-                <span className="text-xs text-slate-400">v{deployment.version}</span>
-              )}
-              .
-              {deployment.author && (
-                <span className="text-xs text-slate-400">by {deployment.author}</span>
-              )}
-              .
-              <span className="text-xs text-slate-400">
-                published on {new Date(deployment.createdAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric'
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Description Column */}
-        <div className="col-span-5">
-          {(deployment.summary || deployment.description) && (
-            <div className="space-y-2">
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">
-                {deployment.summary ? deployment.summary : deployment.description}
-              </p>
-              {showExpandButton && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleExpanded?.();
-                  }}
-                  className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 font-medium transition-colors"
-                >
-                  {isExpanded ? 'Show less' : 'Show more'}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Stats Column */}
-        <div className="col-span-2 text-sm text-slate-500 dark:text-slate-400">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <span className="text-xs">{deployment.activationCount ?? 0} runs</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions Column */}
-        <div className="col-span-1 flex items-start justify-end">
-          <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-            <Button 
-              variant="default" 
-              size="sm"
-              className="h-8 px-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                onStartNewRun?.();
-              }}
-            >
-              <Play className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-xs font-medium">Activate New</span>
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreVertical className="h-3.5 w-3.5" />
+                  <MoreVertical className="h-4 w-4" />
                   <span className="sr-only">More options</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -154,22 +90,69 @@ export function DeployedAgentCard({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          {(deployment.version || deployment.author) && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {deployment.version && <span>v{deployment.version}</span>}
+              {deployment.version && deployment.author && ' · '}
+              {deployment.author && <span>by {deployment.author}</span>}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Expanded Content */}
-      {isExpanded && hasDescription && (
-        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-12 gap-6">
-          <div className="col-span-9 col-start-2">
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Full Description</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                {deployment.description}
-              </p>
-            </div>
+      {/* Description */}
+      <div className="px-5 pb-4 flex-1">
+        {(deployment.summary || deployment.description) ? (
+          <div className="space-y-2">
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">
+              {deployment.summary ? deployment.summary : deployment.description}
+            </p>
+            {showExpandButton && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleExpanded?.();
+                }}
+                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 font-medium transition-colors"
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
           </div>
+        ) : (
+          <p className="text-sm text-slate-500 dark:text-slate-400 italic">No description</p>
+        )}
+      </div>
+
+      {/* Expanded full description */}
+      {isExpanded && hasDescription && (
+        <div className="px-5 pb-4 pt-0 border-t border-slate-100 dark:border-slate-800 mt-0">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Full description</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            {deployment.description}
+          </p>
         </div>
       )}
-    </div>
+
+      {/* Action footer */}
+      <div className="px-5 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {deployment.activationCount ?? 0} run{(deployment.activationCount ?? 0) !== 1 ? 's' : ''}
+          </span>
+          <Button
+            size="sm"
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartNewRun?.();
+            }}
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Activate New Run
+          </Button>
+        </div>
+      </div>
+    </article>
   );
 }
