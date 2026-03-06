@@ -127,7 +127,7 @@ function AgentsPageContent() {
     setIsDeactivating(true);
     try {
       const response = await fetch(
-        `${currentTenantId}/api/agent-activations/${agentToDeactivate.id}/deactivate`,
+        `/api/agent-activations/${agentToDeactivate.id}/deactivate`,
         { method: 'POST' }
       );
 
