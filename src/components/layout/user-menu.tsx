@@ -106,7 +106,7 @@ export function UserMenu() {
         {(Object.entries(COLOR_THEMES) as [ColorThemeId, { name: string }][]).map(([id, { name }]) => (
           <DropdownMenuItem
             key={id}
-            onClick={() => setColorTheme(id)}
+            onSelect={() => setColorTheme(id)}
             className="flex items-center justify-between"
           >
             <span>{name}</span>

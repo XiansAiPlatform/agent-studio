@@ -33,6 +33,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem("agent-studio-color-theme");if(t==="coral"||t==="professional"){document.documentElement.setAttribute("data-theme",t)}else{document.documentElement.setAttribute("data-theme","coral")}})();`,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

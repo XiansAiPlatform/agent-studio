@@ -102,9 +102,20 @@
   --sidebar-ring: oklch(0.62 0.16 25);
 }
 
-/* ========== Color Theme Overrides (data-theme) ========== */
-/* Professional - deep blue primary, slate secondary (corporate aesthetic) */
-[data-theme="professional"] {
+/* ========== Color Theme Overrides (data-theme on html) ========== */
+/* Professional - deep blue primary, slate secondary, mild blue-tinted backgrounds */
+:root[data-theme="professional"],
+html[data-theme="professional"] {
+  /* Backgrounds - mild blue-gray tint */
+  --background: oklch(0.975 0.008 250); /* very light slate */
+  --card: oklch(0.99 0.006 250); /* subtle blue-white */
+  --muted: oklch(0.94 0.02 250); /* light blue-gray */
+  --border: oklch(0.90 0.02 250); /* soft blue-gray border */
+  --input: oklch(0.90 0.02 250);
+  --sidebar: oklch(0.975 0.008 250);
+  --sidebar-border: oklch(0.90 0.02 250);
+
+  /* Brand Colors */
   --primary: oklch(0.45 0.12 250); /* #0F4C81 - deep navy blue */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.55 0.06 250); /* #5B7FA3 - slate blue */
@@ -115,27 +126,13 @@
   --info: oklch(0.45 0.12 250);
   --chart-1: oklch(0.45 0.12 250);
   --sidebar-primary: oklch(0.45 0.12 250);
-  --sidebar-accent: oklch(0.93 0.012 85);
+  --sidebar-accent: oklch(0.94 0.02 250); /* light blue-gray */
   --sidebar-ring: oklch(0.45 0.12 250);
 }
 
-.dark [data-theme="professional"] {
-  --primary: oklch(0.60 0.12 250); /* brighter for dark bg */
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.40 0.06 250);
-  --secondary-foreground: oklch(0.93 0.005 85);
-  --accent: oklch(0.45 0.08 250);
-  --accent-foreground: oklch(0.93 0.005 85);
-  --ring: oklch(0.60 0.12 250);
-  --info: oklch(0.60 0.12 250);
-  --chart-1: oklch(0.60 0.12 250);
-  --sidebar-primary: oklch(0.60 0.12 250);
-  --sidebar-accent: oklch(0.35 0.015 30);
-  --sidebar-ring: oklch(0.60 0.12 250);
-}
-
-/* Professional theme - dark mode */
-.dark[data-theme="professional"] {
+/* Professional theme - dark mode (html has both .dark and data-theme) */
+.dark[data-theme="professional"],
+html.dark[data-theme="professional"] {
   --primary: oklch(0.65 0.12 250);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.38 0.04 250);

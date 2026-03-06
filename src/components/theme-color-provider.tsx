@@ -24,15 +24,15 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
       const stored = localStorage.getItem(COLOR_THEME_STORAGE_KEY) as ColorThemeId | null;
       const theme: ColorThemeId = stored && (stored === 'coral' || stored === 'professional') ? stored : 'coral';
       setColorThemeState(theme);
-      document.documentElement.dataset.theme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
     } catch {
-      document.documentElement.dataset.theme = 'coral';
+      document.documentElement.setAttribute('data-theme', 'coral');
     }
   }, [mounted]);
 
   const setColorTheme = React.useCallback((theme: ColorThemeId) => {
     setColorThemeState(theme);
-    document.documentElement.dataset.theme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
     try {
       localStorage.setItem(COLOR_THEME_STORAGE_KEY, theme);
     } catch {
