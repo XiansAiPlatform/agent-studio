@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { EnhancedTemplate } from '../types';
 import { TemplateCard } from './template-card';
+import { CategoryFilter } from './category-filter';
+import { getCategoryLabel, groupByCategory, getUniqueCategories } from '../utils/category-utils';
 
 interface StoreSliderSheetProps {
   open: boolean;
@@ -28,6 +30,7 @@ export function StoreSliderSheet({
   onDeploy
 }: StoreSliderSheetProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   const handleToggleExpanded = (templateId: string) => {
@@ -42,16 +45,34 @@ export function StoreSliderSheet({
     });
   };
 
-  const filteredTemplates = templates.filter((template) => {
-    if (!searchQuery.trim()) return true;
+  const searchFilteredTemplates = useMemo(() => {
+    if (!searchQuery.trim()) return templates;
     const query = searchQuery.toLowerCase();
-    return (
+    return templates.filter((template) => (
       template.agent.name.toLowerCase().includes(query) ||
       template.agent.description?.toLowerCase().includes(query) ||
       template.agent.summary?.toLowerCase().includes(query) ||
-      template.agent.author?.toLowerCase().includes(query)
+      template.agent.author?.toLowerCase().includes(query) ||
+      getCategoryLabel(template.agent.category).toLowerCase().includes(query)
+    ));
+  }, [templates, searchQuery]);
+
+  const filteredTemplates = useMemo(() => {
+    if (selectedCategory === null) return searchFilteredTemplates;
+    return searchFilteredTemplates.filter(
+      (t) => getCategoryLabel(t.agent.category) === selectedCategory
     );
-  });
+  }, [searchFilteredTemplates, selectedCategory]);
+
+  const categories = useMemo(() => getUniqueCategories(templates, (t) => t.agent.category), [templates]);
+  const countByCategory = useMemo(() => {
+    const byCategory = groupByCategory(searchFilteredTemplates, (t) => t.agent.category);
+    return Object.fromEntries([...byCategory.entries()].map(([k, v]) => [k, v.length]));
+  }, [searchFilteredTemplates]);
+  const groupedByCategory = useMemo(
+    () => groupByCategory(filteredTemplates, (t) => t.agent.category),
+    [filteredTemplates]
+  );
 
   return (
     <Sheet 
@@ -60,6 +81,7 @@ export function StoreSliderSheet({
         onOpenChange(isOpen);
         if (!isOpen) {
           setSearchQuery('');
+          setSelectedCategory(null);
           setExpandedCards(new Set());
         }
       }}
@@ -91,6 +113,17 @@ export function StoreSliderSheet({
           />
         </div>
 
+        {/* Category Filter */}
+        {categories.length > 0 && (
+          <div className="px-6 pb-3">
+            <CategoryFilter
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelect={setSelectedCategory}
+              countByCategory={countByCategory}
+            />
+          </div>
+        )}
 
         <div className="px-6 py-2">
           {isLoading ? (
@@ -115,17 +148,44 @@ export function StoreSliderSheet({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredTemplates.map((template) => (
-                <TemplateCard
-                  key={template.agent.id}
-                  template={template}
-                  isDeploying={deployingTemplateId === template.agent.id}
-                  isExpanded={expandedCards.has(template.agent.id)}
-                  onToggleExpanded={() => handleToggleExpanded(template.agent.id)}
-                  onDeploy={(e) => onDeploy(template, e)}
-                />
-              ))}
+            <div className="space-y-6">
+              {selectedCategory === null ? (
+                // Group by category with section headers when viewing "All"
+                [...groupedByCategory.entries()].map(([categoryLabel, categoryTemplates]) => (
+                  <div key={categoryLabel} className="space-y-3">
+                    <h4 className="text-base font-semibold text-foreground uppercase tracking-wide sticky top-0 py-2 bg-background/95 backdrop-blur-sm -mx-6 px-6 border-b border-slate-200/60 dark:border-slate-700/60">
+                      {categoryLabel}
+                      <span className="ml-2 text-muted-foreground/80 font-normal">
+                        ({categoryTemplates.length})
+                      </span>
+                    </h4>
+                    <div className="space-y-4">
+                      {categoryTemplates.map((template) => (
+                        <TemplateCard
+                          key={template.agent.id}
+                          template={template}
+                          isDeploying={deployingTemplateId === template.agent.id}
+                          isExpanded={expandedCards.has(template.agent.id)}
+                          onToggleExpanded={() => handleToggleExpanded(template.agent.id)}
+                          onDeploy={(e) => onDeploy(template, e)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                // Flat list when a category is selected
+                filteredTemplates.map((template) => (
+                  <TemplateCard
+                    key={template.agent.id}
+                    template={template}
+                    isDeploying={deployingTemplateId === template.agent.id}
+                    isExpanded={expandedCards.has(template.agent.id)}
+                    onToggleExpanded={() => handleToggleExpanded(template.agent.id)}
+                    onDeploy={(e) => onDeploy(template, e)}
+                  />
+                ))
+              )}
             </div>
           )}
         </div>

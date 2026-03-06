@@ -4,45 +4,44 @@ interface AddFromStoreCardProps {
   templatesLoaded: boolean;
   availableTemplatesCount: number;
   onClick: () => void;
+  /** When true, used as standalone/empty state CTA with larger presentation */
+  prominent?: boolean;
 }
 
 export function AddFromStoreCard({ 
   templatesLoaded, 
   availableTemplatesCount,
-  onClick 
+  onClick,
+  prominent = false
 }: AddFromStoreCardProps) {
   return (
-    <div 
-      className="group py-4 px-6 cursor-pointer transition-all duration-200 bg-slate-50/80 dark:bg-slate-900/30 hover:bg-slate-100/80 dark:hover:bg-slate-800/40"
+    <button
+      type="button"
+      className={`group flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-200 cursor-pointer ${
+        prominent ? 'min-h-[280px] py-12 px-8' : 'min-h-[240px] p-6'
+      }`}
       onClick={onClick}
     >
-      <div className="grid grid-cols-12 gap-6 items-center">
-        <div className="col-span-12 flex items-center justify-center">
-          <div className="text-center space-y-2">
-            {/* Icon */}
-            <div className="flex justify-center">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted group-hover:bg-muted/80 transition-colors">
-                <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-            </div>
-            
-            {/* Content */}
-            <div className="space-y-0.5">
-              <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                Browse Agent Templates
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {templatesLoaded 
-                  ? (availableTemplatesCount > 0 
-                      ? `${availableTemplatesCount} agent template${availableTemplatesCount !== 1 ? 's' : ''} available to add`
-                      : 'All available templates have been deployed')
-                  : 'Discover and import new agents for your organization'
-                }
-              </p>
-            </div>
-          </div>
+      <div className={`flex flex-col items-center gap-3 text-center ${prominent ? 'gap-4' : ''}`}>
+        <div className={`flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-primary/10 transition-colors ${
+          prominent ? 'w-16 h-16' : 'w-12 h-12'
+        }`}>
+          <Plus className={`text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors ${prominent ? 'h-8 w-8' : 'h-6 w-6'}`} />
+        </div>
+        <div className="space-y-1">
+          <h3 className={`font-medium text-foreground group-hover:text-primary transition-colors ${prominent ? 'text-base' : 'text-sm'}`}>
+            {prominent ? 'Browse Agent Templates' : 'Import from Store'}
+          </h3>
+          <p className={`text-muted-foreground ${prominent ? 'text-sm max-w-sm' : 'text-xs max-w-[200px]'}`}>
+            {templatesLoaded 
+              ? (availableTemplatesCount > 0 
+                  ? `${availableTemplatesCount} agent template${availableTemplatesCount !== 1 ? 's' : ''} available to add`
+                  : 'All available templates have been deployed')
+              : (prominent ? 'Discover and import new agents for your organization' : 'Browse and add new agents')
+            }
+          </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

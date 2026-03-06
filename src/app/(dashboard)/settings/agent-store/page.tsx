@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,8 @@ import { DeployedAgentCard } from './components/deployed-agent-card';
 import { AddFromStoreCard } from './components/add-from-store-card';
 import { StoreSliderSheet } from './components/store-slider-sheet';
 import { DeleteAgentDialog } from './components/delete-agent-dialog';
+import { CategoryFilter } from './components/category-filter';
+import { getCategoryLabel, groupByCategory, getUniqueCategories } from './utils/category-utils';
 import { ActivationConfigWizard, ActivationWizardData, InstanceMetadata } from '@/components/features/agents/activation-config-wizard';
 
 export default function AgentTemplatesPage() {
@@ -49,6 +51,7 @@ export default function AgentTemplatesPage() {
   const [isStoreSliderOpen, setIsStoreSliderOpen] = useState(false);
   const [mainGridExpanded, setMainGridExpanded] = useState(false);
   const [sliderExpanded, setSliderExpanded] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   // Configuration wizard state
   const [showConfigWizard, setShowConfigWizard] = useState(false);
@@ -402,6 +405,26 @@ export default function AgentTemplatesPage() {
     fetchTemplates();
   };
 
+  // Category filter for deployed agents
+  const categories = useMemo(
+    () => getUniqueCategories(deployedAgents, (d) => d.category),
+    [deployedAgents]
+  );
+  const filteredDeployments = useMemo(() => {
+    if (selectedCategory === null) return deployedAgents;
+    return deployedAgents.filter(
+      (d) => getCategoryLabel(d.category) === selectedCategory
+    );
+  }, [deployedAgents, selectedCategory]);
+  const groupedByCategory = useMemo(
+    () => groupByCategory(filteredDeployments, (d) => d.category),
+    [filteredDeployments]
+  );
+  const countByCategory = useMemo(() => {
+    const byCategory = groupByCategory(deployedAgents, (d) => d.category);
+    return Object.fromEntries([...byCategory.entries()].map(([k, v]) => [k, v.length]));
+  }, [deployedAgents]);
+
   const handleStartNewRun = async (deployment: EnhancedDeployment) => {
     // Use the same handler as clicking the card
     await handleDeploymentClick(deployment);
@@ -468,11 +491,12 @@ export default function AgentTemplatesPage() {
             {deployedAgents.length === 0 ? (
               session?.user?.isSystemAdmin ? (
                 // System admin: Show Browse Agent Templates card
-                <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-lg overflow-hidden shadow-sm">
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-xl overflow-hidden shadow-sm p-6">
                   <AddFromStoreCard
                     templatesLoaded={templatesLoaded}
                     availableTemplatesCount={availableTemplates.length}
                     onClick={handleOpenStore}
+                    prominent
                   />
                 </div>
               ) : (
@@ -495,39 +519,77 @@ export default function AgentTemplatesPage() {
               )
             ) : (
               <>
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-6 px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b bg-muted/30">
-                  <div className="col-span-4">Agent</div>
-                  <div className="col-span-5">Description</div>
-                  <div className="col-span-2">Stats</div>
-                  <div className="col-span-1">Actions</div>
-                </div>
-
-                {/* Agent List */}
-                <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-lg overflow-hidden shadow-sm">
-                  {deployedAgents.map((deployment) => (
-                    <DeployedAgentCard
-                      key={deployment.id}
-                      deployment={deployment}
-                      isNewlyDeployed={newlyDeployedId === deployment.id}
-                      isExpanded={mainGridExpanded}
-                      onToggleExpanded={toggleMainGridExpanded}
-                      onClick={() => handleDeploymentClick(deployment)}
-                      onStartNewRun={() => handleStartNewRun(deployment)}
-                      onDelete={() => handleDeleteClick(deployment)}
-                    />
-                  ))}
-                </div>
-                
-                {/* Add from Store Card - Separate from main list, Only for System Admins */}
-                {session?.user?.isSystemAdmin && (
-                  <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-lg overflow-hidden shadow-sm">
-                    <AddFromStoreCard
-                      templatesLoaded={templatesLoaded}
-                      availableTemplatesCount={availableTemplates.length}
-                      onClick={handleOpenStore}
+                {/* Category Filter */}
+                {categories.length > 0 && (
+                  <div className="mb-4">
+                    <CategoryFilter
+                      categories={categories}
+                      selectedCategory={selectedCategory}
+                      onSelect={setSelectedCategory}
+                      countByCategory={countByCategory}
                     />
                   </div>
+                )}
+
+                {/* Agent grid */}
+                <div className="space-y-8">
+                  {selectedCategory === null ? (
+                    [...groupedByCategory.entries()].map(([categoryLabel, categoryDeployments]) => (
+                      <section key={categoryLabel} className="space-y-4">
+                        {categoryLabel && (
+                          <h3 className="text-base font-semibold text-foreground">
+                            {categoryLabel}
+                            <span className="ml-2 font-medium text-muted-foreground">
+                              ({categoryDeployments.length})
+                            </span>
+                          </h3>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {categoryDeployments.map((deployment) => (
+                            <DeployedAgentCard
+                              key={deployment.id}
+                              deployment={deployment}
+                              isNewlyDeployed={newlyDeployedId === deployment.id}
+                              isExpanded={mainGridExpanded}
+                              onToggleExpanded={toggleMainGridExpanded}
+                              onClick={() => handleDeploymentClick(deployment)}
+                              onStartNewRun={() => handleStartNewRun(deployment)}
+                              onDelete={() => handleDeleteClick(deployment)}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    ))
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredDeployments.map((deployment) => (
+                        <DeployedAgentCard
+                          key={deployment.id}
+                          deployment={deployment}
+                          isNewlyDeployed={newlyDeployedId === deployment.id}
+                          isExpanded={mainGridExpanded}
+                          onToggleExpanded={toggleMainGridExpanded}
+                          onClick={() => handleDeploymentClick(deployment)}
+                          onStartNewRun={() => handleStartNewRun(deployment)}
+                          onDelete={() => handleDeleteClick(deployment)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Add from Store - Only for System Admins */}
+                {session?.user?.isSystemAdmin && (
+                  <section className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground">Add more</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <AddFromStoreCard
+                        templatesLoaded={templatesLoaded}
+                        availableTemplatesCount={availableTemplates.length}
+                        onClick={handleOpenStore}
+                      />
+                    </div>
+                  </section>
                 )}
               </>
             )}
