@@ -102,6 +102,52 @@
   --sidebar-ring: oklch(0.62 0.16 25);
 }
 
+/* ========== Color Theme Overrides (data-theme) ========== */
+/* Professional - deep blue primary, slate secondary (corporate aesthetic) */
+[data-theme="professional"] {
+  --primary: oklch(0.45 0.12 250); /* #0F4C81 - deep navy blue */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.55 0.06 250); /* #5B7FA3 - slate blue */
+  --secondary-foreground: oklch(0.21 0 0);
+  --accent: oklch(0.60 0.06 250); /* lighter slate */
+  --accent-foreground: oklch(0.21 0 0);
+  --ring: oklch(0.45 0.12 250);
+  --info: oklch(0.45 0.12 250);
+  --chart-1: oklch(0.45 0.12 250);
+  --sidebar-primary: oklch(0.45 0.12 250);
+  --sidebar-accent: oklch(0.93 0.012 85);
+  --sidebar-ring: oklch(0.45 0.12 250);
+}
+
+.dark [data-theme="professional"] {
+  --primary: oklch(0.60 0.12 250); /* brighter for dark bg */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.40 0.06 250);
+  --secondary-foreground: oklch(0.93 0.005 85);
+  --accent: oklch(0.45 0.08 250);
+  --accent-foreground: oklch(0.93 0.005 85);
+  --ring: oklch(0.60 0.12 250);
+  --info: oklch(0.60 0.12 250);
+  --chart-1: oklch(0.60 0.12 250);
+  --sidebar-primary: oklch(0.60 0.12 250);
+  --sidebar-accent: oklch(0.35 0.015 30);
+  --sidebar-ring: oklch(0.60 0.12 250);
+}
+
+/* Professional theme - dark mode */
+.dark[data-theme="professional"] {
+  --primary: oklch(0.65 0.12 250);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.38 0.04 250);
+  --accent: oklch(0.40 0.05 250);
+  --ring: oklch(0.65 0.12 250);
+  --info: oklch(0.65 0.12 250);
+  --chart-1: oklch(0.65 0.12 250);
+  --sidebar-primary: oklch(0.65 0.12 250);
+  --sidebar-accent: oklch(0.40 0.05 250);
+  --sidebar-ring: oklch(0.65 0.12 250);
+}
+
 .dark {
   /* Dark mode - warm charcoal tones to complement coral accent */
   /* Backgrounds */
