@@ -44,7 +44,7 @@ export function DataTypesPanel({
   onDeleteDataType,
 }: DataTypesPanelProps) {
   return (
-    <div className="bg-white/85 backdrop-blur-sm rounded-xl border shadow-sm">
+    <div className="bg-card/90 backdrop-blur-sm rounded-xl border shadow-sm">
       <div className="p-6 border-b border-border/50">
         <h2 className="text-lg font-medium flex items-center gap-2 text-foreground">
           <Layers className="h-5 w-5 text-primary" />
@@ -79,7 +79,7 @@ export function DataTypesPanel({
                 className={`group cursor-pointer rounded-lg border-2 transition-all duration-200 ${
                   selectedDataType === type
                     ? 'border-primary bg-primary/10 shadow-md shadow-primary/20'
-                    : 'border-border/30 hover:border-primary/50 hover:bg-white/90 bg-white/70'
+                    : 'border-border/30 hover:border-primary/50 hover:bg-card/90 bg-card/70'
                 }`}
                 onMouseEnter={() => onHoverChange(type)}
                 onMouseLeave={() => onHoverChange(null)}

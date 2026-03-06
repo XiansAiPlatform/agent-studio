@@ -53,7 +53,7 @@
   /* Backgrounds - warm cream layers */
   --background: oklch(0.985 0.002 85); /* #FBFAF9 - warm off-white */
   --foreground: oklch(0.21 0 0); /* #1A1A1A - near black */
-  --card: oklch(0.99 0.002 85); /* #FBFBFA - lighter, closer to background */
+  --card: rgb(255 255 255); /* whitish - cards stand out on page background */
   --card-foreground: oklch(0.21 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.21 0 0);
@@ -106,33 +106,53 @@
 /* Professional - deep blue primary, slate secondary, mild blue-tinted backgrounds */
 :root[data-theme="professional"],
 html[data-theme="professional"] {
-  /* Backgrounds - mild blue-gray tint */
-  --background: oklch(0.975 0.008 250); /* very light slate */
-  --card: oklch(0.99 0.006 250); /* subtle blue-white */
-  --muted: oklch(0.94 0.02 250); /* light blue-gray */
-  --border: oklch(0.90 0.02 250); /* soft blue-gray border */
-  --input: oklch(0.90 0.02 250);
-  --sidebar: oklch(0.975 0.008 250);
-  --sidebar-border: oklch(0.90 0.02 250);
+  /* Backgrounds - light cyan (page body, header, sidebar) */
+  --background: rgb(238 249 252);
+  --card: rgb(255 255 255); /* whitish - cards stand out on page background */
+  --muted: rgb(185 228 240); /* light cyan-gray - cool, minimal red */
+  --border: rgb(200 228 238); /* soft blue-gray - no warm cast */
+  --input: rgb(200 228 238);
+  --sidebar: rgb(238 249 252); /* light cyan - menu */
+  --sidebar-border: rgb(200 228 238);
 
   /* Brand Colors */
   --primary: oklch(0.45 0.12 250); /* #0F4C81 - deep navy blue */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.55 0.06 250); /* #5B7FA3 - slate blue */
+  --secondary: rgb(166 222 237); /* light cyan - #A6DEED */
   --secondary-foreground: oklch(0.21 0 0);
-  --accent: oklch(0.60 0.06 250); /* lighter slate */
+  --accent: rgb(166 222 237); /* light cyan - matches secondary */
   --accent-foreground: oklch(0.21 0 0);
   --ring: oklch(0.45 0.12 250);
   --info: oklch(0.45 0.12 250);
   --chart-1: oklch(0.45 0.12 250);
   --sidebar-primary: oklch(0.45 0.12 250);
-  --sidebar-accent: oklch(0.94 0.02 250); /* light blue-gray */
+  --sidebar-accent: rgb(185 228 240); /* match muted - cool cyan-gray */
   --sidebar-ring: oklch(0.45 0.12 250);
+
+  /* Header and sidebar (menu) - light cyan */
+  --header-sidebar-bg: rgb(238 249 252 / var(--tw-bg-opacity, 1));
+}
+
+/* Professional theme - apply light cyan to header and sidebar (menu) */
+:root[data-theme="professional"] header,
+html[data-theme="professional"] header,
+:root[data-theme="professional"] aside[class*="border-r"],
+html[data-theme="professional"] aside[class*="border-r"] {
+  background-color: rgb(238 249 252 / var(--tw-bg-opacity, 1)) !important;
 }
 
 /* Professional theme - dark mode (html has both .dark and data-theme) */
 .dark[data-theme="professional"],
 html.dark[data-theme="professional"] {
+  /* Backgrounds - blue-tinted dark (no warm/red) */
+  --background: oklch(0.22 0.02 250);
+  --card: oklch(0.28 0.03 250);
+  --muted: oklch(0.35 0.04 250);
+  --muted-foreground: oklch(0.65 0 0);
+  --border: oklch(0.42 0.04 250);
+  --input: oklch(0.42 0.04 250);
+
+  /* Brand Colors */
   --primary: oklch(0.65 0.12 250);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.38 0.04 250);
@@ -245,19 +265,13 @@ html.dark[data-theme="professional"] {
     content: '';
     position: absolute;
     inset: 0;
-    border: 1px solid rgb(232, 93, 74); /* coral #E85D4A */
+    border: 1px solid var(--primary);
     border-radius: inherit;
     animation: sonar-wave 2s ease-out infinite;
   }
 
   .sonar-container::after {
     animation-delay: 1s;
-  }
-
-  /* Dark mode color */
-  .dark .sonar-container::before,
-  .dark .sonar-container::after {
-    border-color: rgb(240, 120, 105); /* slightly brighter coral for dark bg */
   }
 
   /* Slow pulse animation for highlighted items */

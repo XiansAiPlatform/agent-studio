@@ -491,7 +491,7 @@ export default function AgentTemplatesPage() {
             {deployedAgents.length === 0 ? (
               session?.user?.isSystemAdmin ? (
                 // System admin: Show Browse Agent Templates card
-                <div className="bg-white dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/60 rounded-xl overflow-hidden shadow-sm p-6">
+                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm p-6">
                   <AddFromStoreCard
                     templatesLoaded={templatesLoaded}
                     availableTemplatesCount={availableTemplates.length}

@@ -134,7 +134,7 @@ function DatabaseContent() {
           </div>
 
           <div className="lg:col-span-8">
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl border shadow-sm h-full">
+            <div className="bg-card/90 backdrop-blur-sm rounded-xl border shadow-sm h-full">
               <RecordsPanel
                 selectedDataType={page.selectedDataType}
                 recordsData={page.recordsData}

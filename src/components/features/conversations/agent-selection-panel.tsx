@@ -90,7 +90,7 @@ export function AgentSelectionPanel({
       <div
         className={cn(
           "fixed top-14 bottom-0 z-40",
-          "w-full max-w-xl bg-gray-50 dark:bg-gray-900/95 shadow-lg border-r border-border",
+          "w-full max-w-xl bg-background shadow-lg border-r border-border",
           "transition-all duration-300 ease-out animate-in slide-in-from-left",
           sidebarCollapsed ? "left-16" : "left-64"
         )}

@@ -217,13 +217,13 @@ export function CreateConnectionDialog({
               <p className="text-sm text-slate-600 leading-relaxed">
                 Unable to connect to the integration metadata service. Please ensure the backend API endpoint is running:
               </p>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-left">
+              <div className="bg-muted border border-border rounded-lg p-3 text-left">
                 <code className="text-xs text-slate-700">
                   GET {process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/integrations/metadata/types
                 </code>
               </div>
               <p className="text-xs text-slate-500">
-                See <code className="bg-slate-100 px-1 py-0.5 rounded">CONNECTIONS_API_REQUIREMENTS.md</code> for implementation details.
+                See <code className="bg-muted px-1 py-0.5 rounded">CONNECTIONS_API_REQUIREMENTS.md</code> for implementation details.
               </p>
             </div>
           </div>
@@ -235,10 +235,10 @@ export function CreateConnectionDialog({
                 <button
                   type="button"
                   onClick={() => handleIntegrationSelect(webhookIntegration)}
-                  className="group relative p-6 text-left bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all duration-200 hover:border-slate-300 hover:shadow-sm"
+                  className="group relative p-6 text-left bg-card hover:bg-muted border border-border rounded-lg transition-all duration-200 hover:border-primary/30 hover:shadow-sm"
                 >
                   <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-slate-100 rounded-lg">
+                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-muted rounded-lg">
                       <Webhook className="h-8 w-8 text-slate-500" />
                     </div>
                     <div className="flex-1 space-y-1 text-left">
@@ -252,11 +252,11 @@ export function CreateConnectionDialog({
                 <button
                   key={integration.platformId}
                   onClick={() => handleIntegrationSelect(integration)}
-                  className="group relative p-6 text-left bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all duration-200 hover:border-slate-300 hover:shadow-sm"
+                  className="group relative p-6 text-left bg-card hover:bg-muted border border-border rounded-lg transition-all duration-200 hover:border-primary/30 hover:shadow-sm"
                 >
                   <div className="flex items-center gap-6">
                     {/* Icon */}
-                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-slate-100 rounded-lg">
+                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-muted rounded-lg">
                       {integration.platformId === 'webhook' ? (
                         <Webhook className="h-8 w-8 text-slate-500" />
                       ) : failedIcons.has(integration.platformId) ? (
@@ -293,7 +293,7 @@ export function CreateConnectionDialog({
                             e.stopPropagation()
                             window.open(integration.documentationUrl!, '_blank')
                           }}
-                          className="p-1.5 rounded-md hover:bg-slate-100 transition-colors"
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
                         >
                           <ExternalLink className="h-4 w-4 text-slate-400" />
                         </div>

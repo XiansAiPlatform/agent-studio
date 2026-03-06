@@ -589,7 +589,7 @@ function TasksContent() {
         {/* Tasks List */}
         <div className="space-y-3">
           {isLoadingTasks ? (
-            <Card className="border-border/50">
+            <Card className="border-border">
               <CardContent className="!px-0 !py-0">
                 <div className="flex flex-col items-center justify-center py-16 space-y-3">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -613,7 +613,7 @@ function TasksContent() {
               </div>
               
               {/* Pagination */}
-              <Card className="border-border/50">
+              <Card className="border-border">
                 <CardContent className="!px-5 !py-3.5">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground font-medium">
@@ -646,7 +646,7 @@ function TasksContent() {
               </Card>
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="border-border">
               <CardContent className="!px-0 !py-0">
                 <div className="flex flex-col items-center justify-center py-20 px-6 space-y-3">
                   <div className="rounded-full bg-muted/50 p-4">

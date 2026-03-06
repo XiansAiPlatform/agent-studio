@@ -30,7 +30,7 @@ import { formatDistanceToNow } from 'date-fns';
 const TIME_PERIODS: readonly TimePeriod[] = ['7d', '30d', '90d'];
 
 const CARD_STYLE =
-  'space-y-4 p-5 rounded-lg bg-gradient-to-br from-muted/40 to-muted/20 shadow-sm';
+  'space-y-4 p-5 rounded-xl bg-card border border-border shadow-md';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -123,7 +123,7 @@ export default function DashboardPage() {
   const { tasks: taskStats, messages: messageStats } = stats;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen">
       <div className="container mx-auto p-6 space-y-6">
         {/* Page Header */}
         <header className="flex items-center justify-between mb-2">

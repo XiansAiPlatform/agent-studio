@@ -438,7 +438,7 @@ export function TeamsWizardSheet({
                 </div>
               </div>
 
-              <div className="space-y-4 p-4 bg-slate-50 rounded-lg">
+              <div className="space-y-4 p-4 bg-muted rounded-lg">
                 <h3 className="font-medium">Configuration Summary</h3>
                 
                 <div className="space-y-3 text-sm">
@@ -516,7 +516,7 @@ export function TeamsWizardSheet({
 
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">Webhook URL</Label>
-                <div className="flex items-center gap-2 text-sm bg-slate-100 p-3 rounded-md border">
+                <div className="flex items-center gap-2 text-sm bg-muted p-3 rounded-md border">
                   <code className="text-xs break-all flex-1">{createdWebhookUrl}</code>
                   <Button
                     type="button"
@@ -638,7 +638,7 @@ export function TeamsWizardSheet({
                   <ol className="space-y-2 text-sm list-decimal list-inside ml-2">
                     <li>Open Microsoft Teams</li>
                     <li>Go to <strong>Chat</strong> and find your bot</li>
-                    <li>Send a message like: <code className="bg-slate-100 px-2 py-1 rounded">Hello!</code></li>
+                    <li>Send a message like: <code className="bg-muted px-2 py-1 rounded">Hello!</code></li>
                     <li>Wait for the agent's response</li>
                   </ol>
                 </div>
@@ -649,7 +649,7 @@ export function TeamsWizardSheet({
                   <h4 className="font-medium text-sm mb-2">Test in a Team Channel</h4>
                   <ol className="space-y-2 text-sm list-decimal list-inside ml-2">
                     <li>Add the bot to a team channel</li>
-                    <li>Mention the bot: <code className="bg-slate-100 px-2 py-1 rounded">@YourBot help me</code></li>
+                    <li>Mention the bot: <code className="bg-muted px-2 py-1 rounded">@YourBot help me</code></li>
                     <li>The bot should respond to your message</li>
                   </ol>
                 </div>
@@ -678,7 +678,7 @@ export function TeamsWizardSheet({
               </p>
             </div>
 
-            <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
+            <div className="space-y-3 p-4 bg-muted rounded-lg">
               <h4 className="font-medium text-sm">What's Next?</h4>
               <ul className="space-y-2 text-sm list-disc list-inside text-muted-foreground">
                 <li>Test the bot in different conversation types (personal, channel)</li>

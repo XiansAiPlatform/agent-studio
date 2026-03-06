@@ -47,7 +47,7 @@ export function AgentActionsSlider({
 }: AgentActionsSliderProps) {
   if (sliderType === 'actions' && agent.status === 'active') {
     return (
-      <SheetContent className="flex flex-col p-0 border-l border-border/40 backdrop-blur-xl bg-white dark:bg-gray-950 sm:max-w-lg">
+      <SheetContent className="flex flex-col p-0 border-l border-border/40 backdrop-blur-xl bg-background sm:max-w-lg">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/20">
           <div className="flex items-center gap-3">
             <IconAvatar icon={Bot} variant="primary" size="md" rounded="full" pulse={true} />
@@ -192,7 +192,7 @@ export function AgentActionsSlider({
 
   if (sliderType === 'actions' && agent.status === 'inactive') {
     return (
-      <SheetContent className="flex flex-col p-0 border-l border-border/40 backdrop-blur-xl bg-white dark:bg-gray-950 sm:max-w-lg">
+      <SheetContent className="flex flex-col p-0 border-l border-border/40 backdrop-blur-xl bg-background sm:max-w-lg">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/20">
           <div className="flex items-center gap-3">
             <IconAvatar icon={Bot} variant="primary" size="md" rounded="full" />

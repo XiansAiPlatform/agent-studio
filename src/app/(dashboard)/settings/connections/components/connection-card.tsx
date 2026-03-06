@@ -80,8 +80,8 @@ export function ConnectionCard({
       className={cn(
         "group relative p-6 rounded-xl border-0 transition-all duration-200",
         connection.isActive 
-          ? "bg-white/80 hover:bg-white" 
-          : "bg-slate-100/50 hover:bg-slate-100/70",
+          ? "bg-card/80 hover:bg-card" 
+          : "bg-muted/50 hover:bg-muted/70",
         onClick && "cursor-pointer"
       )}
     >
@@ -110,28 +110,28 @@ export function ConnectionCard({
           <div className="flex items-center gap-2 mb-1">
             <h3 className={cn(
               "text-base font-normal",
-              connection.isActive ? "text-slate-900" : "text-slate-500"
+              connection.isActive ? "text-foreground" : "text-muted-foreground"
             )}>
               {connection.name}
             </h3>
             <span className={cn(
               "text-xs px-2 py-0.5 rounded",
               connection.isActive 
-                ? "text-emerald-600 bg-emerald-50/50" 
-                : "text-slate-400 bg-slate-200/50"
+                ? "text-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                : "text-muted-foreground bg-muted"
             )}>
               {connection.isActive ? 'enabled' : 'disabled'}
             </span>
           </div>
           
           {/* Type and Date */}
-          <div className="flex items-center gap-2 text-sm text-slate-500 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <span>{displayName}</span>
-            <span className="text-slate-300">•</span>
+            <span className="text-muted-foreground/60">•</span>
             <span className="text-xs">created {formatDate(connection.createdAt)}</span>
             {connection.status !== 'connected' && connection.isActive && (
               <>
-                <span className="text-slate-300">•</span>
+                <span className="text-muted-foreground/60">•</span>
                 <span className={cn("text-xs", status.color)}>{status.text}</span>
               </>
             )}

@@ -287,13 +287,13 @@ function ConnectionsContent() {
   };
 
   const statusColors: Record<ConnectionStatus, string> = {
-    connected: 'bg-green-100 text-green-800 border-green-200',
-    expired: 'bg-yellow-100 text-yellow-800 border-yellow-200', 
-    error: 'bg-red-100 text-red-800 border-red-200',
-    draft: 'bg-gray-100 text-gray-800 border-gray-200',
-    pending: 'bg-amber-100 text-amber-800 border-amber-200',
-    authorizing: 'bg-blue-100 text-blue-800 border-blue-200',
-    disabled: 'bg-gray-100 text-gray-600 border-gray-200'
+    connected: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/50',
+    expired: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800/50', 
+    error: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/50',
+    draft: 'bg-muted text-muted-foreground border-border',
+    pending: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/50',
+    authorizing: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/50',
+    disabled: 'bg-muted text-muted-foreground border-border'
   };
 
   const statusIcons: Record<ConnectionStatus, React.ReactNode> = {
@@ -355,16 +355,16 @@ function ConnectionsContent() {
       <div className="container mx-auto p-6">
         {filteredConnections.length === 0 ? (
           /* Empty State */
-          <div className="bg-white/40 rounded-xl p-16 text-center">
+          <div className="bg-card/60 rounded-xl p-16 text-center">
             <div className="flex flex-col items-center gap-6">
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                <Link2 className="h-8 w-8 text-slate-400" />
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <Link2 className="h-8 w-8 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-slate-400 mb-6">No connections yet</p>
+                <p className="text-muted-foreground mb-6">No connections yet</p>
                 <button
                   onClick={() => setShowCreateDialog(true)}
-                  className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Create your first connection</span>
@@ -400,17 +400,17 @@ function ConnectionsContent() {
             {/* Add New Connection */}
             <button
               onClick={() => setShowCreateDialog(true)}
-              className="group p-6 rounded-xl bg-white/40 hover:bg-white/60 border-0 transition-all duration-200 text-left"
+              className="group p-6 rounded-xl bg-card/60 hover:bg-card/80 border-0 transition-all duration-200 text-left"
             >
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-muted/80 group-hover:text-foreground transition-colors flex-shrink-0 mt-0.5">
                   <Plus className="h-4 w-4" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base font-normal text-slate-600 group-hover:text-slate-900 transition-colors mb-1">
+                  <h3 className="text-base font-normal text-muted-foreground group-hover:text-foreground transition-colors mb-1">
                     Add new connection
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Connect a service to enable integrations
                   </p>
                 </div>

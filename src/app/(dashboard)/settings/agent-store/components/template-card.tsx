@@ -31,8 +31,8 @@ export function TemplateCard({
     <div 
       className={`group py-6 px-6 cursor-pointer transition-all duration-200 rounded-lg border mb-3 ${
         isExpanded 
-          ? 'bg-blue-50/50 dark:bg-slate-800/50 border-blue-200 dark:border-slate-600 shadow-md' 
-          : 'bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm'
+          ? 'bg-primary/5 border-primary/30 shadow-md' 
+          : 'bg-card border-border hover:bg-muted/50 hover:border-primary/30 hover:shadow-sm'
       }`}
       onClick={() => onToggleExpanded?.()}
       title="Click to expand and view details"
@@ -48,7 +48,7 @@ export function TemplateCard({
                 {template.agent.name}
               </h4>
               {template.agent.version && (
-                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-full">
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-full">
                   v{template.agent.version}
                 </span>
               )}
@@ -91,7 +91,7 @@ export function TemplateCard({
             
             {/* Expanded Content */}
             {isExpanded && (
-              <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700/60 space-y-4 bg-blue-50/40 dark:bg-slate-800/40 -mx-6 px-6 pb-3">
+              <div className="pt-3 mt-3 border-t border-border space-y-4 bg-muted/30 -mx-6 px-6 pb-3">
                 {/* Full Description */}
                 {hasDescription && (
                   <div>
@@ -110,7 +110,7 @@ export function TemplateCard({
                     </p>
                     <div className="space-y-2">
                       {template.definitions.map((def, idx) => (
-                        <div key={idx} className="py-3 px-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div key={idx} className="py-3 px-4 rounded-lg bg-card border border-border shadow-sm">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
                               <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -179,7 +179,7 @@ export function TemplateCard({
             <Button
               size="sm"
               variant="default"
-              className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900 border-0 shadow-sm font-medium"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-sm font-medium"
               onClick={(e) => {
                 e.stopPropagation();
                 onDeploy?.(e);
