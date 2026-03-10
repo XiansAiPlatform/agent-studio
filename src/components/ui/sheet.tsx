@@ -80,16 +80,18 @@ function SheetContent({
   className,
   children,
   side = "right",
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
+  overlayClassName?: string
 }) {
   const { isExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
   const hasHeaderContent = headerIcon || headerTitle || headerDescription
   
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-expanded={isExpanded}

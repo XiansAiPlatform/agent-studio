@@ -1,6 +1,7 @@
-import { Bot } from 'lucide-react';
+import { Bot, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Topic } from '@/lib/data/dummy-conversations';
+import { useParticipantLayout } from '@/contexts/participant-layout-context';
 
 interface ConversationHeaderProps {
   activationName: string;
@@ -11,9 +12,10 @@ interface ConversationHeaderProps {
 
 /**
  * Conversation Header Component
- * 
+ *
  * Displays the current activation name, topic name, message count,
  * and SSE connection status with a visual indicator.
+ * In participant mode, includes a hamburger menu to browse agents/topics.
  */
 export function ConversationHeader({
   activationName,
@@ -21,11 +23,24 @@ export function ConversationHeader({
   isConnected,
   isAgentActive,
 }: ConversationHeaderProps) {
+  const { onOpenMenu } = useParticipantLayout();
+
   return (
     <div className="border-b border-border/50 bg-card px-6 py-3">
       <div className="flex items-center justify-between">
         {/* Agent Icon + Activation & Topic Info */}
         <div className="flex items-center gap-3">
+          {/* Participant: Menu button */}
+          {onOpenMenu && (
+            <button
+              type="button"
+              onClick={onOpenMenu}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
+              aria-label="Open conversation menu"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
+          )}
           {/* Agent Avatar with Sonar Pulse (only when connected AND agent is active) */}
           <div className="relative inline-flex">
             <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 relative z-10">
