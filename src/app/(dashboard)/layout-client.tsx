@@ -13,6 +13,8 @@ interface Props {
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
   }>
+  /** Server-determined: show sidebar (admin layout) vs single panel (participant layout) */
+  showSidebar: boolean
 }
 
 /**
@@ -21,7 +23,11 @@ interface Props {
  * Receives validated tenant data from server component.
  * Validates the currently selected tenant exists in the list.
  */
-export function DashboardLayoutClient({ children, initialTenants }: Props) {
+export function DashboardLayoutClient({
+  children,
+  initialTenants,
+  showSidebar,
+}: Props) {
   const { setTenants, currentTenantId, setCurrentTenant, clearTenants } = useTenantStore()
   const router = useRouter()
   const pathname = usePathname()
@@ -154,14 +160,15 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
       {/* Fixed Header */}
       <Header />
 
-      {/* Main Container */}
+      {/* Main Container - admin layout (sidebar) or participant layout (single panel) */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Suspense fallback={<div className="w-64 border-r bg-background" />}>
-          <Sidebar />
-        </Suspense>
+        {showSidebar && (
+          <Suspense fallback={<div className="w-64 border-r bg-background" />}>
+            <Sidebar />
+          </Suspense>
+        )}
 
-        {/* Main Content */}
+        {/* Main Content - single panel under header for participant, or beside sidebar for admin */}
         <main className="flex-1 overflow-y-auto bg-background">
           {children}
         </main>
