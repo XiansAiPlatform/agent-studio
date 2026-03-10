@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Bot, PanelLeft, Loader2, MessageSquare } from 'lucide-react'
@@ -41,6 +42,16 @@ export function ParticipantChatPage() {
       `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?topic=general-discussions`
     )
   }
+
+  // When only one activation exists, go directly to its chat
+  useEffect(() => {
+    if (!isLoading && activations.length === 1) {
+      const { agentName, name: activationName } = activations[0]
+      router.replace(
+        `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?topic=general-discussions`
+      )
+    }
+  }, [isLoading, activations, router])
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -86,6 +97,11 @@ export function ParticipantChatPage() {
             <p className="text-sm text-muted-foreground">
               No agents available. Use the menu to browse more.
             </p>
+          </div>
+        ) : activations.length === 1 ? (
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-sm">Opening conversation...</p>
           </div>
         ) : (
           <div className="w-full max-w-md space-y-6">
