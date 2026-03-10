@@ -126,7 +126,7 @@ export function AgentDetailsSheet({
                       onChange={(e) => onInstanceNameChange?.(e.target.value)}
                       disabled={isCreatingInstance}
                       maxLength={100}
-                      className="flex-1 bg-white dark:bg-white/10"
+                      className="flex-1 bg-card"
                     />
                     <Button
                       type="button"
@@ -153,7 +153,7 @@ export function AgentDetailsSheet({
                     disabled={isCreatingInstance}
                     rows={3}
                     maxLength={500}
-                    className="bg-white dark:bg-white/10"
+                    className="bg-card"
                   />
                   <p className="text-xs text-muted-foreground">
                     {instanceDescription.length}/500 characters

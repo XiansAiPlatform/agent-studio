@@ -23,7 +23,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
           ? 'border-border/50 bg-muted/20 dark:bg-muted/20' 
           : isNewlyCreated 
             ? 'border-emerald-500/40 bg-emerald-50/30 dark:bg-emerald-950/20' 
-            : 'border-border bg-white dark:bg-card dark:border-border'
+            : 'border-border bg-card'
       }`}
       onClick={onClick}
     >

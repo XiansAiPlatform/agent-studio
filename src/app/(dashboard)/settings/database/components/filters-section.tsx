@@ -23,7 +23,7 @@ export function FiltersSection({
   onCustomDateChange,
 }: FiltersSectionProps) {
   return (
-    <div className="bg-white/85 backdrop-blur-sm rounded-xl border shadow-sm">
+    <div className="bg-card/90 backdrop-blur-sm rounded-xl border shadow-sm">
       <div className="p-4 space-y-3">
         <div>
           <label className="text-xs font-medium text-foreground mb-2 block">Quick Select</label>
@@ -65,7 +65,7 @@ export function FiltersSection({
           </div>
         </div>
 
-        <div className="bg-white/80 border border-border/30 rounded-lg p-2">
+        <div className="bg-muted/50 border border-border/30 rounded-lg p-2">
           <div className="text-xs text-muted-foreground">
             <strong className="text-foreground">Period:</strong>{' '}
             {new Date(customStartDate).toLocaleDateString()} to{' '}

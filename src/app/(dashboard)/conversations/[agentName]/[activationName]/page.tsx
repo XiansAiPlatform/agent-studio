@@ -3,13 +3,14 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Loader2, Bot } from 'lucide-react';
+import { Loader2, Bot, PanelLeft } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { toast } from 'sonner';
 import { Message, Topic } from '@/lib/data/dummy-conversations';
 import { useActivations, useTopics, useConversationState } from '../../hooks';
+import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { getTopicParam, mapXiansMessageToMessage } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
 import type { FileUploadPayload } from '@/components/features/conversations';
@@ -30,6 +31,7 @@ function ConversationContent() {
   const params = useParams();
   const { currentTenantId } = useTenant();
   const { data: session } = useSession();
+  const { onOpenMenu } = useParticipantLayout();
   
   // Get route parameters
   const agentName = decodeURIComponent(params.agentName as string);
@@ -272,10 +274,22 @@ function ConversationContent() {
       if (topicExists && topicParam !== selectedTopicId) {
         setSelectedTopicId(topicParam);
       } else if (!topicExists) {
-        // If topic from URL doesn't exist, fall back to general discussions
-        const initialTopicId = 'general-discussions';
-        setSelectedTopicId(initialTopicId);
-        updateTopicInURL(initialTopicId);
+        // Topic from URL doesn't exist in fetched list - may be newly created (e.g. from participant tree).
+        // Add it and select it; it will exist once user sends a message.
+        const newTopic: Topic = {
+          id: topicParam,
+          name: topicParam,
+          createdAt: new Date().toISOString(),
+          status: 'active',
+          messages: [],
+          associatedTasks: [],
+          isDefault: false,
+          messageCount: 0,
+          lastMessageAt: new Date().toISOString(),
+        };
+        addTopic(newTopic);
+        setSelectedTopicId(topicParam);
+        setTimeout(() => chatInputRef.current?.focus(), 150);
       }
     } else if (topics.length > 0 && !selectedTopicId) {
       // Auto-select general discussions if no topic selected
@@ -283,7 +297,7 @@ function ConversationContent() {
       setSelectedTopicId(initialTopicId);
       updateTopicInURL(initialTopicId);
     }
-  }, [topicParam, topics, selectedTopicId, updateTopicInURL]);
+  }, [topicParam, topics, selectedTopicId, updateTopicInURL, addTopic]);
 
   // Auto-focus chat input when activation changes and topic is selected
   useEffect(() => {
@@ -299,13 +313,10 @@ function ConversationContent() {
     }
   }, [selectedTopicId, isLoadingTopics]);
 
-  // Reset auto-focus flag when activation changes
+  // Reset auto-focus flag when activation or topic changes (e.g. when selecting from participant tree)
   useEffect(() => {
-    const activationKey = `${agentName}-${activationName}`;
-    return () => {
-      hasAutoFocusedRef.current = false;
-    };
-  }, [agentName, activationName]);
+    hasAutoFocusedRef.current = false;
+  }, [agentName, activationName, topicParam]);
 
   // Fetch messages for selected topic
   useEffect(() => {
@@ -632,8 +643,8 @@ function ConversationContent() {
 
   // Agent has no conversational capability (workflow not registered for messaging)
   if (noConversationalCapability) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
+    const content = (
+      <div className="flex flex-col items-center justify-center flex-1 text-center p-12 bg-card min-h-0">
         <div className="h-28 w-28 rounded-3xl bg-muted flex items-center justify-center mb-8 shadow-sm border border-border">
           <Bot className="h-14 w-14 text-muted-foreground" />
         </div>
@@ -641,19 +652,41 @@ function ConversationContent() {
           No Conversational Capability
         </h2>
         <p className="text-muted-foreground max-w-md text-sm">
-          This agent does not support conversations. The activation uses a workflow type that is not configured for chat or messaging.
+          This agent does not support conversations.
         </p>
         <p className="text-muted-foreground/80 max-w-md text-xs mt-2">
-          Try selecting a different activation, or contact your administrator to enable messaging for this agent.
+          Try selecting a different agent, or contact your administrator to request conversation support for this agent.
         </p>
+      </div>
+    );
+    return (
+      <div className="flex flex-col h-full min-h-0">
+        {onOpenMenu && (
+          <div className="border-b border-border/50 bg-card px-6 py-3 shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onOpenMenu}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
+                aria-label="Open conversation menu"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm text-muted-foreground font-medium">
+                {activationName || agentName || 'Agent'}
+              </span>
+            </div>
+          </div>
+        )}
+        {content}
       </div>
     );
   }
 
   // No conversation found
   if (!conversation) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
+    const noConvContent = (
+      <div className="flex flex-col items-center justify-center flex-1 text-center p-12 bg-card min-h-0">
         <div className="h-28 w-28 rounded-3xl bg-primary/20 flex items-center justify-center mb-8 shadow-2xl border border-primary/40 animate-in fade-in zoom-in duration-500">
           <Bot className="h-14 w-14 text-primary" />
         </div>
@@ -666,6 +699,28 @@ function ConversationContent() {
             : 'There are no active conversations with this agent'
           }
         </p>
+      </div>
+    );
+    return (
+      <div className="flex flex-col h-full min-h-0">
+        {onOpenMenu && (
+          <div className="border-b border-border/50 bg-card px-6 py-3 shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onOpenMenu}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
+                aria-label="Open conversation menu"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm text-muted-foreground font-medium">
+                {activationName || agentName || 'Agent'}
+              </span>
+            </div>
+          </div>
+        )}
+        {noConvContent}
       </div>
     );
   }

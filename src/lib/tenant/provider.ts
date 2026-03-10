@@ -1,4 +1,5 @@
 import { Tenant, TenantContext } from "@/types/tenant"
+import type { XiansParticipantRole } from "@/lib/xians/types"
 
 export interface TenantProvider {
   getTenantContext(
@@ -16,5 +17,7 @@ export interface TenantProvider {
   ): Promise<Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
+    /** Server-only: participant role from Xians; never pass to client */
+    participantRole?: XiansParticipantRole
   }>>
 }

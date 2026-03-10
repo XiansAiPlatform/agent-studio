@@ -74,7 +74,7 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
       onClick={() => onClick(task)}
       className={cn(
         'group relative rounded-xl cursor-pointer transition-all duration-300 ease-out',
-        'bg-card border border-border/50 hover:border-border',
+        'bg-card border border-border hover:border-border',
         'hover:shadow-md hover:shadow-primary/5 hover:-translate-y-0.5',
         'overflow-hidden',
         isSelected && 'ring-2 ring-primary/30 border-primary/50 shadow-md shadow-primary/10',

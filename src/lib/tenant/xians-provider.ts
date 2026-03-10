@@ -77,13 +77,19 @@ export class XiansTenantProvider implements TenantProvider {
     // Fetch full tenant details for each participant tenant
     const tenantPromises = response.tenants.map(async (participantTenant) => {
       const tenantId = participantTenant.tenantId
+      const participantRole = participantTenant.role
       try {
         const xiansTenant = await tenantsApi.getTenant(tenantId)
         
         // API only returns enabled tenants
+        // Map Xians participant role: TenantParticipantAdmin gets 'admin', TenantParticipant gets 'member'
+        // Default to admin when role is missing (backwards compatibility)
+        const role: 'owner' | 'admin' | 'member' | 'viewer' =
+          participantRole !== 'TenantParticipant' ? 'admin' : 'member'
         return {
           tenant: this.mapXiansTenantToTenant(xiansTenant),
-          role: 'admin' as 'owner' | 'admin' | 'member' | 'viewer'  // Default role, can be enhanced later
+          role,
+          participantRole,
         }
       } catch (error) {
         console.error(`[XiansTenantProvider] Failed to fetch tenant ${tenantId}:`, error)
@@ -94,6 +100,6 @@ export class XiansTenantProvider implements TenantProvider {
     const tenants = await Promise.all(tenantPromises)
     
     // Filter out nulls (failed fetches or disabled tenants)
-    return tenants.filter((t): t is { tenant: Tenant; role: 'owner' | 'admin' | 'member' | 'viewer' } => t !== null)
+    return tenants.filter((t): t is NonNullable<typeof t> => t !== null)
   }
 }

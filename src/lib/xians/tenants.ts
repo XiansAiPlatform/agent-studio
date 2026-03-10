@@ -69,7 +69,7 @@ export class XiansTenantsApi {
     
     try {
       const response = await this.client.get<XiansParticipantTenantsResponse>(
-        `/api/v1/admin/participants/${encodeURIComponent(email)}/tenants`
+        `/api/v1/admin/participants/${encodeURIComponent(email)}`
       )
       
       console.log(`[Xians Tenants] Found ${response.tenants.length} tenants for ${email} (isSystemAdmin: ${response.isSystemAdmin}):`, 

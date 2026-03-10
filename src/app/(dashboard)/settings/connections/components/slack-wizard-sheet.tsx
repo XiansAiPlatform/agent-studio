@@ -233,7 +233,7 @@ export function SlackWizardSheet({
               </p>
             </div>
             
-            <div className="space-y-3 bg-slate-50 rounded-lg p-4">
+            <div className="space-y-3 bg-muted rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5">
                   1
@@ -299,7 +299,7 @@ export function SlackWizardSheet({
               </p>
             </div>
             
-            <div className="space-y-3 bg-slate-50 rounded-lg p-4">
+            <div className="space-y-3 bg-muted rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5">
                   1
@@ -336,7 +336,7 @@ export function SlackWizardSheet({
                       'users:read',
                       'users:read.email'
                     ].map(scope => (
-                      <div key={scope} className="flex items-center gap-2 bg-white px-2 py-1.5 rounded text-xs font-mono">
+                      <div key={scope} className="flex items-center gap-2 bg-card px-2 py-1.5 rounded text-xs font-mono">
                         <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
                         <span>{scope}</span>
                       </div>
@@ -365,7 +365,7 @@ export function SlackWizardSheet({
               </p>
             </div>
             
-            <div className="space-y-3 bg-slate-50 rounded-lg p-4">
+            <div className="space-y-3 bg-muted rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5">
                   1
@@ -398,7 +398,7 @@ export function SlackWizardSheet({
                   4
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm mb-2"><strong>Copy the "Bot User OAuth Token"</strong> (starts with <code className="text-xs bg-white px-1 py-0.5 rounded">xoxb-</code>)</p>
+                  <p className="text-sm mb-2"><strong>Copy the "Bot User OAuth Token"</strong> (starts with <code className="text-xs bg-card px-1 py-0.5 rounded">xoxb-</code>)</p>
                   <p className="text-xs text-slate-500 mb-3">Paste it below:</p>
                   <div className="relative">
                     <Input
@@ -445,7 +445,7 @@ export function SlackWizardSheet({
               </p>
             </div>
             
-            <div className="space-y-3 bg-slate-50 rounded-lg p-4">
+            <div className="space-y-3 bg-muted rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5">
                   1
@@ -620,7 +620,7 @@ export function SlackWizardSheet({
                   <div className="flex items-start gap-2">
                     <span className="text-blue-700 mt-1">5.</span>
                     <div className="flex-1">
-                      <p className="mb-2"><strong>Copy the Webhook URL</strong> (starts with <code className="text-xs bg-white px-1 py-0.5 rounded">https://hooks.slack.com/services/...</code>)</p>
+                      <p className="mb-2"><strong>Copy the Webhook URL</strong> (starts with <code className="text-xs bg-card px-1 py-0.5 rounded">https://hooks.slack.com/services/...</code>)</p>
                       <p className="text-xs text-slate-500 mb-3">Paste it below:</p>
                       <Input
                         type="text"
@@ -639,7 +639,7 @@ export function SlackWizardSheet({
 
       case 'configure-connection':
         return (
-          <div className="space-y-6 bg-slate-50 rounded-lg p-6">
+          <div className="space-y-6 bg-muted rounded-lg p-6">
             <div className="space-y-4">              
               <div>
                 <Label htmlFor="name" className="mb-2">Integration Name *</Label>
@@ -683,7 +683,7 @@ export function SlackWizardSheet({
                       type={showSecrets.signingSecret ? 'text' : 'password'}
                       value={signingSecret}
                       readOnly
-                      className="bg-white font-mono text-sm pr-10"
+                      className="bg-card font-mono text-sm pr-10"
                     />
                     <Button 
                       type="button"
@@ -709,7 +709,7 @@ export function SlackWizardSheet({
                         type={showSecrets.botToken ? 'text' : 'password'}
                         value={botToken}
                         readOnly
-                        className="bg-white font-mono text-sm pr-10"
+                        className="bg-card font-mono text-sm pr-10"
                       />
                       <Button
                         type="button"
@@ -735,7 +735,7 @@ export function SlackWizardSheet({
                       type="text"
                       value={incomingWebhookUrl}
                       readOnly
-                      className="bg-white font-mono text-sm"
+                      className="bg-card font-mono text-sm"
                     />
                   </div>
                 )}
@@ -771,7 +771,7 @@ export function SlackWizardSheet({
                 <Input
                   value={createdWebhookUrl}
                   readOnly
-                  className="font-mono text-xs bg-white"
+                  className="font-mono text-xs bg-card"
                 />
                 <Button
                   type="button"
@@ -789,7 +789,7 @@ export function SlackWizardSheet({
               </div>
             </div>
             
-            <div className="space-y-3 bg-slate-50 rounded-lg p-4">
+            <div className="space-y-3 bg-muted rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5">
                   1
@@ -818,7 +818,7 @@ export function SlackWizardSheet({
                     <Input
                       value={createdWebhookUrl}
                       readOnly
-                      className="font-mono text-xs bg-white"
+                      className="font-mono text-xs bg-card"
                     />
                     <Button
                       type="button"
@@ -863,7 +863,7 @@ export function SlackWizardSheet({
                   <p className="text-sm mb-2">Click <strong>"Add Bot User Event"</strong> and add:</p>
                   <div className="space-y-1 mt-2">
                     {['message.channels', 'message.im', 'app_mention'].map(event => (
-                      <div key={event} className="flex items-center gap-2 bg-white px-2 py-1.5 rounded text-xs font-mono">
+                      <div key={event} className="flex items-center gap-2 bg-card px-2 py-1.5 rounded text-xs font-mono">
                         <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
                         <span>{event}</span>
                       </div>
@@ -903,7 +903,7 @@ export function SlackWizardSheet({
               </p>
             </div>
             
-            <div className="space-y-3 bg-slate-50 rounded-lg p-4">
+            <div className="space-y-3 bg-muted rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5">
                   1
@@ -956,7 +956,7 @@ export function SlackWizardSheet({
               </p>
             </div>
 
-            <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+            <div className="bg-muted rounded-lg p-4 space-y-3">
               <h4 className="font-medium text-sm">What's Next?</h4>
               <ul className="space-y-2 text-sm text-slate-600">
                 <li className="flex items-start gap-2">
@@ -1023,7 +1023,7 @@ export function SlackWizardSheet({
                             ? 'bg-primary text-white' 
                             : isPast
                             ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            : 'bg-muted text-slate-400 cursor-not-allowed'
                         }`}
                       >
                         {isPast ? (
@@ -1034,7 +1034,7 @@ export function SlackWizardSheet({
                         <span className="whitespace-nowrap">{ws.title}</span>
                       </button>
                       {index < wizardSteps.length - 1 && (
-                        <div className={`w-8 h-0.5 mx-1 ${isPast ? 'bg-green-300' : 'bg-slate-200'}`} />
+                        <div className={`w-8 h-0.5 mx-1 ${isPast ? 'bg-green-300' : 'bg-border'}`} />
                       )}
                     </div>
                   )
@@ -1052,7 +1052,7 @@ export function SlackWizardSheet({
         </div>
 
         {/* Navigation Buttons */}
-        <div className="border-t p-6 bg-white flex-shrink-0">
+        <div className="border-t p-6 bg-card flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
             <Button
               type="button"

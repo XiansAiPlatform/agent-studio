@@ -21,6 +21,9 @@ export interface XiansTenant {
   }
 }
 
+/** Participant role from Xians API - used for layout/access; never exposed to client */
+export type XiansParticipantRole = 'TenantParticipant' | 'TenantParticipantAdmin'
+
 /**
  * Participant tenant from the participant API
  * GET /api/v1/admin/participants/{email}/tenants
@@ -29,6 +32,7 @@ export interface XiansTenant {
 export interface XiansParticipantTenant {
   tenantId: string
   tenantName: string
+  role?: XiansParticipantRole
   logo?: {
     url?: string | null
     imgBase64?: string | null

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Conversation } from '@/lib/data/dummy-conversations';
 import { ActivationOption } from '../hooks';
+import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { 
   ConversationHeader, 
   TopicSidebar, 
@@ -67,6 +68,7 @@ export function ConversationView({
   onDeleteTopic,
   chatInputRef,
 }: ConversationViewProps) {
+  const { isParticipantMode } = useParticipantLayout();
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
   
   // Find the current activation to check if it's active
@@ -77,8 +79,9 @@ export function ConversationView({
 
   return (
     <div className="flex h-full bg-card">
-      {/* Topics List - Left Sidebar */}
-      <TopicSidebar
+      {/* Topics List - Left Sidebar (hidden for participant; they use pull-up menu) */}
+      {!isParticipantMode && (
+        <TopicSidebar
         topics={conversation.topics}
         selectedTopicId={selectedTopicId}
         onSelectTopic={onTopicSelect}
@@ -94,6 +97,7 @@ export function ConversationView({
         hasMore={hasMore}
         onPageChange={onPageChange}
       />
+      )}
 
       {/* Chat Area - Right Column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

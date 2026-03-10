@@ -80,21 +80,23 @@ function SheetContent({
   className,
   children,
   side = "right",
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
+  overlayClassName?: string
 }) {
   const { isExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
   const hasHeaderContent = headerIcon || headerTitle || headerDescription
   
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-expanded={isExpanded}
         className={cn(
-          "bg-gray-50 dark:bg-gray-900 data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-lg transition-all ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-lg transition-all ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full border-l",
           side === "right" && !isExpanded && "w-3/4 sm:max-w-4xl",
@@ -132,7 +134,7 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex items-start justify-between gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b sticky top-0 z-10", className)}
+      className={cn("flex items-start justify-between gap-4 px-6 py-4 bg-background border-b sticky top-0 z-10", className)}
       {...props}
     >
       <div className="flex-1 flex items-start gap-3">
@@ -160,7 +162,7 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
       </div>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="shrink-0 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+        className="shrink-0 p-2 rounded-md hover:bg-muted transition-colors"
         aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
       >
         {isExpanded ? (

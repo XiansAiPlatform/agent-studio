@@ -6,6 +6,10 @@ import { Header } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { useTenantStore } from '@/store/tenant-store'
 import { Tenant } from '@/types/tenant'
+import { cn } from '@/lib/utils'
+import { ParticipantLayoutProvider } from '@/contexts/participant-layout-context'
+import { ParticipantLayoutShell } from '@/app/(dashboard)/participant/_components/participant-layout-shell'
+import { ParticipantChatPage } from '@/app/(dashboard)/participant/_components/participant-chat-page'
 
 interface Props {
   children: React.ReactNode
@@ -13,6 +17,8 @@ interface Props {
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
   }>
+  /** Server-determined: show sidebar (admin layout) vs single panel (participant layout) */
+  showSidebar: boolean
 }
 
 /**
@@ -21,11 +27,16 @@ interface Props {
  * Receives validated tenant data from server component.
  * Validates the currently selected tenant exists in the list.
  */
-export function DashboardLayoutClient({ children, initialTenants }: Props) {
+export function DashboardLayoutClient({
+  children,
+  initialTenants,
+  showSidebar,
+}: Props) {
   const { setTenants, currentTenantId, setCurrentTenant, clearTenants } = useTenantStore()
   const router = useRouter()
   const pathname = usePathname()
   const [isValidating, setIsValidating] = useState(true)
+  const [participantMenuOpen, setParticipantMenuOpen] = useState(false)
   const hasInitializedRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -149,23 +160,49 @@ export function DashboardLayoutClient({ children, initialTenants }: Props) {
     )
   }
 
+  const isParticipantMode = !showSidebar
+
+  const mainContent = isParticipantMode ? (
+    <ParticipantLayoutShell
+      menuOpen={participantMenuOpen}
+      onMenuOpenChange={setParticipantMenuOpen}
+    >
+      {pathname === '/dashboard' ? (
+        <ParticipantChatPage />
+      ) : (
+        children
+      )}
+    </ParticipantLayoutShell>
+  ) : (
+    children
+  )
+
   return (
-    <div className="flex h-screen flex-col">
-      {/* Fixed Header */}
-      <Header />
+    <ParticipantLayoutProvider
+      isParticipantMode={isParticipantMode}
+      onOpenMenu={isParticipantMode ? () => setParticipantMenuOpen(true) : undefined}
+    >
+      <div className="flex h-screen flex-col">
+        {/* Fixed Header - hamburger moved to ConversationHeader / participant bar */}
+        <Header />
 
-      {/* Main Container */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Suspense fallback={<div className="w-64 border-r bg-background" />}>
-          <Sidebar />
-        </Suspense>
+        {/* Main Container - admin layout (sidebar) or participant layout (single panel) */}
+        <div className="flex flex-1 overflow-hidden">
+          {showSidebar && (
+            <Suspense fallback={<div className="w-64 border-r bg-background" />}>
+              <Sidebar />
+            </Suspense>
+          )}
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-background">
-          {children}
-        </main>
+          {/* Main Content - single panel under header for participant, or beside sidebar for admin */}
+          <main className={cn(
+            'flex-1 flex flex-col bg-background min-w-0 min-h-0',
+            isParticipantMode ? 'overflow-hidden' : 'overflow-y-auto'
+          )}>
+            {mainContent}
+          </main>
+        </div>
       </div>
-    </div>
+    </ParticipantLayoutProvider>
   )
 }

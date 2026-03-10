@@ -40,13 +40,13 @@ function ContentSection({ content }: { content: Record<string, unknown> }) {
       {Object.entries(content).map(([key, value]) => (
         <div
           key={key}
-          className="flex items-start gap-3 py-2 border-b border-slate-100 last:border-0"
+          className="flex items-start gap-3 py-2 border-b border-border last:border-0"
         >
           <span className="text-xs font-normal text-slate-400 capitalize min-w-0 mt-2.5">
             {formatContentKey(key)}:
           </span>
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-slate-600 font-mono bg-white/60 px-2 py-1.5 rounded border border-slate-100 break-all">
+            <div className="text-sm text-slate-600 font-mono bg-card/60 px-2 py-1.5 rounded border border-border break-all">
               {typeof value === 'object' && value !== null ? (
                 <pre className="whitespace-pre-wrap text-xs leading-relaxed text-slate-500">
                   {JSON.stringify(value, null, 2)}
@@ -73,7 +73,7 @@ export function RecordCard({
 }: RecordCardProps) {
   return (
     <div
-      className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-white via-white to-slate-50/50 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1"
+      className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/30 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1"
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
     >
@@ -88,7 +88,7 @@ export function RecordCard({
             className={`flex-shrink-0 mt-1 p-2 rounded-xl transition-all duration-200 ${
               isExpanded
                 ? 'bg-primary/10 text-primary'
-                : 'bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary'
+                : 'bg-muted text-slate-500 group-hover:bg-primary/10 group-hover:text-primary'
             }`}
           >
             {isExpanded ? (
@@ -105,7 +105,7 @@ export function RecordCard({
               </p>
               <Badge
                 variant="secondary"
-                className="ml-3 bg-slate-100 text-slate-500 border-slate-200 font-normal px-2 py-1 text-xs"
+                className="ml-3 bg-muted text-muted-foreground border-border font-normal px-2 py-1 text-xs"
               >
                 {Object.keys(record.content).length} fields
               </Badge>
@@ -114,7 +114,7 @@ export function RecordCard({
             <div className="flex items-center gap-3 flex-wrap">
               <Badge
                 variant="outline"
-                className="border-slate-200 bg-slate-50/80 text-slate-500 px-2 py-0.5 text-xs font-normal"
+                className="border-border bg-muted/80 text-muted-foreground px-2 py-0.5 text-xs font-normal"
               >
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5" />
                 {record.participantId}
@@ -186,14 +186,14 @@ export function RecordCard({
       </div>
 
       {isExpanded && (
-        <div className="relative border-t border-slate-200/60 bg-gradient-to-br from-slate-50/50 to-white">
+        <div className="relative border-t border-border bg-gradient-to-br from-muted/30 to-card">
           <div className="p-6 space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Database className="h-4 w-4 text-slate-400" />
                 <span className="text-sm font-medium text-slate-600">Content</span>
               </div>
-              <div className="bg-slate-50/50 rounded-lg p-4 space-y-2 border border-slate-200/40">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2 border border-border">
                 <ContentSection content={record.content} />
               </div>
             </div>
@@ -204,13 +204,13 @@ export function RecordCard({
                   <FileText className="h-4 w-4 text-slate-400" />
                   <span className="text-sm font-medium text-slate-600">Metadata</span>
                 </div>
-                <div className="bg-slate-50/50 rounded-lg p-4 space-y-2 border border-slate-200/40">
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2 border border-border">
                   <ContentSection content={record.metadata} />
                 </div>
               </div>
             )}
 
-            <div className="pt-3 border-t border-slate-100">
+            <div className="pt-3 border-t border-border">
               <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
                 <span>ID: {record.id}</span>
                 <span>•</span>

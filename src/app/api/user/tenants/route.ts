@@ -32,9 +32,12 @@ export async function GET() {
     if (userTenants.length === 0) {
       console.warn('[User Tenants API] No tenants found for user - user needs to be granted access by admin')
     }
+
+    // Strip participantRole - never expose to client
+    const tenants = userTenants.map(({ tenant, role }) => ({ tenant, role }))
     
     return NextResponse.json({
-      tenants: userTenants,
+      tenants,
       userId: (session as any)?.user?.id,
       userEmail: (session as any)?.user?.email,
       count: userTenants.length

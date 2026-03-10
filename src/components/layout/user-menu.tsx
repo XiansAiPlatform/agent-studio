@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { LogOut, Building2, ShieldCheck } from 'lucide-react';
+import { LogOut, Building2, ShieldCheck, Palette, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,10 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/use-tenant';
+import { useColorTheme } from '@/hooks/use-color-theme';
+import { COLOR_THEMES, type ColorThemeId } from '@/lib/themes';
 
 export function UserMenu() {
   const { data: session, status } = useSession();
   const { currentTenant } = useTenant();
+  const { colorTheme, setColorTheme } = useColorTheme();
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' });
@@ -93,6 +96,24 @@ export function UserMenu() {
             <DropdownMenuSeparator />
           </>
         )}
+
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex items-center gap-2 py-1">
+            <Palette className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Theme</span>
+          </div>
+        </DropdownMenuLabel>
+        {(Object.entries(COLOR_THEMES) as [ColorThemeId, { name: string }][]).map(([id, { name }]) => (
+          <DropdownMenuItem
+            key={id}
+            onSelect={() => setColorTheme(id)}
+            className="flex items-center justify-between"
+          >
+            <span>{name}</span>
+            {colorTheme === id && <Check className="h-4 w-4" />}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="h-4 w-4" />

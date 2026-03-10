@@ -31,10 +31,10 @@ export function DeployedAgentCard({
 
   return (
     <article
-      className={`group relative flex flex-col rounded-lg border bg-white dark:bg-slate-900/50 transition-all duration-200 overflow-hidden ${
+      className={`group relative flex flex-col rounded-lg border bg-card transition-all duration-200 overflow-hidden ${
         isNewlyDeployed 
           ? 'border-emerald-300 dark:border-emerald-700 shadow-sm shadow-emerald-500/5' 
-          : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-md'
+          : 'border-border hover:border-primary/30 hover:shadow-md'
       }`}
       onClick={onClick}
     >
@@ -43,14 +43,14 @@ export function DeployedAgentCard({
         <div className={`flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl ${
           isNewlyDeployed 
             ? 'bg-emerald-100 dark:bg-emerald-900/30' 
-            : 'bg-slate-100 dark:bg-slate-800'
+            : 'bg-muted'
         }`}>
           <Icon className={`h-6 w-6 ${isNewlyDeployed ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`} />
         </div>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <h3 className="font-semibold text-foreground truncate">
                 {deployment.name}
               </h3>
               {deployment.category && (
@@ -135,9 +135,9 @@ export function DeployedAgentCard({
       )}
 
       {/* Action footer */}
-      <div className="px-5 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+      <div className="px-5 py-4 border-t border-border">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-muted-foreground">
             {deployment.activationCount ?? 0} run{(deployment.activationCount ?? 0) !== 1 ? 's' : ''}
           </span>
           <Button
