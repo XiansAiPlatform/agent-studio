@@ -36,7 +36,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem("agent-studio-color-theme");if(t==="coral"||t==="professional"){document.documentElement.setAttribute("data-theme",t)}else{document.documentElement.setAttribute("data-theme","coral")}})();`,
+            __html: `(function(){var t=localStorage.getItem("agent-studio-color-theme");if(t==="lingon"||t==="fjord"||t==="skog"||t==="zenith"){document.documentElement.setAttribute("data-theme",t)}else{document.documentElement.setAttribute("data-theme","lingon")}})();`,
           }}
         />
       </head>

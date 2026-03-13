@@ -155,7 +155,7 @@ export default function DashboardPage() {
         <section className="space-y-4 pt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <BarChart3 className="h-5 w-5 text-primary" />
               <h2 className="text-xl font-medium text-foreground">Organizational Overview</h2>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

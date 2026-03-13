@@ -11,7 +11,7 @@ interface ColorThemeContextValue {
 const ColorThemeContext = React.createContext<ColorThemeContextValue | undefined>(undefined);
 
 export function ColorThemeProvider({ children }: { children: React.ReactNode }) {
-  const [colorTheme, setColorThemeState] = React.useState<ColorThemeId>('coral');
+  const [colorTheme, setColorThemeState] = React.useState<ColorThemeId>('lingon');
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -22,11 +22,12 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
     if (!mounted) return;
     try {
       const stored = localStorage.getItem(COLOR_THEME_STORAGE_KEY) as ColorThemeId | null;
-      const theme: ColorThemeId = stored && (stored === 'coral' || stored === 'professional') ? stored : 'coral';
+      const validThemes: ColorThemeId[] = ['lingon', 'fjord', 'skog', 'zenith'];
+      const theme: ColorThemeId = stored && validThemes.includes(stored as ColorThemeId) ? (stored as ColorThemeId) : 'lingon';
       setColorThemeState(theme);
       document.documentElement.setAttribute('data-theme', theme);
     } catch {
-      document.documentElement.setAttribute('data-theme', 'coral');
+      document.documentElement.setAttribute('data-theme', 'lingon');
     }
   }, [mounted]);
 

@@ -8,6 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -97,22 +100,32 @@ export function UserMenu() {
           </>
         )}
 
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex items-center gap-2 py-1">
-            <Palette className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Theme</span>
-          </div>
-        </DropdownMenuLabel>
-        {(Object.entries(COLOR_THEMES) as [ColorThemeId, { name: string }][]).map(([id, { name }]) => (
-          <DropdownMenuItem
-            key={id}
-            onSelect={() => setColorTheme(id)}
-            className="flex items-center justify-between"
-          >
-            <span>{name}</span>
-            {colorTheme === id && <Check className="h-4 w-4" />}
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            <span>Theme</span>
+            <div
+              className="ml-auto h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
+              style={{ backgroundColor: COLOR_THEMES[colorTheme].primarySwatch }}
+            />
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-44">
+            {(Object.entries(COLOR_THEMES) as [ColorThemeId, { name: string; primarySwatch: string }][]).map(([id, { name, primarySwatch }]) => (
+              <DropdownMenuItem
+                key={id}
+                onSelect={() => setColorTheme(id)}
+                className="flex items-center gap-2"
+              >
+                <div
+                  className="h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
+                  style={{ backgroundColor: primarySwatch }}
+                />
+                <span>{name}</span>
+                {colorTheme === id && <Check className="h-4 w-4 ml-auto" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={handleLogout}>

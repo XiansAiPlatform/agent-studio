@@ -6,18 +6,18 @@ export const AGENT_STATUS_CONFIG = {
   active: {
     label: 'Active',
     colors: {
-      badge: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-      text: 'text-green-600 dark:text-green-400',
-      bg: 'bg-green-50 dark:bg-green-950/30',
+      badge: 'bg-primary/15 text-primary dark:bg-primary/20',
+      text: 'text-primary',
+      bg: 'bg-primary/10',
     },
     variant: 'default' as const,
   },
   inactive: {
     label: 'Inactive',
     colors: {
-      badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
-      text: 'text-yellow-600 dark:text-yellow-400',
-      bg: 'bg-yellow-50 dark:bg-yellow-950/30',
+      badge: 'bg-secondary text-secondary-foreground',
+      text: 'text-muted-foreground',
+      bg: 'bg-secondary/50',
     },
     variant: 'secondary' as const,
   },

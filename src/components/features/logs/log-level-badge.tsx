@@ -26,12 +26,12 @@ const LOG_LEVEL_CONFIG: Record<LogLevel, {
   Information: {
     label: 'Info',
     icon: Info,
-    className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-900',
+    className: 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/15 dark:bg-primary/20',
   },
   Info: {
     label: 'Info',
     icon: Info,
-    className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-900',
+    className: 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/15 dark:bg-primary/20',
   },
   Debug: {
     label: 'Debug',

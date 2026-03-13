@@ -10,9 +10,9 @@ export const TOPIC_STATUS_CONFIG = {
     label: 'Active',
     icon: Activity,
     colors: {
-      text: 'text-green-600 dark:text-green-400',
-      badge: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-      icon: 'text-green-600 dark:text-green-400',
+      text: 'text-primary',
+      badge: 'bg-primary/15 text-primary dark:bg-primary/20',
+      icon: 'text-primary',
     },
     variant: 'secondary' as const,
   },
@@ -42,9 +42,9 @@ export const AGENT_STATUS_CONFIG = {
   online: {
     label: 'Online',
     colors: {
-      badge: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-      dot: 'bg-green-500',
-      text: 'text-green-600 dark:text-green-400',
+      badge: 'bg-primary/15 text-primary dark:bg-primary/20',
+      dot: 'bg-primary',
+      text: 'text-primary',
     },
     variant: 'secondary' as const,
   },

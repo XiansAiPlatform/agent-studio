@@ -103,9 +103,9 @@
 }
 
 /* ========== Color Theme Overrides (data-theme on html) ========== */
-/* Professional - deep blue primary, slate secondary, mild blue-tinted backgrounds */
-:root[data-theme="professional"],
-html[data-theme="professional"] {
+/* Fjord - deep blue primary, slate secondary, mild blue-tinted backgrounds */
+:root[data-theme="fjord"],
+html[data-theme="fjord"] {
   /* Backgrounds - light cyan (page body, header, sidebar) */
   --background: rgb(238 249 252);
   --card: rgb(255 255 255); /* whitish - cards stand out on page background */
@@ -133,17 +133,17 @@ html[data-theme="professional"] {
   --header-sidebar-bg: rgb(238 249 252 / var(--tw-bg-opacity, 1));
 }
 
-/* Professional theme - apply light cyan to header and sidebar (menu) */
-:root[data-theme="professional"] header,
-html[data-theme="professional"] header,
-:root[data-theme="professional"] aside[class*="border-r"],
-html[data-theme="professional"] aside[class*="border-r"] {
+/* Fjord theme - apply light cyan to header and sidebar (menu) */
+:root[data-theme="fjord"] header,
+html[data-theme="fjord"] header,
+:root[data-theme="fjord"] aside[class*="border-r"],
+html[data-theme="fjord"] aside[class*="border-r"] {
   background-color: rgb(238 249 252 / var(--tw-bg-opacity, 1)) !important;
 }
 
-/* Professional theme - dark mode (html has both .dark and data-theme) */
-.dark[data-theme="professional"],
-html.dark[data-theme="professional"] {
+/* Fjord theme - dark mode (html has both .dark and data-theme) */
+.dark[data-theme="fjord"],
+html.dark[data-theme="fjord"] {
   /* Backgrounds - blue-tinted dark (no warm/red) */
   --background: oklch(0.22 0.02 250);
   --card: oklch(0.28 0.03 250);
@@ -163,6 +163,241 @@ html.dark[data-theme="professional"] {
   --sidebar-primary: oklch(0.65 0.12 250);
   --sidebar-accent: oklch(0.40 0.05 250);
   --sidebar-ring: oklch(0.65 0.12 250);
+}
+
+/* ========== Skog Theme ========== */
+/* Deep forest green, clean Scandinavian whites, sage accents */
+:root[data-theme="skog"],
+html[data-theme="skog"] {
+  /* Backgrounds — crisp off-white with subtle green undertone */
+  --background: oklch(0.975 0.008 152);    /* #F4F8F5 — green-tinted off-white */
+  --card: oklch(1 0 0);                    /* pure white cards */
+  --muted: oklch(0.92 0.02 152);           /* #E4EFE8 — light sage */
+  --border: oklch(0.87 0.025 152);         /* #CEDFD4 — sage border */
+  --input: oklch(0.87 0.025 152);
+  --sidebar: oklch(0.975 0.008 152);       /* matches background */
+  --sidebar-border: oklch(0.87 0.025 152);
+
+  /* Foreground */
+  --foreground: oklch(0.18 0.025 152);     /* #0F251A — very dark forest green */
+  --card-foreground: oklch(0.18 0.025 152);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.025 152);
+  --muted-foreground: oklch(0.48 0.05 152); /* #4A6E58 — muted sage */
+  --sidebar-foreground: oklch(0.18 0.025 152);
+
+  /* Brand Colors — deep forest green primary */
+  --primary: oklch(0.27 0.09 152);          /* #1B3A2B — deep forest green */
+  --primary-foreground: oklch(0.98 0.005 90);
+  --secondary: oklch(0.91 0.03 152);        /* #DCEEE3 — light sage secondary */
+  --secondary-foreground: oklch(0.18 0.025 152);
+  --accent: oklch(0.91 0.03 152);           /* light sage accent */
+  --accent-foreground: oklch(0.18 0.025 152);
+  --ring: oklch(0.27 0.09 152);
+  --info: oklch(0.27 0.09 152);
+
+  /* Charts — green family */
+  --chart-1: oklch(0.27 0.09 152);          /* deep forest */
+  --chart-2: oklch(0.50 0.10 152);          /* mid green */
+  --chart-3: oklch(0.68 0.10 152);          /* sage */
+  --chart-4: oklch(0.83 0.06 152);          /* pale mint */
+  --chart-5: oklch(0.38 0.08 152);          /* dark sage */
+
+  /* Sidebar brand tokens */
+  --sidebar-primary: oklch(0.27 0.09 152);
+  --sidebar-primary-foreground: oklch(0.98 0.005 90);
+  --sidebar-accent: oklch(0.91 0.03 152);
+  --sidebar-accent-foreground: oklch(0.18 0.025 152);
+  --sidebar-ring: oklch(0.27 0.09 152);
+
+  /* Header */
+  --header-sidebar-bg: oklch(0.975 0.008 152 / var(--tw-bg-opacity, 1));
+}
+
+/* Apply light green-tinted bg to header and sidebar in skog theme */
+:root[data-theme="skog"] header,
+html[data-theme="skog"] header,
+:root[data-theme="skog"] aside[class*="border-r"],
+html[data-theme="skog"] aside[class*="border-r"] {
+  background-color: oklch(0.975 0.008 152 / var(--tw-bg-opacity, 1)) !important;
+}
+
+/* ========== Zenith Theme ========== */
+/* Scandinavian minimal white + deep teal accents */
+:root[data-theme="zenith"],
+html[data-theme="zenith"] {
+
+  /* Backgrounds — pure white */
+  --background: #ffffff;
+  --card: #ffffff;
+  --muted: #ffffff;
+  --border: oklch(0.88 0.01 160);
+  --input: oklch(0.88 0.01 160);
+
+  --sidebar: #ffffff;
+  --sidebar-border: oklch(0.88 0.01 160);
+
+  /* Foreground */
+  --foreground: oklch(0.20 0.02 170);
+  --card-foreground: oklch(0.20 0.02 170);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.20 0.02 170);
+
+  --muted-foreground: oklch(0.50 0.02 170);
+  --sidebar-foreground: oklch(0.20 0.02 170);
+
+  /* Brand Colors — Nordic teal + electric yellow */
+  --primary: #fbe737;
+  --primary-foreground: oklch(0.20 0.02 170); /* dark teal text on bright yellow */
+
+  --secondary: oklch(0.91 0.05 75);          /* very pale amber */
+  --secondary-foreground: oklch(0.20 0.02 170);
+
+  --accent: oklch(0.95 0.03 80);             /* near-white amber tint */
+  --accent-foreground: oklch(0.20 0.02 170);
+
+  --ring: #fbe737;
+  --info: oklch(0.40 0.09 170);
+
+  /* Charts */
+  --chart-1: #fbe737;
+  --chart-2: oklch(0.91 0.05 75);
+  --chart-3: oklch(0.93 0.04 78);
+  --chart-4: oklch(0.96 0.02 82);
+  --chart-5: oklch(0.30 0.07 170);           /* dark teal */
+
+  /* Sidebar tokens */
+  --sidebar-primary: #fbe737;
+  --sidebar-primary-foreground: oklch(0.20 0.02 170);
+
+  --sidebar-accent: oklch(0.95 0.03 80);
+  --sidebar-accent-foreground: oklch(0.20 0.02 170);
+
+  --sidebar-ring: #fbe737;
+
+  /* Header */
+  --header-sidebar-bg: #ffffff;
+}
+
+/* Header + sidebar background */
+:root[data-theme="zenith"] header,
+html[data-theme="zenith"] header,
+:root[data-theme="zenith"] aside[class*="border-r"],
+html[data-theme="zenith"] aside[class*="border-r"] {
+  background-color: #ffffff !important;
+}
+
+/* Zenith: icon avatars — 35% primary yellow, dark icon for legibility */
+[data-theme="zenith"] .bg-primary\/10.text-primary {
+  background-color: color-mix(in srgb, #fbe737 35%, transparent) !important;
+  color: oklch(0.20 0.02 170) !important;
+}
+
+/* Zenith: yellow is invisible as text/icons on light backgrounds — use dark teal instead */
+html[data-theme="zenith"] .text-primary,
+html[data-theme="zenith"] .bg-primary\/15,
+html[data-theme="zenith"] .bg-primary\/20 {
+  color: oklch(0.20 0.02 170) !important;
+}
+
+/* Zenith: sonar rings — use dark teal so they're visible on white background */
+[data-theme="zenith"] .sonar-container::before,
+[data-theme="zenith"] .sonar-container::after {
+  border-color: oklch(0.20 0.02 170);
+  border-width: 1.5px;
+}
+
+/* Zenith dark mode */
+.dark[data-theme="zenith"],
+html.dark[data-theme="zenith"] {
+
+  --background: oklch(0.17 0.02 170);
+  --card: oklch(0.22 0.025 170);
+  --muted: oklch(0.27 0.02 170);
+
+  --border: oklch(0.32 0.03 170);
+  --input: oklch(0.32 0.03 170);
+
+  --sidebar: oklch(0.20 0.025 170);
+  --sidebar-border: oklch(0.32 0.03 170);
+
+  --foreground: oklch(0.94 0.006 90);
+  --card-foreground: oklch(0.94 0.006 90);
+
+  --popover: oklch(0.22 0.025 170);
+  --popover-foreground: oklch(0.94 0.006 90);
+
+  --sidebar-foreground: oklch(0.94 0.006 90);
+  --muted-foreground: oklch(0.60 0.02 170);
+
+  --primary: #fbe737;
+  --secondary: oklch(0.88 0.06 72);
+  --accent: oklch(0.92 0.04 76);
+
+  --primary-foreground: oklch(0.20 0.02 170);
+  --secondary-foreground: oklch(0.20 0.02 170);
+  --accent-foreground: oklch(0.20 0.02 170);
+
+  --ring: #fbe737;
+  --info: oklch(0.55 0.11 170);
+
+  /* Charts */
+  --chart-1: #fbe737;
+  --chart-2: oklch(0.88 0.06 72);
+  --chart-3: oklch(0.91 0.05 75);
+  --chart-4: oklch(0.94 0.03 80);
+  --chart-5: oklch(0.40 0.08 170);           /* dark teal */
+
+  --sidebar-primary: #fbe737;
+  --sidebar-primary-foreground: oklch(0.20 0.02 170);
+  --sidebar-accent: oklch(0.92 0.04 76);
+  --sidebar-ring: #fbe737;
+}
+
+/* Skog dark mode */
+.dark[data-theme="skog"],
+html.dark[data-theme="skog"] {
+  /* Backgrounds — rich dark forest green */
+  --background: oklch(0.17 0.04 152);      /* #0D2118 — deep forest night */
+  --card: oklch(0.22 0.045 152);           /* #132A1E — dark forest card */
+  --muted: oklch(0.27 0.04 152);           /* slightly lighter forest */
+  --muted-foreground: oklch(0.60 0.04 152);
+  --border: oklch(0.33 0.06 152);          /* visible but subtle green border */
+  --input: oklch(0.33 0.06 152);
+  --sidebar: oklch(0.20 0.042 152);        /* sidebar slightly distinct */
+  --sidebar-border: oklch(0.33 0.06 152);
+
+  /* Foreground */
+  --foreground: oklch(0.94 0.008 90);      /* warm off-white text */
+  --card-foreground: oklch(0.94 0.008 90);
+  --popover: oklch(0.22 0.045 152);
+  --popover-foreground: oklch(0.94 0.008 90);
+  --sidebar-foreground: oklch(0.94 0.008 90);
+
+  /* Brand Colors — brightened for dark backgrounds */
+  --primary: oklch(0.55 0.12 152);         /* #3D9162 — vibrant mid-forest green */
+  --primary-foreground: oklch(0.98 0.005 90);
+  --secondary: oklch(0.27 0.05 152);       /* dark sage secondary */
+  --secondary-foreground: oklch(0.94 0.008 90);
+  --accent: oklch(0.30 0.055 152);         /* dark sage accent */
+  --accent-foreground: oklch(0.94 0.008 90);
+  --ring: oklch(0.55 0.12 152);
+  --info: oklch(0.55 0.12 152);
+
+  /* Charts */
+  --chart-1: oklch(0.55 0.12 152);
+  --chart-2: oklch(0.68 0.10 152);
+  --chart-3: oklch(0.43 0.09 152);
+  --chart-4: oklch(0.78 0.07 152);
+  --chart-5: oklch(0.35 0.07 152);
+
+  /* Sidebar brand tokens */
+  --sidebar-primary: oklch(0.55 0.12 152);
+  --sidebar-primary-foreground: oklch(0.98 0.005 90);
+  --sidebar-accent: oklch(0.30 0.055 152);
+  --sidebar-accent-foreground: oklch(0.94 0.008 90);
+  --sidebar-ring: oklch(0.55 0.12 152);
 }
 
 .dark {
