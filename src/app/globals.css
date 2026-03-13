@@ -133,12 +133,16 @@ html[data-theme="fjord"] {
   --header-sidebar-bg: rgb(238 249 252 / var(--tw-bg-opacity, 1));
 }
 
-/* Fjord theme - apply light cyan to header and sidebar (menu) */
-:root[data-theme="fjord"] header,
-html[data-theme="fjord"] header,
-:root[data-theme="fjord"] aside[class*="border-r"],
-html[data-theme="fjord"] aside[class*="border-r"] {
+/* Fjord theme - apply light cyan to header and sidebar (menu) — light mode only */
+html:not(.dark)[data-theme="fjord"] header,
+html:not(.dark)[data-theme="fjord"] aside[class*="border-r"] {
   background-color: rgb(238 249 252 / var(--tw-bg-opacity, 1)) !important;
+}
+
+/* Fjord theme - dark mode header/sidebar */
+html.dark[data-theme="fjord"] header,
+html.dark[data-theme="fjord"] aside[class*="border-r"] {
+  background-color: oklch(0.25 0.025 250) !important;
 }
 
 /* Fjord theme - dark mode (html has both .dark and data-theme) */
@@ -214,12 +218,16 @@ html[data-theme="skog"] {
   --header-sidebar-bg: oklch(0.975 0.008 152 / var(--tw-bg-opacity, 1));
 }
 
-/* Apply light green-tinted bg to header and sidebar in skog theme */
-:root[data-theme="skog"] header,
-html[data-theme="skog"] header,
-:root[data-theme="skog"] aside[class*="border-r"],
-html[data-theme="skog"] aside[class*="border-r"] {
+/* Apply light green-tinted bg to header and sidebar in skog theme — light mode only */
+html:not(.dark)[data-theme="skog"] header,
+html:not(.dark)[data-theme="skog"] aside[class*="border-r"] {
   background-color: oklch(0.975 0.008 152 / var(--tw-bg-opacity, 1)) !important;
+}
+
+/* Skog theme - dark mode header/sidebar */
+html.dark[data-theme="skog"] header,
+html.dark[data-theme="skog"] aside[class*="border-r"] {
+  background-color: oklch(0.20 0.042 152) !important;
 }
 
 /* ========== Zenith Theme ========== */
@@ -280,12 +288,16 @@ html[data-theme="zenith"] {
   --header-sidebar-bg: #ffffff;
 }
 
-/* Header + sidebar background */
-:root[data-theme="zenith"] header,
-html[data-theme="zenith"] header,
-:root[data-theme="zenith"] aside[class*="border-r"],
-html[data-theme="zenith"] aside[class*="border-r"] {
+/* Header + sidebar background — light mode */
+html:not(.dark)[data-theme="zenith"] header,
+html:not(.dark)[data-theme="zenith"] aside[class*="border-r"] {
   background-color: #ffffff !important;
+}
+
+/* Header + sidebar background — dark mode */
+html.dark[data-theme="zenith"] header,
+html.dark[data-theme="zenith"] aside[class*="border-r"] {
+  background-color: oklch(0.20 0.025 170) !important;
 }
 
 /* Zenith: icon avatars — 35% primary yellow, dark icon for legibility */
@@ -301,11 +313,71 @@ html[data-theme="zenith"] .bg-primary\/20 {
   color: oklch(0.20 0.02 170) !important;
 }
 
-/* Zenith: sonar rings — use dark teal so they're visible on white background */
-[data-theme="zenith"] .sonar-container::before,
-[data-theme="zenith"] .sonar-container::after {
+/* Zenith: sonar rings — use dark teal so they're visible on white background (light mode) */
+html:not(.dark)[data-theme="zenith"] .sonar-container::before,
+html:not(.dark)[data-theme="zenith"] .sonar-container::after {
   border-color: oklch(0.20 0.02 170);
   border-width: 1.5px;
+}
+
+/* Zenith: sonar rings — use bright yellow in dark mode */
+html.dark[data-theme="zenith"] .sonar-container::before,
+html.dark[data-theme="zenith"] .sonar-container::after {
+  border-color: #fbe737;
+  border-width: 1.5px;
+}
+
+.dark {
+  /* Dark mode - warm charcoal tones to complement coral accent */
+  /* Backgrounds */
+  --background: oklch(0.22 0.01 30); /* warm dark */
+  --foreground: oklch(0.93 0.005 85);
+  --card: oklch(0.28 0.012 30); /* warm dark card */
+  --card-foreground: oklch(0.93 0.005 85);
+  --popover: oklch(0.28 0.012 30);
+  --popover-foreground: oklch(0.93 0.005 85);
+
+  /* Brand Colors - coral accent stays prominent */
+  --primary: oklch(0.65 0.16 25); /* coral - slightly brighter for dark bg */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.32 0.012 30);
+  --secondary-foreground: oklch(0.93 0.005 85);
+  --muted: oklch(0.32 0.012 30);
+  --muted-foreground: oklch(0.58 0 0);
+  --accent: oklch(0.35 0.015 30);
+  --accent-foreground: oklch(0.93 0.005 85);
+
+  /* Status Colors */
+  --destructive: oklch(0.58 0.18 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.70 0.09 135);
+  --success-foreground: oklch(0.22 0.01 30);
+  --warning: oklch(0.83 0.10 85);
+  --warning-foreground: oklch(0.22 0.01 30);
+  --info: oklch(0.65 0.16 25);
+  --info-foreground: oklch(1 0 0);
+
+  /* UI Elements */
+  --border: oklch(0.42 0.018 30);
+  --input: oklch(0.42 0.018 30);
+  --ring: oklch(0.65 0.16 25);
+
+  /* Charts */
+  --chart-1: oklch(0.65 0.16 25);
+  --chart-2: oklch(0.45 0.05 30);
+  --chart-3: oklch(0.70 0.09 135);
+  --chart-4: oklch(0.83 0.10 85);
+  --chart-5: oklch(0.58 0.18 25);
+
+  /* Sidebar */
+  --sidebar: oklch(0.25 0.01 30);
+  --sidebar-foreground: oklch(0.93 0.005 85);
+  --sidebar-primary: oklch(0.65 0.16 25);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.35 0.015 30);
+  --sidebar-accent-foreground: oklch(0.93 0.005 85);
+  --sidebar-border: oklch(0.42 0.018 30);
+  --sidebar-ring: oklch(0.65 0.16 25);
 }
 
 /* Zenith dark mode */
@@ -398,59 +470,6 @@ html.dark[data-theme="skog"] {
   --sidebar-accent: oklch(0.30 0.055 152);
   --sidebar-accent-foreground: oklch(0.94 0.008 90);
   --sidebar-ring: oklch(0.55 0.12 152);
-}
-
-.dark {
-  /* Dark mode - warm charcoal tones to complement coral accent */
-  /* Backgrounds */
-  --background: oklch(0.22 0.01 30); /* warm dark */
-  --foreground: oklch(0.93 0.005 85);
-  --card: oklch(0.28 0.012 30); /* warm dark card */
-  --card-foreground: oklch(0.93 0.005 85);
-  --popover: oklch(0.28 0.012 30);
-  --popover-foreground: oklch(0.93 0.005 85);
-
-  /* Brand Colors - coral accent stays prominent */
-  --primary: oklch(0.65 0.16 25); /* coral - slightly brighter for dark bg */
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.32 0.012 30);
-  --secondary-foreground: oklch(0.93 0.005 85);
-  --muted: oklch(0.32 0.012 30);
-  --muted-foreground: oklch(0.58 0 0);
-  --accent: oklch(0.35 0.015 30);
-  --accent-foreground: oklch(0.93 0.005 85);
-
-  /* Status Colors */
-  --destructive: oklch(0.58 0.18 25);
-  --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.70 0.09 135);
-  --success-foreground: oklch(0.22 0.01 30);
-  --warning: oklch(0.83 0.10 85);
-  --warning-foreground: oklch(0.22 0.01 30);
-  --info: oklch(0.65 0.16 25);
-  --info-foreground: oklch(1 0 0);
-
-  /* UI Elements */
-  --border: oklch(0.42 0.018 30);
-  --input: oklch(0.42 0.018 30);
-  --ring: oklch(0.65 0.16 25);
-
-  /* Charts */
-  --chart-1: oklch(0.65 0.16 25);
-  --chart-2: oklch(0.45 0.05 30);
-  --chart-3: oklch(0.70 0.09 135);
-  --chart-4: oklch(0.83 0.10 85);
-  --chart-5: oklch(0.58 0.18 25);
-
-  /* Sidebar */
-  --sidebar: oklch(0.25 0.01 30);
-  --sidebar-foreground: oklch(0.93 0.005 85);
-  --sidebar-primary: oklch(0.65 0.16 25);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.35 0.015 30);
-  --sidebar-accent-foreground: oklch(0.93 0.005 85);
-  --sidebar-border: oklch(0.42 0.018 30);
-  --sidebar-ring: oklch(0.65 0.16 25);
 }
 
 @layer base {
