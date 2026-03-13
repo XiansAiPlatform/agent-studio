@@ -13,6 +13,7 @@
 export interface XiansTenant {
   tenantId: string
   name: string
+  theme?: string
   logo?: {
     url?: string | null
     imgBase64?: string | null
@@ -33,6 +34,7 @@ export interface XiansParticipantTenant {
   tenantId: string
   tenantName: string
   role?: XiansParticipantRole
+  theme?: string
   logo?: {
     url?: string | null
     imgBase64?: string | null

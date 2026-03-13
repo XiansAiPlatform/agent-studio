@@ -39,3 +39,13 @@ export const COLOR_THEMES: Record<
 export const DEFAULT_COLOR_THEME: ColorThemeId = 'lingon';
 
 export const COLOR_THEME_STORAGE_KEY = 'agent-studio-color-theme';
+
+/** Stores the tenant ID whose theme was last applied as default (not a user manual pick) */
+export const COLOR_THEME_TENANT_KEY = 'agent-studio-color-theme-tenant';
+
+/**
+ * Stores a JSON map of tenantId → ColorThemeId for tenants where the user has
+ * manually chosen a theme, overriding the tenant default.
+ * e.g. { "tenant-abc": "zenith", "tenant-xyz": "skog" }
+ */
+export const COLOR_THEME_USER_OVERRIDES_KEY = 'agent-studio-color-theme-overrides';

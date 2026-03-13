@@ -3,16 +3,24 @@ import { Tenant, TenantContext } from "@/types/tenant"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
 import { XiansTenant } from "@/lib/xians/types"
+import { COLOR_THEMES, type ColorThemeId } from "@/lib/themes"
+
+const VALID_THEMES = Object.keys(COLOR_THEMES) as ColorThemeId[]
 
 export class XiansTenantProvider implements TenantProvider {
   /**
    * Convert Xians tenant to internal tenant type
    */
   private mapXiansTenantToTenant(xiansTenant: XiansTenant): Tenant {
+    const normalised = xiansTenant.theme?.trim().toLowerCase()
+    const theme = normalised && VALID_THEMES.includes(normalised as ColorThemeId)
+      ? (normalised as ColorThemeId)
+      : undefined
     return {
       id: xiansTenant.tenantId,
       name: xiansTenant.name,
       slug: xiansTenant.tenantId.toLowerCase(),
+      theme,
       metadata: {
         logo: xiansTenant.logo
       }
@@ -78,22 +86,33 @@ export class XiansTenantProvider implements TenantProvider {
     const tenantPromises = response.tenants.map(async (participantTenant) => {
       const tenantId = participantTenant.tenantId
       const participantRole = participantTenant.role
+      const role: 'owner' | 'admin' | 'member' | 'viewer' =
+        participantRole !== 'TenantParticipant' ? 'admin' : 'member'
       try {
         const xiansTenant = await tenantsApi.getTenant(tenantId)
-        
-        // API only returns enabled tenants
-        // Map Xians participant role: TenantParticipantAdmin gets 'admin', TenantParticipant gets 'member'
-        // Default to admin when role is missing (backwards compatibility)
-        const role: 'owner' | 'admin' | 'member' | 'viewer' =
-          participantRole !== 'TenantParticipant' ? 'admin' : 'member'
+        // Prefer the theme from the full tenant response; fall back to the participant list value
+        if (!xiansTenant.theme && participantTenant.theme) {
+          xiansTenant.theme = participantTenant.theme
+        }
         return {
           tenant: this.mapXiansTenantToTenant(xiansTenant),
           role,
           participantRole,
         }
       } catch (error) {
-        console.error(`[XiansTenantProvider] Failed to fetch tenant ${tenantId}:`, error)
-        return null
+        console.warn(`[XiansTenantProvider] Could not fetch full details for tenant ${tenantId}, using participant list data`)
+        // Fall back to the data already available from the participant list response
+        const fallbackTenant: XiansTenant = {
+          tenantId: participantTenant.tenantId,
+          name: participantTenant.tenantName,
+          theme: participantTenant.theme,
+          logo: participantTenant.logo,
+        }
+        return {
+          tenant: this.mapXiansTenantToTenant(fallbackTenant),
+          role,
+          participantRole,
+        }
       }
     })
     
