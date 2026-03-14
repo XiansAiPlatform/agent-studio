@@ -687,13 +687,7 @@ function ConversationContent() {
   if (!conversation) {
     const noConvContent = (
       <div className="flex flex-col items-center justify-center flex-1 text-center p-12 bg-card min-h-0">
-        <div className="h-28 w-28 rounded-3xl bg-primary/20 flex items-center justify-center mb-8 shadow-2xl border border-primary/40 animate-in fade-in zoom-in duration-500">
-          <Bot className="h-14 w-14 text-primary" />
-        </div>
-        <h2 className="text-3xl font-bold text-foreground mb-3 tracking-tight">
-          No Active Conversation
-        </h2>
-        <p className="text-primary/80 max-w-md text-base font-semibold">
+        <p className="text-primary max-w-md text-base font-semibold">
           {agentName && activationName 
             ? `No topics found for ${activationName}`
             : 'There are no active conversations with this agent'

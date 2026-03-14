@@ -152,6 +152,7 @@ export function SignInForm() {
           <Button 
             className="w-full" 
             size="lg"
+            variant="outline"
             onClick={() => handleSignIn('google')}
             disabled={isLoading !== null || !isOnline}
           >

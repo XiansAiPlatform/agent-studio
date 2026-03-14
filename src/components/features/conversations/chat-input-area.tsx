@@ -89,10 +89,10 @@ export function ChatInputArea({
   };
 
   return (
-    <div className="border-t border-border/20 bg-card px-6 py-4 flex-shrink-0">
+    <div className="border-t border-border bg-card px-6 py-4 flex-shrink-0">
       <div className="max-w-4xl mx-auto">
         {!isActivationActive && (
-          <div className="mb-3 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm text-yellow-700 dark:text-yellow-400">
+          <div className="mb-3 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-700 dark:text-yellow-400">
             This agent is inactive. Messages cannot be sent until it is activated.
           </div>
         )}
@@ -132,7 +132,7 @@ export function ChatInputArea({
               onKeyPress={handleKeyPress}
               placeholder={isActivationActive ? `Message ${agentName}...` : 'Activation is inactive'}
               disabled={!isActivationActive}
-              className="h-11 resize-none bg-muted/30 border-0 rounded-full focus-visible:ring-1 focus-visible:ring-primary/30 transition-all text-sm px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-11 resize-none bg-background border border-border rounded-full focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60 transition-all text-sm px-4 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 

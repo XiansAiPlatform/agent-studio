@@ -108,7 +108,7 @@ export function MessagesArea({
                   <Bot className="h-10 w-10 text-primary" />
                 </div>
 
-                <p className="text-sm text-primary/70 max-w-sm font-semibold">
+                <p className="text-sm text-primary max-w-sm font-semibold">
                   Start a conversation by typing a message below
                 </p>
               </div>

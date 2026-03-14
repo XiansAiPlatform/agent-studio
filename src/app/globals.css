@@ -306,10 +306,10 @@ html.dark[data-theme="zenith"] aside[class*="border-r"] {
   color: oklch(0.20 0.02 170) !important;
 }
 
-/* Zenith: yellow is invisible as text/icons on light backgrounds — use dark teal instead */
-html[data-theme="zenith"] .text-primary,
-html[data-theme="zenith"] .bg-primary\/15,
-html[data-theme="zenith"] .bg-primary\/20 {
+/* Zenith: yellow is invisible as text/icons on light backgrounds — use dark teal instead (light mode only) */
+html:not(.dark)[data-theme="zenith"] .text-primary,
+html:not(.dark)[data-theme="zenith"] .bg-primary\/15,
+html:not(.dark)[data-theme="zenith"] .bg-primary\/20 {
   color: oklch(0.20 0.02 170) !important;
 }
 

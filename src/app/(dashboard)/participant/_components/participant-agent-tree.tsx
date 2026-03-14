@@ -130,8 +130,9 @@ export function ParticipantAgentTree({
   const params = useParams()
   const searchParams = useSearchParams()
   const { currentTenantId } = useTenant()
-  const { activations, isLoading: isLoadingActivations } =
+  const { activations: allActivations, isLoading: isLoadingActivations } =
     useActivations(currentTenantId)
+  const activations = allActivations.filter((a) => a.status === 'active')
 
   const routeAgentName = params.agentName as string | undefined
   const routeActivationName = params.activationName as string | undefined
