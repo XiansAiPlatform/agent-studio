@@ -177,7 +177,7 @@ export function ParticipantAgentTree({
           setTopicsByActivation((p) => ({ ...p, [key]: topics }))
       ).catch(console.error)
     }
-  }, [routeAgentName, routeActivationName])
+  }, [routeAgentName, routeActivationName, topicsByActivation])
 
   const refetchActivationTopics = useCallback(
     async (agentName: string, activationName: string) => {

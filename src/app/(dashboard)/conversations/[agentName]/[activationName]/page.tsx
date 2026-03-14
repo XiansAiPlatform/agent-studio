@@ -47,6 +47,8 @@ function ConversationContent() {
   // Ref for chat input to focus after topic creation or activation change
   const chatInputRef = useRef<HTMLInputElement>(null);
   const hasAutoFocusedRef = useRef(false);
+  // Incrementing this triggers the auto-focus effect even when selectedTopicId hasn't changed
+  const [focusTrigger, setFocusTrigger] = useState(0);
 
   // Fetch activations (for switching between agents)
   const { activations, isLoading: isLoadingActivations } = useActivations(currentTenantId);
@@ -289,7 +291,8 @@ function ConversationContent() {
         };
         addTopic(newTopic);
         setSelectedTopicId(topicParam);
-        setTimeout(() => chatInputRef.current?.focus(), 150);
+        hasAutoFocusedRef.current = false;
+        setFocusTrigger((n) => n + 1);
       }
     } else if (topics.length > 0 && !selectedTopicId) {
       // Auto-select general discussions if no topic selected
@@ -299,19 +302,17 @@ function ConversationContent() {
     }
   }, [topicParam, topics, selectedTopicId, updateTopicInURL, addTopic]);
 
-  // Auto-focus chat input when activation changes and topic is selected
+  // Auto-focus chat input when activation changes and topic is selected.
+  // `topics` is included so the effect re-runs after addTopic propagates through
+  // useConversationState and ChatInputArea is mounted (chatInputRef.current becomes non-null).
   useEffect(() => {
-    // Only auto-focus once per activation load
-    if (selectedTopicId && !isLoadingTopics && chatInputRef.current && !hasAutoFocusedRef.current) {
-      // Add a small delay to ensure the chat interface is fully rendered
-      const timeoutId = setTimeout(() => {
-        chatInputRef.current?.focus();
-        hasAutoFocusedRef.current = true;
-      }, 150);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [selectedTopicId, isLoadingTopics]);
+    if (!selectedTopicId || isLoadingTopics || hasAutoFocusedRef.current || !chatInputRef.current) return;
+    const timeoutId = setTimeout(() => {
+      chatInputRef.current?.focus();
+      hasAutoFocusedRef.current = true;
+    }, 50);
+    return () => clearTimeout(timeoutId);
+  }, [selectedTopicId, isLoadingTopics, focusTrigger, topics]);
 
   // Reset auto-focus flag when activation or topic changes (e.g. when selecting from participant tree)
   useEffect(() => {
