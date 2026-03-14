@@ -15,6 +15,27 @@ export function getTopicDisplayName(topicId: string): string {
 }
 
 /**
+ * Sanitize a URL-derived topic param for safe display in the UI.
+ * Used when creating synthetic topics from query params (e.g. ?topic=...) —
+ * raw values can be malformed or contain path-like strings.
+ */
+export function sanitizeTopicDisplayName(raw: string | null): string {
+  if (!raw || typeof raw !== 'string') return 'New conversation';
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw.replace(/\+/g, ' '));
+  } catch {
+    decoded = raw;
+  }
+  const sanitized = decoded
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!sanitized) return 'New conversation';
+  return sanitized.slice(0, 200);
+}
+
+/**
  * Check if a topic ID represents the general discussions topic
  */
 export function isGeneralTopic(topicId: string): boolean {

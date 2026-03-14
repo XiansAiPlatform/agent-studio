@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Loader2, Bot, PanelLeft } from 'lucide-react';
+import { Loader2, Bot } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
@@ -11,10 +11,11 @@ import { toast } from 'sonner';
 import { Message, Topic } from '@/lib/data/dummy-conversations';
 import { useActivations, useTopics, useConversationState } from '../../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
-import { getTopicParam, mapXiansMessageToMessage } from '../../utils';
+import { getTopicParam, mapXiansMessageToMessage, sanitizeTopicDisplayName } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
 import type { FileUploadPayload } from '@/components/features/conversations';
 import { ConversationView } from '../../_components';
+import { ParticipantMenuBar } from './_components';
 
 /**
  * Conversation Page
@@ -278,9 +279,10 @@ function ConversationContent() {
       } else if (!topicExists) {
         // Topic from URL doesn't exist in fetched list - may be newly created (e.g. from participant tree).
         // Add it and select it; it will exist once user sends a message.
+        // Use sanitized display name — topicParam can be arbitrary URL input.
         const newTopic: Topic = {
           id: topicParam,
-          name: topicParam,
+          name: sanitizeTopicDisplayName(topicParam),
           createdAt: new Date().toISOString(),
           status: 'active',
           messages: [],
@@ -662,23 +664,7 @@ function ConversationContent() {
     );
     return (
       <div className="flex flex-col h-full min-h-0">
-        {onOpenMenu && (
-          <div className="border-b border-border/50 bg-card px-6 py-3 shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onOpenMenu}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
-                aria-label="Open conversation menu"
-              >
-                <PanelLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-muted-foreground font-medium">
-                {activationName || agentName || 'Agent'}
-              </span>
-            </div>
-          </div>
-        )}
+        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={activationName || agentName || 'Agent'} />
         {content}
       </div>
     );
@@ -698,23 +684,7 @@ function ConversationContent() {
     );
     return (
       <div className="flex flex-col h-full min-h-0">
-        {onOpenMenu && (
-          <div className="border-b border-border/50 bg-card px-6 py-3 shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onOpenMenu}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
-                aria-label="Open conversation menu"
-              >
-                <PanelLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-muted-foreground font-medium">
-                {activationName || agentName || 'Agent'}
-              </span>
-            </div>
-          </div>
-        )}
+        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={activationName || agentName || 'Agent'} />
         {noConvContent}
       </div>
     );

@@ -1,4 +1,5 @@
-import { Bot, PanelLeft } from 'lucide-react';
+import { Bot } from 'lucide-react';
+import { ParticipantMenuButton } from './participant-menu-bar';
 import { cn } from '@/lib/utils';
 import { Topic } from '@/lib/data/dummy-conversations';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
@@ -30,17 +31,7 @@ export function ConversationHeader({
       <div className="flex items-center justify-between">
         {/* Agent Icon + Activation & Topic Info */}
         <div className="flex items-center gap-3">
-          {/* Participant: Menu button */}
-          {onOpenMenu && (
-            <button
-              type="button"
-              onClick={onOpenMenu}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
-              aria-label="Open conversation menu"
-            >
-              <PanelLeft className="h-4 w-4" />
-            </button>
-          )}
+          {onOpenMenu && <ParticipantMenuButton onClick={onOpenMenu} />}
           {/* Agent Avatar with Sonar Pulse (only when connected AND agent is active) */}
           <div className="relative inline-flex">
             <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 relative z-10">

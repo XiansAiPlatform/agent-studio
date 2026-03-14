@@ -216,22 +216,26 @@ export function ParticipantAgentTree({
 
   const handleDeleteTopic = useCallback(
     async (agentName: string, activationName: string, topicId: string, topicName: string) => {
-      const key = `${agentName}|${activationName}`
-      const topicParam = topicId === 'general-discussions' ? '' : topicId
-      const queryParams = new URLSearchParams({
-        agentName,
-        activationName,
-        topic: topicParam,
-      })
-      const response = await fetch(`/api/messaging/messages?${queryParams.toString()}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) throw new Error('Failed to delete topic messages')
-      await refetchActivationTopics(agentName, activationName)
-      setTopicToDelete(null)
-      toast.success('Topic deleted', {
-        description: `All messages in "${topicName}" have been deleted.`,
-      })
+      setIsDeletingTopic(true)
+      try {
+        const topicParam = topicId === 'general-discussions' ? '' : topicId
+        const queryParams = new URLSearchParams({
+          agentName,
+          activationName,
+          topic: topicParam,
+        })
+        const response = await fetch(`/api/messaging/messages?${queryParams.toString()}`, {
+          method: 'DELETE',
+        })
+        if (!response.ok) throw new Error('Failed to delete topic messages')
+        await refetchActivationTopics(agentName, activationName)
+        toast.success('Topic deleted', {
+          description: `All messages in "${topicName}" have been deleted.`,
+        })
+      } finally {
+        setIsDeletingTopic(false)
+        setTopicToDelete(null)
+      }
     },
     [refetchActivationTopics]
   )
@@ -516,7 +520,6 @@ export function ParticipantAgentTree({
           <AlertDialogAction
             onClick={async () => {
               if (!topicToDelete) return
-              setIsDeletingTopic(true)
               try {
                 const [agentName, activationName] = topicToDelete.key.split('|')
                 await handleDeleteTopic(
@@ -527,8 +530,6 @@ export function ParticipantAgentTree({
                 )
               } catch (err) {
                 showErrorToast(err, 'Failed to delete topic')
-              } finally {
-                setIsDeletingTopic(false)
               }
             }}
             disabled={isDeletingTopic}
