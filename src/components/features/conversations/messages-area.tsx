@@ -19,6 +19,8 @@ interface MessagesAreaProps {
   onLoadMoreMessages?: () => void;
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  /** Agent summary from deployment - shown in empty state when no messages */
+  agentSummary?: string | null;
 }
 
 export function MessagesArea({
@@ -33,6 +35,7 @@ export function MessagesArea({
   onLoadMoreMessages,
   messagesContainerRef,
   messagesEndRef,
+  agentSummary,
 }: MessagesAreaProps) {
   const groups = groupMessages(messages, isTyping);
 
@@ -41,13 +44,13 @@ export function MessagesArea({
       <div className="space-y-5 max-w-5xl mx-auto">
         {isLoadingMessages ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-            <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center shadow-2xl mb-4 border border-primary/30">
+            <div className="chat-icon-container h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center shadow-2xl mb-4 border border-primary/30">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
             <p className="text-sm text-foreground font-bold">
               Loading message history...
             </p>
-            <p className="text-xs text-primary/70 mt-2 font-semibold">
+            <p className="text-xs text-primary mt-2 font-semibold">
               Fetching conversation for {topicName}
             </p>
           </div>
@@ -55,7 +58,7 @@ export function MessagesArea({
           <>
             {isLoadingMoreMessages && (
               <div className="flex items-center justify-center py-4">
-                <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-primary/[0.08] border border-primary/30 shadow-lg">
+                <div className="chat-load-more flex items-center gap-3 px-5 py-3 rounded-xl bg-primary/[0.08] border border-primary/30 shadow-lg">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <p className="text-xs text-foreground font-bold">
                     Loading more messages...
@@ -104,22 +107,33 @@ export function MessagesArea({
               })
             ) : (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-4">
-                <div className="h-20 w-20 rounded-3xl bg-primary/20 flex items-center justify-center mb-5 shadow-2xl border border-primary/40">
+                <div className="chat-icon-container h-20 w-20 rounded-3xl bg-primary/20 flex items-center justify-center mb-5 shadow-2xl border border-primary/40">
                   <Bot className="h-10 w-10 text-primary" />
                 </div>
 
-                <p className="text-sm text-primary max-w-sm font-semibold">
-                  Start a conversation by typing a message below
-                </p>
+                {agentSummary && agentSummary.trim() ? (
+                  <>
+                    <p className="text-sm text-foreground max-w-md font-medium mb-3">
+                      {agentSummary}
+                    </p>
+                    <p className="text-xs text-primary/80 max-w-sm font-semibold">
+                      Start a conversation by typing a message below
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-primary max-w-sm font-semibold">
+                    Start a conversation by typing a message below
+                  </p>
+                )}
               </div>
             )}
 
             {isTyping && (
               <div className="flex items-center gap-3 animate-in fade-in duration-300">
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                <div className="chat-avatar chat-avatar--agent h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                   <Bot className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
+                <div className="message-bubble message-bubble--agent bg-muted/50 rounded-2xl px-4 py-2.5">
                   <div className="flex gap-1">
                     <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />

@@ -231,7 +231,7 @@ html.dark[data-theme="skog"] aside[class*="border-r"] {
 }
 
 /* ========== Zenith Theme ========== */
-/* Scandinavian minimal white + deep teal accents */
+/* Scandinavian minimal white + warm blush, electric yellow */
 :root[data-theme="zenith"],
 html[data-theme="zenith"] {
 
@@ -239,48 +239,48 @@ html[data-theme="zenith"] {
   --background: #ffffff;
   --card: #ffffff;
   --muted: #ffffff;
-  --border: oklch(0.88 0.01 160);
-  --input: oklch(0.88 0.01 160);
+  --border: rgb(230, 218, 218);
+  --input: rgb(230, 218, 218);
 
   --sidebar: #ffffff;
-  --sidebar-border: oklch(0.88 0.01 160);
+  --sidebar-border: rgb(230, 218, 218);
 
-  /* Foreground */
-  --foreground: oklch(0.20 0.02 170);
-  --card-foreground: oklch(0.20 0.02 170);
+  /* Foreground — warm dark */
+  --foreground: rgb(55, 45, 45);
+  --card-foreground: rgb(55, 45, 45);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.20 0.02 170);
+  --popover-foreground: rgb(55, 45, 45);
 
-  --muted-foreground: oklch(0.50 0.02 170);
-  --sidebar-foreground: oklch(0.20 0.02 170);
+  --muted-foreground: rgb(100, 85, 85);
+  --sidebar-foreground: rgb(55, 45, 45);
 
-  /* Brand Colors — Nordic teal + electric yellow */
+  /* Brand Colors — electric yellow + warm dark */
   --primary: #fbe737;
-  --primary-foreground: oklch(0.20 0.02 170); /* dark teal text on bright yellow */
+  --primary-foreground: rgb(55, 45, 45);
 
-  --secondary: oklch(0.91 0.05 75);          /* very pale amber */
-  --secondary-foreground: oklch(0.20 0.02 170);
+  --secondary: oklch(0.94 0.025 30);
+  --secondary-foreground: rgb(55, 45, 45);
 
-  --accent: oklch(0.95 0.03 80);             /* near-white amber tint */
-  --accent-foreground: oklch(0.20 0.02 170);
+  --accent: oklch(0.96 0.02 25);
+  --accent-foreground: rgb(55, 45, 45);
 
   --ring: #fbe737;
-  --info: oklch(0.40 0.09 170);
+  --info: oklch(0.45 0.08 25);
 
   /* Charts */
   --chart-1: #fbe737;
   --chart-2: oklch(0.91 0.05 75);
   --chart-3: oklch(0.93 0.04 78);
   --chart-4: oklch(0.96 0.02 82);
-  --chart-5: oklch(0.30 0.07 170);           /* dark teal */
+  --chart-5: rgb(80, 65, 65);
 
   /* Sidebar tokens */
   --sidebar-primary: #fbe737;
-  --sidebar-primary-foreground: oklch(0.20 0.02 170);
+  --sidebar-primary-foreground: rgb(55, 45, 45);
 
-  --sidebar-accent: oklch(0.95 0.03 80);
-  --sidebar-accent-foreground: oklch(0.20 0.02 170);
+  --sidebar-accent: oklch(0.96 0.02 25);
+  --sidebar-accent-foreground: rgb(55, 45, 45);
 
   --sidebar-ring: #fbe737;
 
@@ -297,26 +297,27 @@ html:not(.dark)[data-theme="zenith"] aside[class*="border-r"] {
 /* Header + sidebar background — dark mode */
 html.dark[data-theme="zenith"] header,
 html.dark[data-theme="zenith"] aside[class*="border-r"] {
-  background-color: oklch(0.20 0.025 170) !important;
+  background-color: rgb(45, 38, 40) !important;
 }
 
 /* Zenith: icon avatars — 35% primary yellow, dark icon for legibility */
 [data-theme="zenith"] .bg-primary\/10.text-primary {
   background-color: color-mix(in srgb, #fbe737 35%, transparent) !important;
-  color: oklch(0.20 0.02 170) !important;
+  color: rgb(55, 45, 45) !important;
 }
 
-/* Zenith: yellow is invisible as text/icons on light backgrounds — use dark teal instead (light mode only) */
+/* Zenith: yellow is invisible as text/icons on light backgrounds — use warm dark (light mode only) */
 html:not(.dark)[data-theme="zenith"] .text-primary,
+html:not(.dark)[data-theme="zenith"] .text-primary\/80,
 html:not(.dark)[data-theme="zenith"] .bg-primary\/15,
 html:not(.dark)[data-theme="zenith"] .bg-primary\/20 {
-  color: oklch(0.20 0.02 170) !important;
+  color: rgb(55, 45, 45) !important;
 }
 
-/* Zenith: sonar rings — use dark teal so they're visible on white background (light mode) */
+/* Zenith: sonar rings — use warm dark so they're visible on white (light mode) */
 html:not(.dark)[data-theme="zenith"] .sonar-container::before,
 html:not(.dark)[data-theme="zenith"] .sonar-container::after {
-  border-color: oklch(0.20 0.02 170);
+  border-color: rgb(80, 65, 65);
   border-width: 1.5px;
 }
 
@@ -325,6 +326,278 @@ html.dark[data-theme="zenith"] .sonar-container::before,
 html.dark[data-theme="zenith"] .sonar-container::after {
   border-color: #fbe737;
   border-width: 1.5px;
+}
+
+/* ========== Chat Conversation — consistent borders (all themes) ========== */
+.chat-conversation .chat-avatar--user,
+.chat-conversation .chat-avatar--agent {
+  border: 1px solid var(--border);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.06);
+}
+
+.chat-conversation .chat-header-avatar {
+  border: 1px solid var(--border);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.06);
+}
+
+.chat-conversation .chat-icon-container {
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.chat-conversation .chat-load-more {
+  border: 1px solid var(--border);
+}
+
+.chat-conversation .message-bubble--agent {
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+.chat-conversation .message-bubble--user {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.chat-conversation .chat-send-btn {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.chat-conversation .chat-send-btn:hover:not(:disabled) {
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.12);
+}
+
+/* Participant tree — consistent icon borders (all themes) */
+.participant-tree-sheet .participant-tree-icon-wrap--activation,
+.participant-tree-sheet .participant-tree-icon-wrap--topic {
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+
+/* Dark mode — chat conversation borders (all themes) */
+.dark .chat-conversation .message-bubble--agent {
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.15);
+}
+
+.dark .chat-conversation .message-bubble--user {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+/* ========== Zenith: Chat Conversation — message/icon backgrounds (blush) ========== */
+[data-theme="zenith"] .chat-conversation .chat-avatar--user {
+  background-color: rgb(250, 239, 239) !important;
+  border: 1px solid rgb(235, 220, 220);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+
+[data-theme="zenith"] .chat-conversation .chat-avatar--user svg {
+  color: rgb(80, 65, 65) !important;
+}
+
+[data-theme="zenith"] .chat-conversation .chat-avatar--agent {
+  background-color: rgb(250, 239, 239) !important;
+  border: 1px solid rgb(235, 220, 220);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+
+[data-theme="zenith"] .chat-conversation .chat-avatar--agent svg {
+  color: rgb(100, 80, 80) !important;
+}
+
+[data-theme="zenith"] .chat-conversation .chat-header-avatar {
+  background-color: rgb(250, 239, 239) !important;
+  border: 1px solid rgb(235, 220, 220);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+
+[data-theme="zenith"] .chat-conversation .chat-header-avatar svg {
+  color: rgb(80, 65, 65) !important;
+}
+
+[data-theme="zenith"] .chat-conversation .chat-icon-container {
+  background-color: rgb(250, 239, 239) !important;
+  border-color: rgb(235, 220, 220) !important;
+  border-width: 1px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+[data-theme="zenith"] .chat-conversation .chat-icon-container svg {
+  color: rgb(80, 65, 65) !important;
+}
+
+[data-theme="zenith"] .chat-conversation .chat-load-more {
+  background-color: rgb(250, 239, 239) !important;
+  border-color: rgb(235, 220, 220) !important;
+}
+
+[data-theme="zenith"] .chat-conversation .chat-send-btn {
+  background-color: #fbe737 !important;
+  color: rgb(55, 45, 45) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+[data-theme="zenith"] .chat-conversation .chat-send-btn:hover:not(:disabled) {
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.12);
+}
+
+[data-theme="zenith"] .chat-conversation .chat-attach-btn:hover {
+  background-color: rgb(250, 239, 239) !important;
+  color: rgb(80, 65, 65) !important;
+}
+
+[data-theme="zenith"] .chat-conversation .message-bubble--agent {
+  background-color: rgb(250, 239, 239) !important;
+  border: 1px solid rgb(235, 220, 220);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+[data-theme="zenith"] .chat-conversation .message-bubble--user {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+/* Zenith: badges with primary tint (info, etc.) — sharp styling */
+[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"],
+[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] {
+  background-color: rgb(250, 239, 239) !important;
+  border-color: rgb(235, 220, 220) !important;
+  color: rgb(80, 65, 65) !important;
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+
+[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"] svg,
+[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] svg {
+  color: rgb(80, 65, 65) !important;
+}
+
+/* Zenith: dashboard — sharp icon backgrounds */
+[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap {
+  background-color: rgb(250, 239, 239) !important;
+  border: 1px solid rgb(235, 220, 220);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+
+[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap svg {
+  color: rgb(80, 65, 65) !important;
+}
+
+[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap--empty svg {
+  color: rgb(100, 85, 85) !important;
+}
+
+/* Zenith dark mode — chat conversation */
+html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--user {
+  background-color: color-mix(in srgb, #fbe737 25%, transparent) !important;
+  border-color: rgb(80, 65, 65);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.3);
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--user svg {
+  color: rgb(55, 45, 45) !important;
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--agent {
+  background-color: rgb(60, 48, 50) !important;
+  border-color: rgb(75, 60, 62);
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.2);
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--agent svg {
+  color: rgb(220, 210, 210) !important;
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-header-avatar {
+  background-color: color-mix(in srgb, #fbe737 20%, transparent) !important;
+  border-color: rgb(75, 60, 62);
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-header-avatar svg {
+  color: rgb(55, 45, 45) !important;
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-icon-container {
+  background-color: rgb(60, 48, 50) !important;
+  border-color: rgb(75, 60, 62) !important;
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-icon-container svg {
+  color: #fbe737 !important;
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .message-bubble--agent {
+  background-color: rgb(55, 45, 48) !important;
+  border-color: rgb(70, 58, 60);
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .message-bubble--user {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+/* Zenith: participant tree — blush icon backgrounds */
+[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation {
+  background-color: rgb(250, 239, 239) !important;
+  border-color: rgb(235, 220, 220) !important;
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+
+[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation .participant-tree-icon--activation {
+  color: rgb(80, 65, 65) !important;
+}
+
+[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic {
+  background-color: rgb(250, 239, 239) !important;
+  border-color: rgb(235, 220, 220) !important;
+}
+
+[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic .participant-tree-icon--topic {
+  color: rgb(100, 80, 80) !important;
+}
+
+[data-theme="zenith"] .participant-tree-sheet .participant-agent-tree button.bg-primary\/10 {
+  background-color: rgb(250, 239, 239) !important;
+}
+
+/* Zenith dark mode — primary-tinted badges */
+html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"],
+html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] {
+  background-color: rgb(55, 45, 48) !important;
+  border-color: rgb(70, 58, 62) !important;
+  color: rgb(220, 210, 210) !important;
+}
+
+html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"] svg,
+html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] svg {
+  color: rgb(220, 210, 210) !important;
+}
+
+/* Zenith dark mode — dashboard icon backgrounds */
+html.dark[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap {
+  background-color: rgb(55, 45, 48) !important;
+  border-color: rgb(70, 58, 62);
+}
+
+html.dark[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap svg {
+  color: rgb(220, 210, 210) !important;
+}
+
+html.dark[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap--empty svg {
+  color: rgb(180, 170, 172) !important;
+}
+
+/* Zenith dark mode — participant tree */
+html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation {
+  background-color: rgb(55, 45, 48) !important;
+  border-color: rgb(70, 58, 60) !important;
+}
+
+html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation .participant-tree-icon--activation {
+  color: #fbe737 !important;
+}
+
+html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic {
+  background-color: rgb(50, 42, 44) !important;
+  border-color: rgb(65, 55, 57) !important;
+}
+
+html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic .participant-tree-icon--topic {
+  color: rgb(200, 190, 190) !important;
 }
 
 .dark {
@@ -384,45 +657,45 @@ html.dark[data-theme="zenith"] .sonar-container::after {
 .dark[data-theme="zenith"],
 html.dark[data-theme="zenith"] {
 
-  --background: oklch(0.17 0.02 170);
-  --card: oklch(0.22 0.025 170);
-  --muted: oklch(0.27 0.02 170);
+  --background: rgb(30, 26, 28);
+  --card: rgb(40, 34, 36);
+  --muted: rgb(50, 42, 45);
 
-  --border: oklch(0.32 0.03 170);
-  --input: oklch(0.32 0.03 170);
+  --border: rgb(70, 58, 62);
+  --input: rgb(70, 58, 62);
 
-  --sidebar: oklch(0.20 0.025 170);
-  --sidebar-border: oklch(0.32 0.03 170);
+  --sidebar: rgb(35, 30, 32);
+  --sidebar-border: rgb(70, 58, 62);
 
-  --foreground: oklch(0.94 0.006 90);
-  --card-foreground: oklch(0.94 0.006 90);
+  --foreground: rgb(230, 222, 222);
+  --card-foreground: rgb(230, 222, 222);
 
-  --popover: oklch(0.22 0.025 170);
-  --popover-foreground: oklch(0.94 0.006 90);
+  --popover: rgb(45, 38, 40);
+  --popover-foreground: rgb(230, 222, 222);
 
-  --sidebar-foreground: oklch(0.94 0.006 90);
-  --muted-foreground: oklch(0.60 0.02 170);
+  --sidebar-foreground: rgb(230, 222, 222);
+  --muted-foreground: rgb(180, 170, 172);
 
   --primary: #fbe737;
   --secondary: oklch(0.88 0.06 72);
   --accent: oklch(0.92 0.04 76);
 
-  --primary-foreground: oklch(0.20 0.02 170);
-  --secondary-foreground: oklch(0.20 0.02 170);
-  --accent-foreground: oklch(0.20 0.02 170);
+  --primary-foreground: rgb(55, 45, 45);
+  --secondary-foreground: rgb(55, 45, 45);
+  --accent-foreground: rgb(55, 45, 45);
 
   --ring: #fbe737;
-  --info: oklch(0.55 0.11 170);
+  --info: oklch(0.55 0.11 25);
 
   /* Charts */
   --chart-1: #fbe737;
   --chart-2: oklch(0.88 0.06 72);
   --chart-3: oklch(0.91 0.05 75);
   --chart-4: oklch(0.94 0.03 80);
-  --chart-5: oklch(0.40 0.08 170);           /* dark teal */
+  --chart-5: rgb(120, 100, 100);
 
   --sidebar-primary: #fbe737;
-  --sidebar-primary-foreground: oklch(0.20 0.02 170);
+  --sidebar-primary-foreground: rgb(55, 45, 45);
   --sidebar-accent: oklch(0.92 0.04 76);
   --sidebar-ring: #fbe737;
 }

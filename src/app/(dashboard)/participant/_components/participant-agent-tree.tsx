@@ -311,7 +311,7 @@ export function ParticipantAgentTree({
 
   return (
     <>
-    <div className="flex flex-col gap-0.5 py-2">
+    <div className="participant-agent-tree flex flex-col gap-0.5 py-2">
       {activations.map((activation) => {
         const { agentName, name: activationName } = activation
         const key = `${agentName}|${activationName}`
@@ -338,7 +338,9 @@ export function ParticipantAgentTree({
                   isSelectedActivation && 'bg-primary/10'
                 )}
               >
-                <MessageSquare className="h-4 w-4 shrink-0 text-primary/80" />
+                <span className="participant-tree-icon-wrap participant-tree-icon-wrap--activation flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border">
+                  <MessageSquare className="participant-tree-icon participant-tree-icon--activation h-4 w-4 text-primary/80" />
+                </span>
                 <span className="font-medium text-sm truncate">{activationName}</span>
                 {activation.status === 'active' && (
                   <span className="ml-auto h-2 w-2 rounded-full bg-green-500 shrink-0" />
@@ -399,7 +401,9 @@ export function ParticipantAgentTree({
                             'hover:bg-primary/10 transition-colors'
                           )}
                         >
-                          <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="participant-tree-icon-wrap participant-tree-icon-wrap--topic flex h-6 w-6 shrink-0 items-center justify-center rounded border border-border">
+                            <MessageSquare className="participant-tree-icon participant-tree-icon--topic h-3.5 w-3.5 text-muted-foreground" />
+                          </span>
                           <span className={cn(
                             'text-sm truncate',
                             isSelectedTopic && 'font-semibold'

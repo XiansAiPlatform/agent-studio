@@ -113,7 +113,7 @@ export function ChatInputArea({
                 size="icon"
                 onClick={handleAttachClick}
                 disabled={!isActivationActive || isUploadingFile}
-                className="flex-shrink-0 h-11 w-11 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="chat-attach-btn flex-shrink-0 h-11 w-11 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Upload file"
               >
                 {isUploadingFile ? (
@@ -140,7 +140,7 @@ export function ChatInputArea({
             onClick={onSendMessage}
             disabled={!messageInput.trim() || !isActivationActive}
             size="icon"
-            className="flex-shrink-0 h-11 w-11 rounded-full transition-all duration-200 bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="chat-send-btn flex-shrink-0 h-11 w-11 rounded-full transition-all duration-200 bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="h-4 w-4" />
           </Button>

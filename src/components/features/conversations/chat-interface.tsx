@@ -21,6 +21,8 @@ interface ChatInterfaceProps {
   hideHeader?: boolean;
   isActivationActive?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  /** Agent summary from deployment - shown in empty state when no messages */
+  agentSummary?: string | null;
 }
 
 export function ChatInterface({
@@ -36,6 +38,7 @@ export function ChatInterface({
   hideHeader = false,
   isActivationActive = true,
   inputRef: externalInputRef,
+  agentSummary,
 }: ChatInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -156,6 +159,7 @@ export function ChatInterface({
         onLoadMoreMessages={onLoadMoreMessages}
         messagesContainerRef={messagesContainerRef}
         messagesEndRef={messagesEndRef}
+        agentSummary={agentSummary}
       />
 
       <ChatInputArea

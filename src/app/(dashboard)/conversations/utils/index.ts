@@ -21,8 +21,8 @@ export function getTopicDisplayName(topicId: string): string {
  * Note: Sanitization is for display correctness (e.g. control chars, length). HTML escaping is handled
  * by React's JSX rendering, so XSS is not the primary concern here.
  */
-export function sanitizeTopicDisplayName(raw: string | null): string {
-  if (!raw || typeof raw !== 'string') return 'New conversation';
+export function sanitizeTopicDisplayName(raw: string | null | undefined): string {
+  if (!raw) return 'New conversation';
   let decoded: string;
   try {
     decoded = decodeURIComponent(raw.replace(/\+/g, ' '));
