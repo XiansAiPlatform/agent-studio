@@ -17,7 +17,9 @@ export function getTopicDisplayName(topicId: string): string {
 /**
  * Sanitize a URL-derived topic param for safe display in the UI.
  * Used when creating synthetic topics from query params (e.g. ?topic=...) —
- * raw values can be malformed or contain path-like strings.
+ * raw values can be malformed or contain path-like strings, HTML entities, or script-injection attempts.
+ * Note: Sanitization is for display correctness (e.g. control chars, length). HTML escaping is handled
+ * by React's JSX rendering, so XSS is not the primary concern here.
  */
 export function sanitizeTopicDisplayName(raw: string | null): string {
   if (!raw || typeof raw !== 'string') return 'New conversation';

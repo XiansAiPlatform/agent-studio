@@ -664,7 +664,7 @@ function ConversationContent() {
     );
     return (
       <div className="flex flex-col h-full min-h-0">
-        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={activationName || agentName || 'Agent'} />
+        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
         {content}
       </div>
     );
@@ -684,7 +684,7 @@ function ConversationContent() {
     );
     return (
       <div className="flex flex-col h-full min-h-0">
-        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={activationName || agentName || 'Agent'} />
+        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
         {noConvContent}
       </div>
     );

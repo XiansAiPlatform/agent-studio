@@ -2,7 +2,7 @@
 
 import { PanelLeft } from 'lucide-react';
 
-function ParticipantMenuButton({ onClick }: { onClick: () => void }) {
+export function ParticipantMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
@@ -31,5 +31,3 @@ export function ParticipantMenuBar({ onOpenMenu, label }: ParticipantMenuBarProp
     </div>
   );
 }
-
-export { ParticipantMenuButton };
