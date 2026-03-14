@@ -159,6 +159,7 @@ export function ParticipantAgentTree({
   } | null>(null)
   const [isDeletingTopic, setIsDeletingTopic] = useState(false)
   const createInputRef = useRef<HTMLInputElement>(null)
+  const fetchedKeysRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (creatingForActivation && createInputRef.current) {
@@ -171,13 +172,13 @@ export function ParticipantAgentTree({
     if (!routeAgentName || !routeActivationName) return
     const key = `${decodeURIComponent(routeAgentName)}|${decodeURIComponent(routeActivationName)}`
     setExpandedActivations((prev) => new Set(prev).add(key))
-    if (!topicsByActivation[key]?.length) {
-      fetchTopicsForActivation(decodeURIComponent(routeAgentName), decodeURIComponent(routeActivationName)).then(
-        (topics) =>
-          setTopicsByActivation((p) => ({ ...p, [key]: topics }))
-      ).catch(console.error)
+    if (!fetchedKeysRef.current.has(key)) {
+      fetchedKeysRef.current.add(key)
+      fetchTopicsForActivation(decodeURIComponent(routeAgentName), decodeURIComponent(routeActivationName))
+        .then((topics) => setTopicsByActivation((p) => ({ ...p, [key]: topics })))
+        .catch(console.error)
     }
-  }, [routeAgentName, routeActivationName, topicsByActivation])
+  }, [routeAgentName, routeActivationName])
 
   const refetchActivationTopics = useCallback(
     async (agentName: string, activationName: string) => {
