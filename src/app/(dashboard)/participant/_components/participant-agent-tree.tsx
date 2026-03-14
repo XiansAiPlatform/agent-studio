@@ -159,6 +159,7 @@ export function ParticipantAgentTree({
   } | null>(null)
   const [isDeletingTopic, setIsDeletingTopic] = useState(false)
   const createInputRef = useRef<HTMLInputElement>(null)
+  const fetchedKeysRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (creatingForActivation && createInputRef.current) {
@@ -171,13 +172,13 @@ export function ParticipantAgentTree({
     if (!routeAgentName || !routeActivationName) return
     const key = `${decodeURIComponent(routeAgentName)}|${decodeURIComponent(routeActivationName)}`
     setExpandedActivations((prev) => new Set(prev).add(key))
-    if (!topicsByActivation[key]?.length) {
-      fetchTopicsForActivation(decodeURIComponent(routeAgentName), decodeURIComponent(routeActivationName)).then(
-        (topics) =>
-          setTopicsByActivation((p) => ({ ...p, [key]: topics }))
-      ).catch(console.error)
+    if (!fetchedKeysRef.current.has(key)) {
+      fetchedKeysRef.current.add(key)
+      fetchTopicsForActivation(decodeURIComponent(routeAgentName), decodeURIComponent(routeActivationName))
+        .then((topics) => setTopicsByActivation((p) => ({ ...p, [key]: topics })))
+        .catch(console.error)
     }
-  }, [routeAgentName, routeActivationName, topicsByActivation])
+  }, [routeAgentName, routeActivationName])
 
   const refetchActivationTopics = useCallback(
     async (agentName: string, activationName: string) => {
@@ -216,22 +217,26 @@ export function ParticipantAgentTree({
 
   const handleDeleteTopic = useCallback(
     async (agentName: string, activationName: string, topicId: string, topicName: string) => {
-      const key = `${agentName}|${activationName}`
-      const topicParam = topicId === 'general-discussions' ? '' : topicId
-      const queryParams = new URLSearchParams({
-        agentName,
-        activationName,
-        topic: topicParam,
-      })
-      const response = await fetch(`/api/messaging/messages?${queryParams.toString()}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) throw new Error('Failed to delete topic messages')
-      await refetchActivationTopics(agentName, activationName)
-      setTopicToDelete(null)
-      toast.success('Topic deleted', {
-        description: `All messages in "${topicName}" have been deleted.`,
-      })
+      setIsDeletingTopic(true)
+      try {
+        const topicParam = topicId === 'general-discussions' ? '' : topicId
+        const queryParams = new URLSearchParams({
+          agentName,
+          activationName,
+          topic: topicParam,
+        })
+        const response = await fetch(`/api/messaging/messages?${queryParams.toString()}`, {
+          method: 'DELETE',
+        })
+        if (!response.ok) throw new Error('Failed to delete topic messages')
+        await refetchActivationTopics(agentName, activationName)
+        toast.success('Topic deleted', {
+          description: `All messages in "${topicName}" have been deleted.`,
+        })
+      } finally {
+        setIsDeletingTopic(false)
+        setTopicToDelete(null)
+      }
     },
     [refetchActivationTopics]
   )
@@ -306,7 +311,7 @@ export function ParticipantAgentTree({
 
   return (
     <>
-    <div className="flex flex-col gap-0.5 py-2">
+    <div className="participant-agent-tree flex flex-col gap-0.5 py-2">
       {activations.map((activation) => {
         const { agentName, name: activationName } = activation
         const key = `${agentName}|${activationName}`
@@ -333,7 +338,9 @@ export function ParticipantAgentTree({
                   isSelectedActivation && 'bg-primary/10'
                 )}
               >
-                <MessageSquare className="h-4 w-4 shrink-0 text-primary/80" />
+                <span className="participant-tree-icon-wrap participant-tree-icon-wrap--activation flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border">
+                  <MessageSquare className="participant-tree-icon participant-tree-icon--activation h-4 w-4 text-primary/80" />
+                </span>
                 <span className="font-medium text-sm truncate">{activationName}</span>
                 {activation.status === 'active' && (
                   <span className="ml-auto h-2 w-2 rounded-full bg-green-500 shrink-0" />
@@ -394,7 +401,9 @@ export function ParticipantAgentTree({
                             'hover:bg-primary/10 transition-colors'
                           )}
                         >
-                          <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="participant-tree-icon-wrap participant-tree-icon-wrap--topic flex h-6 w-6 shrink-0 items-center justify-center rounded border border-border">
+                            <MessageSquare className="participant-tree-icon participant-tree-icon--topic h-3.5 w-3.5 text-muted-foreground" />
+                          </span>
                           <span className={cn(
                             'text-sm truncate',
                             isSelectedTopic && 'font-semibold'
@@ -516,7 +525,6 @@ export function ParticipantAgentTree({
           <AlertDialogAction
             onClick={async () => {
               if (!topicToDelete) return
-              setIsDeletingTopic(true)
               try {
                 const [agentName, activationName] = topicToDelete.key.split('|')
                 await handleDeleteTopic(
@@ -527,8 +535,6 @@ export function ParticipantAgentTree({
                 )
               } catch (err) {
                 showErrorToast(err, 'Failed to delete topic')
-              } finally {
-                setIsDeletingTopic(false)
               }
             }}
             disabled={isDeletingTopic}

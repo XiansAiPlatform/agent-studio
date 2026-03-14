@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Loader2, Bot, PanelLeft } from 'lucide-react';
+import { Loader2, Bot } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
@@ -11,10 +11,11 @@ import { toast } from 'sonner';
 import { Message, Topic } from '@/lib/data/dummy-conversations';
 import { useActivations, useTopics, useConversationState } from '../../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
-import { getTopicParam, mapXiansMessageToMessage } from '../../utils';
+import { getTopicParam, mapXiansMessageToMessage, sanitizeTopicDisplayName } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
 import type { FileUploadPayload } from '@/components/features/conversations';
 import { ConversationView } from '../../_components';
+import { ParticipantMenuBar } from './_components';
 
 /**
  * Conversation Page
@@ -49,6 +50,7 @@ function ConversationContent() {
   const hasAutoFocusedRef = useRef(false);
   // Incrementing this triggers the auto-focus effect even when selectedTopicId hasn't changed
   const [focusTrigger, setFocusTrigger] = useState(0);
+  const [agentSummary, setAgentSummary] = useState<string | null>(null);
 
   // Fetch activations (for switching between agents)
   const { activations, isLoading: isLoadingActivations } = useActivations(currentTenantId);
@@ -84,6 +86,31 @@ function ConversationContent() {
     topics,
     selectedTopicId,
   });
+
+  // Fetch agent deployment for summary (shown in empty chat state)
+  useEffect(() => {
+    if (!agentName || !currentTenantId || !session?.user?.email) {
+      setAgentSummary(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchAgent = async () => {
+      try {
+        const res = await fetch(`/api/agents/${encodeURIComponent(agentName)}`);
+        if (cancelled) return;
+        if (res.ok) {
+          const data = await res.json();
+          setAgentSummary(data.agent?.summary ?? data.summary ?? null);
+        } else {
+          setAgentSummary(null);
+        }
+      } catch {
+        if (!cancelled) setAgentSummary(null);
+      }
+    };
+    fetchAgent();
+    return () => { cancelled = true; };
+  }, [agentName, currentTenantId, session?.user?.email]);
 
   // SSE error handler
   const handleSSEError = useCallback((error: Error) => {
@@ -129,11 +156,11 @@ function ConversationContent() {
     if (maxReconnectAttemptsReached) {
       const currentUrl = `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${searchParams.toString()}`;
       const errorMessage = sseError?.message || 'Failed to establish connection to the real-time messaging server after multiple attempts';
-      const params = new URLSearchParams({
+      const urlParams = new URLSearchParams({
         error: errorMessage,
         returnUrl: currentUrl,
       });
-      router.push(`/server-unavailable?${params.toString()}`);
+      router.push(`/server-unavailable?${urlParams.toString()}`);
     }
   }, [maxReconnectAttemptsReached, sseError, searchParams, router, agentName, activationName]);
 
@@ -144,13 +171,13 @@ function ConversationContent() {
 
   // Update URL when topic is selected
   const updateTopicInURL = useCallback((topicId: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const urlParams = new URLSearchParams(searchParams.toString());
     if (topicId) {
-      params.set('topic', topicId);
+      urlParams.set('topic', topicId);
     } else {
-      params.delete('topic');
+      urlParams.delete('topic');
     }
-    router.push(`/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${params.toString()}`, { scroll: false });
+    router.push(`/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${urlParams.toString()}`, { scroll: false });
   }, [searchParams, router, agentName, activationName]);
 
   // Handle topic creation
@@ -278,9 +305,10 @@ function ConversationContent() {
       } else if (!topicExists) {
         // Topic from URL doesn't exist in fetched list - may be newly created (e.g. from participant tree).
         // Add it and select it; it will exist once user sends a message.
+        // Use sanitized display name — topicParam can be arbitrary URL input.
         const newTopic: Topic = {
           id: topicParam,
-          name: topicParam,
+          name: sanitizeTopicDisplayName(topicParam),
           createdAt: new Date().toISOString(),
           status: 'active',
           messages: [],
@@ -412,7 +440,7 @@ function ConversationContent() {
   }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, updateTopicMessages]);
 
   // Handle sending messages
-  const handleSendMessage = async (content: string, topicId: string) => {
+  const handleSendMessage = useCallback(async (content: string, topicId: string) => {
     if (!currentTenantId || !agentName || !activationName || !session?.user?.email) {
       console.error('[ConversationPage] Missing required parameters for sending message');
       showErrorToast(new Error('Missing required parameters'), 'Unable to send message');
@@ -473,10 +501,10 @@ function ConversationContent() {
       console.error('[ConversationPage] Error sending message:', error);
       showErrorToast(error, 'Failed to send message');
     }
-  };
+  }, [currentTenantId, agentName, activationName, session?.user?.email, addMessageToTopic]);
 
   // Handle sending file uploads (type=File per messaging doc)
-  const handleSendFile = async (file: FileUploadPayload, topicId: string) => {
+  const handleSendFile = useCallback(async (file: FileUploadPayload, topicId: string) => {
     if (!currentTenantId || !agentName || !activationName || !session?.user?.email) {
       console.error('[ConversationPage] Missing required parameters for file upload');
       showErrorToast(new Error('Missing required parameters'), 'Unable to upload file');
@@ -543,7 +571,7 @@ function ConversationContent() {
       console.error('[ConversationPage] Error uploading file:', error);
       showErrorToast(error, 'Failed to upload file');
     }
-  };
+  }, [currentTenantId, agentName, activationName, session?.user?.email, addMessageToTopic]);
 
   // Handle loading more messages
   const handleLoadMoreMessages = useCallback(async () => {
@@ -662,23 +690,7 @@ function ConversationContent() {
     );
     return (
       <div className="flex flex-col h-full min-h-0">
-        {onOpenMenu && (
-          <div className="border-b border-border/50 bg-card px-6 py-3 shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onOpenMenu}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
-                aria-label="Open conversation menu"
-              >
-                <PanelLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-muted-foreground font-medium">
-                {activationName || agentName || 'Agent'}
-              </span>
-            </div>
-          </div>
-        )}
+        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
         {content}
       </div>
     );
@@ -698,23 +710,7 @@ function ConversationContent() {
     );
     return (
       <div className="flex flex-col h-full min-h-0">
-        {onOpenMenu && (
-          <div className="border-b border-border/50 bg-card px-6 py-3 shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onOpenMenu}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
-                aria-label="Open conversation menu"
-              >
-                <PanelLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-muted-foreground font-medium">
-                {activationName || agentName || 'Agent'}
-              </span>
-            </div>
-          </div>
-        )}
+        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
         {noConvContent}
       </div>
     );
@@ -755,6 +751,7 @@ function ConversationContent() {
         onCreateTopic={handleCreateTopic}
         onDeleteTopic={handleDeleteTopic}
         chatInputRef={chatInputRef}
+        agentSummary={agentSummary}
       />
     </div>
   );

@@ -123,7 +123,7 @@ export default function DashboardPage() {
   const { tasks: taskStats, messages: messageStats } = stats;
 
   return (
-    <div className="min-h-screen">
+    <div className="dashboard-page min-h-screen">
       <div className="container mx-auto p-6 space-y-6">
         {/* Page Header */}
         <header className="flex items-center justify-between mb-2">
@@ -218,7 +218,7 @@ export default function DashboardPage() {
           <div className={cn('md:col-span-3', CARD_STYLE)}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10">
+                <div className="dashboard-icon-wrap p-1.5 rounded-lg bg-primary/10">
                   <Activity className="h-4 w-4 text-primary" />
                 </div>
                 <div>
@@ -240,7 +240,7 @@ export default function DashboardPage() {
               </div>
             ) : recentLogs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                <div className="p-4 rounded-full bg-muted/50">
+                <div className="dashboard-icon-wrap dashboard-icon-wrap--empty p-4 rounded-full bg-muted/50">
                   <Zap className="h-8 w-8 text-muted-foreground/60" />
                 </div>
                 <div className="text-center space-y-1">
@@ -303,7 +303,7 @@ export default function DashboardPage() {
           <div className={cn('md:col-span-2', CARD_STYLE)}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10">
+                <div className="dashboard-icon-wrap p-1.5 rounded-lg bg-primary/10">
                   <Zap className="h-4 w-4 text-primary" />
                 </div>
                 <div>
@@ -325,7 +325,7 @@ export default function DashboardPage() {
               </div>
             ) : activeAgents.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                <div className="p-4 rounded-full bg-muted/50">
+                <div className="dashboard-icon-wrap dashboard-icon-wrap--empty p-4 rounded-full bg-muted/50">
                   <Bot className="h-8 w-8 text-muted-foreground/60" />
                 </div>
                 <div className="text-center space-y-1">
@@ -352,7 +352,7 @@ export default function DashboardPage() {
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div className="flex items-start gap-2.5">
-                      <div className="p-1 rounded bg-primary/10 mt-0.5">
+                      <div className="dashboard-icon-wrap dashboard-icon-wrap--sm p-1 rounded bg-primary/10 mt-0.5">
                         <Bot className="h-3 w-3 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">

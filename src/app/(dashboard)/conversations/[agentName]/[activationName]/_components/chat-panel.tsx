@@ -15,6 +15,8 @@ interface ChatPanelProps {
   activationName: string | null;
   isAgentActive: boolean;
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
+  /** Agent summary from deployment - shown in empty state when no messages */
+  agentSummary?: string | null;
 }
 
 /**
@@ -35,11 +37,12 @@ export function ChatPanel({
   activationName,
   isAgentActive,
   chatInputRef,
+  agentSummary,
 }: ChatPanelProps) {
   if (!selectedTopicId || !selectedTopic) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
-        <div className="h-20 w-20 rounded-2xl bg-primary/15 flex items-center justify-center mb-6 shadow-xl border border-primary/30">
+        <div className="chat-icon-container h-20 w-20 rounded-2xl bg-primary/15 flex items-center justify-center mb-6 shadow-xl border border-primary/30">
           <Bot className="h-10 w-10 text-primary" />
         </div>
         <h3 className="text-2xl font-bold text-foreground mb-3 tracking-tight">
@@ -67,6 +70,7 @@ export function ChatPanel({
         hideHeader={true}
         isActivationActive={isAgentActive}
         inputRef={chatInputRef}
+        agentSummary={agentSummary}
       />
     </div>
   );

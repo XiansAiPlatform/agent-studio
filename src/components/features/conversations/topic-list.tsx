@@ -141,7 +141,7 @@ export function TopicList({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="topic-list-menu flex flex-col h-full bg-background">
       {/* Agent Activation Selector */}
       {showAgentSelector && onActivationChange && (
         <AgentActivationSelector

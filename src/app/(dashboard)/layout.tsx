@@ -53,7 +53,7 @@ export default async function DashboardLayout({
     : tenants[0]
   const participantRole = currentTenantData?.participantRole
   const showSidebar =
-    participantRole !== 'TenantParticipant' // TenantParticipantAdmin or undefined -> full layout
+    participantRole !== 'TenantParticipant' // TenantParticipantAdmin or undefined (cookie mismatch / no tenant access) → full layout for robustness
 
   // Strip participantRole from tenants - never pass to client
   const initialTenants = tenants.map(({ tenant, role }) => ({ tenant, role }))

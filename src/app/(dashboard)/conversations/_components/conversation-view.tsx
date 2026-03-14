@@ -33,6 +33,8 @@ interface ConversationViewProps {
   onCreateTopic?: (topicName: string) => void;
   onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
+  /** Agent summary from deployment - shown in empty state when no messages */
+  agentSummary?: string | null;
 }
 
 /**
@@ -67,6 +69,7 @@ export function ConversationView({
   onCreateTopic,
   onDeleteTopic,
   chatInputRef,
+  agentSummary,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
@@ -100,7 +103,7 @@ export function ConversationView({
       )}
 
       {/* Chat Area - Right Column */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="chat-conversation flex-1 flex flex-col min-w-0 overflow-hidden">
         {selectedTopicId && selectedTopic ? (
           <>
             {/* Chat Header */}
@@ -125,6 +128,7 @@ export function ConversationView({
               activationName={selectedActivationName}
               isAgentActive={isAgentActive}
               chatInputRef={chatInputRef}
+              agentSummary={agentSummary}
             />
           </>
         ) : (
@@ -141,6 +145,7 @@ export function ConversationView({
             activationName={selectedActivationName}
             isAgentActive={isAgentActive}
             chatInputRef={chatInputRef}
+            agentSummary={agentSummary}
           />
         )}
       </div>

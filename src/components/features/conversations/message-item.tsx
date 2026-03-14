@@ -82,8 +82,8 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
       <div className="flex-shrink-0">
         <div
           className={cn(
-            'h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200',
-            isUser ? 'bg-primary/15' : 'bg-muted'
+            'chat-avatar h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200',
+            isUser ? 'chat-avatar--user bg-primary/15' : 'chat-avatar--agent bg-muted'
           )}
         >
           {isUser ? (
@@ -121,10 +121,10 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
         {/* Message Bubble */}
         <div
           className={cn(
-            'rounded-2xl px-4 py-2.5 transition-all duration-200',
+            'message-bubble rounded-2xl px-4 py-2.5 transition-all duration-200',
             isUser
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted/50 text-foreground'
+              ? 'message-bubble--user bg-primary text-primary-foreground'
+              : 'message-bubble--agent bg-muted/50 text-foreground'
           )}
         >
           <div className="text-sm leading-relaxed markdown-content [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
