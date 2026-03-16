@@ -8,12 +8,10 @@ interface AgentFiltersProps {
   agents: Agent[];
   uniqueTemplates: string[];
   selectedTemplate: string | null;
-  showActiveOnly: boolean;
   showMyAgentsOnly: boolean;
   currentUserEmail?: string | null;
   onTemplateSelect: (template: string) => void;
   onClearFilters: () => void;
-  onToggleActiveOnly: (showActive: boolean) => void;
   onToggleMyAgentsOnly: (showMyAgents: boolean) => void;
 }
 
@@ -21,12 +19,10 @@ export function AgentFilters({
   agents,
   uniqueTemplates,
   selectedTemplate,
-  showActiveOnly,
   showMyAgentsOnly,
   currentUserEmail,
   onTemplateSelect,
   onClearFilters,
-  onToggleActiveOnly,
   onToggleMyAgentsOnly,
 }: AgentFiltersProps) {
   return (
@@ -35,7 +31,7 @@ export function AgentFilters({
         <div className="flex items-center gap-2">
           <Bot className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-xs font-medium text-muted-foreground">Filters</span>
-          {(selectedTemplate || showActiveOnly || showMyAgentsOnly) && (
+          {(selectedTemplate || showMyAgentsOnly) && (
             <button
               onClick={onClearFilters}
               className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -78,42 +74,10 @@ export function AgentFilters({
             </Label>
           </div>
 
-          {/* All/Active Switch */}
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-            <Label 
-              htmlFor="status-switch" 
-              className={cn(
-                "text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5",
-                !showActiveOnly ? 'text-foreground' : 'text-muted-foreground'
-              )}
-            >
-              All
-              <span className="text-[10px] opacity-60">
-                ({agents.filter(a => !showMyAgentsOnly || a.participantId === currentUserEmail).length})
-              </span>
-            </Label>
-            <Switch
-              id="status-switch"
-              checked={showActiveOnly}
-              onCheckedChange={onToggleActiveOnly}
-            />
-            <Label 
-              htmlFor="status-switch" 
-              className={cn(
-                "text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5",
-                showActiveOnly ? 'text-foreground' : 'text-muted-foreground'
-              )}
-            >
-              Active
-              <span className="text-[10px] opacity-60">
-                ({agents.filter(a => a.status === 'active' && (!showMyAgentsOnly || a.participantId === currentUserEmail)).length})
-              </span>
-            </Label>
-          </div>
           {uniqueTemplates.map((template) => {
             const count = agents.filter((agent) => 
-              agent.template === template && 
-              (!showActiveOnly || agent.status === 'active')
+              agent.template === template &&
+              (!showMyAgentsOnly || agent.participantId === currentUserEmail)
             ).length;
             const isSelected = selectedTemplate === template;
             

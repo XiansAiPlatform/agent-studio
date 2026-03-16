@@ -200,10 +200,9 @@ export function TopicList({
                 className={cn(
                   'w-full text-left px-6 py-3 transition-all duration-200 relative group/topic cursor-pointer',
                   'hover:bg-muted/50',
-                  isSelected && 'bg-muted',
                   'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:transition-all before:duration-200',
-                  isSelected 
-                    ? 'before:opacity-100 before:bg-primary'
+                  isSelected
+                    ? 'bg-muted before:opacity-100 before:bg-primary'
                     : 'before:opacity-0 before:bg-primary group-hover/topic:before:opacity-50'
                 )}
               >
@@ -262,7 +261,7 @@ export function TopicList({
                     {topic.isDefault && (
                       <>
                         <span>·</span>
-                        <span className="text-primary text-[10px] font-medium">Default</span>
+                        <span>Default</span>
                       </>
                     )}
                   </div>

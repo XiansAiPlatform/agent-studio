@@ -59,6 +59,8 @@ export function IconAvatar({
     lg: 'rounded-lg',
   }[rounded];
 
+  const isAgentVariant = variant === 'agent';
+
   if (!pulse) {
     return (
       <div
@@ -67,6 +69,7 @@ export function IconAvatar({
           sizeStyles[size].container,
           variantStyles[variant],
           roundedClass,
+          isAgentVariant && 'agent-icon-avatar',
           className
         )}
       >
@@ -83,6 +86,7 @@ export function IconAvatar({
           sizeStyles[size].container,
           variantStyles[variant],
           roundedClass,
+          isAgentVariant && 'agent-icon-avatar',
         )}
       >
         <Icon className={cn(sizeStyles[size].icon, iconClassName)} />

@@ -43,7 +43,7 @@ export function ChatPanel({
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
         <div className="chat-icon-container h-20 w-20 rounded-2xl bg-primary/15 flex items-center justify-center mb-6 shadow-xl border border-primary/30">
-          <Bot className="h-10 w-10 text-primary" />
+          <Bot className="h-10 w-10" />
         </div>
         <h3 className="text-2xl font-bold text-foreground mb-3 tracking-tight">
           No Topic Selected

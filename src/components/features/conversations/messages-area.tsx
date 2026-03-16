@@ -45,7 +45,7 @@ export function MessagesArea({
         {isLoadingMessages ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
             <div className="chat-icon-container h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center shadow-2xl mb-4 border border-primary/30">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
             <p className="text-sm text-foreground font-bold">
               Loading message history...
@@ -59,7 +59,7 @@ export function MessagesArea({
             {isLoadingMoreMessages && (
               <div className="flex items-center justify-center py-4">
                 <div className="chat-load-more flex items-center gap-3 px-5 py-3 rounded-xl bg-primary/[0.08] border border-primary/30 shadow-lg">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   <p className="text-xs text-foreground font-bold">
                     Loading more messages...
                   </p>
@@ -108,7 +108,7 @@ export function MessagesArea({
             ) : (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-4">
                 <div className="chat-icon-container h-20 w-20 rounded-3xl bg-primary/20 flex items-center justify-center mb-5 shadow-2xl border border-primary/40">
-                  <Bot className="h-10 w-10 text-primary" />
+                  <Bot className="h-10 w-10" />
                 </div>
 
                 {agentSummary && agentSummary.trim() ? (
@@ -116,12 +116,12 @@ export function MessagesArea({
                     <p className="text-sm text-foreground max-w-md font-medium mb-3">
                       {agentSummary}
                     </p>
-                    <p className="text-xs text-primary/80 max-w-sm font-semibold">
+                    <p className="text-xs text-muted-foreground max-w-sm">
                       Start a conversation by typing a message below
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-primary max-w-sm font-semibold">
+                  <p className="text-sm text-muted-foreground max-w-sm">
                     Start a conversation by typing a message below
                   </p>
                 )}
@@ -131,7 +131,7 @@ export function MessagesArea({
             {isTyping && (
               <div className="flex items-center gap-3 animate-in fade-in duration-300">
                 <div className="chat-avatar chat-avatar--agent h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-muted-foreground" />
+                  <Bot className="h-4 w-4" />
                 </div>
                 <div className="message-bubble message-bubble--agent bg-muted/50 rounded-2xl px-4 py-2.5">
                   <div className="flex gap-1">

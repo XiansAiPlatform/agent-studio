@@ -22,8 +22,8 @@ export function ChatHeader({
     <div className="flex items-center justify-between px-6 py-5 border-b border-border/30 bg-card shadow-sm flex-shrink-0">
       <div className="flex items-center gap-4">
         {/* Agent Avatar */}
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Bot className="h-5 w-5 text-primary" />
+        <div className="chat-header-avatar h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <Bot className="h-5 w-5" />
         </div>
 
         {/* Agent Info */}

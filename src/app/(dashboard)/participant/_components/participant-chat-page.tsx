@@ -57,7 +57,7 @@ export function ParticipantChatPage() {
   return (
     <div className="flex flex-1 flex-col min-h-0">
       {/* Top bar */}
-      <div className="border-b border-border/50 bg-card px-6 py-3 shrink-0">
+      <div className="border-b border-border px-6 py-3 shrink-0">
         <div className="flex items-center gap-3">
           {onOpenMenu && (
             <button
@@ -77,11 +77,11 @@ export function ParticipantChatPage() {
 
       {/* Centered agent list */}
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 overflow-y-auto">
-        <div className="w-full max-w-md mb-10 text-center">
+        <div className="w-full max-w-2xl mb-10 text-center">
           <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-5 shadow-lg">
             <Bot className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+          <h1 className="text-2xl text-foreground tracking-tight">
             Hello, {displayName}
           </h1>
           <p className="text-muted-foreground mt-1.5 text-sm">
@@ -113,30 +113,30 @@ export function ParticipantChatPage() {
             <p className="text-sm text-muted-foreground font-medium">Opening conversation...</p>
           </div>
         ) : (
-          <div className="w-full max-w-md space-y-6">
+          <div className="w-full max-w-2xl space-y-8">
             {Object.values(groupedByAgent).map(({ agentName, activations: agentActivations }) => (
-              <div key={agentName} className="space-y-2">
+              <div key={agentName} className="space-y-3">
                 <div className="flex items-center gap-2 px-1 mb-1">
                   <span className="h-3.5 w-0.5 rounded-full bg-primary" />
                   <h3 className="text-xs font-bold text-primary uppercase tracking-widest">
                     {agentName}
                   </h3>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {agentActivations.map((activation) => (
                     <button
                       key={activation.id}
                       type="button"
                       onClick={() => handleActivationClick(activation.agentName, activation.name)}
                       className={cn(
-                        'w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left',
-                        'border border-border/50 bg-card',
+                        'w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left',
+                        'border border-border bg-card',
                         'hover:bg-primary/[0.04] hover:border-primary/40 hover:shadow-md',
                         'transition-all duration-200'
                       )}
                     >
-                      <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md">
-                        <Bot className="h-5 w-5 text-primary-foreground" />
+                      <div className="agent-icon-avatar h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                        <Bot className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-foreground truncate text-sm">
