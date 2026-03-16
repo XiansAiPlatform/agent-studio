@@ -98,9 +98,6 @@ export function ParticipantChatPage() {
           </div>
         ) : activations.length === 0 ? (
           <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-            <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-              <MessageSquare className="h-8 w-8 text-primary-foreground" />
-            </div>
             <p className="text-sm text-muted-foreground">
               No agents available. Use the menu to browse more.
             </p>
