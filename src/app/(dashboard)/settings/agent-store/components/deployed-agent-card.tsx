@@ -47,7 +47,7 @@ export function DeployedAgentCard({
             ? 'bg-emerald-100 dark:bg-emerald-900/30' 
             : 'agent-icon-avatar'
         )}>
-          <Icon className={cn('h-6 w-6', isNewlyDeployed && 'text-emerald-600 dark:text-emerald-400')} />
+          <Icon className={cn('h-6 w-6', isNewlyDeployed ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary')} />
         </div>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
