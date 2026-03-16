@@ -80,8 +80,8 @@ export function ConversationHeader({
     return (
       <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-            <Bot className="h-5 w-5 text-muted-foreground" />
+          <div className="chat-header-avatar h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <Bot className="h-5 w-5" />
           </div>
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary/60" />
@@ -97,8 +97,8 @@ export function ConversationHeader({
     return (
       <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-            <Bot className="h-5 w-5 text-muted-foreground" />
+          <div className="chat-header-avatar h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <Bot className="h-5 w-5" />
           </div>
           <div>
             <h2 className="font-medium text-foreground">No Agents Available</h2>
@@ -129,8 +129,8 @@ export function ConversationHeader({
               )}
             >
               {/* Agent Avatar - inside the dropdown */}
-              <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0 shadow-md border border-primary/20">
-                <Bot className="h-5 w-5 text-primary" />
+              <div className="chat-header-avatar h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0 shadow-md border border-primary/20">
+                <Bot className="h-5 w-5" />
               </div>
               <div className="text-left">
                 {selectedActivation ? (

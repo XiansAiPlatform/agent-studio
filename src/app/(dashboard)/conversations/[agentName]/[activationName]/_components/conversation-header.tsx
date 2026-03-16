@@ -35,7 +35,7 @@ export function ConversationHeader({
           {/* Agent Avatar with Sonar Pulse (only when connected AND agent is active) */}
           <div className="relative inline-flex">
             <div className="chat-header-avatar h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 relative z-10">
-              <Bot className="h-4 w-4 text-primary" />
+              <Bot className="h-4 w-4" />
             </div>
             {isConnected && isAgentActive && (
               <div className="sonar-container absolute inset-0 rounded-full" />

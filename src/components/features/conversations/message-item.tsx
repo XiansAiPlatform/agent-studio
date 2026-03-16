@@ -89,7 +89,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
           {isUser ? (
             <User className="h-4 w-4 text-primary" />
           ) : (
-            <Bot className="h-4 w-4 text-muted-foreground" />
+            <Bot className="h-4 w-4" />
           )}
         </div>
       </div>
@@ -123,7 +123,7 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
           className={cn(
             'message-bubble rounded-2xl px-4 py-2.5 transition-all duration-200',
             isUser
-              ? 'message-bubble--user bg-primary text-primary-foreground'
+              ? 'message-bubble--user bg-primary text-primary-foreground font-medium'
               : 'message-bubble--agent bg-muted/50 text-foreground'
           )}
         >

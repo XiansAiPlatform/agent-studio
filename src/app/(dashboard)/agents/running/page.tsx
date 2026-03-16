@@ -4,8 +4,9 @@ import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Sheet } from '@/components/ui/sheet';
-import { Bot, Play, Loader2 } from 'lucide-react';
+import { Bot, Play, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
@@ -40,8 +41,8 @@ function AgentsPageContent() {
   const [agentToDeactivate, setAgentToDeactivate] = useState<Agent | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [showMyAgentsOnly, setShowMyAgentsOnly] = useState(false);
+  const [showInactiveSection, setShowInactiveSection] = useState(false);
 
   const closeSlider = useCallback(() => {
     setSliderType(null);
@@ -201,16 +202,23 @@ function AgentsPageContent() {
     () =>
       agents.filter((agent) => {
         if (selectedTemplate && agent.template !== selectedTemplate) return false;
-        if (showActiveOnly && agent.status !== 'active') return false;
         if (showMyAgentsOnly && agent.participantId !== user?.email) return false;
         return true;
       }),
-    [agents, selectedTemplate, showActiveOnly, showMyAgentsOnly, user?.email]
+    [agents, selectedTemplate, showMyAgentsOnly, user?.email]
+  );
+
+  const activeAgents = useMemo(
+    () => filteredAgents.filter((a) => a.status === 'active'),
+    [filteredAgents]
+  );
+  const inactiveAgents = useMemo(
+    () => filteredAgents.filter((a) => a.status !== 'active'),
+    [filteredAgents]
   );
 
   const handleClearFilters = useCallback(() => {
     setSelectedTemplate(null);
-    setShowActiveOnly(false);
     setShowMyAgentsOnly(false);
   }, []);
 
@@ -242,12 +250,10 @@ function AgentsPageContent() {
           agents={agents}
           uniqueTemplates={uniqueTemplates}
           selectedTemplate={selectedTemplate}
-          showActiveOnly={showActiveOnly}
           showMyAgentsOnly={showMyAgentsOnly}
           currentUserEmail={user?.email}
           onTemplateSelect={handleTemplateSelect}
           onClearFilters={handleClearFilters}
-          onToggleActiveOnly={setShowActiveOnly}
           onToggleMyAgentsOnly={setShowMyAgentsOnly}
         />
       )}
@@ -270,7 +276,7 @@ function AgentsPageContent() {
       )}
 
       {/* Filtered Empty State */}
-      {!isLoading && agents.length > 0 && filteredAgents.length === 0 && (
+      {!isLoading && agents.length > 0 && activeAgents.length === 0 && inactiveAgents.length === 0 && (
         <EmptyState
           icon={Bot}
           title="No matching agents"
@@ -279,18 +285,65 @@ function AgentsPageContent() {
         />
       )}
 
-      {/* Agents Grid */}
-      {!isLoading && filteredAgents.length > 0 && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredAgents.map((agent) => (
-            <AgentCard
-              key={agent.id}
-              agent={agent}
-              isNewlyCreated={newlyCreatedId === agent.id}
-              currentUserEmail={user?.email}
-              onClick={() => handleCardClick(agent)}
-            />
-          ))}
+      {/* Active Agents Grid */}
+      {!isLoading && (activeAgents.length > 0 || inactiveAgents.length > 0) && (
+        <div className="space-y-6">
+          {activeAgents.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {activeAgents.map((agent) => (
+                <AgentCard
+                  key={agent.id}
+                  agent={agent}
+                  isNewlyCreated={newlyCreatedId === agent.id}
+                  currentUserEmail={user?.email}
+                  onClick={() => handleCardClick(agent)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Inactive Agents — collapsible, hidden by default */}
+          {inactiveAgents.length > 0 && (
+            <div
+              className={`overflow-hidden agents-running-inactive-section ${
+                showInactiveSection ? 'border border-border rounded-xl' : ''
+              }`}
+              data-expanded={showInactiveSection}
+            >
+              <button
+                type="button"
+                onClick={() => setShowInactiveSection((prev) => !prev)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors ${
+                  showInactiveSection ? 'bg-muted/30 hover:bg-muted/50' : 'hover:bg-muted/20'
+                }`}
+              >
+                {showInactiveSection ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm font-medium text-foreground">
+                  Inactive agents
+                </span>
+                <Badge variant="secondary" className="text-xs">
+                  {inactiveAgents.length}
+                </Badge>
+              </button>
+              {showInactiveSection && (
+                <div className="p-4 pt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {inactiveAgents.map((agent) => (
+                    <AgentCard
+                      key={agent.id}
+                      agent={agent}
+                      isNewlyCreated={newlyCreatedId === agent.id}
+                      currentUserEmail={user?.email}
+                      onClick={() => handleCardClick(agent)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

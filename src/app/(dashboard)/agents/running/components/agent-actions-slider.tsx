@@ -50,7 +50,7 @@ export function AgentActionsSlider({
       <SheetContent className="flex flex-col p-0 border-l border-border/40 backdrop-blur-xl bg-background sm:max-w-lg">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/20">
           <div className="flex items-center gap-3">
-            <IconAvatar icon={Bot} variant="primary" size="md" rounded="full" pulse={true} />
+            <IconAvatar icon={Bot} variant="agent" size="md" rounded="full" pulse={true} />
             <div className="flex-1 min-w-0">
               <SheetTitle className="text-base font-semibold whitespace-normal break-words">{agent.name}</SheetTitle>
               <div className="flex items-center gap-2 mt-1">
@@ -195,7 +195,7 @@ export function AgentActionsSlider({
       <SheetContent className="flex flex-col p-0 border-l border-border/40 backdrop-blur-xl bg-background sm:max-w-lg">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/20">
           <div className="flex items-center gap-3">
-            <IconAvatar icon={Bot} variant="primary" size="md" rounded="full" />
+            <IconAvatar icon={Bot} variant="agent" size="md" rounded="full" />
             <div className="flex-1 min-w-0">
               <SheetTitle className="text-base font-semibold whitespace-normal break-words">{agent.name}</SheetTitle>
               <div className="flex items-center gap-2 mt-1">

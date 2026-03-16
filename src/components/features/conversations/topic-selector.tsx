@@ -23,7 +23,7 @@ export function TopicSelector({
   onCreateTopic,
 }: TopicSelectorProps) {
   return (
-    <div className="border-b bg-background">
+    <div className="border-b border-border">
       <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto">
         {/* Topic Tabs */}
         {topics.map((topic) => {
@@ -35,11 +35,11 @@ export function TopicSelector({
               key={topic.id}
               onClick={() => onSelectTopic(topic.id)}
               className={cn(
-                'flex items-center gap-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-all border relative',
-                'hover:bg-accent/30',
+                'flex items-center gap-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-all border rounded-lg',
+                'hover:bg-muted/50',
                 isSelected
-                  ? 'bg-accent/20 text-foreground border-l-4 border-l-primary border-r border-t border-b border-border/50 rounded-r-lg'
-                  : 'text-muted-foreground border border-transparent border-l-4 border-l-transparent rounded-lg'
+                  ? 'text-foreground border-border'
+                  : 'text-muted-foreground border-transparent'
               )}
             >
               <StatusIcon className={cn('h-4 w-4', TOPIC_STATUS_CONFIG[topic.status].colors.icon)} />

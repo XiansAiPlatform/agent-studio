@@ -133,15 +133,19 @@ html[data-theme="fjord"] {
   --header-sidebar-bg: rgb(238 249 252 / var(--tw-bg-opacity, 1));
 }
 
-/* Fjord theme - apply light cyan to header and sidebar (menu) — light mode only */
+/* Fjord theme - apply light cyan to header, sidebar, and topics panel — light mode only */
 html:not(.dark)[data-theme="fjord"] header,
-html:not(.dark)[data-theme="fjord"] aside[class*="border-r"] {
+html:not(.dark)[data-theme="fjord"] aside[class*="border-r"],
+html:not(.dark)[data-theme="fjord"] .conversation-topic-sidebar,
+html:not(.dark)[data-theme="fjord"] .topic-list-menu {
   background-color: rgb(238 249 252 / var(--tw-bg-opacity, 1)) !important;
 }
 
 /* Fjord theme - dark mode header/sidebar */
 html.dark[data-theme="fjord"] header,
-html.dark[data-theme="fjord"] aside[class*="border-r"] {
+html.dark[data-theme="fjord"] aside[class*="border-r"],
+html.dark[data-theme="fjord"] .conversation-topic-sidebar,
+html.dark[data-theme="fjord"] .topic-list-menu {
   background-color: oklch(0.25 0.025 250) !important;
 }
 
@@ -218,113 +222,125 @@ html[data-theme="skog"] {
   --header-sidebar-bg: oklch(0.975 0.008 152 / var(--tw-bg-opacity, 1));
 }
 
-/* Apply light green-tinted bg to header and sidebar in skog theme — light mode only */
+/* Apply light green-tinted bg to header, sidebar, and topics panel in skog theme — light mode only */
 html:not(.dark)[data-theme="skog"] header,
-html:not(.dark)[data-theme="skog"] aside[class*="border-r"] {
+html:not(.dark)[data-theme="skog"] aside[class*="border-r"],
+html:not(.dark)[data-theme="skog"] .conversation-topic-sidebar,
+html:not(.dark)[data-theme="skog"] .topic-list-menu {
   background-color: oklch(0.975 0.008 152 / var(--tw-bg-opacity, 1)) !important;
 }
 
 /* Skog theme - dark mode header/sidebar */
 html.dark[data-theme="skog"] header,
-html.dark[data-theme="skog"] aside[class*="border-r"] {
+html.dark[data-theme="skog"] aside[class*="border-r"],
+html.dark[data-theme="skog"] .conversation-topic-sidebar,
+html.dark[data-theme="skog"] .topic-list-menu {
   background-color: oklch(0.20 0.042 152) !important;
 }
 
-/* ========== Zenith Theme ========== */
-/* Scandinavian minimal white + warm blush, electric yellow */
+/* ========== Zenith Theme (Kinnevik brand) ========== */
+/* From docs/theme/zenith SVGs: #CC0000 red, #FFE6E6 blush, #FAFAFA bg, #1A1A1A text */
+/* Typography: Inter — clean professional sans matching Kinnevik aesthetic (SVG text is outlined, font not embeddable) */
 :root[data-theme="zenith"],
 html[data-theme="zenith"] {
 
-  /* Backgrounds — pure white */
-  --background: #ffffff;
+  /* Font — Inter for Zenith/Kinnevik brand */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Backgrounds — #FAFAFA from SVGs, white cards */
+  --background: #FAFAFA;
   --card: #ffffff;
-  --muted: #ffffff;
-  --border: rgb(230, 218, 218);
-  --input: rgb(230, 218, 218);
+  --muted: #F5F2F1;
+  --border: #EDEDED;
+  --input: #E5E7EB;
 
-  --sidebar: #ffffff;
-  --sidebar-border: rgb(230, 218, 218);
+  --sidebar: #FAFAFA;
+  --sidebar-border: #EDEDED;
 
-  /* Foreground — warm dark */
-  --foreground: rgb(55, 45, 45);
-  --card-foreground: rgb(55, 45, 45);
+  /* Foreground — #1A1A1A from SVGs */
+  --foreground: #1A1A1A;
+  --card-foreground: #1A1A1A;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: rgb(55, 45, 45);
+  --popover: #ffffff;
+  --popover-foreground: #1A1A1A;
 
-  --muted-foreground: rgb(100, 85, 85);
-  --sidebar-foreground: rgb(55, 45, 45);
+  --muted-foreground: #6B6B6B;
+  --sidebar-foreground: #1A1A1A;
 
-  /* Brand Colors — electric yellow + warm dark */
-  --primary: #fbe737;
-  --primary-foreground: rgb(55, 45, 45);
+  /* Brand Colors — Kinnevik red #CC0000 */
+  --primary: #CC0000;
+  --primary-foreground: #ffffff;
 
-  --secondary: oklch(0.94 0.025 30);
-  --secondary-foreground: rgb(55, 45, 45);
+  --secondary: #FFE6E6;
+  --secondary-foreground: #1A1A1A;
 
-  --accent: oklch(0.96 0.02 25);
-  --accent-foreground: rgb(55, 45, 45);
+  --accent: #FFE6E6;
+  --accent-foreground: #1A1A1A;
 
-  --ring: #fbe737;
-  --info: oklch(0.45 0.08 25);
+  --ring: #CC0000;
+  --info: #CC0000;
 
-  /* Charts */
-  --chart-1: #fbe737;
-  --chart-2: oklch(0.91 0.05 75);
-  --chart-3: oklch(0.93 0.04 78);
-  --chart-4: oklch(0.96 0.02 82);
-  --chart-5: rgb(80, 65, 65);
+  /* Charts — red family + neutrals */
+  --chart-1: #CC0000;
+  --chart-2: #E57373;
+  --chart-3: #FFB3B3;
+  --chart-4: #FFE6E6;
+  --chart-5: #6B6B6B;
 
   /* Sidebar tokens */
-  --sidebar-primary: #fbe737;
-  --sidebar-primary-foreground: rgb(55, 45, 45);
+  --sidebar-primary: #CC0000;
+  --sidebar-primary-foreground: #ffffff;
 
-  --sidebar-accent: oklch(0.96 0.02 25);
-  --sidebar-accent-foreground: rgb(55, 45, 45);
+  --sidebar-accent: #FFE6E6;
+  --sidebar-accent-foreground: #1A1A1A;
 
-  --sidebar-ring: #fbe737;
+  --sidebar-ring: #CC0000;
 
   /* Header */
-  --header-sidebar-bg: #ffffff;
+  --header-sidebar-bg: #FAFAFA;
 }
 
-/* Header + sidebar background — light mode */
+/* Header + sidebar + topics panel background — light mode (#FAFAFA from SVGs) */
 html:not(.dark)[data-theme="zenith"] header,
-html:not(.dark)[data-theme="zenith"] aside[class*="border-r"] {
-  background-color: #ffffff !important;
+html:not(.dark)[data-theme="zenith"] aside[class*="border-r"],
+html:not(.dark)[data-theme="zenith"] .conversation-topic-sidebar,
+html:not(.dark)[data-theme="zenith"] .topic-list-menu {
+  background-color: #FAFAFA !important;
 }
 
-/* Header + sidebar background — dark mode */
+/* Header + sidebar + topics panel background — dark mode */
 html.dark[data-theme="zenith"] header,
-html.dark[data-theme="zenith"] aside[class*="border-r"] {
-  background-color: rgb(45, 38, 40) !important;
+html.dark[data-theme="zenith"] aside[class*="border-r"],
+html.dark[data-theme="zenith"] .conversation-topic-sidebar,
+html.dark[data-theme="zenith"] .topic-list-menu {
+  background-color: #101828 !important;
 }
 
-/* Zenith: icon avatars — 35% primary yellow, dark icon for legibility */
+/* Zenith: icon avatars — 35% Kinnevik red tint, #FFE6E6 blush */
 [data-theme="zenith"] .bg-primary\/10.text-primary {
-  background-color: color-mix(in srgb, #fbe737 35%, transparent) !important;
-  color: rgb(55, 45, 45) !important;
+  background-color: #FFE6E6 !important;
+  color: #1A1A1A !important;
 }
 
-/* Zenith: yellow is invisible as text/icons on light backgrounds — use warm dark (light mode only) */
+/* Zenith: primary text/icons — Kinnevik red is visible on light (light mode) */
 html:not(.dark)[data-theme="zenith"] .text-primary,
 html:not(.dark)[data-theme="zenith"] .text-primary\/80,
 html:not(.dark)[data-theme="zenith"] .bg-primary\/15,
 html:not(.dark)[data-theme="zenith"] .bg-primary\/20 {
-  color: rgb(55, 45, 45) !important;
+  color: #CC0000 !important;
 }
 
-/* Zenith: sonar rings — use warm dark so they're visible on white (light mode) */
+/* Zenith: sonar rings — Kinnevik red in light mode */
 html:not(.dark)[data-theme="zenith"] .sonar-container::before,
 html:not(.dark)[data-theme="zenith"] .sonar-container::after {
-  border-color: rgb(80, 65, 65);
+  border-color: #CC0000;
   border-width: 1.5px;
 }
 
-/* Zenith: sonar rings — use bright yellow in dark mode */
+/* Zenith: sonar rings — red in dark mode */
 html.dark[data-theme="zenith"] .sonar-container::before,
 html.dark[data-theme="zenith"] .sonar-container::after {
-  border-color: #fbe737;
+  border-color: #E57373;
   border-width: 1.5px;
 }
 
@@ -335,9 +351,17 @@ html.dark[data-theme="zenith"] .sonar-container::after {
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.06);
 }
 
+.chat-conversation .chat-avatar--agent svg {
+  color: hsl(var(--muted-foreground));
+}
+
 .chat-conversation .chat-header-avatar {
   border: 1px solid var(--border);
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.06);
+}
+
+.chat-conversation .chat-header-avatar svg {
+  color: hsl(var(--primary));
 }
 
 .chat-conversation .chat-icon-container {
@@ -345,8 +369,16 @@ html.dark[data-theme="zenith"] .sonar-container::after {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
 }
 
+.chat-conversation .chat-icon-container svg {
+  color: hsl(var(--primary));
+}
+
 .chat-conversation .chat-load-more {
   border: 1px solid var(--border);
+}
+
+.chat-conversation .chat-load-more svg {
+  color: hsl(var(--primary));
 }
 
 .chat-conversation .message-bubble--agent {
@@ -381,56 +413,72 @@ html.dark[data-theme="zenith"] .sonar-container::after {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
 }
 
-/* ========== Zenith: Chat Conversation — message/icon backgrounds (blush) ========== */
+/* ========== Zenith: Chat Conversation — user vs agent differentiation ========== */
+/* User: #FFE6E6 blush (primary tint) — "you" */
 [data-theme="zenith"] .chat-conversation .chat-avatar--user {
-  background-color: rgb(250, 239, 239) !important;
-  border: 1px solid rgb(235, 220, 220);
+  background-color: #FFE6E6 !important;
+  border: 1px solid #F0D8D8;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
 }
 
 [data-theme="zenith"] .chat-conversation .chat-avatar--user svg {
-  color: rgb(80, 65, 65) !important;
+  color: #CC0000 !important;
 }
 
+/* Agent: #F5F2F1 neutral (from Conversations SVG) — AI/bot */
 [data-theme="zenith"] .chat-conversation .chat-avatar--agent {
-  background-color: rgb(250, 239, 239) !important;
-  border: 1px solid rgb(235, 220, 220);
+  background-color: #F5F2F1 !important;
+  border: 1px solid #EDEDED;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
 }
 
+/* Agent icons: theme primary (Kinnevik red) */
 [data-theme="zenith"] .chat-conversation .chat-avatar--agent svg {
-  color: rgb(100, 80, 80) !important;
+  color: #CC0000 !important;
 }
 
 [data-theme="zenith"] .chat-conversation .chat-header-avatar {
-  background-color: rgb(250, 239, 239) !important;
-  border: 1px solid rgb(235, 220, 220);
+  background-color: #FFE6E6 !important;
+  border: 1px solid #F0D8D8;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
 }
 
 [data-theme="zenith"] .chat-conversation .chat-header-avatar svg {
-  color: rgb(80, 65, 65) !important;
+  color: #CC0000 !important;
 }
 
 [data-theme="zenith"] .chat-conversation .chat-icon-container {
-  background-color: rgb(250, 239, 239) !important;
-  border-color: rgb(235, 220, 220) !important;
+  background-color: #FFE6E6 !important;
+  border-color: #F0D8D8 !important;
   border-width: 1px;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
 }
 
 [data-theme="zenith"] .chat-conversation .chat-icon-container svg {
-  color: rgb(80, 65, 65) !important;
+  color: #CC0000 !important;
 }
 
 [data-theme="zenith"] .chat-conversation .chat-load-more {
-  background-color: rgb(250, 239, 239) !important;
-  border-color: rgb(235, 220, 220) !important;
+  background-color: #FFE6E6 !important;
+  border-color: #F0D8D8 !important;
+}
+
+[data-theme="zenith"] .chat-conversation .chat-load-more svg {
+  color: #CC0000 !important;
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-load-more {
+  background-color: #2D2630 !important;
+  border-color: #4A5565 !important;
+}
+
+html.dark[data-theme="zenith"] .chat-conversation .chat-load-more svg {
+  color: #E57373 !important;
 }
 
 [data-theme="zenith"] .chat-conversation .chat-send-btn {
-  background-color: #fbe737 !important;
-  color: rgb(55, 45, 45) !important;
+  background-color: #CC0000 !important;
+  color: #ffffff !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
@@ -439,13 +487,13 @@ html.dark[data-theme="zenith"] .sonar-container::after {
 }
 
 [data-theme="zenith"] .chat-conversation .chat-attach-btn:hover {
-  background-color: rgb(250, 239, 239) !important;
-  color: rgb(80, 65, 65) !important;
+  background-color: #FFE6E6 !important;
+  color: #1A1A1A !important;
 }
 
 [data-theme="zenith"] .chat-conversation .message-bubble--agent {
-  background-color: rgb(250, 239, 239) !important;
-  border: 1px solid rgb(235, 220, 220);
+  background-color: #F5F2F1 !important;
+  border: 1px solid #EDEDED;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
 }
 
@@ -453,151 +501,247 @@ html.dark[data-theme="zenith"] .sonar-container::after {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
-/* Zenith: badges with primary tint (info, etc.) — sharp styling */
+/* Zenith: badges — #FFE6E6 blush from SVGs */
 [data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"],
 [data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] {
-  background-color: rgb(250, 239, 239) !important;
-  border-color: rgb(235, 220, 220) !important;
-  color: rgb(80, 65, 65) !important;
+  background-color: #FFE6E6 !important;
+  border-color: #F0D8D8 !important;
+  color: #1A1A1A !important;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
 }
 
 [data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"] svg,
 [data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] svg {
-  color: rgb(80, 65, 65) !important;
+  color: #1A1A1A !important;
 }
 
-/* Zenith: dashboard — sharp icon backgrounds */
+/* Zenith: dashboard — #FFE6E6 blush icon backgrounds */
 [data-theme="zenith"] .dashboard-page .dashboard-icon-wrap {
-  background-color: rgb(250, 239, 239) !important;
-  border: 1px solid rgb(235, 220, 220);
+  background-color: #FFE6E6 !important;
+  border: 1px solid #F0D8D8;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
 }
 
 [data-theme="zenith"] .dashboard-page .dashboard-icon-wrap svg {
-  color: rgb(80, 65, 65) !important;
+  color: #1A1A1A !important;
 }
 
 [data-theme="zenith"] .dashboard-page .dashboard-icon-wrap--empty svg {
-  color: rgb(100, 85, 85) !important;
+  color: #6B6B6B !important;
 }
 
-/* Zenith dark mode — chat conversation */
+/* ========== Agent icon — app-wide (outside chat-conversation) ========== */
+.agent-icon-avatar {
+  background-color: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.06);
+}
+.agent-icon-avatar svg {
+  color: hsl(var(--primary));
+}
+
+.agent-icon-container {
+  background-color: hsl(var(--primary) / 0.15);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.agent-icon-container svg {
+  color: hsl(var(--primary));
+}
+
+[data-theme="zenith"] .agent-icon-avatar {
+  background-color: #FFE6E6 !important;
+  border: 1px solid #F0D8D8;
+  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
+}
+[data-theme="zenith"] .agent-icon-avatar svg {
+  color: #CC0000 !important;
+}
+
+[data-theme="zenith"] .agent-icon-container {
+  background-color: #FFE6E6 !important;
+  border-color: #F0D8D8 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+[data-theme="zenith"] .agent-icon-container svg {
+  color: #CC0000 !important;
+}
+
+html.dark[data-theme="zenith"] .agent-icon-avatar {
+  background-color: color-mix(in srgb, #CC0000 18%, transparent) !important;
+  border-color: #4A5565;
+}
+html.dark[data-theme="zenith"] .agent-icon-avatar svg {
+  color: #E57373 !important;
+}
+
+html.dark[data-theme="zenith"] .agent-icon-container {
+  background-color: #2D2630 !important;
+  border-color: #4A5565;
+}
+html.dark[data-theme="zenith"] .agent-icon-container svg {
+  color: #E57373 !important;
+}
+
+/* Zenith: agents running — inactive section (border & bg only when expanded) */
+[data-theme="zenith"] .agents-running-inactive-section[data-expanded="true"] {
+  border-color: #EDEDED !important;
+  background-color: #FAFAFA !important;
+}
+
+[data-theme="zenith"] .agents-running-inactive-section[data-expanded="true"] button {
+  background-color: #FAFAFA !important;
+}
+
+[data-theme="zenith"] .agents-running-inactive-section[data-expanded="true"] button:hover {
+  background-color: #F5F2F1 !important;
+}
+
+/* Inactive cards: distinct muted color (not same as panel) */
+[data-theme="zenith"] .agent-card--inactive {
+  background-color: #EDEDED !important;
+  border-color: #E0DEDC !important;
+}
+
+/* Zenith dark mode — inactive section */
+html.dark[data-theme="zenith"] .agents-running-inactive-section[data-expanded="true"] {
+  border-color: #4A5565 !important;
+  background-color: #1F1D22 !important;
+}
+
+html.dark[data-theme="zenith"] .agents-running-inactive-section[data-expanded="true"] button {
+  background-color: #1F1D22 !important;
+}
+
+html.dark[data-theme="zenith"] .agents-running-inactive-section[data-expanded="true"] button:hover {
+  background-color: #2D2630 !important;
+}
+
+/* Inactive cards: distinct darker shade */
+html.dark[data-theme="zenith"] .agent-card--inactive {
+  background-color: #2D2630 !important;
+  border-color: #4A5565 !important;
+}
+
+/* Zenith dark mode — chat conversation (user vs agent) */
+/* User: red tint — "you" */
 html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--user {
-  background-color: color-mix(in srgb, #fbe737 25%, transparent) !important;
-  border-color: rgb(80, 65, 65);
+  background-color: color-mix(in srgb, #CC0000 20%, transparent) !important;
+  border-color: #4A5565;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.3);
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--user svg {
-  color: rgb(55, 45, 45) !important;
+  color: #E57373 !important;
 }
 
+/* Agent: neutral dark — AI/bot */
 html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--agent {
-  background-color: rgb(60, 48, 50) !important;
-  border-color: rgb(75, 60, 62);
+  background-color: #2D2630 !important;
+  border-color: #4A5565;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.2);
 }
 
+/* Agent icons: red accent on dark backgrounds */
 html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--agent svg {
-  color: rgb(220, 210, 210) !important;
+  color: #E57373 !important;
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .chat-header-avatar {
-  background-color: color-mix(in srgb, #fbe737 20%, transparent) !important;
-  border-color: rgb(75, 60, 62);
+  background-color: color-mix(in srgb, #CC0000 18%, transparent) !important;
+  border-color: #4A5565;
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .chat-header-avatar svg {
-  color: rgb(55, 45, 45) !important;
+  color: #E57373 !important;
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .chat-icon-container {
-  background-color: rgb(60, 48, 50) !important;
-  border-color: rgb(75, 60, 62) !important;
+  background-color: #2D2630 !important;
+  border-color: #4A5565 !important;
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .chat-icon-container svg {
-  color: #fbe737 !important;
+  color: #E57373 !important;
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .message-bubble--agent {
-  background-color: rgb(55, 45, 48) !important;
-  border-color: rgb(70, 58, 60);
+  background-color: #2D2630 !important;
+  border-color: #4A5565;
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .message-bubble--user {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
 }
 
-/* Zenith: participant tree — blush icon backgrounds */
+/* Zenith: participant tree — #FFE6E6 blush (light) */
 [data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation {
-  background-color: rgb(250, 239, 239) !important;
-  border-color: rgb(235, 220, 220) !important;
+  background-color: #FFE6E6 !important;
+  border-color: #F0D8D8 !important;
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
 }
 
 [data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation .participant-tree-icon--activation {
-  color: rgb(80, 65, 65) !important;
+  color: #1A1A1A !important;
 }
 
 [data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic {
-  background-color: rgb(250, 239, 239) !important;
-  border-color: rgb(235, 220, 220) !important;
+  background-color: #FFE6E6 !important;
+  border-color: #F0D8D8 !important;
 }
 
 [data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic .participant-tree-icon--topic {
-  color: rgb(100, 80, 80) !important;
+  color: #6B6B6B !important;
 }
 
 [data-theme="zenith"] .participant-tree-sheet .participant-agent-tree button.bg-primary\/10 {
-  background-color: rgb(250, 239, 239) !important;
+  background-color: #FFE6E6 !important;
 }
 
-/* Zenith dark mode — primary-tinted badges */
+/* Zenith dark mode — badges */
 html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"],
 html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] {
-  background-color: rgb(55, 45, 48) !important;
-  border-color: rgb(70, 58, 62) !important;
-  color: rgb(220, 210, 210) !important;
+  background-color: #2D2630 !important;
+  border-color: #4A5565 !important;
+  color: #E5E7EB !important;
 }
 
 html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/15"] svg,
 html.dark[data-theme="zenith"] [data-slot="badge"][class*="bg-primary/20"] svg {
-  color: rgb(220, 210, 210) !important;
+  color: #E5E7EB !important;
 }
 
-/* Zenith dark mode — dashboard icon backgrounds */
+/* Zenith dark mode — dashboard */
 html.dark[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap {
-  background-color: rgb(55, 45, 48) !important;
-  border-color: rgb(70, 58, 62);
+  background-color: #2D2630 !important;
+  border-color: #4A5565;
 }
 
 html.dark[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap svg {
-  color: rgb(220, 210, 210) !important;
+  color: #E5E7EB !important;
 }
 
 html.dark[data-theme="zenith"] .dashboard-page .dashboard-icon-wrap--empty svg {
-  color: rgb(180, 170, 172) !important;
+  color: #6A7282 !important;
 }
 
 /* Zenith dark mode — participant tree */
 html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation {
-  background-color: rgb(55, 45, 48) !important;
-  border-color: rgb(70, 58, 60) !important;
+  background-color: #2D2630 !important;
+  border-color: #4A5565 !important;
 }
 
 html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--activation .participant-tree-icon--activation {
-  color: #fbe737 !important;
+  color: #E57373 !important;
 }
 
 html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic {
-  background-color: rgb(50, 42, 44) !important;
-  border-color: rgb(65, 55, 57) !important;
+  background-color: #252030 !important;
+  border-color: #4A5565 !important;
 }
 
 html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wrap--topic .participant-tree-icon--topic {
-  color: rgb(200, 190, 190) !important;
+  color: #6A7282 !important;
 }
 
 .dark {
@@ -653,51 +797,51 @@ html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wr
   --sidebar-ring: oklch(0.65 0.16 25);
 }
 
-/* Zenith dark mode */
+/* Zenith dark mode (#101828, #4A5565, #6A7282 from User view SVG) */
 .dark[data-theme="zenith"],
 html.dark[data-theme="zenith"] {
 
-  --background: rgb(30, 26, 28);
-  --card: rgb(40, 34, 36);
-  --muted: rgb(50, 42, 45);
+  --background: #101828;
+  --card: #1A2332;
+  --muted: #2D2630;
 
-  --border: rgb(70, 58, 62);
-  --input: rgb(70, 58, 62);
+  --border: #4A5565;
+  --input: #4A5565;
 
-  --sidebar: rgb(35, 30, 32);
-  --sidebar-border: rgb(70, 58, 62);
+  --sidebar: #101828;
+  --sidebar-border: #4A5565;
 
-  --foreground: rgb(230, 222, 222);
-  --card-foreground: rgb(230, 222, 222);
+  --foreground: #E5E7EB;
+  --card-foreground: #E5E7EB;
 
-  --popover: rgb(45, 38, 40);
-  --popover-foreground: rgb(230, 222, 222);
+  --popover: #1A2332;
+  --popover-foreground: #E5E7EB;
 
-  --sidebar-foreground: rgb(230, 222, 222);
-  --muted-foreground: rgb(180, 170, 172);
+  --sidebar-foreground: #E5E7EB;
+  --muted-foreground: #6A7282;
 
-  --primary: #fbe737;
-  --secondary: oklch(0.88 0.06 72);
-  --accent: oklch(0.92 0.04 76);
+  --primary: #E57373;
+  --secondary: #2D2630;
+  --accent: #3D3540;
 
-  --primary-foreground: rgb(55, 45, 45);
-  --secondary-foreground: rgb(55, 45, 45);
-  --accent-foreground: rgb(55, 45, 45);
+  --primary-foreground: #ffffff;
+  --secondary-foreground: #E5E7EB;
+  --accent-foreground: #E5E7EB;
 
-  --ring: #fbe737;
-  --info: oklch(0.55 0.11 25);
+  --ring: #E57373;
+  --info: #E57373;
 
   /* Charts */
-  --chart-1: #fbe737;
-  --chart-2: oklch(0.88 0.06 72);
-  --chart-3: oklch(0.91 0.05 75);
-  --chart-4: oklch(0.94 0.03 80);
-  --chart-5: rgb(120, 100, 100);
+  --chart-1: #E57373;
+  --chart-2: #CC0000;
+  --chart-3: #FFB3B3;
+  --chart-4: #3D3540;
+  --chart-5: #6A7282;
 
-  --sidebar-primary: #fbe737;
-  --sidebar-primary-foreground: rgb(55, 45, 45);
-  --sidebar-accent: oklch(0.92 0.04 76);
-  --sidebar-ring: #fbe737;
+  --sidebar-primary: #E57373;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #3D3540;
+  --sidebar-ring: #E57373;
 }
 
 /* Skog dark mode */

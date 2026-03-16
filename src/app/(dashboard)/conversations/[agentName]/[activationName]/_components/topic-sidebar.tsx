@@ -44,7 +44,7 @@ export function TopicSidebar({
   onPageChange,
 }: TopicSidebarProps) {
   return (
-    <div className="conversation-topic-sidebar w-96 flex-shrink-0 flex flex-col border-r border-border/30 shadow-2xl">
+    <div className="conversation-topic-sidebar w-96 flex-shrink-0 flex flex-col border-r border-border/30 shadow-2xl bg-background">
       {/* Topics List */}
       <div className="flex-1 overflow-hidden">
         <TopicList

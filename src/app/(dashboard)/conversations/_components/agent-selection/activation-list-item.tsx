@@ -29,7 +29,7 @@ export function ActivationListItem({
         {/* Agent Icon with Pulse */}
         <IconAvatar 
           icon={Bot} 
-          variant="primary" 
+          variant="agent" 
           size="sm" 
           rounded="full"
           pulse={activation.status === 'active'}

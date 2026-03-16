@@ -20,7 +20,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
     <Card 
       className={`group transition-all duration-200 cursor-pointer border shadow-none ${
         isInactive 
-          ? 'border-border/50 bg-muted/20 dark:bg-muted/20' 
+          ? 'agent-card--inactive border-border/50 bg-muted/20 dark:bg-muted/20' 
           : isNewlyCreated 
             ? 'border-emerald-500/40 bg-emerald-50/30 dark:bg-emerald-950/20' 
             : 'border-border bg-card'
@@ -31,7 +31,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
         <div className="flex items-start justify-between gap-3">
           <IconAvatar 
             icon={Bot} 
-            variant="primary" 
+            variant="agent" 
             size="md" 
             rounded="full" 
             pulse={agent.status === 'active'} 

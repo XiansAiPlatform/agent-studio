@@ -32,7 +32,7 @@ export const COLOR_THEMES: Record<
   zenith: {
     id: 'zenith',
     name: 'Zenith',
-    primarySwatch: '#fbe737',
+    primarySwatch: '#CC0000',
   },
 };
 

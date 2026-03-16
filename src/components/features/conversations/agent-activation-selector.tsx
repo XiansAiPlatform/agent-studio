@@ -70,7 +70,7 @@ export function AgentActivationSelector({
   // Loading state
   if (isLoading) {
     return (
-      <div className="border-b border-border/60 bg-primary/5 border-l-2 border-l-primary px-6 py-4">
+      <div className="border-b border-border/60 px-6 py-4">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-primary/60" />
           <span className="text-sm text-muted-foreground">Loading agents...</span>
@@ -82,7 +82,7 @@ export function AgentActivationSelector({
   // Empty state
   if (activations.length === 0) {
     return (
-      <div className="border-b border-border/60 bg-primary/5 border-l-2 border-l-primary px-6 py-4">
+      <div className="border-b border-border/60 px-6 py-4">
         <p className="text-sm text-muted-foreground">No active agents found</p>
       </div>
     );
@@ -97,10 +97,9 @@ export function AgentActivationSelector({
         <SelectPrimitive.Trigger
           className={cn(
             'w-full flex items-center justify-between px-6 py-4',
-            'bg-primary/5 border-l-2 border-l-primary',
-            'hover:bg-primary/10 transition-colors',
+            'hover:bg-muted/50 transition-colors',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
-            'data-[state=open]:bg-primary/10'
+            'data-[state=open]:bg-muted/50'
           )}
         >
           <div className="min-w-0 flex-1 text-left">

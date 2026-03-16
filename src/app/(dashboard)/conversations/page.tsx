@@ -84,7 +84,9 @@ function AgentSelectionContent() {
               </div>
             ) : activations.length === 0 ? (
               <div className="text-center py-12">
-                <Bot className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                <div className="agent-icon-container h-10 w-10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Bot className="h-10 w-10" />
+                </div>
                 <h3 className="text-base font-medium text-foreground mb-2">No Active Agents</h3>
                 <p className="text-muted-foreground text-sm mb-4">
                   Activate an agent to start chatting
