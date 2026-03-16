@@ -30,6 +30,14 @@ interface ConversationViewProps {
   onPageChange: (page: number) => void;
   isConnected: boolean;
   sseError?: Error | null;
+  /** Agent worker liveness from heartbeat. null = checking. */
+  workerAvailable?: boolean | null;
+  /** true when API/server unreachable (distinct from worker unavailable) */
+  serverUnavailable?: boolean;
+  /** Whether heartbeat check is in progress */
+  isHeartbeatLoading?: boolean;
+  /** Called when user clicks status (Live or Worker/Server unavailable) to re-check heartbeat */
+  onRetryHeartbeat?: () => void;
   onCreateTopic?: (topicName: string) => void;
   onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
@@ -66,6 +74,10 @@ export function ConversationView({
   onPageChange,
   isConnected,
   sseError,
+  workerAvailable = null,
+  serverUnavailable = false,
+  isHeartbeatLoading = false,
+  onRetryHeartbeat,
   onCreateTopic,
   onDeleteTopic,
   chatInputRef,
@@ -112,6 +124,10 @@ export function ConversationView({
               topic={selectedTopic}
               isConnected={isConnected}
               isAgentActive={isAgentActive}
+              workerAvailable={workerAvailable}
+              serverUnavailable={serverUnavailable}
+              isHeartbeatLoading={isHeartbeatLoading}
+              onRetryHeartbeat={onRetryHeartbeat}
             />
 
             {/* Chat Interface */}

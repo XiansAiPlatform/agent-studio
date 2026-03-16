@@ -9,7 +9,7 @@ import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { toast } from 'sonner';
 import { Message, Topic } from '@/lib/data/dummy-conversations';
-import { useActivations, useTopics, useConversationState } from '../../hooks';
+import { useActivations, useTopics, useConversationState, useAgentHeartbeat } from '../../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { getTopicParam, mapXiansMessageToMessage, sanitizeTopicDisplayName } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
@@ -149,6 +149,19 @@ function ConversationContent() {
     onError: handleSSEError,
     onConnect: handleSSEConnect,
     onDisconnect: handleSSEDisconnect,
+  });
+
+  // Check agent worker liveness when activation is opened (for Live tag vs warning)
+  const {
+    workerAvailable,
+    serverUnavailable,
+    isLoading: isHeartbeatLoading,
+    refetch: refetchHeartbeat,
+  } = useAgentHeartbeat({
+    tenantId: currentTenantId,
+    agentName,
+    activationName,
+    enabled: !!(currentTenantId && agentName && activationName),
   });
 
   // Redirect to server unavailable page if max reconnection attempts reached
@@ -748,6 +761,10 @@ function ConversationContent() {
         onPageChange={setCurrentPage}
         isConnected={isConnected}
         sseError={sseError}
+        workerAvailable={workerAvailable}
+        serverUnavailable={serverUnavailable}
+        isHeartbeatLoading={isHeartbeatLoading}
+        onRetryHeartbeat={refetchHeartbeat}
         onCreateTopic={handleCreateTopic}
         onDeleteTopic={handleDeleteTopic}
         chatInputRef={chatInputRef}
