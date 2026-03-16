@@ -267,9 +267,11 @@ html[data-theme="zenith"] {
   --muted-foreground: #6B6B6B;
   --sidebar-foreground: #1A1A1A;
 
-  /* Brand Colors — Kinnevik red #CC0000 */
+  /* Brand Colors — Kinnevik red #CC0000 (override Tailwind token directly for reliable theme resolution) */
   --primary: #CC0000;
   --primary-foreground: #ffffff;
+  --color-primary: #CC0000;
+  --color-primary-foreground: #ffffff;
 
   --secondary: #FFE6E6;
   --secondary-foreground: #1A1A1A;
@@ -821,10 +823,12 @@ html.dark[data-theme="zenith"] {
   --muted-foreground: #6A7282;
 
   --primary: #E57373;
+  --color-primary: #E57373;
   --secondary: #2D2630;
   --accent: #3D3540;
 
   --primary-foreground: #ffffff;
+  --color-primary-foreground: #ffffff;
   --secondary-foreground: #E5E7EB;
   --accent-foreground: #E5E7EB;
 
