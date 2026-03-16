@@ -65,10 +65,7 @@ function ScopeNode({ level, item, isActive, isOverridden, showConnector = true, 
                     config.bgColor,
                     config.borderColor,
                     'border-2',
-                    'ring-2 ring-offset-2 ring-offset-background',
-                    level === 'system' && 'ring-blue-500/30',
-                    level === 'tenant' && 'ring-amber-500/30',
-                    level === 'activation' && 'ring-emerald-500/30',
+                    'ring-2 ring-offset-2 ring-offset-background ring-primary/30',
                   ],
                   exists && isOverridden && [
                     'bg-muted/50',
@@ -91,13 +88,8 @@ function ScopeNode({ level, item, isActive, isOverridden, showConnector = true, 
                 />
                 {exists && isActive && !isOverridden && (
                   <div className="absolute -top-0.5 -right-0.5">
-                    <div className={cn(
-                      'w-3 h-3 rounded-full flex items-center justify-center',
-                      level === 'system' && 'bg-blue-500',
-                      level === 'tenant' && 'bg-amber-500',
-                      level === 'activation' && 'bg-emerald-500',
-                    )}>
-                      <Check className="w-2 h-2 text-white" />
+                    <div className="w-3 h-3 rounded-full flex items-center justify-center bg-primary">
+                      <Check className="w-2 h-2 text-primary-foreground" />
                     </div>
                   </div>
                 )}
@@ -110,7 +102,7 @@ function ScopeNode({ level, item, isActive, isOverridden, showConnector = true, 
                 {exists && (
                   <div className="text-xs mt-2 pt-2 border-t border-border">
                     {isActive && !isOverridden ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span className="text-primary font-medium">
                         ✓ Active - This is the effective configuration
                       </span>
                     ) : isOverridden ? (

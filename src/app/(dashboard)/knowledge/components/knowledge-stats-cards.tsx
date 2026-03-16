@@ -18,24 +18,24 @@ export function KnowledgeStatsCards({
       <StatCard
         count={systemCount}
         icon={Globe}
-        iconColor="text-blue-500"
-        barColor="bg-blue-500"
+        iconColor="text-primary"
+        barColor="bg-primary"
         title="System Level"
         description="Base knowledge used"
       />
       <StatCard
         count={tenantCount}
         icon={Building2}
-        iconColor="text-amber-500"
-        barColor="bg-amber-500"
+        iconColor="text-primary"
+        barColor="bg-primary"
         title="Organization Level"
         description="Organization knowledge used"
       />
       <StatCard
         count={activationCount}
         icon={Zap}
-        iconColor="text-emerald-500"
-        barColor="bg-emerald-500"
+        iconColor="text-primary"
+        barColor="bg-primary"
         title="Agent Level"
         description="Agent specific knowledge used"
       />

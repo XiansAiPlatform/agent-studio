@@ -84,9 +84,9 @@ const formatIcons = {
 };
 
 const formatColors = {
-  json: 'text-blue-600 dark:text-blue-400',
-  markdown: 'text-purple-600 dark:text-purple-400',
-  text: 'text-gray-600 dark:text-gray-400',
+  json: 'text-primary',
+  markdown: 'text-primary',
+  text: 'text-primary',
 };
 
 const scopeIcons = {

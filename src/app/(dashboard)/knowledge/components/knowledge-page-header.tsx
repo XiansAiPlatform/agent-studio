@@ -32,7 +32,7 @@ export function KnowledgePageHeader({
                   {activationName}
                 </h1>
                 <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
-                  <Bot className="h-3.5 w-3.5" />
+                  <Bot className="h-3.5 w-3.5 text-primary" />
                   {agentName}
                 </Badge>
               </div>

@@ -91,11 +91,11 @@ export function AgentActionsSlider({
               
               <Link 
                 href={`/tasks?status=pending&agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-blue-500/5 transition-colors cursor-pointer"
+                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors cursor-pointer"
               >
-                <ListTodo className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <ListTodo className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">View Tasks</div>
+                  <div className="font-medium text-sm group-hover:text-primary transition-colors">View Tasks</div>
                   <p className="text-xs text-muted-foreground mt-0.5">See all tasks and track progress</p>
                 </div>
               </Link>
@@ -171,11 +171,11 @@ export function AgentActionsSlider({
               <button
                 onClick={onDeleteClick}
                 disabled={agent.status === 'active'}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-red-500/5 transition-colors cursor-pointer w-full text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-destructive/5 transition-colors cursor-pointer w-full text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
-                <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <Trash2 className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="font-medium text-sm group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">Delete Instance</div>
+                  <div className="font-medium text-sm group-hover:text-destructive transition-colors">Delete Instance</div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {agent.status === 'active' 
                       ? 'Deactivate first to delete' 
@@ -222,11 +222,11 @@ export function AgentActionsSlider({
 
             <Separator className="opacity-40" />
             {/* Info Notice - More Organic */}
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-900/30">
-              <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20">
+              <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Agent Deactivated</p>
-                <p className="text-xs text-amber-700/90 dark:text-amber-300/80 mt-1 leading-relaxed">
+                <p className="text-sm font-medium text-primary">Agent Deactivated</p>
+                <p className="text-xs text-primary/90 mt-1 leading-relaxed">
                   This agent is currently inactive. Activate it to enable conversations, tasks, and other capabilities.
                 </p>
               </div>
@@ -252,11 +252,11 @@ export function AgentActionsSlider({
             <div className="space-y-2">
               <button
                 onClick={onDeleteClick}
-                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-red-500/5 transition-colors cursor-pointer w-full text-left"
+                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-destructive/5 transition-colors cursor-pointer w-full text-left"
               >
-                <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <Trash2 className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="font-medium text-sm group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">Delete Instance</div>
+                  <div className="font-medium text-sm group-hover:text-destructive transition-colors">Delete Instance</div>
                   <p className="text-xs text-muted-foreground mt-0.5">Permanently remove this agent</p>
                 </div>
               </button>

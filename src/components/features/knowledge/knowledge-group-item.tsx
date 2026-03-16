@@ -23,18 +23,18 @@ interface KnowledgeGroupItemProps {
 const formatConfig = {
   json: {
     icon: FileJson,
-    variant: 'json' as const,
+    variant: 'primary' as const,
     badge: 'bg-primary/10 text-primary border-primary/20',
   },
   markdown: {
     icon: FileCode,
-    variant: 'markdown' as const,
-    badge: 'bg-accent/10 text-accent border-accent/20',
+    variant: 'primary' as const,
+    badge: 'bg-primary/10 text-primary border-primary/20',
   },
   text: {
     icon: FileText,
-    variant: 'text' as const,
-    badge: 'bg-muted text-muted-foreground border-border',
+    variant: 'primary' as const,
+    badge: 'bg-primary/10 text-primary border-primary/20',
   },
 };
 
@@ -129,13 +129,13 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
               disabled={!group.system_scoped}
               className={cn(
                 'flex items-center gap-1.5 text-xs shrink-0 px-2 py-1 rounded transition-colors',
-                group.system_scoped && 'hover:bg-blue-500/10 cursor-pointer',
+                group.system_scoped && 'hover:bg-primary/10 cursor-pointer',
                 !group.system_scoped && 'opacity-40 cursor-not-allowed'
               )}
             >
               <Globe className={cn(
                 'w-3.5 h-3.5',
-                group.system_scoped ? 'text-blue-500' : 'text-muted-foreground/30'
+                group.system_scoped ? 'text-primary' : 'text-muted-foreground/30'
               )} />
               <span className={cn(
                 'font-medium',
@@ -144,7 +144,7 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
                 System
               </span>
               {effectiveLevel === 'system' && (
-                <Check className="w-3 h-3 text-blue-500" />
+                <Check className="w-3 h-3 text-primary" />
               )}
             </button>
             
@@ -160,13 +160,13 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
               disabled={!group.tenant_default}
               className={cn(
                 'flex items-center gap-1.5 text-xs shrink-0 px-2 py-1 rounded transition-colors',
-                group.tenant_default && 'hover:bg-amber-500/10 cursor-pointer',
+                group.tenant_default && 'hover:bg-primary/10 cursor-pointer',
                 !group.tenant_default && 'opacity-40 cursor-not-allowed'
               )}
             >
               <Building2 className={cn(
                 'w-3.5 h-3.5',
-                group.tenant_default ? 'text-amber-500' : 'text-muted-foreground/30'
+                group.tenant_default ? 'text-primary' : 'text-muted-foreground/30'
               )} />
               <span className={cn(
                 'font-medium',
@@ -175,7 +175,7 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
                 Organization
               </span>
               {effectiveLevel === 'tenant' && (
-                <Check className="w-3 h-3 text-amber-500" />
+                <Check className="w-3 h-3 text-primary" />
               )}
             </button>
             
@@ -192,13 +192,13 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
               disabled={group.activations.length === 0}
               className={cn(
                 'flex items-center gap-1.5 text-xs shrink-0 px-2 py-1 rounded transition-colors',
-                group.activations.length > 0 && 'hover:bg-emerald-500/10 cursor-pointer',
+                group.activations.length > 0 && 'hover:bg-primary/10 cursor-pointer',
                 group.activations.length === 0 && 'opacity-40 cursor-not-allowed'
               )}
             >
               <Zap className={cn(
                 'w-3.5 h-3.5',
-                group.activations.length > 0 ? 'text-emerald-500' : 'text-muted-foreground/30'
+                group.activations.length > 0 ? 'text-primary' : 'text-muted-foreground/30'
               )} />
               <span className={cn(
                 'font-medium',
@@ -207,7 +207,7 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
                 Agent
               </span>
               {effectiveLevel === 'activation' && (
-                <Check className="w-3 h-3 text-emerald-500" />
+                <Check className="w-3 h-3 text-primary" />
               )}
             </button>
           </div>

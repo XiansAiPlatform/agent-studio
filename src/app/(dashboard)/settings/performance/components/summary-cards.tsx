@@ -19,22 +19,22 @@ export function SummaryCards({
       title: 'Total Records',
       value: totalRecords,
       icon: Activity,
-      color: 'text-blue-600 dark:text-blue-400',
-      barColor: 'bg-blue-500',
+      color: 'text-primary',
+      barColor: 'bg-primary',
     },
     {
       title: 'Metric Types',
       value: totalTypes,
       icon: BarChart3,
-      color: 'text-purple-600 dark:text-purple-400',
-      barColor: 'bg-purple-500',
+      color: 'text-primary',
+      barColor: 'bg-primary',
     },
     {
       title: 'Categories',
       value: totalCategories,
       icon: Layers,
-      color: 'text-orange-600 dark:text-orange-400',
-      barColor: 'bg-orange-500',
+      color: 'text-primary',
+      barColor: 'bg-primary',
     },
   ];
 

@@ -56,30 +56,30 @@ export function getEffectiveKnowledge(group: KnowledgeGroup): KnowledgeItem | nu
   return group.system_scoped;
 }
 
-// Scope level metadata for display
+// Scope level metadata for display — theme tokens ensure consistent styling across all themes
 export const SCOPE_LEVEL_CONFIG = {
   system: {
     label: 'System',
     description: 'Base system-level configuration',
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-    borderColor: 'border-blue-200 dark:border-blue-800',
-    badgeColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20',
+    badgeColor: 'bg-primary/10 text-primary border-primary/20',
   },
   tenant: {
     label: 'Organization',
     description: 'Tenant-level override',
-    color: 'text-amber-600 dark:text-amber-400',
-    bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-    borderColor: 'border-amber-200 dark:border-amber-800',
-    badgeColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20',
+    badgeColor: 'bg-primary/10 text-primary border-primary/20',
   },
   activation: {
     label: 'Agent',
     description: 'Agent-specific override',
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-    borderColor: 'border-emerald-200 dark:border-emerald-800',
-    badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20',
+    badgeColor: 'bg-primary/10 text-primary border-primary/20',
   },
 } as const;
