@@ -233,9 +233,9 @@ export function ParticipantAgentTree({
         toast.success('Topic deleted', {
           description: `All messages in "${topicName}" have been deleted.`,
         })
+        setTopicToDelete(null)
       } finally {
         setIsDeletingTopic(false)
-        setTopicToDelete(null)
       }
     },
     [refetchActivationTopics]

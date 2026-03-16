@@ -17,7 +17,7 @@ export type IconAvatarVariant =
 export type IconAvatarSize = 'sm' | 'md' | 'lg';
 
 const variantStyles: Record<IconAvatarVariant, string> = {
-  agent: 'bg-primary/10 text-primary',
+  agent: '', // styling handled by agent-icon-avatar CSS class
   user: 'bg-secondary/10 text-secondary-foreground',
   json: 'bg-primary/10 text-primary',
   markdown: 'bg-accent/10 text-accent',
