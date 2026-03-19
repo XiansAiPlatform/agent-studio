@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
 import { requireSystemAdmin } from '@/lib/api/auth'
@@ -13,7 +13,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ templateId: string }> }
 ) {
-  const handler = withTenantFromSession(async (req: NextRequest, apiContext: ApiContext) => {
+  const handler = withParticipantAdmin(async (req: NextRequest, apiContext: ApiContext) => {
     try {
       const authError = await requireSystemAdmin(apiContext.session)
       if (authError) return authError

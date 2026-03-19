@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant';
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
 
 /**
@@ -7,7 +7,7 @@ import { createXiansClient } from '@/lib/xians/client';
  * Fetch data schema for an agent and activation.
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {
     try {
       const { searchParams } = new URL(request.url);

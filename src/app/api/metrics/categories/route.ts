@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { getMetricsCategories } from '@/lib/xians/metrics'
 
 /**
  * GET /api/metrics/categories
  * Get metrics categories overview. Tenant is injected from session (httpOnly cookie).
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     const { searchParams } = new URL(request.url)

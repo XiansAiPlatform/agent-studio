@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { redirect } from "next/navigation"
-import { withTenantFromSession, ApiContext } from "@/lib/api/with-tenant"
+import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   OIDCConnection,
   UserTokenInfo
@@ -98,7 +98,7 @@ async function exchangeCodeForTokens(
   }
 }
 
-const getHandler = withTenantFromSession(async (request, apiContext: ApiContext) => {
+const getHandler = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     const tenantId = apiContext.tenantContext.tenant.id
     const url = new URL(request.url)

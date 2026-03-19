@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { withTenantFromSession, ApiContext } from "@/lib/api/with-tenant"
+import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   OIDCConnection,
   UpdateConnectionRequest,
@@ -30,7 +30,7 @@ function findConnectionById(tenantId: string, connectionId: string): OIDCConnect
 }
 
 // GET /api/connections/{connectionId}
-export const GET = withTenantFromSession(async (request, apiContext: ApiContext) => {
+export const GET = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     const tenantId = apiContext.tenantContext.tenant.id
     const connectionId = request.nextUrl.pathname.split('/').pop()
@@ -69,7 +69,7 @@ export const GET = withTenantFromSession(async (request, apiContext: ApiContext)
 })
 
 // PUT /api/connections/{connectionId}
-export const PUT = withTenantFromSession(async (request, apiContext: ApiContext) => {
+export const PUT = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     if (!apiContext.tenantContext.permissions.includes('write')) {
       return NextResponse.json(
@@ -143,7 +143,7 @@ export const PUT = withTenantFromSession(async (request, apiContext: ApiContext)
 })
 
 // DELETE /api/connections/{connectionId}
-export const DELETE = withTenantFromSession(async (request, apiContext: ApiContext) => {
+export const DELETE = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     if (!apiContext.tenantContext.permissions.includes('write')) {
       return NextResponse.json(

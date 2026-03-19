@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorThemeProvider } from "@/components/theme-color-provider";
 import { SessionProvider } from "@/components/session-provider";
 import { AuthErrorBoundary } from "@/components/auth-error-boundary";
 import { Toaster } from "@/components/ui/sonner";
+import { FaviconUpdater } from "@/components/favicon-updater";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,11 +15,6 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -37,8 +33,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
+        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+        {/* DM Sans for Zenith theme (weights 300/400/700) */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;700&display=swap"
+          rel="stylesheet"
+        />
         {/* Inline script runs before React — cannot import COLOR_THEMES. Keep the theme list below in sync with src/lib/themes.ts when adding new themes. */}
         <script
           dangerouslySetInnerHTML={{
@@ -46,9 +52,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
-      >
+      <body className="antialiased">
         <AuthErrorBoundary>
           <SessionProvider>
             <ThemeProvider
@@ -58,6 +62,7 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               <ColorThemeProvider>
+                <FaviconUpdater />
                 {children}
                 <Toaster />
               </ColorThemeProvider>

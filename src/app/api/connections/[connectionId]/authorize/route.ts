@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { withTenantFromSession, ApiContext } from "@/lib/api/with-tenant"
+import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   AuthorizeConnectionRequest,
   AuthorizeConnectionResponse
@@ -23,7 +23,7 @@ function generateState(): string {
 }
 
 // POST /api/connections/{connectionId}/authorize
-export const POST = withTenantFromSession(async (request, apiContext: ApiContext) => {
+export const POST = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     const tenantId = apiContext.tenantContext.tenant.id
     const pathParts = request.nextUrl.pathname.split('/')

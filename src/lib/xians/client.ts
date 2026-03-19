@@ -46,7 +46,7 @@ export class XiansClient {
     path: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${path}`
+    const url = new URL(path, this.baseUrl + '/').toString()
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

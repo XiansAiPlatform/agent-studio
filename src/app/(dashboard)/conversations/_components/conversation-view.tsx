@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { Conversation } from '@/lib/data/dummy-conversations';
 import { ActivationOption } from '../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
@@ -41,8 +40,8 @@ interface ConversationViewProps {
   onCreateTopic?: (topicName: string) => void;
   onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
-  /** Agent summary from deployment - shown in empty state when no messages */
-  agentSummary?: string | null;
+  /** Agent info from deployment - shown in empty state when no messages */
+  agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
 }
 
 /**
@@ -81,7 +80,7 @@ export function ConversationView({
   onCreateTopic,
   onDeleteTopic,
   chatInputRef,
-  agentSummary,
+  agentInfo,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
@@ -144,7 +143,7 @@ export function ConversationView({
               activationName={selectedActivationName}
               isAgentActive={isAgentActive}
               chatInputRef={chatInputRef}
-              agentSummary={agentSummary}
+              agentInfo={agentInfo}
             />
           </>
         ) : (
@@ -161,7 +160,7 @@ export function ConversationView({
             activationName={selectedActivationName}
             isAgentActive={isAgentActive}
             chatInputRef={chatInputRef}
-            agentSummary={agentSummary}
+            agentInfo={agentInfo}
           />
         )}
       </div>

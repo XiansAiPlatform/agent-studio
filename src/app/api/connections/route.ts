@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { withTenantFromSession, ApiContext } from "@/lib/api/with-tenant"
+import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   OIDCConnection,
   CreateConnectionRequest,
@@ -79,7 +79,7 @@ function saveMockConnections(tenantId: string, connections: OIDCConnection[]) {
 }
 
 // GET /api/connections
-export const GET = withTenantFromSession(async (request, apiContext: ApiContext) => {
+export const GET = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     const tenantId = apiContext.tenantContext.tenant.id
     const url = new URL(request.url)
@@ -133,7 +133,7 @@ export const GET = withTenantFromSession(async (request, apiContext: ApiContext)
 })
 
 // POST /api/connections
-export const POST = withTenantFromSession(async (request, apiContext: ApiContext) => {
+export const POST = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     if (!apiContext.tenantContext.permissions.includes('write')) {
       return NextResponse.json(

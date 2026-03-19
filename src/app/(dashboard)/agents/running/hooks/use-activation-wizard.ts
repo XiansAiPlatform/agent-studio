@@ -13,7 +13,7 @@ interface WorkflowDefinition {
 }
 
 interface AgentApiResponse {
-  agent: { id: string; name: string; description: string | null };
+  agent: { id: string; name: string; description: string | null; summary?: string | null };
   definitions: WorkflowDefinition[];
 }
 
@@ -115,6 +115,7 @@ export function useActivationWizard(
             id: data.agent.id,
             name: data.agent.name,
             description: data.agent.description,
+            summary: data.agent.summary,
           },
           workflows: workflowsWithParams,
         });

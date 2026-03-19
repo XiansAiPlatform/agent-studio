@@ -21,8 +21,21 @@ interface ChatInterfaceProps {
   hideHeader?: boolean;
   isActivationActive?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
-  /** Agent summary from deployment - shown in empty state when no messages */
-  agentSummary?: string | null;
+  /** Agent info from deployment - shown in empty state when no messages */
+  agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
+}
+
+function useSamplePromptClick(
+  setMessageInput: (v: string) => void,
+  inputRef?: React.RefObject<HTMLInputElement | null>
+) {
+  return useCallback(
+    (prompt: string) => {
+      setMessageInput(prompt);
+      inputRef?.current?.focus?.();
+    },
+    [setMessageInput, inputRef]
+  );
 }
 
 export function ChatInterface({
@@ -38,9 +51,10 @@ export function ChatInterface({
   hideHeader = false,
   isActivationActive = true,
   inputRef: externalInputRef,
-  agentSummary,
+  agentInfo,
 }: ChatInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
+  const onSamplePromptClick = useSamplePromptClick(setMessageInput, externalInputRef);
   const [isTyping, setIsTyping] = useState(false);
   const lastAgentMessageIdRef = useRef<string | null>(null);
   const lastProgressMessageIdRef = useRef<string | null>(null);
@@ -50,7 +64,7 @@ export function ChatInterface({
 
   const scheduleTypingEnd = useCallback(() => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 60000);
+    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2 * 60 * 1000);
   }, []);
 
   useEffect(() => () => {
@@ -149,6 +163,7 @@ export function ChatInterface({
 
       <MessagesArea
         messages={selectedTopic.messages}
+        activationName={activationName}
         agentName={conversation.agent.name}
         userName={conversation.user.name}
         topicName={selectedTopic.name}
@@ -159,7 +174,8 @@ export function ChatInterface({
         onLoadMoreMessages={onLoadMoreMessages}
         messagesContainerRef={messagesContainerRef}
         messagesEndRef={messagesEndRef}
-        agentSummary={agentSummary}
+        agentInfo={agentInfo}
+        onSamplePromptClick={onSamplePromptClick}
       />
 
       <ChatInputArea

@@ -115,14 +115,12 @@ export class XiansAgentsApi {
       status?: string
     }
   ): Promise<XiansAgentDeploymentsResponse> {
-    const query = new URLSearchParams()
-    if (params?.page) query.set('page', params.page.toString())
-    if (params?.pageSize) query.set('pageSize', params.pageSize.toString())
-    if (params?.status) query.set('status', params.status)
-
-    const queryString = query.toString()
-    const path = `/api/v1/admin/tenants/${tenantId}/agentDeployments${queryString ? `?${queryString}` : ''}`
-    
+    const searchParams = new URLSearchParams({
+      page: String(params?.page ?? 1),
+      pageSize: String(params?.pageSize ?? 100),
+    })
+    if (params?.status) searchParams.set('status', params.status)
+    const path = `/api/v1/admin/tenants/${tenantId}/agentDeployments?${searchParams.toString()}`
     return this.client.get<XiansAgentDeploymentsResponse>(path)
   }
 

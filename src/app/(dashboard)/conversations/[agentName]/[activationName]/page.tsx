@@ -32,7 +32,7 @@ function ConversationContent() {
   const params = useParams();
   const { currentTenantId } = useTenant();
   const { data: session } = useSession();
-  const { onOpenMenu } = useParticipantLayout();
+  const { onOpenMenu, topicDeletedEvent, notifyTopicDeleted } = useParticipantLayout();
   
   // Get route parameters
   const agentName = decodeURIComponent(params.agentName as string);
@@ -50,7 +50,12 @@ function ConversationContent() {
   const hasAutoFocusedRef = useRef(false);
   // Incrementing this triggers the auto-focus effect even when selectedTopicId hasn't changed
   const [focusTrigger, setFocusTrigger] = useState(0);
-  const [agentSummary, setAgentSummary] = useState<string | null>(null);
+  const [agentInfo, setAgentInfo] = useState<{
+    summary: string | null;
+    description: string | null;
+    category: string | null;
+    samplePrompts: string[] | null;
+  } | null>(null);
 
   // Fetch activations (for switching between agents)
   const { activations, isLoading: isLoadingActivations } = useActivations(currentTenantId);
@@ -87,10 +92,10 @@ function ConversationContent() {
     selectedTopicId,
   });
 
-  // Fetch agent deployment for summary (shown in empty chat state)
+  // Fetch agent deployment for empty chat state (summary, description, category)
   useEffect(() => {
     if (!agentName || !currentTenantId || !session?.user?.email) {
-      setAgentSummary(null);
+      setAgentInfo(null);
       return;
     }
     let cancelled = false;
@@ -100,12 +105,22 @@ function ConversationContent() {
         if (cancelled) return;
         if (res.ok) {
           const data = await res.json();
-          setAgentSummary(data.agent?.summary ?? data.summary ?? null);
+          const agent = data.agent ?? data;
+          const prompts = agent?.samplePrompts ?? data?.samplePrompts;
+          const samplePrompts = Array.isArray(prompts)
+            ? prompts.filter((p): p is string => typeof p === 'string').slice(0, 6)
+            : null;
+          setAgentInfo({
+            summary: agent?.summary ?? data?.summary ?? null,
+            description: agent?.description ?? data?.description ?? null,
+            category: agent?.category ?? data?.category ?? null,
+            samplePrompts: samplePrompts?.length ? samplePrompts : null,
+          });
         } else {
-          setAgentSummary(null);
+          setAgentInfo(null);
         }
       } catch {
-        if (!cancelled) setAgentSummary(null);
+        if (!cancelled) setAgentInfo(null);
       }
     };
     fetchAgent();
@@ -270,7 +285,13 @@ function ConversationContent() {
         const generalTopicId = 'general-discussions';
         setSelectedTopicId(generalTopicId);
         updateTopicInURL(generalTopicId);
+        // When deleting general-discussions we stay on it; notify so fetch effect refetches
+        if (topicId === 'general-discussions') {
+          notifyTopicDeleted(agentName, activationName, topicId);
+        }
       }
+      // Clear displayed messages for the deleted topic
+      updateTopicMessages(topicId, []);
 
       // Reload topics to reflect the updated message counts
       await refetchTopics();
@@ -285,7 +306,7 @@ function ConversationContent() {
       showErrorToast(error, 'Failed to delete topic messages');
       throw error; // Re-throw to let the component handle the error state
     }
-  }, [currentTenantId, agentName, activationName, selectedTopicId, updateTopicInURL, refetchTopics]);
+  }, [currentTenantId, agentName, activationName, selectedTopicId, updateTopicInURL, refetchTopics, notifyTopicDeleted, updateTopicMessages]);
 
   // Handle topic selection
   const handleTopicSelect = useCallback((topicId: string) => {
@@ -367,14 +388,30 @@ function ConversationContent() {
         return;
       }
 
-      // Skip if already loading
-      if (messageStates[selectedTopicId]?.isLoading) {
+      const isTopicJustDeleted =
+        topicDeletedEvent &&
+        topicDeletedEvent.agentName === agentName &&
+        topicDeletedEvent.activationName === activationName &&
+        topicDeletedEvent.topicId === selectedTopicId;
+
+      // Skip if already loading (unless we need to refetch due to topic delete)
+      if (!isTopicJustDeleted && messageStates[selectedTopicId]?.isLoading) {
         return;
       }
 
-      // Skip if we've already attempted to fetch for this topic (even if no messages)
-      if (messageStates[selectedTopicId] !== undefined) {
+      // Skip if we've already attempted to fetch for this topic (unless topic was just deleted)
+      if (!isTopicJustDeleted && messageStates[selectedTopicId] !== undefined) {
         return;
+      }
+
+      if (isTopicJustDeleted) {
+        // Clear cached messages and update UI immediately
+        setMessageStates((prev) => {
+          const next = { ...prev };
+          delete next[selectedTopicId];
+          return next;
+        });
+        updateTopicMessages(selectedTopicId, []);
       }
 
       setMessageStates(prev => ({
@@ -450,7 +487,7 @@ function ConversationContent() {
     };
     
     fetchMessages();
-  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, updateTopicMessages]);
+  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent]);
 
   // Handle sending messages
   const handleSendMessage = useCallback(async (content: string, topicId: string) => {
@@ -713,7 +750,7 @@ function ConversationContent() {
   if (!conversation) {
     const noConvContent = (
       <div className="flex flex-col items-center justify-center flex-1 text-center p-12 bg-card min-h-0">
-        <p className="text-primary max-w-md text-base font-semibold">
+        <p className="text-foreground max-w-md text-base font-normal">
           {agentName && activationName 
             ? `No topics found for ${activationName}`
             : 'There are no active conversations with this agent'
@@ -768,7 +805,7 @@ function ConversationContent() {
         onCreateTopic={handleCreateTopic}
         onDeleteTopic={handleDeleteTopic}
         chatInputRef={chatInputRef}
-        agentSummary={agentSummary}
+        agentInfo={agentInfo}
       />
     </div>
   );

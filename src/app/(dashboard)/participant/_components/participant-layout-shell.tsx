@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { useParticipantLayout } from '@/contexts/participant-layout-context'
 import { ParticipantAgentTree } from './participant-agent-tree'
 import { Topic } from '@/lib/data/dummy-conversations'
 
@@ -17,6 +19,7 @@ export function ParticipantLayoutShell({
   onMenuOpenChange,
 }: ParticipantLayoutShellProps) {
   const router = useRouter()
+  const { notifyTopicDeleted } = useParticipantLayout()
 
   const handleTopicSelect = (
     agentName: string,
@@ -30,7 +33,8 @@ export function ParticipantLayoutShell({
   }
 
   return (
-    <div className="flex flex-1 min-w-0 min-h-0 flex-col h-full">
+    <TooltipProvider>
+      <div className="flex flex-1 min-w-0 min-h-0 flex-col h-full">
       <Sheet open={menuOpen} onOpenChange={onMenuOpenChange}>
         <SheetContent
           side="left"
@@ -50,6 +54,7 @@ export function ParticipantLayoutShell({
             <ParticipantAgentTree
               onTopicSelect={handleTopicSelect}
               onClose={() => onMenuOpenChange(false)}
+              onTopicDeleted={notifyTopicDeleted}
             />
           </div>
         </SheetContent>
@@ -59,5 +64,6 @@ export function ParticipantLayoutShell({
         {children}
       </div>
     </div>
+    </TooltipProvider>
   )
 }

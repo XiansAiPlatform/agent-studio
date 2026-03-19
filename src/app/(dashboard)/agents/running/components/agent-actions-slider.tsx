@@ -5,6 +5,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -45,6 +46,9 @@ export function AgentActionsSlider({
   onDeactivateClick,
   onDeleteClick,
 }: AgentActionsSliderProps) {
+  const { isParticipantMode } = useParticipantLayout()
+  const canAccessSettings = !isParticipantMode
+
   if (sliderType === 'actions' && agent.status === 'active') {
     return (
       <SheetContent className="flex flex-col p-0 border-l border-border/40 backdrop-blur-xl bg-background sm:max-w-lg">
@@ -105,22 +109,26 @@ export function AgentActionsSlider({
 
 
 
-            {/* Secondary Actions - Simplified */}
+            {/* Secondary Actions - Simplified (settings links hidden for participants) */}
             <div className="space-y-1">
-              <button
-                onClick={() => onSliderTypeChange('configure')}
-                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
-              >
-                <Settings className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Configuration</span>
-              </button>
-              <Link 
-                href={`/settings/database?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
-                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-              >
-                <Database className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Explore Data</span>
-              </Link>
+              {canAccessSettings && (
+                <button
+                  onClick={() => onSliderTypeChange('configure')}
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
+                >
+                  <Settings className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Configuration</span>
+                </button>
+              )}
+              {canAccessSettings && (
+                <Link 
+                  href={`/settings/database?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <Database className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Explore Data</span>
+                </Link>
+              )}
               <Link 
                 href={`/knowledge?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
                 className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
@@ -128,29 +136,35 @@ export function AgentActionsSlider({
                 <BookOpen className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Knowledge</span>
               </Link>
-              <Link 
-                href={`/settings/connections?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
-                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-              >
-                <Plug className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Connections</span>
-              </Link>
+              {canAccessSettings && (
+                <Link 
+                  href={`/settings/connections?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <Plug className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Connections</span>
+                </Link>
+              )}
 
-              <Link
-                href={`/settings/logs?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
-                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
-              >
-                <Activity className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Activity Logs</span>
-              </Link>
+              {canAccessSettings && (
+                <Link
+                  href={`/settings/logs?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
+                >
+                  <Activity className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Activity Logs</span>
+                </Link>
+              )}
               
-              <Link
-                href={`/settings/performance?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
-                className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-              >
-                <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Performance</span>
-              </Link>
+              {canAccessSettings && (
+                <Link
+                  href={`/settings/performance?agent=${encodeURIComponent(agent.template)}&activation=${encodeURIComponent(agent.name)}`}
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Performance</span>
+                </Link>
+              )}
             </div>
 
             <Separator className="opacity-40" />

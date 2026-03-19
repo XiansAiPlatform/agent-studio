@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,8 @@ import { EmptyState } from './components/empty-state';
 
 function AgentsPageContent() {
   const { currentTenantId } = useTenant();
+  const { isParticipantMode } = useParticipantLayout();
+  const canAccessSettings = !isParticipantMode;
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -236,12 +239,14 @@ function AgentsPageContent() {
             Collaborate with your AI agent coworkers
           </p>
         </div>
-        <Button asChild>
-          <Link href="/settings/agent-store">
-            <Play className="mr-2 h-4 w-4" />
-            Activate from Store
-          </Link>
-        </Button>
+        {canAccessSettings && (
+          <Button asChild>
+            <Link href="/settings/agent-store">
+              <Play className="mr-2 h-4 w-4" />
+              Activate from Store
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Agent Filter Tags */}
@@ -271,7 +276,11 @@ function AgentsPageContent() {
         <EmptyState
           icon={Bot}
           title="No activated agents"
-          description={`You haven't activated any agents yet. Click "Activate from Store" to get started.`}
+          description={
+            canAccessSettings
+              ? 'You haven\'t activated any agents yet. Click "Activate from Store" to get started.'
+              : 'No agents have been activated for your tenant yet. Contact your administrator to activate agents.'
+          }
         />
       )}
 

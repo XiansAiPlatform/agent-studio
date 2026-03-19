@@ -172,6 +172,7 @@ export interface XiansAgentDeploymentDetail {
     version: string | null
     author: string | null
     category?: string | null
+    samplePrompts?: string[] | null
   }
   definitions: Array<{
     id: string

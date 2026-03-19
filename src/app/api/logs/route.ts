@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 
 /**
  * GET /api/logs
  * Fetch logs with optional filters. Tenant is injected from session (httpOnly cookie).
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id

@@ -11,9 +11,12 @@ interface TenantState {
   isLoading: boolean
   error: string | null
   hasAttemptedFetch: boolean  // Track if we've tried to fetch at least once
-  
+  /** When false, user cannot change theme (tenant has set theme and user is not admin) */
+  canCustomizeTheme: boolean
+
   // Actions
   setTenants: (tenants: TenantState['tenants']) => void
+  setCanCustomizeTheme: (value: boolean) => void
   setCurrentTenant: (tenantId: string) => void
   getCurrentTenant: () => TenantState['tenants'][0] | undefined
   setLoading: (isLoading: boolean) => void
@@ -30,7 +33,10 @@ export const useTenantStore = create<TenantState>()(
       isLoading: false,
       error: null,
       hasAttemptedFetch: false,
-      
+      canCustomizeTheme: true,
+
+      setCanCustomizeTheme: (value) => set({ canCustomizeTheme: value }),
+
       setTenants: (tenants) => {
         set({ tenants, error: null, hasAttemptedFetch: true })
         
@@ -79,7 +85,8 @@ export const useTenantStore = create<TenantState>()(
         set({ 
           tenants: [], 
           currentTenantId: null, 
-          error: null
+          error: null,
+          canCustomizeTheme: true
         })
       }
     }),

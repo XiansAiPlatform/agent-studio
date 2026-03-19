@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { redirect } from "next/navigation"
-import { withTenantFromSession, ApiContext } from "@/lib/api/with-tenant"
+import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   ConnectionToken
 } from "@/app/(dashboard)/settings/connections/types"
@@ -49,7 +49,7 @@ async function exchangeCodeForTokens(connection: any, code: string): Promise<Con
   }
 }
 
-const getHandler = withTenantFromSession(async (request, apiContext: ApiContext) => {
+const getHandler = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     const tenantId = apiContext.tenantContext.tenant.id
     const pathParts = request.nextUrl.pathname.split('/')

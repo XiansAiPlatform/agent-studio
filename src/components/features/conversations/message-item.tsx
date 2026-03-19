@@ -622,12 +622,12 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
               <Copy className="h-3 w-3 mr-1" />
               Copy
             </Button>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+            {/* <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
               <ThumbsUp className="h-3 w-3" />
             </Button>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
               <ThumbsDown className="h-3 w-3" />
-            </Button>
+            </Button> */}
           </div>
         )}
 

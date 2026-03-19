@@ -122,15 +122,16 @@ export default function AgentTemplatesPage() {
           id: data.agent.id,
           name: data.agent.name,
           description: data.agent.description,
+          summary: data.agent.summary,
         },
         workflows: workflowsWithParams,
       });
       
-      // Pre-populate instance name and description
+      // Pre-populate instance name and description (use agent's summary when available)
       const suggestedName = generateInstanceName(deployment.name);
       setInitialMetadata({
         name: suggestedName,
-        description: generateInstanceDescription(deployment.name, suggestedName, session?.user?.name),
+        description: data.agent?.summary?.trim() || generateInstanceDescription(deployment.name, suggestedName, session?.user?.name),
       });
     } catch (err) {
       showErrorToast(err, 'Failed to load configuration wizard');
@@ -394,7 +395,7 @@ export default function AgentTemplatesPage() {
       const newName = generateInstanceName(selectedDeployment.name);
       return {
         name: newName,
-        description: generateInstanceDescription(selectedDeployment.name, newName, session?.user?.name),
+        description: wizardData?.agent?.summary?.trim() || generateInstanceDescription(selectedDeployment.name, newName, session?.user?.name),
       };
     }
     return { name: '', description: '' };

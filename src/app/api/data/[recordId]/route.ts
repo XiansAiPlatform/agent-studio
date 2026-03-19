@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant';
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
 
 function extractRecordIdFromPath(pathname: string): string | null {
@@ -12,7 +12,7 @@ function extractRecordIdFromPath(pathname: string): string | null {
  * Delete a single data record.
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
  */
-export const DELETE = withTenantFromSession(
+export const DELETE = withParticipantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {
     const recordId = extractRecordIdFromPath(new URL(request.url).pathname);
 

@@ -19,6 +19,8 @@ interface Props {
   }>
   /** Server-determined: show sidebar (admin layout) vs single panel (participant layout) */
   showSidebar: boolean
+  /** When false, user cannot change theme (tenant has set theme and user is not admin) */
+  canCustomizeTheme?: boolean
 }
 
 /**
@@ -31,8 +33,9 @@ export function DashboardLayoutClient({
   children,
   initialTenants,
   showSidebar,
+  canCustomizeTheme = true,
 }: Props) {
-  const { setTenants, currentTenantId, setCurrentTenant, clearTenants } = useTenantStore()
+  const { setTenants, setCanCustomizeTheme, clearTenants } = useTenantStore()
   const router = useRouter()
   const pathname = usePathname()
   const [isValidating, setIsValidating] = useState(true)
@@ -54,6 +57,7 @@ export function DashboardLayoutClient({
         
         // Always update the tenant list (so user menu can show tenants)
         setTenants(initialTenants)
+        setCanCustomizeTheme(canCustomizeTheme)
         
         // Get the tenant ID that was selected (either the persisted one or auto-selected)
         // Note: After setTenants(), the store may have auto-selected a valid tenant
@@ -146,7 +150,7 @@ export function DashboardLayoutClient({
         abortControllerRef.current.abort()
       }
     }
-  }, [initialTenants, setTenants, router, clearTenants])
+  }, [initialTenants, setTenants, setCanCustomizeTheme, canCustomizeTheme, router, clearTenants])
 
   // Show loading while validating selected tenant
   if (isValidating) {
@@ -181,6 +185,7 @@ export function DashboardLayoutClient({
     <ParticipantLayoutProvider
       isParticipantMode={isParticipantMode}
       onOpenMenu={isParticipantMode ? () => setParticipantMenuOpen(true) : undefined}
+      canCustomizeTheme={canCustomizeTheme}
     >
       <div className="flex h-screen flex-col">
         {/* Fixed Header - hamburger moved to ConversationHeader / participant bar */}

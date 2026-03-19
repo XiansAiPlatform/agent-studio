@@ -18,12 +18,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/use-tenant';
 import { useColorTheme } from '@/hooks/use-color-theme';
+import { useTenantStore } from '@/store/tenant-store';
 import { COLOR_THEMES, type ColorThemeId } from '@/lib/themes';
 
 export function UserMenu() {
   const { data: session, status } = useSession();
   const { currentTenant } = useTenant();
   const { colorTheme, setColorTheme } = useColorTheme();
+  const canCustomizeTheme = useTenantStore((s) => s.canCustomizeTheme);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' });
@@ -100,33 +102,37 @@ export function UserMenu() {
           </>
         )}
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            <span>Theme</span>
-            <div
-              className="ml-auto h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
-              style={{ backgroundColor: COLOR_THEMES[colorTheme].primarySwatch }}
-            />
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-44">
-            {(Object.entries(COLOR_THEMES) as [ColorThemeId, { name: string; primarySwatch: string }][]).map(([id, { name, primarySwatch }]) => (
-              <DropdownMenuItem
-                key={id}
-                onSelect={() => setColorTheme(id)}
-                className="flex items-center gap-2"
-              >
+        {canCustomizeTheme ? (
+          <>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                <span>Theme</span>
                 <div
-                  className="h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
-                  style={{ backgroundColor: primarySwatch }}
+                  className="ml-auto h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
+                  style={{ backgroundColor: COLOR_THEMES[colorTheme].primarySwatch }}
                 />
-                <span>{name}</span>
-                {colorTheme === id && <Check className="h-4 w-4 ml-auto" />}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSeparator />
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-44">
+                {(Object.entries(COLOR_THEMES) as [ColorThemeId, { name: string; primarySwatch: string }][]).map(([id, { name, primarySwatch }]) => (
+                  <DropdownMenuItem
+                    key={id}
+                    onSelect={() => setColorTheme(id)}
+                    className="flex items-center gap-2"
+                  >
+                    <div
+                      className="h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
+                      style={{ backgroundColor: primarySwatch }}
+                    />
+                    <span>{name}</span>
+                    {colorTheme === id && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
 
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="h-4 w-4" />

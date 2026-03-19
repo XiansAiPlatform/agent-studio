@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient, XiansApiError } from '@/lib/xians/client'
 
 /**
@@ -11,7 +11,7 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ integrationId: string }> }
 ) {
-  const handler = withTenantFromSession(
+  const handler = withParticipantAdmin(
     async (req: NextRequest, { tenantContext }: ApiContext) => {
       const { integrationId } = await context.params
       if (!integrationId) {

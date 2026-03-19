@@ -15,8 +15,8 @@ interface ChatPanelProps {
   activationName: string | null;
   isAgentActive: boolean;
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
-  /** Agent summary from deployment - shown in empty state when no messages */
-  agentSummary?: string | null;
+  /** Agent info from deployment - shown in empty state when no messages */
+  agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
 }
 
 /**
@@ -37,7 +37,7 @@ export function ChatPanel({
   activationName,
   isAgentActive,
   chatInputRef,
-  agentSummary,
+  agentInfo,
 }: ChatPanelProps) {
   if (!selectedTopicId || !selectedTopic) {
     return (
@@ -70,7 +70,7 @@ export function ChatPanel({
         hideHeader={true}
         isActivationActive={isAgentActive}
         inputRef={chatInputRef}
-        agentSummary={agentSummary}
+        agentInfo={agentInfo}
       />
     </div>
   );

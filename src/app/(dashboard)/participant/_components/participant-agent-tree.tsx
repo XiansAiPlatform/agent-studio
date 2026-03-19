@@ -35,6 +35,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { toast } from 'sonner'
 import { showErrorToast } from '@/lib/utils/error-handler'
 
@@ -63,6 +68,8 @@ const GENERAL_TOPIC: Topic = {
 interface ParticipantAgentTreeProps {
   onTopicSelect: (agentName: string, activationName: string, topic: Topic) => void
   onClose?: () => void
+  /** Called after a topic's messages are deleted successfully; used to reload the message thread */
+  onTopicDeleted?: (agentName: string, activationName: string, topicId: string) => void
 }
 
 /** Fetches topics for a single activation. Returns at least [General Discussions] on empty/no-capability. */
@@ -126,6 +133,7 @@ async function fetchTopicsForActivation(
 export function ParticipantAgentTree({
   onTopicSelect,
   onClose,
+  onTopicDeleted,
 }: ParticipantAgentTreeProps) {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -230,6 +238,7 @@ export function ParticipantAgentTree({
         })
         if (!response.ok) throw new Error('Failed to delete topic messages')
         await refetchActivationTopics(agentName, activationName)
+        onTopicDeleted?.(agentName, activationName, topicId)
         toast.success('Topic deleted', {
           description: `All messages in "${topicName}" have been deleted.`,
         })
@@ -238,7 +247,7 @@ export function ParticipantAgentTree({
         setIsDeletingTopic(false)
       }
     },
-    [refetchActivationTopics]
+    [refetchActivationTopics, onTopicDeleted]
   )
 
   const toggleActivation = useCallback(
@@ -341,10 +350,15 @@ export function ParticipantAgentTree({
                 <span className="participant-tree-icon-wrap participant-tree-icon-wrap--activation flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border">
                   <MessageSquare className="participant-tree-icon participant-tree-icon--activation h-4 w-4 text-primary/80" />
                 </span>
-                <span className="font-medium text-sm truncate">{activationName}</span>
-                {activation.status === 'active' && (
-                  <span className="ml-auto h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="font-medium text-sm truncate">{activationName}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{activationName}</p>
+                  </TooltipContent>
+                </Tooltip>
+
               </button>
               {/* Expand to see topics + create new thread - visible on hover or when expanded */}
               <button
@@ -411,8 +425,7 @@ export function ParticipantAgentTree({
                             {topic.name}
                           </span>
                         </button>
-                        {topic.id !== 'general-discussions' && (
-                          <DropdownMenu>
+                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
@@ -437,9 +450,8 @@ export function ParticipantAgentTree({
                                 <Trash2 className="h-3.5 w-3.5" />
                                 Delete
                               </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                                 </div>
                       )
                     })}
@@ -538,7 +550,7 @@ export function ParticipantAgentTree({
               }
             }}
             disabled={isDeletingTopic}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-destructive text-white hover:bg-destructive/90"
           >
             {isDeletingTopic ? 'Deleting...' : 'Delete Messages'}
           </AlertDialogAction>

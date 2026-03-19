@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
 
@@ -12,7 +12,7 @@ export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ agentId: string }> }
 ) {
-  const handler = withTenantFromSession(async (req: NextRequest, apiContext: ApiContext) => {
+  const handler = withParticipantAdmin(async (req: NextRequest, apiContext: ApiContext) => {
     try {
       const { agentId } = await context.params
 

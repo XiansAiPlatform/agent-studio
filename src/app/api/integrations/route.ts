@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient, XiansApiError } from '@/lib/xians/client'
 
 /**
  * GET /api/integrations
  * Fetches app integrations. Tenant is injected from session (httpOnly cookie).
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantContext }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id
@@ -71,7 +71,7 @@ export const GET = withTenantFromSession(
  * POST /api/integrations
  * Creates a new integration. Tenant is injected from session (httpOnly cookie).
  */
-export const POST = withTenantFromSession(
+export const POST = withParticipantAdmin(
   async (request: NextRequest, { tenantContext }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id

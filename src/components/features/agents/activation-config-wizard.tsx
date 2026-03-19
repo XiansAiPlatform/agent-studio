@@ -47,6 +47,7 @@ export type ActivationWizardData = {
     id: string;
     name: string;
     description: string | null;
+    summary?: string | null;
   };
   workflows: WorkflowDefinition[];
 };
@@ -130,14 +131,21 @@ export function ActivationConfigWizard({
     onOpenChange(newOpen);
   };
 
-  // Auto-generate name when reaching metadata step for the first time
-  // Only if no initial name was provided
+  // Auto-generate name and pre-fill description when reaching metadata step for the first time
   React.useEffect(() => {
-    if (isMetadataStep && !metadataStepVisited && onGenerateInstanceName) {
-      // Only generate if the current name is empty (no initial metadata was provided)
-      if (!metadata.name || metadata.name.trim() === '') {
+    if (isMetadataStep && !metadataStepVisited) {
+      let updates: Partial<InstanceMetadata> = {};
+      // Only generate name if the current name is empty (no initial metadata was provided)
+      if (onGenerateInstanceName && (!metadata.name || metadata.name.trim() === '')) {
         const generated = onGenerateInstanceName();
-        setMetadata(generated);
+        updates = generated;
+      }
+      // Use agent's summary as description when empty and agent has a summary
+      if ((!metadata.description || metadata.description.trim() === '') && wizardData?.agent?.summary?.trim()) {
+        updates = { ...updates, description: wizardData.agent.summary?.trim() ?? '' };
+      }
+      if (Object.keys(updates).length > 0) {
+        setMetadata((prev) => ({ ...prev, ...updates }));
       }
       setMetadataStepVisited(true);
     }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { withTenantFromSession, ApiContext } from "@/lib/api/with-tenant"
+import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   InitiateConnectionRequest,
   InitiateConnectionResponse,
@@ -33,7 +33,7 @@ function generateState(): string {
 }
 
 // POST /api/connections/initiate
-export const POST = withTenantFromSession(async (request, apiContext: ApiContext) => {
+export const POST = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     const tenantId = apiContext.tenantContext.tenant.id
     const data: InitiateConnectionRequest = await request.json()

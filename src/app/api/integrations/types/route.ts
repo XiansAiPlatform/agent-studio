@@ -1,4 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { requireParticipantAdmin } from '@/lib/api/auth'
+import { getTenantIdFromCookie } from '@/lib/api/with-tenant'
 import { createXiansClient, XiansApiError } from '@/lib/xians'
 
 /**
@@ -85,9 +89,14 @@ const FALLBACK_INTEGRATION_TYPES = [
  * GET /api/integrations/types
  * Fetches available integration types from the backend API
  * Falls back to hardcoded types if backend endpoint is not implemented (404)
+ * Requires TenantParticipantAdmin or system administrator access
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    const tenantId = getTenantIdFromCookie(request)
+    const authError = await requireParticipantAdmin(session, tenantId)
+    if (authError) return authError
     const endpoint = '/api/v1/admin/integrations/metadata/types'
     console.log('[API /integrations/types] Fetching integration types from backend')
     console.log('[API /integrations/types] Full URL:', `${process.env.XIANS_SERVER_URL}${endpoint}`)

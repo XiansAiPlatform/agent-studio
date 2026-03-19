@@ -145,9 +145,6 @@ export function ParticipantChatPage() {
                           </p>
                         )}
                       </div>
-                      {activation.status === 'active' && (
-                        <span className="h-2 w-2 rounded-full bg-green-500 shrink-0 ring-2 ring-green-500/20" />
-                      )}
                     </button>
                   ))}
                 </div>

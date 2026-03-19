@@ -240,12 +240,12 @@ html.dark[data-theme="skog"] .topic-list-menu {
 
 /* ========== Zenith Theme (Kinnevik brand) ========== */
 /* From docs/theme/zenith SVGs: #CC0000 red, #FFE6E6 blush, #FAFAFA bg, #1A1A1A text */
-/* Typography: Inter — clean professional sans matching Kinnevik aesthetic (SVG text is outlined, font not embeddable) */
+/* Typography: DM Sans only. 300 Light — descriptive text below page titles; 400 Regular — body, nav, buttons, badges, counters; 700 Bold — active nav item */
 :root[data-theme="zenith"],
 html[data-theme="zenith"] {
 
-  /* Font — Inter for Zenith/Kinnevik brand */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Font — DM Sans (only font used throughout Zenith), loaded via Google Fonts link */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
 
   /* Backgrounds — #FAFAFA from SVGs, white cards */
   --background: #FAFAFA;
@@ -302,6 +302,11 @@ html[data-theme="zenith"] {
   --header-sidebar-bg: #FAFAFA;
 }
 
+/* Zenith: force DM Sans on document (override Tailwind base) */
+html[data-theme="zenith"] body {
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif !important;
+}
+
 /* Header + sidebar + topics panel background — light mode (#FAFAFA from SVGs) */
 html:not(.dark)[data-theme="zenith"] header,
 html:not(.dark)[data-theme="zenith"] aside[class*="border-r"],
@@ -316,6 +321,17 @@ html.dark[data-theme="zenith"] aside[class*="border-r"],
 html.dark[data-theme="zenith"] .conversation-topic-sidebar,
 html.dark[data-theme="zenith"] .topic-list-menu {
   background-color: #101828 !important;
+}
+
+/* Zenith Typography — DM Sans weights: 300 Light (descriptions), 400 Regular (body/nav/buttons/badges), 700 Bold (active nav) */
+[data-theme="zenith"] h1 + p,
+[data-theme="zenith"] h2 + p,
+[data-theme="zenith"] .zenith-description {
+  font-weight: 300;
+}
+[data-theme="zenith"] aside a[class*="border-l-primary"],
+[data-theme="zenith"] aside button[class*="border-l-primary"] {
+  font-weight: 700;
 }
 
 /* Zenith: icon avatars — 35% Kinnevik red tint, #FFE6E6 blush */

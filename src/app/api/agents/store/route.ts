@@ -1,21 +1,21 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
-import { requireSystemAdmin } from '@/lib/api/auth'
+import { requireParticipantAdmin } from '@/lib/api/auth'
+import { getTenantIdFromCookie } from '@/lib/api/with-tenant'
 
 /**
  * GET /api/agents/store
  * Fetch Available Agents from Xians server
- * Requires system administrator access
- * No tenant ID required - SystemScoped agents
+ * Requires TenantParticipantAdmin or system administrator access
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    // Verify user is authenticated and is a system admin
     const session = await getServerSession(authOptions)
-    const authError = await requireSystemAdmin(session)
+    const tenantId = getTenantIdFromCookie(request)
+    const authError = await requireParticipantAdmin(session, tenantId)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)

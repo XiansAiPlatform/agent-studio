@@ -110,3 +110,88 @@ export async function isSystemAdmin(session: Session | null): Promise<boolean> {
     return false
   }
 }
+
+/**
+ * Verify if a user has TenantParticipantAdmin role for the current tenant.
+ * System admins are always allowed. Used for settings and other admin-only operations.
+ *
+ * @param session - The user's session
+ * @param currentTenantId - The tenant ID from the current-tenant-id cookie
+ * @returns Object with isParticipantAdmin boolean and user email
+ */
+export async function verifyParticipantAdmin(
+  session: Session | null,
+  currentTenantId: string | null
+): Promise<{
+  isParticipantAdmin: boolean
+  email: string
+}> {
+  if (!session?.user?.email) {
+    throw new Error('User email not found in session')
+  }
+
+  const email = session.user.email
+
+  if (!currentTenantId) {
+    return { isParticipantAdmin: false, email }
+  }
+
+  try {
+    const client = createXiansClient((session as any)?.accessToken)
+    const tenantsApi = new XiansTenantsApi(client)
+    const response = await tenantsApi.getParticipantTenants(email)
+
+    const currentTenant = response.tenants.find(
+      (t) => t.tenantId === currentTenantId
+    )
+    const isParticipantAdmin = currentTenant?.role === 'TenantParticipantAdmin'
+
+    return { isParticipantAdmin, email }
+  } catch (error: any) {
+    console.error('[Auth] Failed to verify participant admin status:', error)
+    throw new Error(
+      `Failed to verify participant admin status: ${error.message}`
+    )
+  }
+}
+
+/**
+ * Require TenantParticipantAdmin (or system admin) for an API route.
+ * Use for /settings/* related operations.
+ *
+ * @param session - The user's session
+ * @param currentTenantId - The tenant ID from the current-tenant-id cookie
+ * @returns null if authorized, NextResponse with error if not
+ */
+export async function requireParticipantAdmin(
+  session: Session | null,
+  currentTenantId: string | null
+): Promise<NextResponse | null> {
+  if (!session) {
+    return unauthorizedError('Authentication required')
+  }
+
+  if (!currentTenantId) {
+    return forbiddenError('Participant admin access requires a selected tenant')
+  }
+
+  try {
+    const { isParticipantAdmin, email } = await verifyParticipantAdmin(
+      session,
+      currentTenantId
+    )
+
+    if (!isParticipantAdmin) {
+      console.warn(
+        '[Auth] Access denied - user is not a participant admin:',
+        email
+      )
+      return forbiddenError('Participant administrator access required')
+    }
+
+    return null
+  } catch (error: any) {
+    console.error('[Auth] Participant admin verification failed:', error)
+    return forbiddenError('Unable to verify participant administrator access')
+  }
+}
