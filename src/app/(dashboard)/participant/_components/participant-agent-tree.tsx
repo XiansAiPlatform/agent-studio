@@ -239,6 +239,17 @@ export function ParticipantAgentTree({
         if (!response.ok) throw new Error('Failed to delete topic messages')
         await refetchActivationTopics(agentName, activationName)
         onTopicDeleted?.(agentName, activationName, topicId)
+        // If the deleted topic was the one being viewed, fall back to General Discussions
+        const isViewingDeletedTopic =
+          routeAgentName &&
+          routeActivationName &&
+          decodeURIComponent(routeAgentName) === agentName &&
+          decodeURIComponent(routeActivationName) === activationName &&
+          routeTopicId === topicId
+        if (isViewingDeletedTopic && topicId !== 'general-discussions') {
+          onTopicSelect(agentName, activationName, GENERAL_TOPIC)
+          onClose?.()
+        }
         toast.success('Topic deleted', {
           description: `All messages in "${topicName}" have been deleted.`,
         })
@@ -247,7 +258,7 @@ export function ParticipantAgentTree({
         setIsDeletingTopic(false)
       }
     },
-    [refetchActivationTopics, onTopicDeleted]
+    [refetchActivationTopics, onTopicDeleted, onTopicSelect, onClose, routeAgentName, routeActivationName, routeTopicId]
   )
 
   const toggleActivation = useCallback(
