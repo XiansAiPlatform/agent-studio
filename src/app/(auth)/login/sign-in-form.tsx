@@ -47,7 +47,7 @@ export function SignInForm() {
     }
   }, [])
 
-  const handleSignIn = async (provider: 'google' | 'azure-ad') => {
+  const handleSignIn = async (provider: string) => {
     // Check network status first
     if (!navigator.onLine) {
       setError("No internet connection. Please check your network and try again.")
@@ -214,6 +214,37 @@ export function SignInForm() {
               </svg>
             )}
             {isLoading === 'azure-ad' ? 'Signing in...' : 'Sign in with Microsoft'}
+          </Button>
+        )}
+
+        {/* Keycloak Provider */}
+        {providers?.keycloak && (
+          <Button 
+            className="w-full" 
+            size="lg"
+            variant="outline"
+            onClick={() => handleSignIn('keycloak')}
+            disabled={isLoading !== null || !isOnline}
+          >
+            {isLoading === 'keycloak' ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <svg
+                className="mr-2 h-5 w-5"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.4c5.302 0 9.6 4.298 9.6 9.6s-4.298 9.6-9.6 9.6-9.6-4.298-9.6-9.6 4.298-9.6 9.6-9.6zm0 2.4c-3.972 0-7.2 3.228-7.2 7.2s3.228 7.2 7.2 7.2 7.2-3.228 7.2-7.2-3.228-7.2-7.2-7.2z"
+                  fill="#F7F7F7"
+                />
+                <path
+                  d="M12 6.4c0 .442-.358.8-.8.8s-.8-.358-.8-.8.358-.8.8-.8.8.358.8.8z"
+                  fill="#F7F7F7"
+                />
+              </svg>
+            )}
+            {isLoading === 'keycloak' ? 'Signing in...' : 'Sign in with Keycloak'}
           </Button>
         )}
         

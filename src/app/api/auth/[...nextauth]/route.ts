@@ -1,6 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
+import KeycloakProvider from "next-auth/providers/keycloak"
 import type { JWT } from "next-auth/jwt"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
@@ -63,6 +64,22 @@ if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
   )
 } else {
   console.log('[Auth] Microsoft SSO disabled - AZURE_AD_CLIENT_ID and/or AZURE_AD_CLIENT_SECRET not configured')
+}
+
+// Add Keycloak provider if credentials are available
+if (process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET && process.env.KEYCLOAK_ISSUER) {
+  providers.push(
+    KeycloakProvider({
+      clientId: process.env.KEYCLOAK_CLIENT_ID,
+      clientSecret: process.env.KEYCLOAK_CLIENT_SECRET,
+      issuer: process.env.KEYCLOAK_ISSUER,
+      httpOptions: {
+        timeout: 10000, // Increase timeout to 10 seconds
+      }
+    })
+  )
+} else {
+  console.log('[Auth] Keycloak SSO disabled - KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET and/or KEYCLOAK_ISSUER not configured')
 }
 
 export const authOptions: NextAuthOptions = {

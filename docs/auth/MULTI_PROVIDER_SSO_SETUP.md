@@ -5,8 +5,9 @@
 Agent Studio supports multiple authentication providers:
 - **Google** (Google Workspace & Gmail accounts)
 - **Microsoft** (Office 365, Microsoft Entra ID, & personal Microsoft accounts)
+- **Keycloak** (Self-hosted OIDC identity provider)
 
-Users can sign in with either provider, and the system will recognize them by their email address.
+Users can sign in with any configured provider, and the system will recognize them by their email address.
 
 ## Quick Start
 
@@ -26,7 +27,12 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 # Microsoft/Entra ID OAuth Configuration
 AZURE_AD_CLIENT_ID=your-azure-client-id
 AZURE_AD_CLIENT_SECRET=your-azure-client-secret
-AZURE_AD_TENANT_ID=common  # or your specific tenant ID
+AZURE_AD_TENANT_ID=organizations  # use `organizations` or `common` for multitenant sign-in
+
+# Keycloak OIDC Configuration (optional)
+KEYCLOAK_CLIENT_ID=your-keycloak-client-id
+KEYCLOAK_CLIENT_SECRET=your-keycloak-client-secret
+KEYCLOAK_ISSUER=https://your-keycloak-domain.com/realms/Your_Realm
 ```
 
 ### 2. Generate NEXTAUTH_SECRET
@@ -41,6 +47,7 @@ Follow the detailed guides for each provider:
 
 - **Google**: See [GOOGLE_SSO_SETUP.md](./GOOGLE_SSO_SETUP.md)
 - **Microsoft**: See [MICROSOFT_SSO_SETUP.md](./MICROSOFT_SSO_SETUP.md)
+- **Keycloak**: See [KEYCLOAK_SSO_SETUP.md](./KEYCLOAK_SSO_SETUP.md)
 
 ## Provider Configuration Options
 
@@ -73,6 +80,27 @@ Follow the detailed guides for each provider:
 - Multi-tenant support
 - Enterprise security features
 
+### How Microsoft Multitenancy Works In Agent Studio
+
+Agent Studio uses Microsoft authentication in two different ways, and they are configured differently:
+
+1. **App sign-in (`/login`)**
+   - The main Microsoft login button uses the NextAuth Azure AD provider.
+   - This flow is controlled by `AZURE_AD_TENANT_ID`.
+   - If `AZURE_AD_TENANT_ID` is a specific tenant GUID, sign-in is effectively **single-tenant**.
+   - If `AZURE_AD_TENANT_ID=organizations`, sign-in supports **work/school accounts from any Entra tenant**.
+   - If `AZURE_AD_TENANT_ID=common`, sign-in supports **work/school accounts plus personal Microsoft accounts**.
+
+2. **Microsoft tenant connections (for example SharePoint / Outlook 365)**
+   - The connection authorization flow uses Microsoft's `common` authority.
+   - That means the connection initiation flow is already using a **multitenant authorization endpoint**.
+   - This is separate from the main application sign-in configuration above.
+
+To support multitenant Microsoft login for the application itself, you must configure **both**:
+
+- A multitenant Entra app registration in Microsoft Entra ID
+- `AZURE_AD_TENANT_ID` set to `organizations` or `common`
+
 ## Choosing Tenant Configuration
 
 ### Microsoft Entra ID Tenant Types
@@ -86,7 +114,18 @@ Your `AZURE_AD_TENANT_ID` determines who can sign in:
 | `consumers` | Personal Microsoft accounts only | Consumer apps |
 | `{tenant-id}` | Your organization only | Single organization |
 
-**Recommendation:** Use `common` for maximum flexibility unless you have specific requirements.
+**Recommendation:** Use `organizations` for most business applications. Use `common` only if you intentionally want to allow personal Microsoft accounts too. Use a specific tenant ID only for single-tenant deployments.
+
+### Important Behavior
+
+If users from other organizations cannot sign in, the most common cause is that the app is still using a tenant-specific Microsoft authority through `AZURE_AD_TENANT_ID={tenant-id}`.
+
+For multitenant sign-in, use one of these values instead:
+
+- `organizations` for work/school accounts only
+- `common` for work/school and personal Microsoft accounts
+
+Also make sure the Entra app registration's **Supported account types** is configured for a multitenant app. A multitenant tenant ID value alone is not enough if the app registration is still single-tenant.
 
 ## User Identity Management
 
@@ -103,7 +142,7 @@ Users are identified by their **email address** across all providers. This means
 Each provider issues its own access tokens. The system stores:
 - `accessToken`: Provider-specific access token
 - `idToken`: Provider-specific ID token
-- `provider`: Which provider was used ("google" or "azure-ad")
+- `provider`: Which provider was used ("google", "azure-ad", or "keycloak")
 
 This allows you to access provider-specific APIs if needed.
 
@@ -125,13 +164,21 @@ This allows you to access provider-specific APIs if needed.
   - Complete OAuth flow
   - Verify redirect to dashboard
   - Verify tenant access
+  - If multitenant is expected, verify sign-in with a user from a different Entra tenant
+
+- [ ] **Keycloak Login** (if configured)
+  - Sign out if logged in
+  - Navigate to `/login`
+  - Click "Sign in with Keycloak"
+  - Complete OAuth flow
+  - Verify redirect to dashboard
 
 - [ ] **Same User, Different Provider**
   - Create a test account with the same email on both providers
   - Sign in with Google
   - Note your tenant access
   - Sign out
-  - Sign in with Microsoft
+  - Sign in with Microsoft (or Keycloak)
   - Verify same tenant access
 
 ## Production Deployment
@@ -163,11 +210,11 @@ AZURE_AD_CLIENT_ID=prod-azure-client-id
 
 Configure these redirect URIs in each provider's console:
 
-| Environment | Google Redirect URI | Microsoft Redirect URI |
-|-------------|---------------------|------------------------|
-| Development | `http://localhost:3010/api/auth/callback/google` | `http://localhost:3010/api/auth/callback/azure-ad` |
-| Staging | `https://staging.yourdomain.com/api/auth/callback/google` | `https://staging.yourdomain.com/api/auth/callback/azure-ad` |
-| Production | `https://yourdomain.com/api/auth/callback/google` | `https://yourdomain.com/api/auth/callback/azure-ad` |
+| Environment | Google | Microsoft | Keycloak |
+|-------------|--------|------------|----------|
+| Development | `http://localhost:3010/api/auth/callback/google` | `http://localhost:3010/api/auth/callback/azure-ad` | `http://localhost:3010/api/auth/callback/keycloak` |
+| Staging | `https://staging.yourdomain.com/api/auth/callback/google` | `https://staging.yourdomain.com/api/auth/callback/azure-ad` | `https://staging.yourdomain.com/api/auth/callback/keycloak` |
+| Production | `https://yourdomain.com/api/auth/callback/google` | `https://yourdomain.com/api/auth/callback/azure-ad` | `https://yourdomain.com/api/auth/callback/keycloak` |
 
 ## Common Issues
 
@@ -199,6 +246,16 @@ Configure these redirect URIs in each provider's console:
 2. Check redirect URIs in Google/Azure consoles
 3. Ensure protocol (http/https) matches
 4. Check for trailing slashes
+
+### Issue: "Users from other Microsoft organizations can't sign in"
+
+**Cause:** The Microsoft sign-in flow is still configured as single-tenant.
+
+**Solution:**
+1. Verify the Entra app registration uses a multitenant supported account type
+2. Set `AZURE_AD_TENANT_ID=organizations` for work/school accounts only, or `AZURE_AD_TENANT_ID=common` to also allow personal Microsoft accounts
+3. Restart the application after updating environment variables
+4. Retest with a user from another Entra tenant
 
 ### Issue: "Different providers show different tenant access"
 
@@ -316,6 +373,7 @@ if (session?.provider === 'azure-ad') {
 - [NextAuth.js Documentation](https://next-auth.js.org/)
 - [Google OAuth Guide](./GOOGLE_SSO_SETUP.md)
 - [Microsoft OAuth Guide](./MICROSOFT_SSO_SETUP.md)
+- [Keycloak OAuth Guide](./KEYCLOAK_SSO_SETUP.md)
 - [Authentication Architecture](./AUTHENTICATION_IMPLEMENTATION.md)
 
 ## Support
