@@ -2,7 +2,6 @@ import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
 import KeycloakProvider from "next-auth/providers/keycloak"
-import type { JWT } from "next-auth/jwt"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
 
@@ -22,6 +21,19 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
 
 // Build providers array dynamically based on available environment variables
 const providers = []
+
+function getEmailFromProfile(profile: any): string | null {
+  if (!profile || typeof profile !== "object") {
+    return null
+  }
+
+  const email = profile.email
+    ?? profile.preferred_username
+    ?? profile.upn
+    ?? profile.unique_name
+
+  return typeof email === "string" && email.length > 0 ? email : null
+}
 
 // Add Google provider if credentials are available
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -57,6 +69,16 @@ if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
           scope: "openid profile email User.Read"
         }
       },
+      profile(profile) {
+        const email = getEmailFromProfile(profile)
+
+        return {
+          id: profile.sub ?? profile.oid,
+          name: profile.name ?? email ?? "Microsoft User",
+          email,
+          image: null,
+        }
+      },
       httpOptions: {
         timeout: 10000, // Increase timeout to 10 seconds
       }
@@ -89,6 +111,12 @@ export const authOptions: NextAuthOptions = {
   
   callbacks: {
     async signIn({ user, account, profile }) {
+      const resolvedEmail = user.email || getEmailFromProfile(profile)
+
+      if (resolvedEmail && user.email !== resolvedEmail) {
+        user.email = resolvedEmail
+      }
+
       // Check if user has tenant access
       if (user.email) {
         try {
@@ -122,9 +150,11 @@ export const authOptions: NextAuthOptions = {
       
       // Add custom claims
       if (user) {
+        const resolvedEmail = user.email || getEmailFromProfile(profile)
+
         token.id = user.id
         token.role = user.role || 'user' // Default role
-        token.email = user.email
+        token.email = resolvedEmail ?? token.email
         token.hasTenantAccess = user.hasTenantAccess
         token.isSystemAdmin = user.isSystemAdmin
       }
@@ -137,6 +167,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.email = (token.email as string | null | undefined) ?? session.user.email
         session.accessToken = token.accessToken as string
         session.user.hasTenantAccess = token.hasTenantAccess as boolean
         session.user.isSystemAdmin = token.isSystemAdmin as boolean
