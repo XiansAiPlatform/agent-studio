@@ -4,7 +4,7 @@ import { createXiansClient } from '@/lib/xians/client'
 
 /**
  * PUT /api/tasks/draft
- * Update task draft. Tenant is injected from session (httpOnly cookie).
+ * Update task's draft. Tenant is injected from session (httpOnly cookie).
  */
 export const PUT = withTenantFromSession(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
