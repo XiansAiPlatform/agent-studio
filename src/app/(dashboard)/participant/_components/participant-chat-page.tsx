@@ -84,9 +84,11 @@ export function ParticipantChatPage() {
           <h1 className="text-2xl text-foreground tracking-tight">
             Hello, {displayName}
           </h1>
-          <p className="text-muted-foreground mt-1.5 text-sm">
-            Choose an agent below to start a conversation.
-          </p>
+          {!isLoading && activations.length > 1 && (
+            <p className="text-muted-foreground mt-1.5 text-sm">
+              Choose an agent below to start a conversation.
+            </p>
+          )}
         </div>
 
         {isLoading ? (

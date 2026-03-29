@@ -7,6 +7,7 @@ export type UserTenantsResult =
   | { success: true; tenants: any[]; session: any }
   | { success: false; error: 'no_session' }
   | { success: false; error: 'backend_unavailable'; message: string }
+  | { success: false; error: 'access_denied'; message: string }
   | { success: false; error: 'unknown'; message: string }
 
 /**
@@ -43,6 +44,15 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
       return {
         success: false,
         error: 'backend_unavailable',
+        message: error.message
+      }
+    }
+
+    // 403 means the user exists but is blocked from accessing the system
+    if (error instanceof XiansApiError && error.status === 403) {
+      return {
+        success: false,
+        error: 'access_denied',
         message: error.message
       }
     }

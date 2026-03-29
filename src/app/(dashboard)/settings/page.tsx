@@ -10,6 +10,7 @@ import {
   FileText,
   Bot,
   ArrowRight,
+  Users,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -51,6 +52,14 @@ export default function SettingsPage() {
       description: 'View system logs and debug information',
       href: '/settings/logs',
       icon: FileText,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      title: 'Users',
+      description: 'Manage tenant participant users and their roles',
+      href: '/settings/users',
+      icon: Users,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },

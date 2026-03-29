@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { getUserTenants } from '@/lib/server/get-user-tenants'
 import { DashboardLayoutClient } from './layout-client'
 import { BackendUnavailable } from '@/components/backend-unavailable'
+import { AccountLocked } from '@/components/account-locked'
 import { CURRENT_TENANT_COOKIE } from '@/lib/api/with-tenant'
 
 /**
@@ -30,6 +31,11 @@ export default async function DashboardLayout({
     if (result.error === 'backend_unavailable') {
       console.error('[Dashboard Layout] Backend unavailable:', result.message)
       return <BackendUnavailable errorMessage={result.message} />
+    }
+
+    if (result.error === 'access_denied') {
+      console.error('[Dashboard Layout] Access denied:', result.message)
+      return <AccountLocked errorMessage={result.message} />
     }
 
     // Unknown error - also show backend unavailable screen

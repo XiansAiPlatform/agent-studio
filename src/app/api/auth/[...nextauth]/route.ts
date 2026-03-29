@@ -100,8 +100,6 @@ if (process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET && proc
       }
     })
   )
-} else {
-  console.log('[Auth] Keycloak SSO disabled - KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET and/or KEYCLOAK_ISSUER not configured')
 }
 
 export const authOptions: NextAuthOptions = {

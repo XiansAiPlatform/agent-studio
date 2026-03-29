@@ -76,7 +76,7 @@ export class XiansClient {
         const error = await response.json().catch(() => ({}))
         
         // Extract error message from various formats
-        // Priority: error.error > error.message > default message
+        // Priority: error.error > error.error.message > error.message > error.detail (RFC 9110 problem+json) > error.title > default
         let errorMessage = `Request failed with status ${response.status}`
         
         if (error.error && typeof error.error === 'string') {
@@ -85,6 +85,10 @@ export class XiansClient {
           errorMessage = error.error.message
         } else if (error.message) {
           errorMessage = error.message
+        } else if (error.detail) {
+          errorMessage = error.detail
+        } else if (error.title) {
+          errorMessage = error.title
         }
         
         throw new XiansApiError(
