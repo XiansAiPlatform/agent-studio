@@ -326,7 +326,6 @@ export function SlackWizardSheet({
                   <p className="text-sm mb-2">Click <strong>"Add an OAuth Scope"</strong> and add these scopes:</p>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     {[
-                      'channels:history',
                       'channels:read',
                       'chat:write',
                       'im:history',
