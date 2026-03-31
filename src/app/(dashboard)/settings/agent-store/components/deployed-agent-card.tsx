@@ -52,7 +52,7 @@ export function DeployedAgentCard({
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-semibold text-foreground truncate">
+              <h3 className="font-semibold text-foreground break-words">
                 {deployment.name}
               </h3>
               {deployment.category && (
@@ -128,8 +128,8 @@ export function DeployedAgentCard({
 
       {/* Expanded full description */}
       {isExpanded && hasDescription && (
-        <div className="px-5 pb-4 pt-0 border-t border-slate-100 dark:border-slate-800 mt-0">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Full description</p>
+        <div className="px-5 pb-4 pt-0 border-t border-slate-100 dark:border-slate-800 mt-2">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 mt-4">Full description</p>
           <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             {deployment.description}
           </p>

@@ -95,7 +95,7 @@ export function TemplateCard({
                 {/* Full Description */}
                 {hasDescription && (
                   <div>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Full Description</p>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Full Description-</p>
                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
                       {template.agent.description}
                     </p>
