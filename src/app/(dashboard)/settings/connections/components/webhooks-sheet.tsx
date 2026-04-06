@@ -92,6 +92,7 @@ export function WebhooksSheet({
       setShowCreateForm(false);
       setUseDefaultOptions(true);
       onCreated?.();
+      onOpenChange(false);
       if (data.webhookUrl) {
         await navigator.clipboard.writeText(data.webhookUrl);
         showSuccessToast('Webhook URL created and copied to clipboard');
@@ -139,7 +140,7 @@ export function WebhooksSheet({
               <form onSubmit={handleCreate} className="p-4 pt-4 space-y-6 border-t">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="agentName" className="text-sm font-medium">Agent Name *</Label>
+                    <Label htmlFor="agentName" className="text-sm font-medium">Template Name *</Label>
                     <Input
                       id="agentName"
                       value={createAgentName}
@@ -152,7 +153,7 @@ export function WebhooksSheet({
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="activationName" className="text-sm font-medium">Activation Name *</Label>
+                    <Label htmlFor="activationName" className="text-sm font-medium">Agent Instance Name *</Label>
                     <Input
                       id="activationName"
                       value={createActivationName}

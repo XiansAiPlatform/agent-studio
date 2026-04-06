@@ -202,13 +202,11 @@ export function useKnowledgePage() {
         throw new Error(errorData.error ?? 'Failed to update knowledge');
       }
 
-      const updatedItem = (await response.json()) as KnowledgeItem;
-      setSelectedItem((prev) => (prev?.id === itemId ? updatedItem : prev));
-
-      if (agentName && activationName) fetchKnowledge(agentName, activationName);
+      await response.json();
+      refreshAndClose();
       showSuccessToast('Knowledge updated successfully');
     },
-    [agentName, activationName, fetchKnowledge]
+    [refreshAndClose]
   );
 
   const handleDelete = useCallback(() => {
