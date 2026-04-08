@@ -30,7 +30,9 @@ function writeStorage(key: string, value: string) {
   try { localStorage.setItem(key, value); } catch { /* ignore */ }
 }
 
-const VALID_THEMES = Object.keys(COLOR_THEMES) as ColorThemeId[];
+function isValidTheme(id: string | null | undefined): id is ColorThemeId {
+  return !!id && id in COLOR_THEMES;
+}
 
 function readOverrides(): Record<string, ColorThemeId> {
   try {
@@ -50,7 +52,7 @@ function writeOverride(tenantId: string, theme: ColorThemeId) {
 function getUserOverrideForTenant(tenantId: string): ColorThemeId | null {
   const overrides = readOverrides();
   const override = overrides[tenantId];
-  return override && VALID_THEMES.includes(override) ? override : null;
+  return isValidTheme(override) ? override : null;
 }
 
 export function ColorThemeProvider({ children }: { children: React.ReactNode }) {
@@ -97,7 +99,7 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
           writeStorage(COLOR_THEME_TENANT_KEY, currentTenantId);
         } else {
           const stored = readStorage(COLOR_THEME_STORAGE_KEY) as ColorThemeId | null;
-          const resolved = stored && VALID_THEMES.includes(stored) ? stored : DEFAULT_COLOR_THEME;
+          const resolved = isValidTheme(stored) ? stored : DEFAULT_COLOR_THEME;
           setColorThemeState(resolved);
           applyTheme(resolved);
         }
@@ -105,7 +107,7 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
     } else if (!currentTenantId) {
       // No tenant context yet — use stored pref or default
       const stored = readStorage(COLOR_THEME_STORAGE_KEY) as ColorThemeId | null;
-      const resolved = stored && VALID_THEMES.includes(stored) ? stored : DEFAULT_COLOR_THEME;
+      const resolved = isValidTheme(stored) ? stored : DEFAULT_COLOR_THEME;
       setColorThemeState(resolved);
       applyTheme(resolved);
     }

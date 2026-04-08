@@ -6,9 +6,10 @@
  *   lingon — lingonberry (warm coral red)
  *   fjord  — Norwegian fjord (deep navy blue)
  *   skog   — Swedish/Norwegian for "forest" (deep forest green)
+ *   gaia   — ocean-inspired teal-navy primary with warm cream backgrounds
  */
 
-export type ColorThemeId = 'lingon' | 'fjord' | 'skog' | 'zenith';
+export type ColorThemeId = 'lingon' | 'fjord' | 'skog' | 'zenith' | 'gaia';
 
 export const COLOR_THEMES: Record<
   ColorThemeId,
@@ -33,6 +34,11 @@ export const COLOR_THEMES: Record<
     id: 'zenith',
     name: 'Zenith',
     primarySwatch: '#CC0000',
+  },
+  gaia: {
+    id: 'gaia',
+    name: 'Gaia',
+    primarySwatch: '#1F4E66',
   },
 };
 

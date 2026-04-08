@@ -45,10 +45,15 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;700&display=swap"
           rel="stylesheet"
         />
+        {/* Inter for Gaia theme (weights 400/500/600/700) */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
         {/* Inline script runs before React — cannot import COLOR_THEMES. Keep the theme list below in sync with src/lib/themes.ts when adding new themes. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem("agent-studio-color-theme");if(t==="lingon"||t==="fjord"||t==="skog"||t==="zenith"){document.documentElement.setAttribute("data-theme",t)}else{document.documentElement.setAttribute("data-theme","lingon")}})();`,
+            __html: `(function(){var t=localStorage.getItem("agent-studio-color-theme");if(t==="lingon"||t==="fjord"||t==="skog"||t==="zenith"||t==="gaia"){document.documentElement.setAttribute("data-theme",t)}else{document.documentElement.setAttribute("data-theme","lingon")}})();`,
           }}
         />
       </head>

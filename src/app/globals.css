@@ -762,6 +762,387 @@ html.dark[data-theme="zenith"] .participant-tree-sheet .participant-tree-icon-wr
   color: #6A7282 !important;
 }
 
+/* ========== Gaia Theme ========== */
+/* Ocean-inspired: teal-navy primary (Cyan 80 #1F4E66), neutral light background (Neutral 10 #F2F3F5) */
+/* Font: Inter (400/500/600/700) */
+:root[data-theme="gaia"],
+html[data-theme="gaia"] {
+
+  /* Font — Inter, loaded via Google Fonts */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Backgrounds — neutral light page, white cards */
+  --background: #F2F3F5;  /* Neutral 10 — Cloud Veil */
+  --card: #FFFFFF;
+  --muted: #E2E4E9;        /* Neutral 20 — Stone Haze */
+  --border: #CCCFD7;       /* Neutral 30 — Mountain Shadow */
+  --input: #6F7687;        /* Neutral 60 — Storm Gray (border for inputs) */
+  --sidebar: #F2F3F5;      /* Neutral 10 — matches background */
+  --sidebar-border: #CCCFD7;
+
+  /* Foreground — Cyan 90 Ocean Abyss for all text */
+  --foreground: #133445;
+  --card-foreground: #133445;
+  --popover: #FFFFFF;
+  --popover-foreground: #133445;
+  --muted-foreground: #6F7687;   /* Neutral 60 — Storm Gray */
+  --sidebar-foreground: #133445;
+
+  /* Brand Colors — Cyan 80 Marine Core primary */
+  --primary: #1F4E66;            /* Cyan 80 — Marine Core */
+  --primary-foreground: #FCF0E7; /* Orange 10 — Dawn Light (text on primary buttons) */
+  --color-primary: #1F4E66;
+  --color-primary-foreground: #FCF0E7;
+
+  --secondary: #FAE0CE;          /* Orange 20 — Sunlit Sand */
+  --secondary-foreground: #133445;
+
+  --accent: #FAE0CE;             /* Orange 20 — hover/focus tint */
+  --accent-foreground: #133445;
+
+  --ring: #1F4E66;
+  --info: #1F4E66;
+  --destructive: #CC453E;        /* Red 60 — Mojo */
+  --destructive-foreground: #FFFFFF;
+
+  /* Charts — Cyan + Teal sequential palette */
+  --chart-1: #1F4E66;  /* Cyan 80 */
+  --chart-2: #377EA0;  /* Cyan 60 */
+  --chart-3: #51A39E;  /* Teal 50 */
+  --chart-4: #3A837E;  /* Teal 60 */
+  --chart-5: #2A6480;  /* Cyan 70 */
+
+  /* Sidebar brand tokens */
+  --sidebar-primary: #1F4E66;
+  --sidebar-primary-foreground: #FCF0E7;
+  --sidebar-accent: #FAE0CE;
+  --sidebar-accent-foreground: #133445;
+  --sidebar-ring: #1F4E66;
+
+  /* Header */
+  --header-sidebar-bg: #F2F3F5;
+}
+
+/* Apply Gaia Inter font on body */
+html[data-theme="gaia"] body {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* Header + sidebar + topics panel — light mode */
+html:not(.dark)[data-theme="gaia"] header,
+html:not(.dark)[data-theme="gaia"] aside[class*="border-r"],
+html:not(.dark)[data-theme="gaia"] .conversation-topic-sidebar,
+html:not(.dark)[data-theme="gaia"] .topic-list-menu {
+  background-color: #F2F3F5 !important;
+}
+
+/* Header + sidebar + topics panel — dark mode */
+html.dark[data-theme="gaia"] header,
+html.dark[data-theme="gaia"] aside[class*="border-r"],
+html.dark[data-theme="gaia"] .conversation-topic-sidebar,
+html.dark[data-theme="gaia"] .topic-list-menu {
+  background-color: #0D1E28 !important;
+}
+
+/* Gaia dark mode — deep ocean night */
+.dark[data-theme="gaia"],
+html.dark[data-theme="gaia"] {
+  /* Backgrounds */
+  --background: #0D1E28;  /* deep ocean night */
+  --card: #122736;
+  --muted: #1A3A50;
+  --muted-foreground: #6F7687;
+  --border: #2A5570;
+  --input: #2A5570;
+  --sidebar: #0D1E28;
+  --sidebar-border: #2A5570;
+
+  /* Foreground — warm cream on dark */
+  --foreground: #FCF0E7;
+  --card-foreground: #FCF0E7;
+  --popover: #122736;
+  --popover-foreground: #FCF0E7;
+  --sidebar-foreground: #FCF0E7;
+
+  /* Brand — Cyan 60 brightened for dark backgrounds */
+  --primary: #377EA0;            /* Cyan 60 — Ocean Mist */
+  --primary-foreground: #FCF0E7;
+  --color-primary: #377EA0;
+  --color-primary-foreground: #FCF0E7;
+
+  --secondary: #1A3A50;
+  --secondary-foreground: #FCF0E7;
+  --accent: #1F4E66;
+  --accent-foreground: #FCF0E7;
+
+  --ring: #377EA0;
+  --info: #377EA0;
+  --destructive: #ECA79E;        /* Red 40 — Rose Bud (softer on dark) */
+  --destructive-foreground: #133445;
+
+  /* Charts */
+  --chart-1: #377EA0;  /* Cyan 60 */
+  --chart-2: #51A39E;  /* Teal 50 */
+  --chart-3: #92C3C0;  /* Teal 40 */
+  --chart-4: #2A6480;  /* Cyan 70 */
+  --chart-5: #3A837E;  /* Teal 60 */
+
+  /* Sidebar */
+  --sidebar-primary: #377EA0;
+  --sidebar-primary-foreground: #FCF0E7;
+  --sidebar-accent: #1F4E66;
+  --sidebar-accent-foreground: #FCF0E7;
+  --sidebar-ring: #377EA0;
+}
+
+/* Gaia: agent icon avatars — primary tint */
+[data-theme="gaia"] .agent-icon-avatar {
+  background-color: color-mix(in srgb, #1F4E66 12%, #FCF0E7) !important;
+  border: 1px solid #CCCFD7;
+}
+[data-theme="gaia"] .agent-icon-avatar svg {
+  color: #1F4E66 !important;
+}
+
+[data-theme="gaia"] .agent-icon-container {
+  background-color: color-mix(in srgb, #1F4E66 15%, #FAE0CE) !important;
+  border-color: #CCCFD7 !important;
+}
+[data-theme="gaia"] .agent-icon-container svg {
+  color: #1F4E66 !important;
+}
+
+html.dark[data-theme="gaia"] .agent-icon-avatar {
+  background-color: color-mix(in srgb, #377EA0 20%, transparent) !important;
+  border-color: #2A5570;
+}
+html.dark[data-theme="gaia"] .agent-icon-avatar svg {
+  color: #377EA0 !important;
+}
+
+html.dark[data-theme="gaia"] .agent-icon-container {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570;
+}
+html.dark[data-theme="gaia"] .agent-icon-container svg {
+  color: #377EA0 !important;
+}
+
+/* Gaia: chat conversation */
+[data-theme="gaia"] .chat-conversation .chat-avatar--user {
+  background-color: #FAE0CE !important;
+  border: 1px solid #F5C3A1;
+}
+[data-theme="gaia"] .chat-conversation .chat-avatar--user svg {
+  color: #1F4E66 !important;
+}
+
+[data-theme="gaia"] .chat-conversation .chat-avatar--agent {
+  background-color: #F2F3F5 !important;
+  border: 1px solid #CCCFD7;
+}
+[data-theme="gaia"] .chat-conversation .chat-avatar--agent svg {
+  color: #1F4E66 !important;
+}
+
+[data-theme="gaia"] .chat-conversation .chat-header-avatar {
+  background-color: #FAE0CE !important;
+  border: 1px solid #F5C3A1;
+}
+[data-theme="gaia"] .chat-conversation .chat-header-avatar svg {
+  color: #1F4E66 !important;
+}
+
+[data-theme="gaia"] .chat-conversation .chat-icon-container {
+  background-color: #FAE0CE !important;
+  border-color: #F5C3A1 !important;
+}
+[data-theme="gaia"] .chat-conversation .chat-icon-container svg {
+  color: #1F4E66 !important;
+}
+
+[data-theme="gaia"] .chat-conversation .chat-load-more {
+  background-color: #FAE0CE !important;
+  border-color: #F5C3A1 !important;
+}
+[data-theme="gaia"] .chat-conversation .chat-load-more svg {
+  color: #1F4E66 !important;
+}
+
+[data-theme="gaia"] .chat-conversation .chat-send-btn {
+  background-color: #1F4E66 !important;
+  color: #FCF0E7 !important;
+}
+
+[data-theme="gaia"] .chat-conversation .chat-attach-btn:hover {
+  background-color: #FAE0CE !important;
+  color: #133445 !important;
+}
+
+[data-theme="gaia"] .chat-conversation .message-bubble--agent {
+  background-color: #F2F3F5 !important;
+  border: 1px solid #CCCFD7;
+}
+
+/* Gaia dark — chat */
+html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--user {
+  background-color: color-mix(in srgb, #1F4E66 25%, transparent) !important;
+  border-color: #2A5570;
+}
+html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--user svg {
+  color: #377EA0 !important;
+}
+
+html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--agent {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570;
+}
+html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--agent svg {
+  color: #377EA0 !important;
+}
+
+html.dark[data-theme="gaia"] .chat-conversation .chat-header-avatar {
+  background-color: color-mix(in srgb, #1F4E66 20%, transparent) !important;
+  border-color: #2A5570;
+}
+html.dark[data-theme="gaia"] .chat-conversation .chat-header-avatar svg {
+  color: #377EA0 !important;
+}
+
+html.dark[data-theme="gaia"] .chat-conversation .chat-icon-container {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570 !important;
+}
+html.dark[data-theme="gaia"] .chat-conversation .chat-icon-container svg {
+  color: #377EA0 !important;
+}
+
+html.dark[data-theme="gaia"] .chat-conversation .chat-load-more {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570 !important;
+}
+html.dark[data-theme="gaia"] .chat-conversation .chat-load-more svg {
+  color: #377EA0 !important;
+}
+
+html.dark[data-theme="gaia"] .chat-conversation .message-bubble--agent {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570;
+}
+
+/* Gaia: sonar rings */
+html:not(.dark)[data-theme="gaia"] .sonar-container::before,
+html:not(.dark)[data-theme="gaia"] .sonar-container::after {
+  border-color: #1F4E66;
+  border-width: 1.5px;
+}
+
+html.dark[data-theme="gaia"] .sonar-container::before,
+html.dark[data-theme="gaia"] .sonar-container::after {
+  border-color: #377EA0;
+  border-width: 1.5px;
+}
+
+/* Gaia: badges */
+[data-theme="gaia"] [data-slot="badge"][class*="bg-primary/15"],
+[data-theme="gaia"] [data-slot="badge"][class*="bg-primary/20"] {
+  background-color: color-mix(in srgb, #1F4E66 15%, #FAE0CE) !important;
+  border-color: #CCCFD7 !important;
+  color: #133445 !important;
+}
+
+html.dark[data-theme="gaia"] [data-slot="badge"][class*="bg-primary/15"],
+html.dark[data-theme="gaia"] [data-slot="badge"][class*="bg-primary/20"] {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570 !important;
+  color: #FCF0E7 !important;
+}
+
+/* Gaia: dashboard icon wraps */
+[data-theme="gaia"] .dashboard-page .dashboard-icon-wrap {
+  background-color: #FAE0CE !important;
+  border: 1px solid #F5C3A1;
+}
+[data-theme="gaia"] .dashboard-page .dashboard-icon-wrap svg {
+  color: #133445 !important;
+}
+[data-theme="gaia"] .dashboard-page .dashboard-icon-wrap--empty svg {
+  color: #6F7687 !important;
+}
+
+html.dark[data-theme="gaia"] .dashboard-page .dashboard-icon-wrap {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570;
+}
+html.dark[data-theme="gaia"] .dashboard-page .dashboard-icon-wrap svg {
+  color: #FCF0E7 !important;
+}
+html.dark[data-theme="gaia"] .dashboard-page .dashboard-icon-wrap--empty svg {
+  color: #6F7687 !important;
+}
+
+/* Gaia: participant tree */
+[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--activation {
+  background-color: #FAE0CE !important;
+  border-color: #F5C3A1 !important;
+}
+[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--activation .participant-tree-icon--activation {
+  color: #133445 !important;
+}
+[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--topic {
+  background-color: #FAE0CE !important;
+  border-color: #F5C3A1 !important;
+}
+[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--topic .participant-tree-icon--topic {
+  color: #6F7687 !important;
+}
+
+html.dark[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--activation {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570 !important;
+}
+html.dark[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--activation .participant-tree-icon--activation {
+  color: #377EA0 !important;
+}
+html.dark[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--topic {
+  background-color: #122736 !important;
+  border-color: #2A5570 !important;
+}
+html.dark[data-theme="gaia"] .participant-tree-sheet .participant-tree-icon-wrap--topic .participant-tree-icon--topic {
+  color: #6F7687 !important;
+}
+
+/* Gaia: inactive agents section */
+[data-theme="gaia"] .agents-running-inactive-section[data-expanded="true"] {
+  border-color: #CCCFD7 !important;
+  background-color: #F2F3F5 !important;
+}
+[data-theme="gaia"] .agents-running-inactive-section[data-expanded="true"] button {
+  background-color: #F2F3F5 !important;
+}
+[data-theme="gaia"] .agents-running-inactive-section[data-expanded="true"] button:hover {
+  background-color: #FAE0CE !important;
+}
+[data-theme="gaia"] .agent-card--inactive {
+  background-color: #E2E4E9 !important;
+  border-color: #CCCFD7 !important;
+}
+
+html.dark[data-theme="gaia"] .agents-running-inactive-section[data-expanded="true"] {
+  border-color: #2A5570 !important;
+  background-color: #0D1E28 !important;
+}
+html.dark[data-theme="gaia"] .agents-running-inactive-section[data-expanded="true"] button {
+  background-color: #0D1E28 !important;
+}
+html.dark[data-theme="gaia"] .agents-running-inactive-section[data-expanded="true"] button:hover {
+  background-color: #1A3A50 !important;
+}
+html.dark[data-theme="gaia"] .agent-card--inactive {
+  background-color: #1A3A50 !important;
+  border-color: #2A5570 !important;
+}
+
 .dark {
   /* Dark mode - warm charcoal tones to complement coral accent */
   /* Backgrounds */
