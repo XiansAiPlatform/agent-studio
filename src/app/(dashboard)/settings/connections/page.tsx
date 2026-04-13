@@ -362,13 +362,12 @@ function ConnectionsContent() {
               </div>
               <div>
                 <p className="text-muted-foreground mb-6">No connections yet</p>
-                <button
+                <Button
                   onClick={() => setShowCreateDialog(true)}
-                  className="inline-flex items-center gap-2 text-base font-medium text-primary hover:text-primary/80 transition-colors"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Create your first connection</span>
-                </button>
+                  Create your first connection
+                </Button>
               </div>
             </div>
           </div>

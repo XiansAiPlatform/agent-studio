@@ -95,6 +95,7 @@ export function UserMenu() {
                 <div className="flex flex-col flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground">Current Tenant</p>
                   <p className="text-sm font-medium truncate">{currentTenant.tenant.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono truncate">{currentTenant.tenant.id}</p>
                 </div>
               </div>
             </DropdownMenuLabel>
