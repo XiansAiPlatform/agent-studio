@@ -61,5 +61,7 @@ declare module "next-auth/jwt" {
     hasTenantAccess?: boolean
     /** Whether user is a system administrator */
     isSystemAdmin?: boolean
+    /** Epoch ms of last successful tenant-access re-validation */
+    tenantAccessCheckedAt?: number
   }
 }

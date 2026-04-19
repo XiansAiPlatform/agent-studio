@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
-import { createXiansClient, XiansApiError } from '@/lib/xians/client'
+import { createXiansClient } from '@/lib/xians/client'
+import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * GET /api/settings/users
@@ -32,12 +33,9 @@ export const GET = withParticipantAdmin(
       )
       return NextResponse.json(data)
     } catch (error) {
-      const apiErr = error instanceof XiansApiError ? error : null
-      console.error('[settings/users GET] Failed to list users:', error)
-      return NextResponse.json(
-        { error: apiErr?.message ?? 'Failed to list users' },
-        { status: apiErr?.status ?? 500 }
-      )
+      return handleApiError(error, 'settings/users GET', {
+        fallbackMessage: 'Failed to list users',
+      })
     }
   }
 )
@@ -87,12 +85,9 @@ export const POST = withParticipantAdmin(
       )
       return NextResponse.json(data, { status: 201 })
     } catch (error) {
-      const apiErr = error instanceof XiansApiError ? error : null
-      console.error('[settings/users POST] Failed to create user:', error)
-      return NextResponse.json(
-        { error: apiErr?.message ?? 'Failed to create user' },
-        { status: apiErr?.status ?? 500 }
-      )
+      return handleApiError(error, 'settings/users POST', {
+        fallbackMessage: 'Failed to create user',
+      })
     }
   }
 )

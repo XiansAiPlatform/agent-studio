@@ -14,59 +14,67 @@ export interface ApiErrorResponse {
 }
 
 /**
- * Handle errors in API routes and return standardized responses
+ * Handle errors in API routes and return standardized responses.
+ *
+ * Security note: never leaks internal error details (stack traces, raw
+ * upstream response bodies, env-dependent messages) to clients.
+ *
+ * - 4xx errors with a known shape (XiansApiError or HTTP-status-bearing Error)
+ *   are forwarded with their original message, since these are typically
+ *   intended to be user-facing (validation / permission / not-found etc).
+ * - 5xx and unknown errors return a generic message; the real error is logged
+ *   server-side so operators can correlate via the returned `traceId`.
  */
 export function handleApiError(
   error: any,
-  context?: string
+  context?: string,
+  options: { fallbackMessage?: string } = {}
 ): NextResponse<ApiErrorResponse> {
-  // Log the error with context
+  const fallbackMessage = options.fallbackMessage ?? 'An unexpected error occurred'
+
   if (context) {
     console.error(`[API Error - ${context}]`, error)
   } else {
     console.error('[API Error]', error)
   }
 
-  // Extract error message from various formats
-  let errorMessage = 'An unexpected error occurred'
-  let errorCode = 'unknown_error'
   let statusCode = 500
+  let errorMessage = fallbackMessage
+  let errorCode = 'internal_error'
+  let traceId: string | undefined
 
-  // Handle XiansApiError
-  if (error.name === 'XiansApiError') {
-    errorMessage = error.message
-    statusCode = error.status || 500
+  if (error?.name === 'XiansApiError') {
+    statusCode = typeof error.status === 'number' && error.status > 0 ? error.status : 500
     errorCode = error.code || getErrorCode(statusCode)
-  }
-  // Handle standard Error
-  else if (error instanceof Error) {
-    errorMessage = error.message
-    // Try to extract status if it exists
-    if ('status' in error && typeof error.status === 'number') {
-      statusCode = error.status
-      errorCode = getErrorCode(statusCode)
-    }
-  }
-  // Handle plain objects
-  else if (typeof error === 'object' && error !== null) {
-    if (error.message) {
+    if (statusCode >= 400 && statusCode < 500 && typeof error.message === 'string') {
       errorMessage = error.message
     }
-    if (error.status) {
+    traceId = error.traceId || error.response?.traceId
+  } else if (error instanceof Error) {
+    if ('status' in error && typeof (error as any).status === 'number') {
+      const s = (error as any).status as number
+      if (s > 0) statusCode = s
+      errorCode = getErrorCode(statusCode)
+      if (statusCode >= 400 && statusCode < 500) {
+        errorMessage = error.message
+      }
+    }
+  } else if (typeof error === 'object' && error !== null) {
+    if (typeof error.status === 'number' && error.status > 0) {
       statusCode = error.status
     }
-    if (error.code) {
-      errorCode = error.code
-    } else {
-      errorCode = getErrorCode(statusCode)
+    errorCode = error.code || getErrorCode(statusCode)
+    if (statusCode >= 400 && statusCode < 500 && typeof error.message === 'string') {
+      errorMessage = error.message
     }
+    traceId = error.traceId
   }
 
   return NextResponse.json(
     {
       error: errorMessage,
       code: errorCode,
-      traceId: error.traceId || error.response?.traceId,
+      ...(traceId ? { traceId } : {}),
     },
     { status: statusCode }
   )

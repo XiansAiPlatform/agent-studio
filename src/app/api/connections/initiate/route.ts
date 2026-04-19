@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
+import { validateWellKnownUrl } from "@/lib/security/url"
+import { parseJsonBody } from "@/lib/api/validate"
+import { InitiateConnectionSchema } from "@/lib/api/schemas/connections"
 import {
-  InitiateConnectionRequest,
   InitiateConnectionResponse,
   OIDCConnection,
   ConnectionStatus
@@ -37,21 +39,10 @@ function generateState(): string {
 export const POST = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
     const tenantId = apiContext.tenantContext.tenant.id
-    const data: InitiateConnectionRequest = await request.json()
 
-    if (!data.providerId) {
-      return NextResponse.json(
-        { error: 'Provider ID is required' },
-        { status: 400 }
-      )
-    }
-
-    if (!data.name || !data.clientId || !data.clientSecret) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, clientId, clientSecret' },
-        { status: 400 }
-      )
-    }
+    const parsed = await parseJsonBody(request, InitiateConnectionSchema)
+    if (!parsed.ok) return parsed.response
+    const data = parsed.data
 
     const now = new Date().toISOString()
     const connectionId = `conn_${generateId()}`
@@ -138,13 +129,20 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
 
       default:
         const wellKnownUrl = data.wellKnownUrl
-        if (!wellKnownUrl) {
+        const wellKnownValidation = validateWellKnownUrl(wellKnownUrl)
+        if (!wellKnownValidation.ok) {
           return NextResponse.json(
-            { error: 'Well-known URL is required for generic OIDC providers' },
+            {
+              error:
+                wellKnownValidation.reason ||
+                'Well-known URL is required for generic OIDC providers',
+            },
             { status: 400 }
           )
         }
-        authUrl = wellKnownUrl.replace('/.well-known/openid-configuration', '/oauth2/authorize') +
+        authUrl = wellKnownValidation.url!
+          .toString()
+          .replace('/.well-known/openid-configuration', '/oauth2/authorize') +
           `?client_id=${encodeURIComponent(data.clientId)}&` +
           `response_type=code&` +
           `redirect_uri=${encodeURIComponent(redirectUri)}&` +

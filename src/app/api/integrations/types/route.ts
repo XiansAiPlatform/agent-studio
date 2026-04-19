@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { requireParticipantAdmin } from '@/lib/api/auth'
 import { getTenantIdFromCookie } from '@/lib/api/with-tenant'
 import { createXiansClient, XiansApiError } from '@/lib/xians'
+import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * TEMPORARY FALLBACK: Integration types to use when backend endpoint is not available
@@ -121,13 +122,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(FALLBACK_INTEGRATION_TYPES)
     }
     
-    // For other errors, return error response
-    return NextResponse.json(
-      { 
-        error: 'Failed to fetch integration types from backend',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
+    return handleApiError(error, 'integrations/types GET', {
+      fallbackMessage: 'Failed to fetch integration types from backend',
+    })
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
+import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * GET /api/agent-activations
@@ -24,12 +25,10 @@ export const GET = withTenantFromSession(
       })
 
       return NextResponse.json(response)
-    } catch (error: any) {
-      console.error('[Activations API] Error:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch activations', message: error.message },
-        { status: error.status || 500 }
-      )
+    } catch (error) {
+      return handleApiError(error, 'Activations GET', {
+        fallbackMessage: 'Failed to fetch activations',
+      })
     }
   }
 )
@@ -65,12 +64,10 @@ export const POST = withTenantFromSession(
       })
 
       return NextResponse.json(activation, { status: 201 })
-    } catch (error: any) {
-      console.error('[Activations API] Error:', error)
-      return NextResponse.json(
-        { error: 'Failed to create activation', message: error.message },
-        { status: error.status || 500 }
-      )
+    } catch (error) {
+      return handleApiError(error, 'Activations POST', {
+        fallbackMessage: 'Failed to create activation',
+      })
     }
   }
 )

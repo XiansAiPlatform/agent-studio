@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
-import { createXiansClient, XiansApiError } from '@/lib/xians/client'
+import { createXiansClient } from '@/lib/xians/client'
+import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * GET /api/integrations
@@ -51,18 +52,9 @@ export const GET = withParticipantAdmin(
 
       return NextResponse.json(processedData)
     } catch (error) {
-      if (error instanceof XiansApiError) {
-        return NextResponse.json(
-          { error: error.message, details: error.response },
-          { status: error.status || 500 }
-        )
-      }
-      return NextResponse.json(
-        {
-          error: error instanceof Error ? error.message : 'Failed to fetch integrations',
-        },
-        { status: 500 }
-      )
+      return handleApiError(error, 'integrations GET', {
+        fallbackMessage: 'Failed to fetch integrations',
+      })
     }
   }
 )
@@ -90,18 +82,9 @@ export const POST = withParticipantAdmin(
 
       return NextResponse.json(data)
     } catch (error) {
-      if (error instanceof XiansApiError) {
-        return NextResponse.json(
-          { error: error.message, details: error.response },
-          { status: error.status || 500 }
-        )
-      }
-      return NextResponse.json(
-        {
-          error: error instanceof Error ? error.message : 'Failed to create integration',
-        },
-        { status: 500 }
-      )
+      return handleApiError(error, 'integrations POST', {
+        fallbackMessage: 'Failed to create integration',
+      })
     }
   }
 )

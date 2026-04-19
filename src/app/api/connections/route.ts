@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
+import { parseJsonBody } from "@/lib/api/validate"
+import { CreateConnectionSchema } from "@/lib/api/schemas/connections"
 import {
   OIDCConnection,
-  CreateConnectionRequest,
   ConnectionsListResponse,
   ConnectionResponse,
   ConnectionStatus
@@ -144,21 +145,10 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
     }
 
     const tenantId = apiContext.tenantContext.tenant.id
-    const data: CreateConnectionRequest = await request.json()
 
-    if (!data.providerId) {
-      return NextResponse.json(
-        { error: 'Provider ID is required' },
-        { status: 400 }
-      )
-    }
-
-    if (!data.name || !data.clientId || !data.clientSecret) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, clientId, clientSecret' },
-        { status: 400 }
-      )
-    }
+    const parsed = await parseJsonBody(request, CreateConnectionSchema)
+    if (!parsed.ok) return parsed.response
+    const data = parsed.data
 
     const now = new Date().toISOString()
     const newConnection: OIDCConnection = {

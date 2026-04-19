@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
-import { createXiansClient, XiansApiError } from '@/lib/xians/client'
+import { createXiansClient } from '@/lib/xians/client'
+import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * GET /api/webhooks
@@ -36,18 +37,9 @@ export const GET = withTenantFromSession(
 
       return NextResponse.json({ webhooks })
     } catch (error) {
-      if (error instanceof XiansApiError) {
-        return NextResponse.json(
-          { error: error.message, details: error.response },
-          { status: error.status || 500 }
-        )
-      }
-      return NextResponse.json(
-        {
-          error: error instanceof Error ? error.message : 'Failed to fetch webhooks',
-        },
-        { status: 500 }
-      )
+      return handleApiError(error, 'webhooks GET', {
+        fallbackMessage: 'Failed to fetch webhooks',
+      })
     }
   }
 )
@@ -73,18 +65,9 @@ export const POST = withTenantFromSession(
 
       return NextResponse.json(data)
     } catch (error) {
-      if (error instanceof XiansApiError) {
-        return NextResponse.json(
-          { error: error.message, details: error.response },
-          { status: error.status || 500 }
-        )
-      }
-      return NextResponse.json(
-        {
-          error: error instanceof Error ? error.message : 'Failed to create webhook',
-        },
-        { status: 500 }
-      )
+      return handleApiError(error, 'webhooks POST', {
+        fallbackMessage: 'Failed to create webhook',
+      })
     }
   }
 )

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
+import { validateWellKnownUrl } from "@/lib/security/url"
+import { parseJsonBody } from "@/lib/api/validate"
+import { AuthorizeConnectionSchema } from "@/lib/api/schemas/connections"
 import {
-  AuthorizeConnectionRequest,
   AuthorizeConnectionResponse
 } from "@/app/(dashboard)/settings/connections/types"
 
@@ -37,7 +39,8 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
       )
     }
 
-    await request.json() // AuthorizeConnectionRequest - may have returnUrl etc.
+    const parsed = await parseJsonBody(request, AuthorizeConnectionSchema)
+    if (!parsed.ok) return parsed.response
 
     const connection = findConnectionById(tenantId, connectionId)
 
@@ -110,13 +113,20 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
 
       default:
         const wellKnownUrl = connection.wellKnownUrl
-        if (!wellKnownUrl) {
+        const wellKnownValidation = validateWellKnownUrl(wellKnownUrl)
+        if (!wellKnownValidation.ok) {
           return NextResponse.json(
-            { error: 'Well-known URL not configured for this provider' },
+            {
+              error:
+                wellKnownValidation.reason ||
+                'Well-known URL not configured for this provider',
+            },
             { status: 400 }
           )
         }
-        authUrl = wellKnownUrl.replace('/.well-known/openid-configuration', '/oauth2/authorize') +
+        authUrl = wellKnownValidation.url!
+          .toString()
+          .replace('/.well-known/openid-configuration', '/oauth2/authorize') +
           `?client_id=${encodeURIComponent(connection.clientId)}&` +
           `response_type=code&` +
           `redirect_uri=${encodeURIComponent(redirectUri)}&` +

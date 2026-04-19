@@ -138,15 +138,15 @@ export const authOptions: NextAuthOptions = {
       return true
     },
     
-    async jwt({ token, account, profile, user }) {
+    async jwt({ token, account, profile, user, trigger }) {
       // Persist the OAuth access_token and/or the user id to the token
       if (account) {
         token.accessToken = account.access_token
         token.idToken = account.id_token
         token.provider = account.provider
       }
-      
-      // Add custom claims
+
+      // Add custom claims (only present on initial sign-in)
       if (user) {
         const resolvedEmail = user.email || getEmailFromProfile(profile)
 
@@ -155,8 +155,40 @@ export const authOptions: NextAuthOptions = {
         token.email = resolvedEmail ?? token.email
         token.hasTenantAccess = user.hasTenantAccess
         token.isSystemAdmin = user.isSystemAdmin
+        token.tenantAccessCheckedAt = Date.now()
       }
-      
+
+      // Periodically re-validate tenant membership so that admin role / tenant
+      // removals take effect within the revalidation window instead of waiting
+      // for the JWT to expire. Also re-validate on explicit `update()` calls
+      // from the client.
+      const REVALIDATE_AFTER_MS = 30 * 60 * 1000 // 30 minutes
+      const lastChecked =
+        typeof token.tenantAccessCheckedAt === 'number'
+          ? token.tenantAccessCheckedAt
+          : 0
+      const isStale = Date.now() - lastChecked > REVALIDATE_AFTER_MS
+
+      if ((trigger === 'update' || isStale) && token.email) {
+        try {
+          const client = createXiansClient()
+          const tenantsApi = new XiansTenantsApi(client)
+          const response = await tenantsApi.getParticipantTenants(
+            token.email as string
+          )
+          token.hasTenantAccess = response.tenants.length > 0
+          token.isSystemAdmin = response.isSystemAdmin
+          token.tenantAccessCheckedAt = Date.now()
+        } catch (error) {
+          // Don't fail the request on a transient backend issue; just keep the
+          // existing claims and try again on the next refresh cycle.
+          console.error(
+            '[Auth] Failed to re-validate tenant access during jwt refresh:',
+            error
+          )
+        }
+      }
+
       return token
     },
     
@@ -190,7 +222,8 @@ export const authOptions: NextAuthOptions = {
   
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 30 * 60, // refresh JWT (and re-run tenant check) every 30 min
   },
   
   // Secure cookie configuration

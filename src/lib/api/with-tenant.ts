@@ -121,10 +121,7 @@ export function withTenant(handler: ApiHandler) {
     } catch (error) {
       console.error('[withTenant] Error:', error)
       return NextResponse.json(
-        { 
-          error: 'Internal server error',
-          message: error instanceof Error ? error.message : 'Unknown error'
-        },
+        { error: 'Internal server error' },
         { status: 500 }
       )
     }
@@ -183,10 +180,7 @@ export function withTenantFromSession(handler: ApiHandler) {
     } catch (error) {
       console.error('[withTenantFromSession] Error:', error)
       return NextResponse.json(
-        { 
-          error: 'Internal server error',
-          message: error instanceof Error ? error.message : 'Unknown error'
-        },
+        { error: 'Internal server error' },
         { status: 500 }
       )
     }
@@ -240,10 +234,7 @@ export function withParticipantAdmin(handler: ApiHandler) {
     } catch (error) {
       console.error('[withParticipantAdmin] Error:', error)
       return NextResponse.json(
-        {
-          error: 'Internal server error',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        },
+        { error: 'Internal server error' },
         { status: 500 }
       )
     }
