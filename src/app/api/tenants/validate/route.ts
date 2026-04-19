@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
     const tenantContext = await tenantProvider.getTenantContext(
       session.user.id,
       tenantId,
-      (session as any).accessToken
+      (session as any).accessToken,
+      session.user.email
     )
 
     if (!tenantContext) {

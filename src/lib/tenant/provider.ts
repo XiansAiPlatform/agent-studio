@@ -5,7 +5,8 @@ export interface TenantProvider {
   getTenantContext(
     userId: string, 
     tenantId: string,
-    authToken?: string
+    authToken?: string,
+    userEmail?: string
   ): Promise<TenantContext | null>
   
   getTenant(tenantId: string, authToken?: string): Promise<Tenant | null>

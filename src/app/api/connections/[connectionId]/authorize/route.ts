@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { randomBytes } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   AuthorizeConnectionRequest,
@@ -19,7 +20,7 @@ function findConnectionById(tenantId: string, connectionId: string) {
 }
 
 function generateState(): string {
-  return Math.random().toString(36).substr(2, 15) + Math.random().toString(36).substr(2, 15)
+  return randomBytes(32).toString('hex')
 }
 
 // POST /api/connections/{connectionId}/authorize

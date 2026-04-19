@@ -7,12 +7,14 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bot, Loader2, ArrowUp, Info, Sparkles } from 'lucide-react';
+import { Bot, Building2, Loader2, ArrowUp, Info, Sparkles } from 'lucide-react';
+import Image from 'next/image';
 import { MessageRenderer } from './message-renderer';
 import { ProgressBlock } from './progress-block';
 import { groupMessages } from './utils/message-groups';
 import { getAgentIcon } from '@/app/(dashboard)/settings/agent-store/utils/agent-helpers';
 import { getCategoryLabel } from '@/app/(dashboard)/settings/agent-store/utils/category-utils';
+import { useTenant } from '@/hooks/use-tenant';
 
 interface MessagesAreaProps {
   messages: Message[];
@@ -50,6 +52,9 @@ export function MessagesArea({
   onSamplePromptClick,
 }: MessagesAreaProps) {
   const groups = groupMessages(messages, isTyping);
+  const { currentTenant } = useTenant();
+  const logo = currentTenant?.tenant.metadata?.logo;
+  const logoSrc = logo?.imgBase64 ? `data:image/png;base64,${logo.imgBase64}` : logo?.url;
 
   return (
     <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-6 min-h-0 flex flex-col">
@@ -122,15 +127,18 @@ export function MessagesArea({
                   {/* Centered content */}
                   <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center px-4 w-full">
                   {/* Circular icon - light pale background, dynamic icon */}
-                  <div className="h-10 w-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-4 border border-stone-200/60 dark:border-stone-700/60">
-                    {(() => {
-                      const Icon = getAgentIcon(
-                        agentName,
-                        agentInfo?.summary ?? null,
-                        agentInfo?.description ?? null
-                      );
-                      return <Icon className="h-5 w-5 text-primary" />;
-                    })()}
+                  <div className="h-14 w-14 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-4 border border-stone-200/60 dark:border-stone-700/60 overflow-hidden">
+                    {logoSrc ? (
+                      <Image
+                        src={logoSrc}
+                        alt={currentTenant?.tenant.name || 'Logo'}
+                        width={32}
+                        height={32}
+                        className="object-contain"
+                      />
+                    ) : (
+                      <Building2 className="h-7 w-7 text-primary" />
+                    )}
                   </div>
 
                   {/* Category - small regular weight, dark */}
@@ -225,7 +233,7 @@ export function MessagesArea({
             )}
 
             {isTyping && (
-              <div className="flex items-center gap-3 animate-in fade-in duration-300">
+              <div className="flex items-center gap-3 animate-in fade-in duration-300 pb-4">
                 <div className="chat-avatar chat-avatar--agent h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                   <Bot className="h-4 w-4" />
                 </div>

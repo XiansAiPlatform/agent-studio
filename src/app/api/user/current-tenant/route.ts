@@ -17,7 +17,7 @@ const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 // 30 days
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
 
-  if (!session || !session.user?.id) {
+  if (!session || !session.user?.id || !session.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
     const tenantContext = await tenantProvider.getTenantContext(
       session.user.id,
       tenantId,
-      (session as any).accessToken
+      (session as any).accessToken,
+      session.user.email
     )
 
     if (!tenantContext) {

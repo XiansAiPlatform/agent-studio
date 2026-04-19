@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { redirect } from "next/navigation"
+import { randomBytes } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   OIDCConnection,
@@ -89,8 +90,8 @@ async function exchangeCodeForTokens(
   }
 
   return {
-    accessToken: `${connection.providerId}_access_token_${Math.random().toString(36).substr(2, 15)}`,
-    refreshToken: `${connection.providerId}_refresh_token_${Math.random().toString(36).substr(2, 15)}`,
+    accessToken: `${connection.providerId}_access_token_${randomBytes(24).toString('base64url')}`,
+    refreshToken: `${connection.providerId}_refresh_token_${randomBytes(24).toString('base64url')}`,
     expiresAt: now + (expiresIn * 1000),
     scope: (connection.customScopes || []).join(' '),
     tokenType: 'Bearer',

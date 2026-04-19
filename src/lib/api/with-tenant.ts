@@ -105,7 +105,8 @@ export function withTenant(handler: ApiHandler) {
       const tenantContext = await tenantProvider.getTenantContext(
         session.user.id,
         tenantId,
-        session.accessToken
+        session.accessToken,
+        session.user.email
       )
       
       if (!tenantContext) {
@@ -167,7 +168,8 @@ export function withTenantFromSession(handler: ApiHandler) {
       const tenantContext = await tenantProvider.getTenantContext(
         session.user.id,
         tenantId,
-        session.accessToken
+        session.accessToken,
+        session.user.email
       )
       
       if (!tenantContext) {
@@ -219,7 +221,8 @@ export function withParticipantAdmin(handler: ApiHandler) {
       const tenantContext = await tenantProvider.getTenantContext(
         session.user.id,
         tenantId!,
-        session.accessToken
+        session.accessToken,
+        session.user.email
       )
 
       if (!tenantContext) {

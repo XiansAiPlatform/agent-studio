@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { randomBytes } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   OIDCConnection,
@@ -15,7 +16,7 @@ if (typeof global !== 'undefined' && !(global as any).mockConnections) {
 }
 
 function generateId(): string {
-  return Math.random().toString(36).substr(2, 9)
+  return randomBytes(9).toString('base64url')
 }
 
 function getMockStorage(): Record<string, OIDCConnection[]> {

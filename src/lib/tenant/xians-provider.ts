@@ -45,17 +45,43 @@ export class XiansTenantProvider implements TenantProvider {
   async getTenantContext(
     userId: string,
     tenantId: string,
-    authToken?: string
+    authToken?: string,
+    userEmail?: string
   ): Promise<TenantContext | null> {
+    if (!userEmail) {
+      console.warn('[XiansTenantProvider] getTenantContext called without userEmail; denying access')
+      return null
+    }
+
+    const client = createXiansClient(authToken)
+    const tenantsApi = new XiansTenantsApi(client)
+
+    // Look up the user's actual participant role for this tenant.
+    // System-admin status does NOT auto-grant tenant access here; users must be
+    // an explicit participant of the requested tenant.
+    let participantResponse
+    try {
+      participantResponse = await tenantsApi.getParticipantTenants(userEmail)
+    } catch (error) {
+      console.error('[XiansTenantProvider] Failed to fetch participant tenants:', error)
+      return null
+    }
+
+    const participant = participantResponse.tenants.find(t => t.tenantId === tenantId)
+    if (!participant) {
+      return null
+    }
+
     const tenant = await this.getTenant(tenantId, authToken)
     if (!tenant) return null
 
-    // For now, assume all users are admins for their tenant
-    // This can be enhanced later with proper user role management
+    const isAdmin = participant.role === 'TenantParticipantAdmin'
     return {
       tenant,
-      userRole: 'admin',
-      permissions: ['read', 'write', 'delete', 'admin']
+      userRole: isAdmin ? 'admin' : 'member',
+      permissions: isAdmin
+        ? ['read', 'write', 'delete', 'admin']
+        : ['read'],
     }
   }
 
