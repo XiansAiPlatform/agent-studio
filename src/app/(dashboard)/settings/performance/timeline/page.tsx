@@ -309,8 +309,8 @@ function TimelineContent() {
                         color: 'var(--muted-foreground)',
                         fontSize: '13px',
                       }}
-                      formatter={(value: number | undefined) => [
-                        `${formatMetricValue(value ?? 0, unit).value} ${unitDisplay}`,
+                      formatter={(value) => [
+                        `${formatMetricValue(Number(value) || 0, unit).value} ${unitDisplay}`,
                         type
                       ]}
                       cursor={{ fill: 'var(--accent)' }}
