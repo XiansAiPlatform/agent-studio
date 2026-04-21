@@ -11,6 +11,7 @@ import {
   Bot,
   ArrowRight,
   Users,
+  KeyRound,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -60,6 +61,14 @@ export default function SettingsPage() {
       description: 'Manage tenant participant users and their roles',
       href: '/settings/users',
       icon: Users,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      title: 'Secrets',
+      description: 'Securely store API keys and credentials for this tenant',
+      href: '/settings/secrets',
+      icon: KeyRound,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },
