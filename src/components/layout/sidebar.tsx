@@ -124,6 +124,7 @@ const navigation: NavigationItem[] = [
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' },
       { name: 'Users', href: '/settings/users' },
+      { name: 'Secrets', href: '/settings/secrets' },
     ],
   },
 ];
