@@ -247,7 +247,35 @@ export function SignInForm() {
             {isLoading === 'keycloak' ? 'Signing in...' : 'Sign in with Keycloak'}
           </Button>
         )}
-        
+
+        {/* Visma Connect Provider */}
+        {providers?.['visma-connect'] && (
+          <Button
+            className="w-full"
+            size="lg"
+            variant="outline"
+            onClick={() => handleSignIn('visma-connect')}
+            disabled={isLoading !== null || !isOnline}
+          >
+            {isLoading === 'visma-connect' ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <svg
+                className="mr-2 h-5 w-5"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect width="24" height="24" rx="4" fill="#0059AE" />
+                <path
+                  d="M6 7h2.6l3.4 8.2L15.4 7H18l-4.8 10.5h-2.4L6 7z"
+                  fill="#FFFFFF"
+                />
+              </svg>
+            )}
+            {isLoading === 'visma-connect' ? 'Signing in...' : 'Sign in with Visma Connect'}
+          </Button>
+        )}
+
         {/* Connection status for better UX */}
         <div className="flex items-center justify-center text-xs text-muted-foreground">
           {isOnline ? (
