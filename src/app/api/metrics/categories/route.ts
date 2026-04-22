@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { getMetricsCategories } from '@/lib/xians/metrics'
 
+
 /**
  * GET /api/metrics/categories
  * Get metrics categories overview. Tenant is injected from session (httpOnly cookie).
