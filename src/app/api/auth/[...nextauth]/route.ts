@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
 import KeycloakProvider from "next-auth/providers/keycloak"
+import { VismaConnectProvider } from "@/lib/auth-providers/visma-connect"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
 
@@ -100,6 +101,21 @@ if (process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET && proc
       }
     })
   )
+}
+
+// Add Visma Connect provider if credentials are available
+if (process.env.VISMA_CONNECT_CLIENT_ID && process.env.VISMA_CONNECT_ISSUER) {
+  providers.push(
+    VismaConnectProvider({
+      clientId: process.env.VISMA_CONNECT_CLIENT_ID,
+      issuer: process.env.VISMA_CONNECT_ISSUER,
+      httpOptions: {
+        timeout: 10000, // Increase timeout to 10 seconds
+      },
+    })
+  )
+} else {
+  console.log('[Auth] Visma Connect SSO disabled - VISMA_CONNECT_CLIENT_ID and/or VISMA_CONNECT_ISSUER not configured')
 }
 
 export const authOptions: NextAuthOptions = {
