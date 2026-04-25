@@ -6,63 +6,60 @@ The Performance page (`/settings/performance`) provides monitoring and visualiza
 
 ## Features
 
-### 1. **Date Range Selection**
-- Default: Last month (previous calendar month)
+### 1. Date Range Selection
+- Default: Last 30 days
 - Presets: Last 7 days, Last 30 days, Last 90 days, This month, Last month
 - Automatic URL persistence of selected range
 
-### 2. **Agent Filtering**
-- Filter by Agent Template (agentName)
-- Filter by Agent Instance (activationName) - *Coming soon*
+### 2. Agent Filtering
+- Filter by Agent Template (`agentName`)
+- Filter by Agent Instance (`activationName`)
 - Active filter badges with quick removal
 - URL persistence of filter state
 
-### 3. **Metrics Overview**
-- **Summary Cards**: Quick stats showing total records, metric types, agents, and categories
-- **Category Organization**: Metrics grouped by category (AI, Operations, Performance, etc.)
-- **Metric Details**: Each metric type shows:
-  - Sample count
-  - Sample value with formatted units
-  - Last seen timestamp
-  - Associated agents
+### 3. Metrics Overview
+- **Summary Cards**: total records, metric types, categories
+- **Category Organization**: metrics grouped by category (AI, Operations, Performance, etc.)
+- **Metric Details**: each metric type shows its full statistical breakdown:
+  - Total (sum), sample count, units, last seen
+  - Average, Min, Max, Median, P95, P99
+  - Contributing agents
 
-### 4. **Future Enhancements**
-- Detailed statistics view with charts
-- Time-series data visualization
-- Agent instance filtering
-- Export capabilities
+### 4. Timeline View
+- Click "View Timeline" on any metric type (when an agent is selected) to drill into the timeseries chart at `/settings/performance/timeline`.
 
 ## File Structure
 
 ```
 performance/
-├── page.tsx                    # Main page component with routing and state management
-├── types.ts                    # TypeScript type definitions
+├── page.tsx                    # Main page: routing, filters, state
+├── types.ts                    # Shared TypeScript types
 ├── README.md                   # This file
 ├── components/
 │   ├── category-card.tsx       # Expandable category section
 │   ├── date-range-picker.tsx   # Date range dropdown selector
-│   ├── metric-type-item.tsx    # Individual metric display
+│   ├── metric-type-item.tsx    # Individual metric display (with stats)
 │   ├── performance-filters.tsx # Agent template/instance filters
 │   └── summary-cards.tsx       # Summary statistics cards
 ├── hooks/
-│   ├── use-metrics-categories.ts  # Hook for categories API
-│   └── use-metrics-stats.ts       # Hook for stats API (future use)
+│   ├── use-activations.ts          # List of available activations
+│   ├── use-metrics-categories.ts   # Categories + embedded stats
+│   └── use-metrics-timeseries.ts   # Timeline page data
 └── utils/
-    ├── date-helpers.ts         # Date range calculations and formatting
-    └── format-helpers.ts       # Metric value formatting utilities
+    ├── date-helpers.ts         # Date range presets and formatting
+    └── format-helpers.ts       # Metric value/unit formatting
 ```
 
 ## API Endpoints
 
 ### 1. Categories Overview
 ```
-GET /api/tenants/{tenantId}/metrics/categories?startDate=...&endDate=...
+GET /api/metrics/categories?startDate=...&endDate=...&agentName=...&activationName=...
 ```
 
-Returns aggregated metrics grouped by category and type.
+Returns metrics grouped by category and type, with full statistics embedded inline for each type.
 
-**Response Structure:**
+**Response shape:**
 ```typescript
 {
   dateRange: { startDate, endDate },
@@ -71,17 +68,28 @@ Returns aggregated metrics grouped by category and type.
       category: "AI",
       types: [
         {
-          type: "Token Usage",
-          sampleCount: 27,
+          type: "input",
+          sampleCount: 4,
           units: ["tokens"],
-          firstSeen: "...",
-          lastSeen: "...",
-          agents: ["Agent 1", "Agent 2"],
-          sampleValue: 1998
+          firstSeen: "2026-04-21T18:12:24.254Z",
+          lastSeen: "2026-04-22T07:34:19.145Z",
+          agents: ["Xianix AI-DLC Agent"],
+          sampleValue: 7,
+          stats: {
+            count: 4,
+            sum: 28,
+            average: 7,
+            min: 5,
+            max: 9,
+            median: null,
+            p95: null,
+            p99: null,
+            unit: "tokens"
+          }
         }
       ],
       totalMetrics: 1,
-      totalRecords: 27
+      totalRecords: 4
     }
   ],
   summary: {
@@ -94,118 +102,66 @@ Returns aggregated metrics grouped by category and type.
 }
 ```
 
-### 2. Detailed Statistics (Future)
+### 2. Timeseries Data
 ```
-GET /api/tenants/{tenantId}/metrics/stats?agentName=...&startDate=...&endDate=...
-```
-
-Returns statistical aggregations (count, sum, avg, min, max, median, p95, p99) for metrics.
-
-### 3. Timeseries Data (Future)
-```
-GET /api/tenants/{tenantId}/metrics/timeseries?category=...&type=...&agentName=...&startDate=...&endDate=...
+GET /api/metrics/timeseries?category=...&type=...&startDate=...&endDate=...&groupBy=day
 ```
 
-Returns time-series data points for charting and visualization.
+Returns time-bucketed data points for charting on the timeline page.
 
 ## URL Parameters
-
-The page uses URL parameters to persist state:
 
 - `startDate`: ISO 8601 date string
 - `endDate`: ISO 8601 date string
 - `agent`: Agent template name
-- `activation`: Agent instance/activation name (future)
+- `activation`: Agent instance/activation name
 
 Example:
 ```
 /settings/performance?agent=Research%20Assistant&startDate=2026-01-01T00:00:00Z&endDate=2026-01-31T23:59:59Z
 ```
 
-## Usage
-
-### Viewing Metrics
-1. Navigate to `/settings/performance`
-2. Select a date range using the date picker
-3. Optionally filter by agent template
-4. Browse metrics organized by category
-5. Click "View detailed statistics" to see deeper insights (future feature)
-
-### Filtering by Agent
-1. Use the "Agent Template" dropdown to select an agent
-2. Metrics will be filtered to show only data from that agent
-3. Click the filter badge or "Clear all" to remove filters
-
 ## Component Details
 
 ### Date Range Picker
 - Dropdown with preset options
 - Displays formatted date range
-- Automatically updates URL on selection
+- Updates URL on selection
 
 ### Summary Cards
-- 4-column grid (responsive)
-- Icons with color-coded backgrounds
+- Responsive grid (1 / 2 / 3 columns)
 - Compact number formatting (K, M, B)
 
 ### Category Card
 - Expandable/collapsible sections
-- Category emoji icons
-- Nested metric type items
-- Record count badges
+- Category icon, record count badge
 
 ### Metric Type Item
-- Metric name and sample count
-- Last seen timestamp (relative)
-- Sample value with unit formatting
-- Agent badges showing contributors
-- Future: "View details" button
+- Headline: total (sum) for the period
+- Stats grid: Average · Min · Max · Median · P95 · P99 (null values render as `—`)
+- Sample count, units, last-seen timestamp
+- Agent badges
+- "View Timeline" button when an agent is selected
 
 ## Development Notes
 
-### Adding New Metric Categories
-1. Add category icon to `CATEGORY_ICONS` in `types.ts`
-2. Categories are automatically rendered from API response
-
 ### Adding New Date Presets
-1. Add preset to `DateRangePreset` type in `types.ts`
-2. Add option to `PRESET_OPTIONS` in `date-range-picker.tsx`
-3. Implement logic in `getDateRangeFromPreset()` in `date-helpers.ts`
+1. Add the preset key to `DateRangePreset` in `types.ts`
+2. Add a `SelectItem` in `date-range-picker.tsx`
+3. Implement the range in `getDateRangeFromPreset()` in `utils/date-helpers.ts`
 
 ### Formatting Custom Units
-1. Add unit mapping in `getUnitDisplay()` in `format-helpers.ts`
-2. Add formatting logic in `formatMetricValue()` if special handling needed
+1. Add a unit mapping in `getUnitDisplay()` in `utils/format-helpers.ts`
+2. Add formatting logic in `formatMetricValue()` if special handling is needed
 
 ## Testing
 
 ### Manual Testing Checklist
-- [ ] Page loads with default date range (last month)
+- [ ] Page loads with default date range (last 30 days)
 - [ ] Date range picker changes update the display
-- [ ] Agent filter updates metrics shown
+- [ ] Agent / activation filters update metrics shown
 - [ ] URL parameters persist on refresh
 - [ ] Categories expand/collapse correctly
-- [ ] Metric values are formatted with correct units
-- [ ] Empty states show when no data available
-- [ ] Error states display user-friendly messages
-- [ ] Loading states show during API calls
-
-## Future Features
-
-### Phase 2: Detailed Stats View
-- Dedicated page for metric statistics
-- Aggregate calculations (sum, avg, min, max, median, p95, p99)
-- Breakdown by activation
-- Comparison capabilities
-
-### Phase 3: Timeseries Visualization
-- Interactive charts (line, bar, area)
-- Zoom and pan capabilities
-- Data export (CSV, JSON)
-- Custom date grouping (hour, day, week, month)
-
-### Phase 4: Advanced Filtering
-- Agent instance (activation) filtering
-- Workflow type filtering
-- Participant filtering
-- Model filtering
-- Multi-select capabilities
+- [ ] Stats grid renders all values, with `—` for null percentiles
+- [ ] Empty / error / loading states render correctly
+- [ ] "View Timeline" navigates to the timeline page with correct params

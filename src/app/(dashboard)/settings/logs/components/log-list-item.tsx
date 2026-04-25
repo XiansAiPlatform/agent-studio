@@ -7,6 +7,7 @@ import { LogEntry } from '../types';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, User, Bot, Workflow, Clock, Terminal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { LogMessage } from './log-message';
 
 interface LogListItemProps {
   log: LogEntry;
@@ -64,13 +65,12 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
 
             {/* Main Content */}
             <div className="flex-1 min-w-0 space-y-1.5">
-              {/* Message */}
-              <p className={cn(
-                "text-sm text-foreground",
-                hasException && "font-medium"
-              )}>
-                {log.message}
-              </p>
+              {/* Message (markdown) */}
+              <LogMessage
+                message={log.message}
+                mode="block"
+                className={cn(hasException && '[&_p]:font-medium')}
+              />
 
               {/* Metadata Row */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

@@ -7,14 +7,13 @@ import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2, BarChart3 } from 'lucide-react';
 import { useMetricsCategories } from './hooks/use-metrics-categories';
-import { useMetricsStats } from './hooks/use-metrics-stats';
 import { useActivations } from './hooks/use-activations';
 import { DateRangePicker } from './components/date-range-picker';
 import { SummaryCards } from './components/summary-cards';
 import { CategoryCard } from './components/category-card';
 import { PerformanceFilters } from './components/performance-filters';
 import { DateRangePreset } from './types';
-import { getDateRangeFromPreset, getThisMonthRange } from './utils/date-helpers';
+import { getDateRangeFromPreset } from './utils/date-helpers';
 
 function PerformanceContent() {
   const router = useRouter();
@@ -138,26 +137,10 @@ function PerformanceContent() {
   );
 
   // Fetch activations for instance filtering
-  const { 
-    activations, 
-    isLoading: isLoadingActivations 
+  const {
+    activations,
+    isLoading: isLoadingActivations,
   } = useActivations(currentTenantId, shouldFetch);
-
-  // Fetch stats for displaying aggregate metrics
-  // Only fetch stats when we have at least an agent or activation selected
-  const shouldFetchStats = shouldFetch && (selectedAgent !== null || selectedActivation !== null);
-  
-  const { 
-    data: statsData,
-    isLoading: isLoadingStats 
-  } = useMetricsStats(
-    currentTenantId,
-    selectedAgent,
-    selectedActivation,
-    startDate,
-    endDate,
-    shouldFetchStats
-  );
 
   // Extract unique agent names from activations for the dropdown
   const availableAgents = Array.from(
@@ -166,41 +149,6 @@ function PerformanceContent() {
 
   // Categories are already filtered by the API based on selectedAgent and selectedActivation
   const filteredCategories = data?.categories || [];
-
-  // Helper function to get stats for a specific metric type
-  const getStatsForType = (category: string, type: string) => {
-    if (!statsData?.categoriesAndTypes) return null;
-    
-    const categoryData = statsData.categoriesAndTypes.find(
-      (c) => c.category === category
-    );
-    if (!categoryData) return null;
-    
-    const typeData = categoryData.types.find((t) => t.type === type);
-    return typeData?.stats || null;
-  };
-
-  // Helper function to get activation names for a specific metric type
-  const getActivationsForType = (category: string, type: string): string[] => {
-    if (!statsData?.byActivation) return [];
-    
-    // Collect all activations that have this metric type
-    const activationNames: string[] = [];
-    
-    statsData.byActivation.forEach((activation) => {
-      const categoryData = activation.categoriesAndTypes.find(
-        (c) => c.category === category
-      );
-      if (!categoryData) return;
-      
-      const hasType = categoryData.types.some((t) => t.type === type);
-      if (hasType) {
-        activationNames.push(activation.activationName);
-      }
-    });
-    
-    return activationNames;
-  };
 
   return (
     <div className="container mx-auto p-6 max-w-7xl space-y-6">
@@ -293,9 +241,6 @@ function PerformanceContent() {
                   key={category.category}
                   category={category}
                   onViewDetails={handleViewDetails}
-                  getStatsForType={getStatsForType}
-                  getActivationsForType={getActivationsForType}
-                  isLoadingStats={isLoadingStats}
                   showViewTimeline={selectedAgent !== null}
                 />
               ))

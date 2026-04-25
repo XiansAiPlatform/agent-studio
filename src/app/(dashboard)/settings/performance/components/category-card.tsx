@@ -4,20 +4,21 @@ import { useState } from 'react';
 import { ChevronRight, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MetricCategory, MetricStats } from '../types';
+import { MetricCategory } from '../types';
 import { MetricTypeItem } from './metric-type-item';
 import { cn } from '@/lib/utils';
 
 interface CategoryCardProps {
   category: MetricCategory;
-  onViewDetails?: (type: string, category: string) => void;
-  getStatsForType?: (category: string, type: string) => MetricStats | null;
-  getActivationsForType?: (category: string, type: string) => string[];
-  isLoadingStats?: boolean;
   showViewTimeline?: boolean;
+  onViewDetails?: (type: string, category: string) => void;
 }
 
-export function CategoryCard({ category, onViewDetails, getStatsForType, getActivationsForType, isLoadingStats, showViewTimeline }: CategoryCardProps) {
+export function CategoryCard({
+  category,
+  showViewTimeline,
+  onViewDetails,
+}: CategoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -38,7 +39,10 @@ export function CategoryCard({ category, onViewDetails, getStatsForType, getActi
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <Badge variant="secondary" className="text-xs px-2.5 py-1 rounded-md font-normal">
+            <Badge
+              variant="secondary"
+              className="text-xs px-2.5 py-1 rounded-md font-normal"
+            >
               {category.totalRecords} record{category.totalRecords !== 1 ? 's' : ''}
             </Badge>
             <ChevronRight
@@ -59,9 +63,6 @@ export function CategoryCard({ category, onViewDetails, getStatsForType, getActi
                 key={metricType.type}
                 metricType={metricType}
                 category={category.category}
-                stats={getStatsForType?.(category.category, metricType.type)}
-                activationNames={getActivationsForType?.(category.category, metricType.type)}
-                isLoadingStats={isLoadingStats}
                 showViewTimeline={showViewTimeline}
                 onViewDetails={onViewDetails}
               />

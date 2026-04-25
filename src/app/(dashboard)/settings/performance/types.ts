@@ -4,6 +4,20 @@ export interface DateRange {
   endDate: string;
 }
 
+// Aggregate statistics for a metric type. Returned inline for every
+// `MetricType` in the categories response.
+export interface MetricStats {
+  count: number;
+  sum: number;
+  average: number;
+  min: number;
+  max: number;
+  median: number | null;
+  p95: number | null;
+  p99: number | null;
+  unit: string;
+}
+
 // Metric Categories API Response Types
 export interface MetricType {
   type: string;
@@ -13,6 +27,7 @@ export interface MetricType {
   lastSeen: string;
   agents: string[];
   sampleValue: number;
+  stats: MetricStats;
 }
 
 export interface MetricCategory {
@@ -36,35 +51,7 @@ export interface MetricsCategoriesResponse {
   summary: MetricsSummary;
 }
 
-// Metric Stats API Response Types
-export interface MetricStats {
-  count: number;
-  sum: number;
-  average: number;
-  min: number;
-  max: number;
-  median: number | null;
-  p95: number | null;
-  p99: number | null;
-  unit: string;
-}
-
-export interface MetricTypeWithStats {
-  type: string;
-  stats: MetricStats;
-}
-
-export interface CategoryWithStats {
-  category: string;
-  types: MetricTypeWithStats[];
-}
-
-export interface ActivationMetricStats {
-  activationName: string;
-  metricCount: number;
-  categoriesAndTypes: CategoryWithStats[];
-}
-
+// Filters echoed back by the timeseries endpoint.
 export interface MetricStatsFilters {
   agentName: string | null;
   activationName: string | null;
@@ -73,29 +60,12 @@ export interface MetricStatsFilters {
   model: string | null;
 }
 
-export interface MetricStatsResponse {
-  period: DateRange;
-  filters: MetricStatsFilters;
-  summary: {
-    totalMetricRecords: number;
-    uniqueCategories: number;
-    uniqueTypes: number;
-    uniqueActivations: number;
-    uniqueParticipants: number;
-    uniqueWorkflows: number;
-    uniqueModels: number;
-    dateRange: DateRange;
-  };
-  categoriesAndTypes: CategoryWithStats[];
-  byActivation: ActivationMetricStats[];
-}
-
 // Metric Timeseries API Response Types
 export interface TimeseriesDataPoint {
   timestamp: string;
   value: number;
   count: number;
-  breakdowns: any | null;
+  breakdowns: unknown | null;
 }
 
 export interface TimeseriesSummary {
@@ -129,7 +99,13 @@ export interface PerformanceFilters {
   endDate: string;
 }
 
-export type DateRangePreset = 'last7days' | 'last30days' | 'last90days' | 'thisMonth' | 'lastMonth' | 'custom';
+export type DateRangePreset =
+  | 'last7days'
+  | 'last30days'
+  | 'last90days'
+  | 'thisMonth'
+  | 'lastMonth'
+  | 'custom';
 
 // Format helper types
 export interface FormattedValue {
