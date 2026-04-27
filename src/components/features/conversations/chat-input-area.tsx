@@ -16,7 +16,7 @@ interface ChatInputAreaProps {
   onSendMessage: () => void;
   onSendFile?: (file: FileUploadPayload, topicId: string) => void;
   selectedTopicId: string;
-  agentName: string;
+  activationName: string;
   isActivationActive: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
 }
@@ -27,7 +27,7 @@ export function ChatInputArea({
   onSendMessage,
   onSendFile,
   selectedTopicId,
-  agentName,
+  activationName,
   isActivationActive,
   inputRef: externalInputRef,
 }: ChatInputAreaProps) {
@@ -130,7 +130,7 @@ export function ChatInputArea({
               value={messageInput}
               onChange={(e) => onMessageChange(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isActivationActive ? `Message ${agentName}...` : 'Activation is inactive'}
+              placeholder={isActivationActive ? `Message ${activationName}...` : 'Activation is inactive'}
               disabled={!isActivationActive}
               className="h-11 resize-none bg-background border border-border rounded-full focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60 transition-all text-sm px-4 disabled:opacity-50 disabled:cursor-not-allowed"
             />

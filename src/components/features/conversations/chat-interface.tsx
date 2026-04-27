@@ -184,7 +184,7 @@ export function ChatInterface({
         onSendMessage={handleSendMessage}
         onSendFile={onSendFile ? handleSendFile : undefined}
         selectedTopicId={selectedTopicId}
-        agentName={conversation.agent.name}
+        activationName={activationName || 'Agent'}
         isActivationActive={isActivationActive}
         inputRef={externalInputRef}
       />
