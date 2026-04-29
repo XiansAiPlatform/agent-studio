@@ -132,7 +132,7 @@ export function ChatInputArea({
               onKeyPress={handleKeyPress}
               placeholder={isActivationActive ? `Message ${activationName}...` : 'Activation is inactive'}
               disabled={!isActivationActive}
-              className="h-11 sm:h-10 resize-none bg-background border border-border rounded-full focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60 transition-all text-sm px-5 sm:px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-11 sm:h-10 resize-none bg-background border border-border rounded-full focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60 transition-all text-base sm:text-sm px-5 sm:px-4 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
