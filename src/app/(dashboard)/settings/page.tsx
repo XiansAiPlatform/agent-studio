@@ -75,20 +75,20 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
       {/* Page Header */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <Settings2 className="h-7 w-7 text-primary" />
-          <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
+          <Settings2 className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Settings</h1>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-sm sm:text-base">
           Manage your workspace configuration, integrations, and system preferences
         </p>
       </div>
 
       {/* Settings Cards Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {settingsSections.map((section) => {
           const Icon = section.icon;
           return (

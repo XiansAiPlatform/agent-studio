@@ -89,14 +89,14 @@ export function ChatInputArea({
   };
 
   return (
-    <div className="border-t border-border bg-card px-6 py-4 flex-shrink-0">
+    <div className="border-t border-border bg-card px-3 pt-2.5 sm:px-6 sm:pt-4 pb-[max(env(safe-area-inset-bottom),0.875rem)] sm:pb-[max(env(safe-area-inset-bottom),1rem)] flex-shrink-0">
       <div className="max-w-4xl mx-auto">
         {!isActivationActive && (
-          <div className="mb-3 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-700 dark:text-yellow-400">
+          <div className="mb-2 sm:mb-3 px-3 sm:px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-xs sm:text-sm text-yellow-700 dark:text-yellow-400">
             This agent is inactive. Messages cannot be sent until it is activated.
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {onSendFile && (
             <>
               <input
@@ -113,18 +113,18 @@ export function ChatInputArea({
                 size="icon"
                 onClick={handleAttachClick}
                 disabled={!isActivationActive || isUploadingFile}
-                className="chat-attach-btn flex-shrink-0 h-11 w-11 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="chat-attach-btn flex-shrink-0 h-11 w-11 sm:h-10 sm:w-10 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Upload file"
               >
                 {isUploadingFile ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 sm:h-4 sm:w-4 animate-spin" />
                 ) : (
-                  <Paperclip className="h-4 w-4" />
+                  <Paperclip className="h-5 w-5 sm:h-4 sm:w-4" />
                 )}
               </Button>
             </>
           )}
-          <div className="flex-1 relative">
+          <div className="flex-1 relative min-w-0">
             <Input
               ref={inputRef}
               value={messageInput}
@@ -132,7 +132,7 @@ export function ChatInputArea({
               onKeyPress={handleKeyPress}
               placeholder={isActivationActive ? `Message ${activationName}...` : 'Activation is inactive'}
               disabled={!isActivationActive}
-              className="h-11 resize-none bg-background border border-border rounded-full focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60 transition-all text-sm px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-11 sm:h-10 resize-none bg-background border border-border rounded-full focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/60 transition-all text-sm px-5 sm:px-4 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -140,9 +140,10 @@ export function ChatInputArea({
             onClick={onSendMessage}
             disabled={!messageInput.trim() || !isActivationActive}
             size="icon"
-            className="chat-send-btn flex-shrink-0 h-11 w-11 rounded-full transition-all duration-200 bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Send message"
+            className="chat-send-btn flex-shrink-0 h-11 w-11 sm:h-10 sm:w-10 rounded-full transition-all duration-200 bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5 sm:h-4 sm:w-4" />
           </Button>
         </div>
       </div>

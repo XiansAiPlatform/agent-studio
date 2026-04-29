@@ -86,7 +86,7 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
       )}
       
-      <div className="flex items-start gap-4 p-5">
+      <div className="flex items-start gap-3 p-4 sm:gap-4 sm:p-5">
         {/* Avatar Section */}
         <div className="shrink-0 pt-0.5">
           {task.status === 'pending' && (
@@ -104,7 +104,7 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
         <div className="flex-1 min-w-0 space-y-3">
           {/* Title & Status */}
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-sm font-semibold text-foreground leading-snug flex-1 group-hover:text-primary transition-colors">
+            <h3 className="text-sm font-semibold text-foreground leading-snug flex-1 min-w-0 break-words group-hover:text-primary transition-colors">
               {decodeText(task.title)}
             </h3>
             <TaskStatusBadge 
@@ -170,8 +170,8 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
           </div>
         </div>
 
-        {/* Hover Indicator */}
-        <div className="shrink-0 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Hover Indicator (visible by default on touch, hover-revealed on desktop) */}
+        <div className="hidden sm:block shrink-0 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>

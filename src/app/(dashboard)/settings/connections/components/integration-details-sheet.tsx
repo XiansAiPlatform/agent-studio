@@ -172,27 +172,27 @@ export function IntegrationDetailsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="space-y-4">
+        <SheetHeader className="space-y-3 sm:space-y-4 px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4">
           {isLoading ? (
             <>
-              <SheetTitle>Loading...</SheetTitle>
-              <SheetDescription>Fetching integration details</SheetDescription>
+              <SheetTitle className="text-base sm:text-lg">Loading...</SheetTitle>
+              <SheetDescription className="text-xs sm:text-sm">Fetching integration details</SheetDescription>
             </>
           ) : error ? (
             <>
-              <SheetTitle>Error</SheetTitle>
-              <SheetDescription>{error}</SheetDescription>
+              <SheetTitle className="text-base sm:text-lg">Error</SheetTitle>
+              <SheetDescription className="text-xs sm:text-sm">{error}</SheetDescription>
             </>
           ) : integration ? (
             <>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <SheetTitle className="text-2xl">{integration.name}</SheetTitle>
-                  <SheetDescription className="mt-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <SheetTitle className="text-lg sm:text-2xl truncate">{integration.name}</SheetTitle>
+                  <SheetDescription className="mt-1 sm:mt-2 text-xs sm:text-sm">
                     {integration.description}
                   </SheetDescription>
                 </div>
-                <Badge variant={integration.isEnabled ? "default" : "secondary"}>
+                <Badge variant={integration.isEnabled ? "default" : "secondary"} className="shrink-0">
                   {integration.isEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
               </div>
@@ -205,8 +205,8 @@ export function IntegrationDetailsSheet({
             </>
           ) : (
             <>
-              <SheetTitle>Integration Details</SheetTitle>
-              <SheetDescription>No integration data available</SheetDescription>
+              <SheetTitle className="text-base sm:text-lg">Integration Details</SheetTitle>
+              <SheetDescription className="text-xs sm:text-sm">No integration data available</SheetDescription>
             </>
           )}
         </SheetHeader>
@@ -224,14 +224,14 @@ export function IntegrationDetailsSheet({
             </Button>
           </div>
         ) : integration && (
-          <div className="p-6 pt-8 space-y-6">
+          <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-5 sm:space-y-6">
               {/* Webhook URL */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Link2 className="h-4 w-4" />
                   Full Webhook URL
                 </h3>
-                <div className="pl-6">
+                <div className="pl-0 sm:pl-6">
                   <div className="flex items-center justify-between gap-2 text-sm bg-muted p-3 rounded-md">
                     <code className="text-xs break-all">{integration.webhookUrl}</code>
                     <Button
@@ -252,13 +252,13 @@ export function IntegrationDetailsSheet({
                     <Settings className="h-4 w-4" />
                     Configuration
                   </h3>
-                  <div className="pl-6 space-y-2">
+                  <div className="pl-0 sm:pl-6 space-y-2">
                     {Object.entries(integration.configuration).map(([key, value]) => (
-                      <div key={key} className="grid grid-cols-3 gap-2 text-sm">
+                      <div key={key} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 text-sm">
                         <span className="text-muted-foreground capitalize">
                           {key.replace(/([A-Z])/g, ' $1').trim()}:
                         </span>
-                        <div className="col-span-2 flex items-center justify-between gap-2">
+                        <div className="sm:col-span-2 flex items-center justify-between gap-2">
                           <code className="text-xs break-all">{String(value)}</code>
                           {value && (
                             <Button
@@ -282,15 +282,15 @@ export function IntegrationDetailsSheet({
                   <MapPin className="h-4 w-4" />
                   Mapping Configuration
                 </h3>
-                <div className="pl-6 space-y-2">
+                <div className="pl-0 sm:pl-6 space-y-2">
                   {Object.entries(integration.mappingConfig)
                     .filter(([_, value]) => value !== null)
                     .map(([key, value]) => (
-                      <div key={key} className="grid grid-cols-3 gap-2 text-sm">
+                      <div key={key} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 text-sm">
                         <span className="text-muted-foreground capitalize">
                           {key.replace(/([A-Z])/g, ' $1').trim()}:
                         </span>
-                        <span className="col-span-2 font-medium">{String(value)}</span>
+                        <span className="sm:col-span-2 font-medium break-words">{String(value)}</span>
                       </div>
                     ))}
                 </div>
@@ -299,28 +299,28 @@ export function IntegrationDetailsSheet({
               {/* Metadata */}
               <div className="space-y-3 pt-4 border-t">
                 <h3 className="text-sm font-semibold">Metadata</h3>
-                <div className="pl-6 space-y-2 text-sm">
-                  <div className="grid grid-cols-3 gap-2">
+                <div className="pl-0 sm:pl-6 space-y-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
                     <span className="text-muted-foreground">Created:</span>
-                    <span className="col-span-2">{formatDate(integration.createdAt)}</span>
+                    <span className="sm:col-span-2">{formatDate(integration.createdAt)}</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
                     <span className="text-muted-foreground">Created By:</span>
-                    <span className="col-span-2">{integration.createdBy}</span>
+                    <span className="sm:col-span-2 break-words">{integration.createdBy}</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
                     <span className="text-muted-foreground">Updated:</span>
-                    <span className="col-span-2">{formatDate(integration.updatedAt)}</span>
+                    <span className="sm:col-span-2">{formatDate(integration.updatedAt)}</span>
                   </div>
                   {integration.updatedBy && (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
                       <span className="text-muted-foreground">Updated By:</span>
-                      <span className="col-span-2">{integration.updatedBy}</span>
+                      <span className="sm:col-span-2 break-words">{integration.updatedBy}</span>
                     </div>
                   )}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
                     <span className="text-muted-foreground">Integration ID:</span>
-                    <div className="col-span-2 flex items-center justify-between gap-2">
+                    <div className="sm:col-span-2 flex items-center justify-between gap-2">
                       <code className="text-xs break-all">{integration.id}</code>
                       <Button
                         variant="ghost"
@@ -337,7 +337,7 @@ export function IntegrationDetailsSheet({
               {/* Danger Zone */}
               <div className="space-y-3 pt-6 border-t border-destructive/20">
                 <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
-                <div className="pl-6">
+                <div className="pl-0 sm:pl-6">
                   <Button
                     variant="destructive"
                     onClick={() => setShowDeleteDialog(true)}

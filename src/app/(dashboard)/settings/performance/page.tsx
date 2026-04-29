@@ -151,24 +151,24 @@ function PerformanceContent() {
   const filteredCategories = data?.categories || [];
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 max-w-7xl space-y-6">
       {/* Page Header */}
       <div className="space-y-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5">
-                <BarChart3 className="h-6 w-6 text-primary" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5">
+                <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
                 Performance
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Monitor metrics and resource usage across your agents
             </p>
           </div>
-          <div className="shrink-0">
+          <div className="sm:shrink-0">
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}

@@ -111,18 +111,18 @@ export default function SecretsPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
       {/* Header */}
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-                <KeyRound className="h-6 w-6 text-primary" />
+        <div className="container mx-auto p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 sm:gap-3">
+                <KeyRound className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
                 Secrets
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Manage tenant-scoped secrets used by your agents and integrations
               </p>
             </div>
-            <Button onClick={() => setShowAdd(true)} className="gap-2">
+            <Button onClick={() => setShowAdd(true)} className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               Add Secret
             </Button>
@@ -131,7 +131,7 @@ export default function SecretsPage() {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto p-6 space-y-4">
+      <div className="container mx-auto p-4 sm:p-6 space-y-4">
         {/* Security notice */}
         <div className="flex items-start gap-3 rounded-lg border bg-card/60 p-4">
           <div className="p-1.5 rounded-md bg-primary/10 text-primary mt-0.5">
@@ -148,14 +148,14 @@ export default function SecretsPage() {
         </div>
 
         {/* Search + refresh */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 min-w-0 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by key or description…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 text-base sm:text-sm"
             />
           </div>
           <Button
@@ -164,11 +164,12 @@ export default function SecretsPage() {
             onClick={() => fetchSecrets()}
             disabled={isLoading}
             title="Refresh"
+            className="shrink-0"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
           {secrets.length > 0 && (
-            <span className="text-sm text-muted-foreground ml-auto">
+            <span className="text-xs sm:text-sm text-muted-foreground sm:ml-auto">
               {secrets.length} {secrets.length === 1 ? 'secret' : 'secrets'}
             </span>
           )}
@@ -181,8 +182,97 @@ export default function SecretsPage() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="rounded-xl border bg-card overflow-hidden">
+        {/* Mobile Card List (< md) */}
+        <div className="md:hidden space-y-2">
+          {isLoading && secrets.length === 0 ? (
+            <div className="rounded-xl border bg-card px-4 py-12 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              Loading secrets…
+            </div>
+          ) : filteredSecrets.length === 0 ? (
+            <div className="rounded-xl border bg-card px-4 py-12 text-center text-muted-foreground">
+              <KeyRound className="h-8 w-8 mx-auto mb-3 opacity-30" />
+              <p className="font-medium text-foreground">
+                {search ? 'No matching secrets' : 'No secrets yet'}
+              </p>
+              <p className="text-xs mt-1">
+                {search
+                  ? 'Try a different search term'
+                  : 'Add your first secret to get started'}
+              </p>
+            </div>
+          ) : (
+            filteredSecrets.map((secret) => {
+              const copied = copiedId === secret.id
+              const description = getSecretDescription(secret)
+              return (
+                <div
+                  key={secret.id}
+                  className="rounded-xl border bg-card p-4 space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
+                      <code className="font-mono text-foreground bg-muted/60 rounded px-1.5 py-0.5 text-xs truncate min-w-0">
+                        {secret.key}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyKey(secret)}
+                        className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        title="Copy key"
+                        aria-label={`Copy key ${secret.key}`}
+                      >
+                        {copied ? (
+                          <Check className="h-3.5 w-3.5 text-primary" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Actions for {secret.key}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleCopyKey(secret)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy key
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setDeleteTarget(secret)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  {description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground/80">
+                    <span>{formatDate(secret.createdAt)}</span>
+                    {secret.createdBy && (
+                      <>
+                        <span className="text-muted-foreground/40">•</span>
+                        <span className="truncate">{secret.createdBy}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Table (>= md) */}
+        <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

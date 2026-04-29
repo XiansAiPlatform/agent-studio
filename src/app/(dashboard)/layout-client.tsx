@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Header } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useTenantStore } from '@/store/tenant-store'
 import { Tenant } from '@/types/tenant'
 import { cn } from '@/lib/utils'
@@ -40,6 +41,7 @@ export function DashboardLayoutClient({
   const pathname = usePathname()
   const [isValidating, setIsValidating] = useState(true)
   const [participantMenuOpen, setParticipantMenuOpen] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const hasInitializedRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -188,14 +190,38 @@ export function DashboardLayoutClient({
       canCustomizeTheme={canCustomizeTheme}
     >
       <div className="flex h-screen flex-col">
-        {/* Fixed Header - hamburger moved to ConversationHeader / participant bar */}
-        <Header />
+        {/* Fixed Header - hamburger toggles admin sidebar drawer or participant menu */}
+        <Header
+          onOpenSidebar={
+            showSidebar ? () => setMobileSidebarOpen(true) : undefined
+          }
+        />
+
+        {/* Mobile sidebar drawer - admin mode only, < md */}
+        {showSidebar && (
+          <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+            <SheetContent
+              side="left"
+              className="w-[85%] max-w-[320px] p-0 md:hidden flex flex-col safe-pb"
+            >
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
+              <Suspense fallback={<div className="flex-1 bg-background" />}>
+                <Sidebar
+                  mobile
+                  onNavigate={() => setMobileSidebarOpen(false)}
+                />
+              </Suspense>
+            </SheetContent>
+          </Sheet>
+        )}
 
         {/* Main Container - admin layout (sidebar) or participant layout (single panel) */}
         <div className="flex flex-1 overflow-hidden">
           {showSidebar && (
-            <Suspense fallback={<div className="w-64 border-r bg-background" />}>
-              <Sidebar />
+            <Suspense fallback={<div className="hidden md:block h-full w-64 border-r bg-background" />}>
+              <div className="hidden md:block h-full">
+                <Sidebar />
+              </div>
             </Suspense>
           )}
 

@@ -714,19 +714,20 @@ export function TeamsWizardSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto overflow-x-hidden">
-        <SheetHeader>
-          <SheetTitle className="text-2xl font-light">
+      <SheetContent className="w-full sm:max-w-3xl flex flex-col p-0 overflow-x-hidden">
+        <SheetHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4">
+          <SheetTitle className="text-lg sm:text-2xl font-light">
             Microsoft Teams Integration Setup
           </SheetTitle>
-          <SheetDescription>
+          <SheetDescription className="text-xs sm:text-sm">
             Follow these steps to connect Microsoft Teams to your XiansAI agent
           </SheetDescription>
         </SheetHeader>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Progress indicator */}
-        <div className="px-6 pt-6">
-          <div 
+        <div className="px-4 sm:px-6 pt-2 sm:pt-4">
+          <div
             ref={stepsContainerRef}
             className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide"
           >
@@ -761,13 +762,14 @@ export function TeamsWizardSheet({
           </div>
         </div>
 
-        <div className="px-6 pb-6">
+        <div className="px-4 sm:px-6 pb-6">
           {renderStepContent()}
+        </div>
         </div>
 
         {/* Navigation buttons */}
         {wizardStep !== 'complete' && wizardStep !== 'create-integration' && (
-          <div className="flex items-center justify-between px-6 py-6 border-t">
+          <div className="flex items-center justify-between gap-2 px-4 sm:px-6 pt-3 sm:pt-4 pb-[max(env(safe-area-inset-bottom),0.875rem)] sm:pb-[max(env(safe-area-inset-bottom),1rem)] border-t shrink-0 bg-background">
             <Button
               type="button"
               variant="outline"

@@ -14,7 +14,7 @@ export function KnowledgeStatsCards({
   activationCount,
 }: KnowledgeStatsCardsProps) {
   return (
-    <div className="grid gap-8 md:grid-cols-3 py-4">
+    <div className="hidden sm:grid sm:grid-cols-3 gap-8 py-4">
       <StatCard
         count={systemCount}
         icon={Globe}
@@ -63,7 +63,7 @@ function StatCard({
   return (
     <div className="group">
       <div className="flex items-baseline gap-3 mb-1.5">
-        <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+        <div className="text-4xl sm:text-5xl font-light tabular-nums tracking-tight text-foreground">
           {count}
         </div>
         <div className={`h-8 w-0.5 ${barColor}`} />

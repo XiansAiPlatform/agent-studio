@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, Loader2 } from 'lucide-react';
+import { AlertTriangle, Bot, Loader2, PanelLeft } from 'lucide-react';
 import { ParticipantMenuButton } from './participant-menu-bar';
 import { cn } from '@/lib/utils';
 import { Topic } from '@/lib/data/dummy-conversations';
@@ -17,6 +17,12 @@ interface ConversationHeaderProps {
   isHeartbeatLoading?: boolean;
   /** Called when user clicks status (Live or Worker unavailable) to re-check heartbeat */
   onRetryHeartbeat?: () => void;
+  /**
+   * Admin-mode mobile only: opens the TopicSidebar drawer. Renders a button
+   * that is hidden at `md+`. Ignored in participant mode (which uses
+   * `useParticipantLayout().onOpenMenu` instead).
+   */
+  onOpenTopics?: () => void;
 }
 
 /**
@@ -35,8 +41,11 @@ export function ConversationHeader({
   serverUnavailable = false,
   isHeartbeatLoading = false,
   onRetryHeartbeat,
+  onOpenTopics,
 }: ConversationHeaderProps) {
   const { onOpenMenu } = useParticipantLayout();
+  // In admin mode (no participant menu), expose a topics drawer button on mobile.
+  const showAdminTopicsBtn = !onOpenMenu && Boolean(onOpenTopics);
 
   const showLive = workerAvailable === true && isConnected && isAgentActive;
   const showWorkerWarning = workerAvailable === false && !serverUnavailable;
@@ -44,11 +53,21 @@ export function ConversationHeader({
   const showChecking = isHeartbeatLoading || (workerAvailable === null && isAgentActive && !serverUnavailable);
 
   return (
-    <div className="border-b border-border/50 bg-card px-6 py-3">
-      <div className="flex items-center justify-between">
+    <div className="border-b border-border/50 bg-card px-3 py-3 sm:px-6">
+      <div className="flex items-center justify-between gap-2">
         {/* Agent Icon + Activation & Topic Info */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {onOpenMenu && <ParticipantMenuButton onClick={onOpenMenu} />}
+          {showAdminTopicsBtn && (
+            <button
+              type="button"
+              onClick={onOpenTopics}
+              className="md:hidden flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
+              aria-label="Open topics"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
+          )}
           {/* Agent Avatar with Sonar Pulse (only when connected AND agent is active) */}
           <div className="relative inline-flex">
             <div className="chat-header-avatar h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 relative z-10">
@@ -60,21 +79,21 @@ export function ConversationHeader({
           </div>
           
           {/* Activation & Topic Info */}
-          <div>
+          <div className="min-w-0">
             {/* Activation Name */}
             <div className="flex items-center gap-2 mb-0.5">
-              <h3 className="font-medium text-sm text-foreground">
+              <h3 className="font-medium text-sm text-foreground truncate">
                 {activationName}
               </h3>
             </div>
-            
+
             {/* Topic Name & Message Count */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground font-medium">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs text-muted-foreground font-medium truncate">
                 {topic.name}
               </span>
-              <span className="text-xs text-muted-foreground/60">•</span>
-              <span className="text-xs text-muted-foreground/60">
+              <span className="text-xs text-muted-foreground/60 hidden sm:inline">•</span>
+              <span className="text-xs text-muted-foreground/60 hidden sm:inline whitespace-nowrap">
                 {topic.messageCount ?? topic.messages.length} messages
               </span>
             </div>
@@ -82,7 +101,7 @@ export function ConversationHeader({
         </div>
 
         {/* Worker Status: Live, Checking, or Warning */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {showChecking ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

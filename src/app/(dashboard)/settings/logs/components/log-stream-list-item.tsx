@@ -33,20 +33,20 @@ export function LogStreamListItem({ stream, onSelect }: LogStreamListItemProps) 
       )}
       onClick={() => onSelect(stream)}
     >
-      <CardContent className="!px-4 !py-3">
-        <div className="flex items-start gap-3">
+      <CardContent className="!px-3 !py-3 sm:!px-4">
+        <div className="flex items-start gap-2 sm:gap-3">
           {/* Stat card: total log count for this stream */}
           <div
             className={cn(
               'shrink-0 self-stretch flex flex-col items-center justify-center',
-              'min-w-[64px] px-2 py-1.5 rounded-lg border',
+              'min-w-[52px] sm:min-w-[64px] px-2 py-1.5 rounded-lg border',
               isError
                 ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/40 dark:border-red-900 dark:text-red-200'
                 : 'bg-muted/40 border-border/60 text-foreground'
             )}
             title={`${stream.logCount.toLocaleString()} log${stream.logCount === 1 ? '' : 's'} in this stream`}
           >
-            <span className="text-lg font-semibold leading-none tabular-nums">
+            <span className="text-base sm:text-lg font-semibold leading-none tabular-nums">
               {formatCount(stream.logCount)}
             </span>
             <span
@@ -62,49 +62,49 @@ export function LogStreamListItem({ stream, onSelect }: LogStreamListItemProps) 
           <div className="flex-1 min-w-0 space-y-1.5">
             <div className="flex items-center gap-2 min-w-0">
               <LogLevelBadge level={stream.lastLogLevel} className="shrink-0" />
-              <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <MessageSquare className="hidden sm:inline-block h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <LogMessage
                 message={stream.lastLogMessage}
                 mode="inline"
-                className={cn('text-sm text-foreground flex-1', isError && 'font-medium')}
+                className={cn('text-sm text-foreground flex-1 line-clamp-2 sm:line-clamp-none', isError && 'font-medium')}
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-[11px] sm:text-xs text-muted-foreground">
               <div className="flex items-center gap-1" title={lastSeenAbsolute}>
                 <Clock className="h-3 w-3" />
                 <span>{lastSeen}</span>
               </div>
 
               {stream.agent && (
-                <div className="flex items-center gap-1">
-                  <Bot className="h-3 w-3" />
-                  <span className="font-medium">{stream.agent}</span>
+                <div className="flex items-center gap-1 min-w-0">
+                  <Bot className="h-3 w-3 shrink-0" />
+                  <span className="font-medium truncate">{stream.agent}</span>
                   {stream.activation && (
                     <>
-                      <span className="text-muted-foreground/50">•</span>
-                      <span className="text-muted-foreground/80">{stream.activation}</span>
+                      <span className="hidden sm:inline text-muted-foreground/50">•</span>
+                      <span className="hidden sm:inline text-muted-foreground/80 truncate">{stream.activation}</span>
                     </>
                   )}
                 </div>
               )}
 
               {stream.workflowType && (
-                <div className="flex items-center gap-1">
+                <div className="hidden sm:flex items-center gap-1">
                   <Workflow className="h-3 w-3" />
                   <span className="text-muted-foreground/80">{stream.workflowType}</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-mono truncate">
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-mono truncate">
               <span className="text-muted-foreground/60">workflow:</span>
               <span className="truncate" title={stream.workflowId}>{stream.workflowId}</span>
             </div>
           </div>
 
           <div className="shrink-0 self-center">
-            <ChevronRight className="h-4 w-4 text-muted-foreground/60 group-hover:hidden" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground/60 sm:group-hover:hidden" />
             <Button
               variant="default"
               size="sm"
@@ -112,7 +112,7 @@ export function LogStreamListItem({ stream, onSelect }: LogStreamListItemProps) 
                 e.stopPropagation();
                 onSelect(stream);
               }}
-              className="hidden group-hover:inline-flex focus-visible:inline-flex h-8 rounded-lg gap-1.5"
+              className="hidden sm:group-hover:inline-flex sm:focus-visible:inline-flex h-8 rounded-lg gap-1.5"
               aria-label="See logs for this stream"
             >
               <FileText className="h-3.5 w-3.5" />

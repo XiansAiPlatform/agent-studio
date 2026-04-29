@@ -1,10 +1,15 @@
+'use client';
+
+import { useState } from 'react';
 import { Conversation } from '@/lib/data/dummy-conversations';
 import { ActivationOption } from '../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
-import { 
-  ConversationHeader, 
-  TopicSidebar, 
-  ChatPanel 
+import { useIsMobile } from '@/hooks/use-is-mobile';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import {
+  ConversationHeader,
+  TopicSidebar,
+  ChatPanel
 } from '../[agentName]/[activationName]/_components';
 
 interface ConversationViewProps {
@@ -83,34 +88,87 @@ export function ConversationView({
   agentInfo,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
+  const isMobile = useIsMobile();
+  const [topicsDrawerOpen, setTopicsDrawerOpen] = useState(false);
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
-  
+
   // Find the current activation to check if it's active
   const currentActivation = activations.find(
     a => a.name === selectedActivationName && a.agentName === agentName
   );
   const isAgentActive = currentActivation?.status === 'active';
 
+  // Admin mode + mobile: TopicSidebar lives inside a left Sheet that the
+  // conversation header opens. Desktop and participant flows are unchanged.
+  const showTopicSidebarInline = !isParticipantMode && !isMobile;
+  const showTopicsDrawerOnMobile = !isParticipantMode && isMobile;
+
+  // Auto-close the drawer when a topic is picked / created / deleted on mobile.
+  const handleTopicSelectMobile = (id: string) => {
+    onTopicSelect(id);
+    setTopicsDrawerOpen(false);
+  };
+  const handleCreateTopicMobile = onCreateTopic
+    ? (name: string) => {
+        onCreateTopic(name);
+        setTopicsDrawerOpen(false);
+      }
+    : undefined;
+  const handleDeleteTopicMobile = onDeleteTopic
+    ? async (id: string, name: string) => {
+        await onDeleteTopic(id, name);
+      }
+    : undefined;
+
   return (
     <div className="flex h-full bg-card">
-      {/* Topics List - Left Sidebar (hidden for participant; they use pull-up menu) */}
-      {!isParticipantMode && (
+      {/* Topics List - Left Sidebar (desktop admin only) */}
+      {showTopicSidebarInline && (
         <TopicSidebar
-        topics={conversation.topics}
-        selectedTopicId={selectedTopicId}
-        onSelectTopic={onTopicSelect}
-        onCreateTopic={onCreateTopic}
-        onDeleteTopic={onDeleteTopic}
-        unreadCounts={unreadCounts}
-        activations={activations}
-        selectedActivationName={selectedActivationName}
-        onActivationChange={onActivationChange}
-        isLoadingActivations={isLoadingActivations}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        hasMore={hasMore}
-        onPageChange={onPageChange}
-      />
+          topics={conversation.topics}
+          selectedTopicId={selectedTopicId}
+          onSelectTopic={onTopicSelect}
+          onCreateTopic={onCreateTopic}
+          onDeleteTopic={onDeleteTopic}
+          unreadCounts={unreadCounts}
+          activations={activations}
+          selectedActivationName={selectedActivationName}
+          onActivationChange={onActivationChange}
+          isLoadingActivations={isLoadingActivations}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          hasMore={hasMore}
+          onPageChange={onPageChange}
+        />
+      )}
+
+      {/* Topics Drawer - admin mobile only */}
+      {showTopicsDrawerOnMobile && (
+        <Sheet open={topicsDrawerOpen} onOpenChange={setTopicsDrawerOpen}>
+          <SheetContent
+            side="left"
+            className="w-[85%] max-w-[360px] p-0 md:hidden flex flex-col"
+          >
+            <SheetTitle className="sr-only">Topics</SheetTitle>
+            <TopicSidebar
+              mobile
+              topics={conversation.topics}
+              selectedTopicId={selectedTopicId}
+              onSelectTopic={handleTopicSelectMobile}
+              onCreateTopic={handleCreateTopicMobile}
+              onDeleteTopic={handleDeleteTopicMobile}
+              unreadCounts={unreadCounts}
+              activations={activations}
+              selectedActivationName={selectedActivationName}
+              onActivationChange={onActivationChange}
+              isLoadingActivations={isLoadingActivations}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              hasMore={hasMore}
+              onPageChange={onPageChange}
+            />
+          </SheetContent>
+        </Sheet>
       )}
 
       {/* Chat Area - Right Column */}
@@ -127,6 +185,11 @@ export function ConversationView({
               serverUnavailable={serverUnavailable}
               isHeartbeatLoading={isHeartbeatLoading}
               onRetryHeartbeat={onRetryHeartbeat}
+              onOpenTopics={
+                showTopicsDrawerOnMobile
+                  ? () => setTopicsDrawerOpen(true)
+                  : undefined
+              }
             />
 
             {/* Chat Interface */}

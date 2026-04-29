@@ -109,7 +109,7 @@ export function MetricTypeItem({
         </div>
 
         {/* Statistics grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-4 gap-y-3 py-3 px-4 rounded-lg bg-muted/30">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-3 py-3 px-3 sm:px-4 rounded-lg bg-muted/30">
           <StatCell label="Average" value={stats.average} unit={stats.unit} emphasize />
           <StatCell label="Min" value={stats.min} unit={stats.unit} />
           <StatCell label="Max" value={stats.max} unit={stats.unit} />

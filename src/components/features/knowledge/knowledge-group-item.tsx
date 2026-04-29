@@ -74,7 +74,7 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
     <div
       onClick={() => onClick(group)}
       className={cn(
-        'group relative py-5 px-6 cursor-pointer transition-all duration-200',
+        'group relative py-4 px-4 sm:py-5 sm:px-6 cursor-pointer transition-all duration-200',
         'border-b border-border/40 last:border-b-0',
         'hover:bg-accent/5',
         isSelected && 'bg-accent/10',
@@ -84,13 +84,13 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
           : 'before:opacity-0 before:bg-border'
       )}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         {/* Format Icon with Circle Background */}
         <IconAvatar
           icon={config.icon}
           variant={config.variant}
           size="md"
-          className="mt-0.5"
+          className="mt-0.5 shrink-0"
         />
 
         {/* Main Content */}
@@ -213,20 +213,20 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
           </div>
 
           {/* Metadata */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
-            <span className="inline-flex items-center gap-1.5">
-              <User className="h-3 w-3" />
-              {effectiveItem.agent}
+          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground/70 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
+              <User className="h-3 w-3 shrink-0" />
+              <span className="truncate max-w-[180px] sm:max-w-none">{effectiveItem.agent}</span>
             </span>
             
-            <span className="text-muted-foreground/30">•</span>
+            <span className="text-muted-foreground/30 hidden sm:inline">•</span>
             
             <span className="inline-flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
               {formatDate(effectiveItem.createdAt)}
             </span>
 
-            <span className="text-muted-foreground/30">•</span>
+            <span className="text-muted-foreground/30 hidden sm:inline">•</span>
             
             <span className="font-mono text-[10px]">
               {effectiveItem.version.slice(0, 8)}

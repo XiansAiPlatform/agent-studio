@@ -53,15 +53,15 @@ export function AgentDetailsSheet({
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="overflow-y-auto sm:max-w-xl">
-          <SheetHeader className="px-6 pt-6">
-            <SheetTitle className="flex items-center gap-2">
+          <SheetHeader className="px-4 sm:px-6 pt-5 sm:pt-6">
+            <SheetTitle className="flex items-center flex-wrap gap-2 text-base sm:text-lg">
               {deployment.icon && (
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 flex items-center justify-center ring-1 ring-green-500/10">
-                  <deployment.icon className="h-5 w-5 text-green-600" />
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 flex items-center justify-center ring-1 ring-green-500/10 shrink-0">
+                  <deployment.icon className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                 </div>
               )}
-              <span>{deployment.name}</span>
-              <Badge variant={deployment.status === 'active' ? 'default' : 'secondary'}>
+              <span className="min-w-0 break-words">{deployment.name}</span>
+              <Badge variant={deployment.status === 'active' ? 'default' : 'secondary'} className="shrink-0">
                 {deployment.status}
               </Badge>
             </SheetTitle>
@@ -94,7 +94,7 @@ export function AgentDetailsSheet({
             </div>
           </SheetHeader>
 
-          <div className="space-y-6 px-6 py-6">
+          <div className="space-y-5 sm:space-y-6 px-4 sm:px-6 py-5 sm:py-6">
             {/* Configuration Status Banner */}
             {hasConfiguration && (
               <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-4">
@@ -201,21 +201,21 @@ export function AgentDetailsSheet({
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="overflow-y-auto sm:max-w-xl">
-          <SheetHeader className="px-6 pt-6">
-            <SheetTitle className="flex items-center gap-2">
+          <SheetHeader className="px-4 sm:px-6 pt-5 sm:pt-6">
+            <SheetTitle className="flex items-center flex-wrap gap-2 text-base sm:text-lg">
               {template.icon && (
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
-                  <template.icon className="h-5 w-5 text-primary" />
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center ring-1 ring-primary/10 shrink-0">
+                  <template.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
               )}
-              <span>{template.agent.name}</span>
+              <span className="min-w-0 break-words">{template.agent.name}</span>
             </SheetTitle>
-            <SheetDescription>
+            <SheetDescription className="text-xs sm:text-sm">
               {template.agent.summary || template.agent.description || 'Agent template details'}
             </SheetDescription>
           </SheetHeader>
 
-          <div className="space-y-6 px-6 py-6">
+          <div className="space-y-5 sm:space-y-6 px-4 sm:px-6 py-5 sm:py-6">
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Details</h3>
               <div className="grid grid-cols-2 gap-3">

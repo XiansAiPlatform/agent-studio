@@ -18,17 +18,13 @@ function AgentSelectionContent() {
   const router = useRouter();
   const { currentTenantId } = useTenant();
   const [searchQuery, setSearchQuery] = useState('');
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
 
   // Fetch activations
   const { activations, isLoading } = useActivations(currentTenantId);
 
-  // Filter activations based on search and status
-  const filteredActivations = activations.filter((activation) => {
-    if (showActiveOnly && activation.status !== 'active') {
-      return false;
-    }
-    
+  const activeActivations = activations.filter((a) => a.status === 'active');
+
+  const filteredActivations = activeActivations.filter((activation) => {
     const query = searchQuery.toLowerCase();
     return (
       activation.name.toLowerCase().includes(query) ||
@@ -53,7 +49,7 @@ function AgentSelectionContent() {
 
   return (
     <div className="flex h-full bg-card">
-      <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto">
         <div className="w-full max-w-3xl">
           {/* Header Section */}
           <div className="mb-6">
@@ -64,14 +60,10 @@ function AgentSelectionContent() {
               Choose an activation to start chatting
             </p>
             
-            {/* Search and Filter */}
+            {/* Search */}
             <ActivationFilter
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              showActiveOnly={showActiveOnly}
-              onShowActiveOnlyChange={setShowActiveOnly}
-              totalCount={activations.length}
-              activeCount={activations.filter(a => a.status === 'active').length}
             />
           </div>
 
@@ -82,7 +74,7 @@ function AgentSelectionContent() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
                 <p className="text-muted-foreground text-sm">Loading agents...</p>
               </div>
-            ) : activations.length === 0 ? (
+            ) : activeActivations.length === 0 ? (
               <div className="text-center py-12">
                 <div className="agent-icon-container h-10 w-10 rounded-2xl flex items-center justify-center mx-auto mb-3">
                   <Bot className="h-10 w-10" />

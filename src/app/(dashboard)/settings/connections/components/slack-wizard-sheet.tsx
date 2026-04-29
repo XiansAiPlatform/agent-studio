@@ -324,7 +324,7 @@ export function SlackWizardSheet({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm mb-2">Click <strong>"Add an OAuth Scope"</strong> and add these scopes:</p>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                     {[
                       'channels:read',
                       'chat:write',
@@ -992,15 +992,15 @@ export function SlackWizardSheet({
         }
       }}
     >
-      <SheetContent className="w-[700px] sm:max-w-[700px] overflow-y-auto flex flex-col">
-        <SheetHeader>
-          <SheetTitle>Setup Slack Integration</SheetTitle>
-          <SheetDescription>
+      <SheetContent className="w-full sm:w-[700px] sm:max-w-[700px] flex flex-col p-0">
+        <SheetHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4">
+          <SheetTitle className="text-base sm:text-lg">Setup Slack Integration</SheetTitle>
+          <SheetDescription className="text-xs sm:text-sm">
             Follow the step-by-step guide to connect your Slack workspace
           </SheetDescription>
         </SheetHeader>
-        
-        <div className="flex-1 overflow-y-auto px-6">
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6">
           <div className="py-6 space-y-6">
             {/* Progress Steps */}
             <div>
@@ -1051,8 +1051,8 @@ export function SlackWizardSheet({
         </div>
 
         {/* Navigation Buttons */}
-        <div className="border-t p-6 bg-card flex-shrink-0">
-          <div className="flex items-center justify-between gap-4">
+        <div className="border-t px-4 sm:px-6 pt-3 sm:pt-4 pb-[max(env(safe-area-inset-bottom),0.875rem)] sm:pb-[max(env(safe-area-inset-bottom),1rem)] bg-card flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             <Button
               type="button"
               variant="outline"

@@ -39,13 +39,13 @@ export function SummaryCards({
   ];
 
   return (
-    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 py-4">
+    <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-8 py-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
           <div key={stat.title} className="group">
             <div className="flex items-baseline gap-3 mb-1.5">
-              <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+              <div className="text-4xl sm:text-5xl font-light tabular-nums tracking-tight text-foreground">
                 {formatCompactNumber(stat.value)}
               </div>
               <div className={`h-8 w-0.5 ${stat.barColor}`} />

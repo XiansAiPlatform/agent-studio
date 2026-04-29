@@ -73,38 +73,38 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
               />
 
               {/* Metadata Row */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-[11px] sm:text-xs text-muted-foreground">
                 {/* Timestamp */}
                 <div className="flex items-center gap-1" title={absoluteTime}>
                   <Clock className="h-3 w-3" />
                   <span>{formattedTime}</span>
                 </div>
 
-                {/* Agent & Activation */}
+                {/* Agent & Activation (activation hidden on mobile) */}
                 {log.agent && (
-                  <div className="flex items-center gap-1">
-                    <Bot className="h-3 w-3" />
-                    <span className="font-medium">{log.agent}</span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <Bot className="h-3 w-3 shrink-0" />
+                    <span className="font-medium truncate">{log.agent}</span>
                     {log.activation && (
                       <>
-                        <span className="text-muted-foreground/50">•</span>
-                        <span className="text-muted-foreground/80">{log.activation}</span>
+                        <span className="hidden sm:inline text-muted-foreground/50">•</span>
+                        <span className="hidden sm:inline text-muted-foreground/80 truncate">{log.activation}</span>
                       </>
                     )}
                   </div>
                 )}
 
-                {/* Participant */}
+                {/* Participant — desktop only */}
                 {log.participantId && (
-                  <div className="flex items-center gap-1">
+                  <div className="hidden sm:flex items-center gap-1">
                     <User className="h-3 w-3" />
                     <span>{log.participantId}</span>
                   </div>
                 )}
 
-                {/* Workflow Type */}
+                {/* Workflow Type — desktop only */}
                 {log.workflowType && (
-                  <div className="flex items-center gap-1">
+                  <div className="hidden sm:flex items-center gap-1">
                     <Workflow className="h-3 w-3" />
                     <span className="text-muted-foreground/80">{log.workflowType}</span>
                   </div>
@@ -115,7 +115,7 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
 
           {/* Expanded Details */}
           {isExpanded && hasDetails && (
-            <div className="ml-8 mt-3 space-y-3 text-xs">
+            <div className="ml-0 sm:ml-8 mt-3 space-y-3 text-xs">
               {/* Exception Details */}
               {hasException && (
                 <div className="rounded-lg bg-red-50 dark:bg-red-950/20 p-3 border border-red-200 dark:border-red-900">
@@ -129,15 +129,37 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
                 </div>
               )}
 
+              {/* Mobile-only secondary metadata (hidden in collapsed view on phones) */}
+              <div className="sm:hidden space-y-1 text-muted-foreground">
+                {log.activation && (
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium text-foreground">Activation:</span>
+                    <span className="break-all">{log.activation}</span>
+                  </div>
+                )}
+                {log.participantId && (
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium text-foreground">Participant:</span>
+                    <span className="break-all">{log.participantId}</span>
+                  </div>
+                )}
+                {log.workflowType && (
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium text-foreground">Workflow:</span>
+                    <span className="break-all">{log.workflowType}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Workflow IDs */}
               <div className="space-y-1.5 text-muted-foreground">
-                <div className="flex items-start gap-2">
-                  <span className="font-medium text-foreground min-w-[100px]">Workflow ID:</span>
+                <div className="flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2">
+                  <span className="font-medium text-foreground sm:min-w-[100px]">Workflow ID:</span>
                   <span className="font-mono text-xs break-all">{log.workflowId}</span>
                 </div>
                 {log.workflowRunId && (
-                  <div className="flex items-start gap-2">
-                    <span className="font-medium text-foreground min-w-[100px]">Run ID:</span>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2">
+                    <span className="font-medium text-foreground sm:min-w-[100px]">Run ID:</span>
                     <span className="font-mono text-xs break-all">{log.workflowRunId}</span>
                   </div>
                 )}

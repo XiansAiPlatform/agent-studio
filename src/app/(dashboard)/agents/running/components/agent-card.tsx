@@ -38,7 +38,7 @@ export function AgentCard({ agent, isNewlyCreated, currentUserEmail, onClick }: 
           />
           <div className="flex items-center gap-2">
             {agent.status === 'active' && (
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                 <Link
                   href={`/conversations/${encodeURIComponent(agent.template)}/${encodeURIComponent(agent.name)}?topic=general-discussions`}
                   onClick={(e) => e.stopPropagation()}

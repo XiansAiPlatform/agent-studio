@@ -432,27 +432,28 @@ export default function AgentTemplatesPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground">Agent Store</h1>
-          <p className="text-muted-foreground mt-1">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Agent Store</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Manage and add new agents to your organization from the store
-            <Badge variant="secondary" className="ml-5">
+            <Badge variant="secondary" className="ml-2 sm:ml-5">
                 {deployedAgents.length}
             </Badge>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap md:flex-nowrap md:shrink-0">
           {session?.user?.isSystemAdmin && (
-            <Button variant="outline" onClick={handleOpenStore}>
+            <Button variant="outline" onClick={handleOpenStore} className="flex-1 md:flex-initial">
               Import Template
             </Button>
           )}
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="flex-1 md:flex-initial">
             <Link href="/agents/running">
-              View Activated Agents
+              <span className="md:hidden">Activated</span>
+              <span className="hidden md:inline">View Activated Agents</span>
             </Link>
           </Button>
         </div>

@@ -30,7 +30,7 @@ import { formatDistanceToNow } from 'date-fns';
 const TIME_PERIODS: readonly TimePeriod[] = ['7d', '30d', '90d'];
 
 const CARD_STYLE =
-  'space-y-4 p-5 rounded-xl bg-card border border-border shadow-md';
+  'space-y-4 p-4 sm:p-5 rounded-xl bg-card border border-border shadow-md';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,40 +63,40 @@ interface MetricCardProps {
 function MetricCard({ value, label, description, accentColor, href }: MetricCardProps) {
   const content = (
     <>
-      <div className="flex items-baseline gap-3 mb-1.5">
+      <div className="flex items-baseline gap-3 mb-1.5 min-w-0">
         <div
           className={cn(
-            'text-5xl font-light tabular-nums tracking-tight text-foreground',
+            'text-4xl sm:text-5xl font-light tabular-nums tracking-tight text-foreground truncate',
             href && 'group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors'
           )}
         >
           {value}
         </div>
-        <div className={cn('h-8 w-0.5', accentColor)} />
+        <div className={cn('h-8 w-0.5 shrink-0', accentColor)} />
       </div>
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 min-w-0">
         <div
           className={cn(
-            'text-sm font-medium text-foreground/80',
+            'text-sm font-medium text-foreground/80 truncate',
             href && 'group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors'
           )}
         >
           {label}
         </div>
-        <div className="text-xs text-muted-foreground">{description}</div>
+        <div className="text-xs text-muted-foreground truncate">{description}</div>
       </div>
     </>
   );
 
   if (href) {
     return (
-      <Link href={href} className="group block">
+      <Link href={href} className="group block min-w-0">
         {content}
       </Link>
     );
   }
 
-  return <div className="group">{content}</div>;
+  return <div className="group min-w-0">{content}</div>;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,25 +124,25 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-page min-h-screen">
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">
         {/* Page Header */}
-        <header className="flex items-center justify-between mb-2">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold text-foreground">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-2">
+          <div className="space-y-1.5 sm:space-y-2 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
               Welcome, {user?.name || user?.email || 'User'}!
             </h1>
-            <p className="text-base text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Let's get started with your AI agent team.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button asChild>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 shrink-0">
+            <Button asChild className="w-full sm:w-auto">
               <Link href="/tasks?status=pending">
                 <ListTodo className="mr-2 h-4 w-4" />
                 My Pending Tasks
               </Link>
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="w-full sm:w-auto">
               <Link href="/agents/running">
                 <Bot className="mr-2 h-4 w-4" />
                 Meet Agents
@@ -152,19 +152,19 @@ export default function DashboardPage() {
         </header>
 
         {/* Performance Metrics */}
-        <section className="space-y-4 pt-6">
-          <div className="flex items-center justify-between">
+        <section className="space-y-4 pt-4 sm:pt-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5">
               <BarChart3 className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-medium text-foreground">Organizational Overview</h2>
+              <h2 className="text-lg sm:text-xl font-medium text-foreground">Organizational Overview</h2>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               {TIME_PERIODS.map((period) => (
                 <button
                   key={period}
                   onClick={() => setTimePeriod(period)}
                   className={cn(
-                    'px-3 py-1.5 rounded transition-colors',
+                    'min-h-9 px-3 py-1.5 rounded transition-colors',
                     timePeriod === period
                       ? 'text-foreground font-medium underline underline-offset-4'
                       : 'hover:text-foreground'
@@ -182,7 +182,7 @@ export default function DashboardPage() {
               <span className="text-sm text-muted-foreground">Loading statistics...</span>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
               <MetricCard
                 value={taskStats.pending}
                 label="Pending Tasks"
@@ -213,21 +213,21 @@ export default function DashboardPage() {
         </section>
 
         {/* Main Content */}
-        <div className="grid gap-8 md:grid-cols-5">
+        <div className="grid gap-6 sm:gap-8 md:grid-cols-5">
           {/* Recent Activity */}
-          <div className={cn('md:col-span-3', CARD_STYLE)}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="dashboard-icon-wrap p-1.5 rounded-lg bg-primary/10">
+          <div className={cn('md:col-span-3 min-w-0', CARD_STYLE)}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="dashboard-icon-wrap p-1.5 rounded-lg bg-primary/10 shrink-0">
                   <Activity className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">What's Happening</h2>
-                  <p className="text-xs text-muted-foreground">Live updates from your agents</p>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-foreground truncate">What's Happening</h2>
+                  <p className="text-xs text-muted-foreground truncate">Live updates from your agents</p>
                 </div>
               </div>
               {!isLoadingLogs && recentLogs.length > 0 && (
-                <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                <Badge variant="secondary" className="text-xs px-2 py-0.5 shrink-0">
                   {recentLogs.length} recent
                 </Badge>
               )}
@@ -266,18 +266,18 @@ export default function DashboardPage() {
                     <div className="flex items-start gap-2.5">
                       <LogLevelBadge level={log.level} className="mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground leading-relaxed">
+                        <p className="text-sm text-foreground leading-relaxed break-words">
                           {truncateMessage(log.message)}
                         </p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-muted-foreground min-w-0">
                           {log.agent && (
-                            <span className="inline-flex items-center gap-1 font-medium">
-                              <Bot className="h-3 w-3" />
-                              {log.activation || log.agent}
+                            <span className="inline-flex items-center gap-1 font-medium min-w-0 max-w-full">
+                              <Bot className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{log.activation || log.agent}</span>
                             </span>
                           )}
                           <span className="text-muted-foreground/50">•</span>
-                          <span className="text-muted-foreground/80" suppressHydrationWarning>
+                          <span className="text-muted-foreground/80 truncate" suppressHydrationWarning>
                             {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                           </span>
                         </div>
@@ -300,19 +300,19 @@ export default function DashboardPage() {
           </div>
 
           {/* Active Agents */}
-          <div className={cn('md:col-span-2', CARD_STYLE)}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="dashboard-icon-wrap p-1.5 rounded-lg bg-primary/10">
+          <div className={cn('md:col-span-2 min-w-0', CARD_STYLE)}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="dashboard-icon-wrap p-1.5 rounded-lg bg-primary/10 shrink-0">
                   <Zap className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Your Team</h2>
-                  <p className="text-xs text-muted-foreground">Agents working for you</p>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-foreground truncate">Your Team</h2>
+                  <p className="text-xs text-muted-foreground truncate">Agents working for you</p>
                 </div>
               </div>
               {!isLoadingAgents && activeAgents.length > 0 && (
-                <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                <Badge variant="secondary" className="text-xs px-2 py-0.5 shrink-0">
                   {activeAgents.length} active
                 </Badge>
               )}

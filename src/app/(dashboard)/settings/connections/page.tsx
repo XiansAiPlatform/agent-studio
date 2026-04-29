@@ -325,23 +325,23 @@ function ConnectionsContent() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
       {/* Header */}
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-                <Server className="h-6 w-6 text-primary" />
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 sm:gap-3">
+                <Server className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
                 Connections
               </h1>
               {agentName && activationName && (
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-sm text-muted-foreground">Managing connections for</span>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1">
-                      <Bot className="h-3 w-3" />
-                      {agentName}
+                <div className="flex items-center gap-2 sm:gap-3 mt-2 flex-wrap">
+                  <span className="text-xs sm:text-sm text-muted-foreground">Managing connections for</span>
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 px-2 sm:px-3 py-1 max-w-full">
+                      <Bot className="h-3 w-3 shrink-0" />
+                      <span className="truncate max-w-[140px] sm:max-w-none">{agentName}</span>
                     </Badge>
-                    <Badge variant="outline" className="px-3 py-1">
-                      {activationName}
+                    <Badge variant="outline" className="px-2 sm:px-3 py-1 max-w-full">
+                      <span className="truncate max-w-[160px] sm:max-w-none">{activationName}</span>
                     </Badge>
                   </div>
                 </div>
@@ -352,10 +352,10 @@ function ConnectionsContent() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 sm:p-6">
         {filteredConnections.length === 0 ? (
           /* Empty State */
-          <div className="bg-card/60 rounded-xl p-16 text-center">
+          <div className="bg-card/60 rounded-xl p-8 sm:p-16 text-center">
             <div className="flex flex-col items-center gap-6">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
                 <Link2 className="h-8 w-8 text-muted-foreground" />
@@ -373,7 +373,7 @@ function ConnectionsContent() {
           </div>
         ) : (
           /* Connections Grid */
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredConnections.map((connection) => (
               <ConnectionCard
                 key={connection.id}

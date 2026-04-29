@@ -478,16 +478,16 @@ export function KnowledgeItemDetail({
       </div>
 
       {/* Fixed Action Bar at Bottom */}
-      <div className="shrink-0 border-t border-border bg-background px-6 py-4">
+      <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-6 sm:py-4 safe-pb">
         {isEditing ? (
           // Editing mode - show Save/Cancel
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="outline"
               size="default"
               onClick={handleCancel}
               disabled={isSaving}
-              className="flex-1 max-w-[180px]"
+              className="flex-1 sm:max-w-[180px]"
             >
               <X className="mr-2 h-4 w-4" />
               Cancel
@@ -496,10 +496,10 @@ export function KnowledgeItemDetail({
               size="default"
               onClick={handleSave}
               disabled={isSaving || !!validationError}
-              className="flex-1 max-w-[180px]"
+              className="flex-1 sm:max-w-[180px]"
             >
               <Save className="mr-2 h-4 w-4" />
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         ) : level === 'system' ? (
@@ -507,7 +507,7 @@ export function KnowledgeItemDetail({
           <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="default">
+                <Button variant="outline" size="default" className="w-full sm:w-auto">
                   <Copy className="mr-2 h-4 w-4" />
                   Override
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -536,21 +536,21 @@ export function KnowledgeItemDetail({
           </div>
         ) : level === 'tenant' ? (
           // Organization Level - show override dropdown
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="outline"
               size="default"
               onClick={() => setShowDeleteAllDialog(true)}
-              className="flex-1 max-w-[140px]"
+              className="flex-1 sm:flex-initial sm:max-w-[140px]"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </Button>
-            <div className="flex items-center gap-3 flex-1 justify-end">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
               {!hasAgentOverride && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="default">
+                    <Button variant="outline" size="default" className="flex-1 sm:flex-initial">
                       <Copy className="mr-2 h-4 w-4" />
                       Override
                       <ChevronDown className="ml-2 h-4 w-4" />
@@ -567,7 +567,7 @@ export function KnowledgeItemDetail({
               <Button
                 size="default"
                 onClick={handleEditClick}
-                className="min-w-[100px]"
+                className="flex-1 sm:flex-initial sm:min-w-[100px]"
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
@@ -576,20 +576,21 @@ export function KnowledgeItemDetail({
           </div>
         ) : (
           // Agent level - fully editable
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="outline"
               size="default"
               onClick={() => setShowDeleteAllDialog(true)}
-              className="flex-1 max-w-[200px]"
+              className="flex-1 sm:max-w-[200px]"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete All Versions
+              <span className="hidden sm:inline">Delete All Versions</span>
+              <span className="sm:hidden">Delete All</span>
             </Button>
             <Button
               size="default"
               onClick={handleEditClick}
-              className="flex-1 max-w-[140px]"
+              className="flex-1 sm:max-w-[140px]"
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit

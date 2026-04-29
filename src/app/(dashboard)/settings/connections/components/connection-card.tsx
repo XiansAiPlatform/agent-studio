@@ -141,7 +141,7 @@ export function ConnectionCard({
         {/* Actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600 transition-all p-1 flex-shrink-0">
+            <button className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-400 hover:text-slate-600 transition-all p-1 flex-shrink-0">
               <MoreHorizontal className="h-5 w-5" />
             </button>
           </DropdownMenuTrigger>

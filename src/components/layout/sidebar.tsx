@@ -11,6 +11,7 @@ import {
   BarChart,
   Settings,
   ChevronRight,
+  ChevronLeft,
   Menu,
   LayoutDashboard,
   Server,
@@ -20,7 +21,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AgentSelectionPanel } from '@/components/features/conversations/agent-selection-panel';
+import {
+  AgentSelectionContent,
+  AgentSelectionPanel,
+} from '@/components/features/conversations/agent-selection-panel';
 import { useRouter } from 'next/navigation';
 
 // Types for panel configuration
@@ -137,6 +141,7 @@ function NavItem({
   onPanelTriggerClick,
   isPanelOpen,
   activePanelMode,
+  onNavigate,
 }: {
   item: NavigationItem;
   collapsed: boolean;
@@ -145,6 +150,7 @@ function NavItem({
   onPanelTriggerClick?: (itemName: string) => void;
   isPanelOpen?: boolean;
   activePanelMode?: string | null;
+  onNavigate?: () => void;
 }) {
   const [expanded, setExpanded] = useState(active);
   const Icon = item.icon;
@@ -202,7 +208,9 @@ function NavItem({
                 if (hasChildren && !collapsed) {
                   e.preventDefault();
                   setExpanded(!expanded);
+                  return;
                 }
+                onNavigate?.();
               }}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all relative group',
@@ -263,6 +271,7 @@ function NavItem({
                   ) : (
                     <Link
                       href={child.href}
+                      onClick={() => onNavigate?.()}
                       className={cn(
                         "flex items-center gap-2 px-3 py-1.5 text-sm relative transition-colors",
                         "hover:bg-accent/30",
@@ -306,71 +315,172 @@ const findPanelConfig = (itemName: string): PanelConfig | null => {
   return null;
 };
 
-export function Sidebar() {
+interface SidebarProps {
+  /**
+   * When true, render in mobile-drawer mode: full width, no aside chrome, no
+   * collapse toggle. The hosting `Sheet` is responsible for surface + width.
+   */
+  mobile?: boolean;
+  /**
+   * Called after the user navigates from a sidebar item. In mobile mode the
+   * host should close the drawer; on desktop this is a no-op.
+   */
+  onNavigate?: () => void;
+}
+
+/**
+ * Build the destination URL for a panel-trigger item once an activation has
+ * been selected. Mirrors the desktop floating panel routing logic.
+ */
+function buildPanelDestinationUrl(
+  config: PanelConfig,
+  agentName: string,
+  activationName: string
+): string {
+  if (config.useQueryParams) {
+    const params = new URLSearchParams({ agentName, activationName });
+    if (config.queryParams) {
+      const additionalParams = new URLSearchParams(config.queryParams);
+      additionalParams.forEach((value, key) => params.set(key, value));
+    }
+    return `${config.basePath}?${params.toString()}`;
+  }
+  return `${config.basePath}/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}${config.queryParams ? `?${config.queryParams}` : ''}`;
+}
+
+export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
+  // In mobile drawer mode the sidebar is always expanded.
   const [collapsed, setCollapsed] = useState(false);
   const [activePanelMode, setActivePanelMode] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  
+
+  const effectiveCollapsed = mobile ? false : collapsed;
   const activePanelConfig = activePanelMode ? findPanelConfig(activePanelMode) : null;
+
+  const handlePanelTriggerClick = (itemName: string) => {
+    // Both mobile and desktop: open the agent picker so the user can select
+    // an activation. The chosen activation drives the per-agent URL params
+    // that destination pages (Conversations, Knowledge, Connections, Data
+    // Explorer) require to render the right data.
+    setActivePanelMode(activePanelMode === itemName ? null : itemName);
+  };
+
+  const navContent = (
+    <div className="flex h-full flex-col">
+      {!mobile && (
+        <div className="flex h-16 items-center justify-between px-4 border-b">
+          {!effectiveCollapsed && <span className="font-semibold">Navigation</span>}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className="h-8 w-8 transition-all hover:bg-primary/10 hover:text-primary group"
+          >
+            <Menu className="h-4 w-4 transition-transform group-hover:scale-110" />
+            <span className="sr-only">Toggle sidebar</span>
+          </Button>
+        </div>
+      )}
+      <nav
+        className={cn(
+          'flex-1 space-y-1 p-4 overflow-y-auto',
+          mobile && 'pt-2'
+        )}
+      >
+        {navigation.map((item) => {
+          const isExactMatch = pathname === item.href;
+          const hasActiveChild = item.children?.some(child => pathname === child.href) || false;
+          const isActive = isExactMatch || hasActiveChild ||
+            (pathname.startsWith(item.href) && item.href !== '/');
+
+          const childTriggeredPanel = Boolean(
+            activePanelMode && item.children?.some(child => child.name === activePanelMode)
+          );
+          const finalActive = activePanelMode
+            ? (item.name === activePanelMode || childTriggeredPanel)
+            : isActive;
+
+          return (
+            <NavItem
+              key={item.name}
+              item={item}
+              collapsed={effectiveCollapsed}
+              active={finalActive}
+              pathname={pathname}
+              onPanelTriggerClick={handlePanelTriggerClick}
+              isPanelOpen={activePanelMode === item.name}
+              activePanelMode={activePanelMode}
+              onNavigate={mobile ? onNavigate : undefined}
+            />
+          );
+        })}
+      </nav>
+    </div>
+  );
+
+  // Mobile: when a panel-trigger item is tapped, replace the navigation drawer
+  // contents with the agent picker (rather than routing without the required
+  // ?agentName/?activationName params). The user picks an activation, which
+  // routes to the per-agent destination URL and closes the drawer.
+  let mobilePanelContent: React.ReactNode = null;
+  if (mobile && activePanelMode && activePanelConfig) {
+    const PanelIcon = activePanelConfig.icon;
+    mobilePanelContent = (
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-2 px-3 py-3 border-b">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setActivePanelMode(null)}
+            className="h-9 w-9 -ml-1 shrink-0"
+            aria-label="Back to navigation"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2 truncate">
+              {PanelIcon && <PanelIcon className="h-4 w-4 shrink-0" />}
+              <span className="truncate">{activePanelConfig.title}</span>
+            </h2>
+            <p className="text-xs text-muted-foreground truncate">
+              {activePanelConfig.description}
+            </p>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <AgentSelectionContent
+            onActivationSelect={(activationName, agentName) => {
+              const url = buildPanelDestinationUrl(activePanelConfig, agentName, activationName);
+              router.push(url);
+              setActivePanelMode(null);
+              onNavigate?.();
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={300}>
-      <aside
-        className={cn(
-          'border-r bg-background transition-all duration-300',
-          collapsed ? 'w-16' : 'w-64'
-        )}
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center justify-between px-4 border-b">
-            {!collapsed && <span className="font-semibold">Navigation</span>}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setCollapsed(!collapsed)}
-              className="h-8 w-8 transition-all hover:bg-primary/10 hover:text-primary group"
-            >
-              <Menu className="h-4 w-4 transition-transform group-hover:scale-110" />
-              <span className="sr-only">Toggle sidebar</span>
-            </Button>
-          </div>
-          <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-            {navigation.map((item) => {
-              // Check if current path matches this item or any of its children
-              const isExactMatch = pathname === item.href;
-              const hasActiveChild = item.children?.some(child => pathname === child.href) || false;
-              const isActive = isExactMatch || hasActiveChild || 
-                (pathname.startsWith(item.href) && item.href !== '/');
-              
-              // When panel is open, check if this item or any of its children triggered the panel
-              const childTriggeredPanel = Boolean(activePanelMode && item.children?.some(child => child.name === activePanelMode));
-              const finalActive = activePanelMode
-                ? (item.name === activePanelMode || childTriggeredPanel)
-                : isActive;
-              
-              return (
-                <NavItem
-                  key={item.name}
-                  item={item}
-                  collapsed={collapsed}
-                  active={finalActive}
-                  pathname={pathname}
-                  onPanelTriggerClick={(itemName) => {
-                    // Toggle: if same item clicked, close panel; otherwise switch to new item
-                    setActivePanelMode(activePanelMode === itemName ? null : itemName);
-                  }}
-                  isPanelOpen={activePanelMode === item.name}
-                  activePanelMode={activePanelMode}
-                />
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
+      {mobile ? (
+        mobilePanelContent ?? navContent
+      ) : (
+        <aside
+          className={cn(
+            // h-full ensures the right border extends to the bottom of the
+            // viewport regardless of how short the navigation list is.
+            'h-full border-r bg-background transition-all duration-300',
+            effectiveCollapsed ? 'w-16' : 'w-64'
+          )}
+        >
+          {navContent}
+        </aside>
+      )}
 
-      {/* Agent Selection Panel */}
-      {activePanelMode && activePanelConfig && (
+      {/* Desktop floating agent selection panel. */}
+      {!mobile && activePanelMode && activePanelConfig && (
         <AgentSelectionPanel
           isOpen={!!activePanelMode}
           onClose={() => setActivePanelMode(null)}
@@ -379,25 +489,7 @@ export function Sidebar() {
           description={activePanelConfig.description}
           icon={activePanelConfig.icon}
           onActivationSelect={(activationName, agentName) => {
-            let url: string;
-            
-            if (activePanelConfig.useQueryParams) {
-              // Use query parameters for agent and activation
-              const params = new URLSearchParams({
-                agentName,
-                activationName,
-              });
-              if (activePanelConfig.queryParams) {
-                // Add any additional query params
-                const additionalParams = new URLSearchParams(activePanelConfig.queryParams);
-                additionalParams.forEach((value, key) => params.set(key, value));
-              }
-              url = `${activePanelConfig.basePath}?${params.toString()}`;
-            } else {
-              // Use path parameters for agent and activation
-              url = `${activePanelConfig.basePath}/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}${activePanelConfig.queryParams ? `?${activePanelConfig.queryParams}` : ''}`;
-            }
-            
+            const url = buildPanelDestinationUrl(activePanelConfig, agentName, activationName);
             router.push(url);
           }}
         />

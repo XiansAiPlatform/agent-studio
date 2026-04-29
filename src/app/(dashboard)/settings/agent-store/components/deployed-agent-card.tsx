@@ -71,7 +71,7 @@ export function DeployedAgentCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  className="h-8 w-8 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-4 w-4" />
@@ -144,7 +144,7 @@ export function DeployedAgentCard({
           </span>
           <Button
             size="sm"
-            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
               onStartNewRun?.();

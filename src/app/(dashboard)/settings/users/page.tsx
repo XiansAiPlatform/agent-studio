@@ -159,18 +159,18 @@ export default function UsersPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
       {/* Header */}
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-                <Users className="h-6 w-6 text-primary" />
+        <div className="container mx-auto p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 sm:gap-3">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
                 Users
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Manage participant users for this tenant
               </p>
             </div>
-            <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+            <Button onClick={() => setShowAddDialog(true)} className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               Add User
             </Button>
@@ -179,16 +179,16 @@ export default function UsersPage() {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto p-6 space-y-4">
+      <div className="container mx-auto p-4 sm:p-6 space-y-4">
         {/* Search + refresh */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 min-w-0 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name or email…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 text-base sm:text-sm"
             />
           </div>
           <Button
@@ -197,11 +197,12 @@ export default function UsersPage() {
             onClick={handleRefresh}
             disabled={isLoading}
             title="Refresh"
+            className="shrink-0"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
           {totalCount > 0 && (
-            <span className="text-sm text-muted-foreground ml-auto">
+            <span className="text-xs sm:text-sm text-muted-foreground sm:ml-auto">
               {totalCount} {totalCount === 1 ? 'user' : 'users'}
             </span>
           )}
@@ -214,8 +215,92 @@ export default function UsersPage() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="rounded-xl border bg-card overflow-hidden">
+        {/* Mobile Card List (< md) */}
+        <div className="md:hidden space-y-2">
+          {isLoading && users.length === 0 ? (
+            <div className="rounded-xl border bg-card px-4 py-12 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              Loading users…
+            </div>
+          ) : users.length === 0 ? (
+            <div className="rounded-xl border bg-card px-4 py-12 text-center text-muted-foreground">
+              <Users className="h-8 w-8 mx-auto mb-3 opacity-30" />
+              <p className="font-medium text-foreground">No users found</p>
+              <p className="text-xs mt-1">
+                {debouncedSearch
+                  ? 'Try a different search term'
+                  : 'Add the first user to get started'}
+              </p>
+            </div>
+          ) : (
+            sortedUsers.map((user) => (
+              <div
+                key={user.userId}
+                className="rounded-xl border bg-card p-4 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-foreground truncate">{user.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Actions for {user.name}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditTarget(user)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setDeleteTarget(user)}
+                        className="text-destructive focus:text-destructive"
+                        disabled={user.email === currentUserEmail}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remove from tenant
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  {user.role === 'TenantParticipantAdmin' ? (
+                    <Badge
+                      variant="default"
+                      className="gap-1 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/15"
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+                      {ROLE_LABEL[user.role]}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">{ROLE_LABEL[user.role]}</Badge>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Approved</span>
+                    {togglingUserId === user.userId ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Switch
+                        checked={user.isApproved}
+                        onCheckedChange={() => handleToggleApproved(user)}
+                        disabled={user.email === currentUserEmail}
+                        title={user.email === currentUserEmail ? "You can't change your own approval status" : undefined}
+                        aria-label={`Toggle approved for ${user.name}`}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Table (>= md) */}
+        <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -331,7 +416,7 @@ export default function UsersPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               Page {page} of {totalPages}
             </p>

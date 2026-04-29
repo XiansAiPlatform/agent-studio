@@ -49,8 +49,8 @@ export function ActivationListItem({
           </div>
         </div>
 
-        {/* Arrow */}
-        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+        {/* Arrow (always visible on touch, hover-revealed on desktop) */}
+        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0" />
       </div>
     </button>
   );

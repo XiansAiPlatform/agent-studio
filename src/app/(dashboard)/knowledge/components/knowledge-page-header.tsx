@@ -24,19 +24,19 @@ export function KnowledgePageHeader({
   if (hasContext) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-3 sm:items-center sm:gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-3xl font-semibold text-foreground truncate">
+                <h1 className="text-2xl sm:text-3xl font-semibold text-foreground truncate">
                   {activationName}
                 </h1>
-                <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1">
-                  <Bot className="h-3.5 w-3.5 text-primary" />
-                  {agentName}
+                <Badge variant="outline" className="flex items-center gap-1.5 px-2 py-1 sm:px-3 max-w-full">
+                  <Bot className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="truncate max-w-[160px] sm:max-w-none">{agentName}</span>
                 </Badge>
               </div>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                 Agent knowledge and the levels of overriding
               </p>
             </div>
@@ -63,11 +63,11 @@ export function KnowledgePageHeader({
 
   return (
     <div className="flex items-center justify-between gap-4">
-      <div className="shrink-0">
-        <h1 className="text-3xl font-semibold text-foreground">
+      <div className="min-w-0">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
           Knowledge Base
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           Select an agent and activation to view knowledge configuration
         </p>
       </div>

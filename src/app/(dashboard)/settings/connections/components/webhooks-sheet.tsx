@@ -106,18 +106,18 @@ export function WebhooksSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto flex flex-col w-3/4 sm:max-w-[600px] data-[expanded=true]:w-full data-[expanded=true]:max-w-full">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+      <SheetContent className="flex flex-col p-0 w-full sm:w-3/4 sm:max-w-[600px] data-[expanded=true]:w-full data-[expanded=true]:max-w-full">
+        <SheetHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3">
+          <SheetTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Webhook className="h-5 w-5" />
             Webhooks
           </SheetTitle>
-          <SheetDescription>
+          <SheetDescription className="text-xs sm:text-sm">
             Create built-in webhook URLs for triggering workflows via HTTP POST. View and delete webhooks from the main connections list.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 flex flex-col gap-4 py-6 px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 py-4 sm:py-6 px-4 sm:px-6">
           {/* Create new webhook toggle */}
           <div className="border rounded-lg overflow-hidden">
             <button
@@ -137,8 +137,8 @@ export function WebhooksSheet({
             </button>
 
             {showCreateForm && (
-              <form onSubmit={handleCreate} className="p-4 pt-4 space-y-6 border-t">
-                <div className="grid grid-cols-2 gap-6">
+              <form onSubmit={handleCreate} className="p-4 pt-4 space-y-4 sm:space-y-6 border-t">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="agentName" className="text-sm font-medium">Template Name *</Label>
                     <Input
@@ -183,7 +183,7 @@ export function WebhooksSheet({
 
                 {!useDefaultOptions && (
                   <>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="webhookName" className="text-sm font-medium">Webhook Name</Label>
                         <Input
@@ -203,7 +203,7 @@ export function WebhooksSheet({
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="participantId" className="text-sm font-medium">Participant ID</Label>
                         <Input

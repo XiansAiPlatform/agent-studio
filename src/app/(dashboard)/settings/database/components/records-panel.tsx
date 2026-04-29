@@ -62,15 +62,15 @@ export function RecordsPanel({
 
   return (
     <>
-      <div className="p-6 border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-medium flex items-center gap-2 text-foreground">
-              <Activity className="h-5 w-5 text-primary" />
-              {selectedDataType}
+      <div className="p-4 sm:p-6 border-b border-border/50">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-medium flex items-center gap-2 text-foreground">
+              <Activity className="h-5 w-5 text-primary shrink-0" />
+              <span className="truncate">{selectedDataType}</span>
             </h2>
             {recordsData && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Showing {currentPage * pageSize + 1}-
                 {Math.min((currentPage + 1) * pageSize, recordsData.total)} of {recordsData.total}{' '}
                 records
@@ -79,7 +79,7 @@ export function RecordsPanel({
           </div>
 
           {recordsData && recordsData.total > pageSize && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"

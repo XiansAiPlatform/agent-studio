@@ -487,11 +487,11 @@ function TasksContent() {
 
   return (
     <>
-      <div className="container mx-auto p-6 max-w-7xl space-y-6">
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl space-y-6">
         {/* Page Header */}
         <div className="space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="shrink-0">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+            <div className="min-w-0">
               <h1 className="text-2xl font-semibold text-foreground tracking-tight">
                 {viewType === 'my' ? 'My Tasks' : "Everyone's Tasks"}
               </h1>
@@ -501,7 +501,7 @@ function TasksContent() {
                   : 'View all tasks across the organization'}
               </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap md:flex-nowrap md:shrink-0">
               {/* View Type Switch */}
               <div className="flex items-center gap-2.5 rounded-xl bg-muted/40 px-3.5 py-2 border border-border/50">
                 <Label 

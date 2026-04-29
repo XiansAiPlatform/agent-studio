@@ -71,10 +71,10 @@ function TimelineContent() {
   const unitDisplay = getUnitDisplay(unit);
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 max-w-7xl space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex-1 min-w-0 space-y-3">
             <div className="flex items-center gap-3">
               <Button
@@ -90,27 +90,27 @@ function TimelineContent() {
             
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
                   <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
-                <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight truncate">
                   {type}
                 </h1>
               </div>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-xs sm:text-sm flex-wrap">
                 <Badge variant="outline" className="font-normal">
                   {category}
                 </Badge>
                 {agentName && (
                   <>
-                    <span className="text-muted-foreground">•</span>
-                    <span className="text-muted-foreground">{agentName}</span>
+                    <span className="text-muted-foreground hidden sm:inline">•</span>
+                    <span className="text-muted-foreground truncate max-w-[180px] sm:max-w-none">{agentName}</span>
                   </>
                 )}
                 {activationName && (
                   <>
                     <span className="text-muted-foreground">→</span>
-                    <span className="text-muted-foreground">{activationName}</span>
+                    <span className="text-muted-foreground truncate max-w-[180px] sm:max-w-none">{activationName}</span>
                   </>
                 )}
               </div>
@@ -118,13 +118,13 @@ function TimelineContent() {
           </div>
 
           {/* Group By Control */}
-          <div className="shrink-0">
+          <div className="sm:shrink-0">
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">
                 Group By
               </label>
               <Select value={groupBy} onValueChange={handleGroupByChange}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -170,14 +170,14 @@ function TimelineContent() {
       {/* Chart */}
       {!isLoading && !error && data && (
         <>
-          {/* Summary Stats */}
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 py-4">
+          {/* Summary Stats — keep headline values (Total / Average) on mobile, hide secondary (Range / Data Points) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 py-2 sm:py-4">
             <div className="group">
               <div className="flex items-baseline gap-3 mb-1.5">
-                <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+                <div className="text-3xl sm:text-5xl font-light tabular-nums tracking-tight text-foreground">
                   {formatMetricValue(data.summary.totalValue, unit).value}
                 </div>
-                <div className="h-8 w-0.5 bg-blue-500" />
+                <div className="h-6 sm:h-8 w-0.5 bg-blue-500" />
               </div>
               <div className="space-y-0.5">
                 <div className="text-sm font-medium text-foreground/80 flex items-center gap-2">
@@ -190,10 +190,10 @@ function TimelineContent() {
 
             <div className="group">
               <div className="flex items-baseline gap-3 mb-1.5">
-                <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+                <div className="text-3xl sm:text-5xl font-light tabular-nums tracking-tight text-foreground">
                   {formatMetricValue(data.summary.average, unit).value}
                 </div>
-                <div className="h-8 w-0.5 bg-purple-500" />
+                <div className="h-6 sm:h-8 w-0.5 bg-purple-500" />
               </div>
               <div className="space-y-0.5">
                 <div className="text-sm font-medium text-foreground/80 flex items-center gap-2">
@@ -204,14 +204,14 @@ function TimelineContent() {
               </div>
             </div>
 
-            <div className="group">
+            <div className="hidden sm:block group">
               <div className="flex items-baseline gap-3 mb-1.5">
-                <div className="text-3xl font-light tabular-nums tracking-tight text-foreground">
+                <div className="text-xl sm:text-3xl font-light tabular-nums tracking-tight text-foreground">
                   {formatMetricValue(data.summary.min, unit).value}
-                  <span className="text-xl text-muted-foreground mx-1.5">-</span>
+                  <span className="text-base sm:text-xl text-muted-foreground mx-1.5">-</span>
                   {formatMetricValue(data.summary.max, unit).value}
                 </div>
-                <div className="h-8 w-0.5 bg-emerald-500" />
+                <div className="h-6 sm:h-8 w-0.5 bg-emerald-500" />
               </div>
               <div className="space-y-0.5">
                 <div className="text-sm font-medium text-foreground/80 flex items-center gap-2">
@@ -222,12 +222,12 @@ function TimelineContent() {
               </div>
             </div>
 
-            <div className="group">
+            <div className="hidden sm:block group">
               <div className="flex items-baseline gap-3 mb-1.5">
-                <div className="text-5xl font-light tabular-nums tracking-tight text-foreground">
+                <div className="text-3xl sm:text-5xl font-light tabular-nums tracking-tight text-foreground">
                   {data.summary.dataPointCount}
                 </div>
-                <div className="h-8 w-0.5 bg-orange-500" />
+                <div className="h-6 sm:h-8 w-0.5 bg-orange-500" />
               </div>
               <div className="space-y-0.5">
                 <div className="text-sm font-medium text-foreground/80 flex items-center gap-2">
@@ -261,7 +261,8 @@ function TimelineContent() {
             <Separator />
             <CardContent className="!pt-6 !pb-6">
               {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={450}>
+                <div className="h-[320px] sm:h-[450px]">
+                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
                     data={chartData} 
                     margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
@@ -336,6 +337,7 @@ function TimelineContent() {
                     />
                   </AreaChart>
                 </ResponsiveContainer>
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 space-y-3">
                   <div className="rounded-full bg-muted/50 p-4">

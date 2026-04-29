@@ -99,10 +99,10 @@ function SheetContent({
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-lg transition-all ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full border-l",
-          side === "right" && !isExpanded && "w-3/4 sm:max-w-4xl",
+          side === "right" && !isExpanded && "w-full sm:w-3/4 sm:max-w-4xl",
           side === "right" && isExpanded && "w-full max-w-full",
           side === "left" &&
-            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
+            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-full sm:w-3/4 border-r sm:max-w-sm",
           side === "top" &&
             "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
           side === "bottom" &&
@@ -116,8 +116,19 @@ function SheetContent({
         
         {children}
         
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-          <XIcon className="size-4" />
+        <SheetPrimitive.Close
+          className={cn(
+            "ring-offset-background focus:ring-ring absolute z-20 inline-flex items-center justify-center rounded-md transition-opacity focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none",
+            // Mobile: large touch target with subtle backdrop so it stays visible
+            // above any sticky header content.
+            "top-3 right-3 h-9 w-9 bg-background/80 text-foreground opacity-100 backdrop-blur hover:bg-muted",
+            // Desktop: revert to compact corner X (matches original spacing
+            // so it doesn't collide with the SheetHeader expand button).
+            "sm:top-4 sm:right-4 sm:h-6 sm:w-6 sm:bg-transparent sm:opacity-70 sm:backdrop-blur-0 sm:hover:bg-transparent sm:hover:opacity-100"
+          )}
+          aria-label="Close"
+        >
+          <XIcon className="size-5 sm:size-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>
@@ -134,7 +145,7 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex items-start justify-between gap-4 px-6 py-4 bg-background border-b sticky top-0 z-10", className)}
+      className={cn("flex items-start justify-between gap-4 px-6 py-4 pr-14 sm:pr-6 bg-background border-b sticky top-0 z-10", className)}
       {...props}
     >
       <div className="flex-1 flex items-start gap-3">
@@ -162,7 +173,7 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
       </div>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="shrink-0 p-2 rounded-md hover:bg-muted transition-colors"
+        className="hidden sm:block shrink-0 p-2 rounded-md hover:bg-muted transition-colors"
         aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
       >
         {isExpanded ? (
@@ -211,7 +222,14 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 px-6 py-4 border-t", className)}
+      className={cn(
+        // Sheets cover the full viewport on mobile, so the footer would
+        // otherwise sit flush against the bottom edge / iOS home indicator.
+        // Guarantee a minimum of 1rem bottom padding and respect safe-area
+        // when present.
+        "mt-auto flex flex-col gap-2 px-6 pt-4 pb-[max(env(safe-area-inset-bottom),1rem)] border-t bg-background",
+        className
+      )}
       {...props}
     />
   )

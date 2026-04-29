@@ -87,23 +87,23 @@ export function StoreSliderSheet({
       }}
     >
       <SheetContent className="overflow-y-auto sm:max-w-2xl">
-        <SheetHeader className="px-6 pt-6 pb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
-              <Sparkles className="h-5 w-5 text-primary" />
+        <SheetHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4">
+          <SheetTitle className="flex items-center flex-wrap gap-2 text-base sm:text-lg">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center ring-1 ring-primary/10 shrink-0">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </div>
-            <span>Available Templates</span>
-            <Badge variant="secondary" className="ml-2">
+            <span className="min-w-0">Available Templates</span>
+            <Badge variant="secondary" className="ml-1 sm:ml-2 shrink-0">
               {templates.length}
             </Badge>
           </SheetTitle>
-          <SheetDescription>
+          <SheetDescription className="text-xs sm:text-sm">
             Onboard new agents from available templates
           </SheetDescription>
         </SheetHeader>
 
         {/* Search Box */}
-        <div className="px-6 pt-4 pb-4">
+        <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <Input
             type="text"
             placeholder="Search agents..."
@@ -115,7 +115,7 @@ export function StoreSliderSheet({
 
         {/* Category Filter */}
         {categories.length > 0 && (
-          <div className="px-6 pb-3">
+          <div className="px-4 sm:px-6 pb-3">
             <CategoryFilter
               categories={categories}
               selectedCategory={selectedCategory}
@@ -125,7 +125,7 @@ export function StoreSliderSheet({
           </div>
         )}
 
-        <div className="px-6 py-2">
+        <div className="px-4 sm:px-6 py-2">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -153,7 +153,7 @@ export function StoreSliderSheet({
                 // Group by category with section headers when viewing "All"
                 [...groupedByCategory.entries()].map(([categoryLabel, categoryTemplates]) => (
                   <div key={categoryLabel} className="space-y-3">
-                    <h4 className="text-base font-semibold text-foreground uppercase tracking-wide sticky top-0 py-2 bg-background/95 backdrop-blur-sm -mx-6 px-6 border-b border-slate-200/60 dark:border-slate-700/60">
+                    <h4 className="text-sm sm:text-base font-semibold text-foreground uppercase tracking-wide sticky top-0 py-2 bg-background/95 backdrop-blur-sm -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-slate-200/60 dark:border-slate-700/60">
                       {categoryLabel}
                       <span className="ml-2 text-muted-foreground/80 font-normal">
                         ({categoryTemplates.length})

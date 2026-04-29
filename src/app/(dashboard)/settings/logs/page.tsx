@@ -290,21 +290,21 @@ function LogsContent() {
 
   return (
     <>
-      <div className="container mx-auto p-6 max-w-7xl space-y-6">
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl space-y-6">
         {/* Page Header */}
         <div className="space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="shrink-0">
-              <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
                 Log Streams
               </h1>
-              <p className="text-sm text-muted-foreground mt-1.5">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-1.5">
                 {isStreamView
                   ? 'Browse log streams (workflows) and drill into a stream to view its logs'
                   : 'Logs for the selected workflow stream'}
               </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-3 sm:shrink-0">
               <Button
                 variant="outline"
                 onClick={() => setIsFilterSliderOpen(true)}
@@ -441,8 +441,8 @@ function LogsContent() {
 
               {/* Pagination */}
               <Card className="border-border/50">
-                <CardContent className="!px-5 !py-3.5">
-                  <div className="flex items-center justify-between">
+                <CardContent className="!px-4 !py-3 sm:!px-5 sm:!py-3.5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-xs text-muted-foreground font-medium">
                       Page {currentPage} of {Math.max(totalPages, 1)} • {totalCount.toLocaleString()} total{' '}
                       {itemNoun}

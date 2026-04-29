@@ -1316,6 +1316,23 @@ html.dark[data-theme="skog"] {
 }
 
 @layer utilities {
+  /* iOS / Android safe-area helpers.
+   * `safe-pb` guarantees a minimum 0.75rem of bottom padding so button bars
+   * inside sheets/dialogs never sit flush against the screen edge on devices
+   * that report `env(safe-area-inset-bottom)` as 0 (most Android, desktop). */
+  .safe-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-pb {
+    padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+  }
+  .safe-pl {
+    padding-left: env(safe-area-inset-left);
+  }
+  .safe-pr {
+    padding-right: env(safe-area-inset-right);
+  }
+
   /* Sonar wave animation for running agents */
   @keyframes sonar-wave {
     0% {

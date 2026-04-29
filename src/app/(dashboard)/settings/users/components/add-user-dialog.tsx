@@ -155,7 +155,7 @@ export function AddUserDialog({
         </form>
 
         {/* Footer */}
-        <SheetFooter className="flex-row justify-end gap-2 px-6 py-4 border-t">
+        <SheetFooter className="flex-row justify-end gap-2 px-6 pt-4 pb-[max(env(safe-area-inset-bottom),1rem)] border-t">
           <Button
             type="button"
             variant="outline"
