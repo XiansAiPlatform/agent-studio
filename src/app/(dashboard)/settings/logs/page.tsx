@@ -7,21 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
-import {
-  Loader2,
-  Filter,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  ArrowLeft,
-  Layers,
-} from 'lucide-react';
-import { LogListItem } from './components/log-list-item';
-import { LogStreamListItem } from './components/log-stream-list-item';
+import { cn } from '@/lib/utils';
+import { Filter, X, ArrowLeft, Layers, RefreshCw } from 'lucide-react';
 import { LogFilterSlider } from './components/log-filter-slider';
-import { useLogs } from './hooks/use-logs';
-import { useLogStreams } from './hooks/use-log-streams';
+import { StreamsView } from './components/streams-view';
+import { StreamLogsView } from './components/stream-logs-view';
 import {
   LogLevel,
   LogFilters,
@@ -32,6 +22,8 @@ import {
 } from './types';
 
 const PAGE_SIZE = 20;
+const AUTO_REFRESH_INTERVAL_MS = 10_000;
+const AUTO_REFRESH_SECONDS = AUTO_REFRESH_INTERVAL_MS / 1000;
 
 function LogsContent() {
   const router = useRouter();
@@ -40,6 +32,9 @@ function LogsContent() {
   const { user } = useAuth();
 
   const [isFilterSliderOpen, setIsFilterSliderOpen] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(AUTO_REFRESH_SECONDS);
   const [selectedActivation, setSelectedActivation] = useState<SelectedActivation | null>(null);
   const [selectedLogLevels, setSelectedLogLevels] = useState<LogLevel[]>([]);
   const [startDate, setStartDate] = useState<string | null>(null);
@@ -48,7 +43,7 @@ function LogsContent() {
   const [selectedStreamMeta, setSelectedStreamMeta] = useState<LogStream | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [allActivations, setAllActivations] = useState<ActivationWithAgent[]>([]);
-  const [isLoadingActivations, setIsLoadingActivations] = useState(true);
+  const [, setIsLoadingActivations] = useState(true);
   const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
   const activationsAbortControllerRef = useRef<AbortController | null>(null);
   const hasFetchedActivationsRef = useRef(false);
@@ -161,7 +156,30 @@ function LogsContent() {
 
   const shouldFetch = Boolean(currentTenantId) && Boolean(user) && urlParamsInitialized;
 
-  // Streams query - drives the streams list
+  // Auto-refresh countdown. Single source of truth for both the visible
+  // countdown in the toggle button and the refresh signal sent to the views.
+  useEffect(() => {
+    if (!autoRefresh || !shouldFetch) {
+      setSecondsUntilRefresh(AUTO_REFRESH_SECONDS);
+      return;
+    }
+
+    setSecondsUntilRefresh(AUTO_REFRESH_SECONDS);
+    const id = setInterval(() => {
+      setSecondsUntilRefresh((s) => {
+        if (s <= 1) {
+          // Tick boundary: notify views to refetch and restart the countdown.
+          setRefreshTick((t) => t + 1);
+          return AUTO_REFRESH_SECONDS;
+        }
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [autoRefresh, shouldFetch]);
+
+  // Filters consumed by the streams view
   const streamFilters: LogStreamFilters = useMemo(
     () => ({
       agentName: selectedActivation?.agentName,
@@ -175,14 +193,7 @@ function LogsContent() {
     [selectedActivation, selectedLogLevels, startDate, endDate, currentPage]
   );
 
-  const {
-    streams,
-    totalCount: streamsTotalCount,
-    totalPages: streamsTotalPages,
-    isLoading: isLoadingStreams,
-  } = useLogStreams(streamFilters, shouldFetch && isStreamView);
-
-  // Logs query - active only when a stream is selected (drilled-in view)
+  // Filters consumed by the drilled-in stream-logs view
   const logFilters: LogFilters = useMemo(
     () => ({
       agentName: selectedActivation?.agentName,
@@ -196,13 +207,6 @@ function LogsContent() {
     }),
     [selectedActivation, selectedWorkflowId, selectedLogLevels, startDate, endDate, currentPage]
   );
-
-  const {
-    logs,
-    totalCount: logsTotalCount,
-    totalPages: logsTotalPages,
-    isLoading: isLoadingLogs,
-  } = useLogs(currentTenantId, logFilters, shouldFetch && !isStreamView);
 
   // URL writer
   const updateURL = useCallback(
@@ -283,11 +287,6 @@ function LogsContent() {
     (selectedLogLevels.length > 0 ? 1 : 0) +
     (startDate || endDate ? 1 : 0);
 
-  const isLoading = isStreamView ? isLoadingStreams : isLoadingLogs;
-  const totalPages = isStreamView ? streamsTotalPages : logsTotalPages;
-  const totalCount = isStreamView ? streamsTotalCount : logsTotalCount;
-  const itemNoun = isStreamView ? 'stream' : 'log';
-
   return (
     <>
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl space-y-6">
@@ -304,7 +303,48 @@ function LogsContent() {
                   : 'Logs for the selected workflow stream'}
               </p>
             </div>
-            <div className="flex items-center gap-3 sm:shrink-0">
+            <div className="flex items-center gap-2 sm:shrink-0">
+              <Button
+                variant={autoRefresh ? 'default' : 'outline'}
+                onClick={() => setAutoRefresh((v) => !v)}
+                aria-pressed={autoRefresh}
+                title={
+                  autoRefresh
+                    ? `Auto-refreshing every ${AUTO_REFRESH_SECONDS}s — click to stop`
+                    : `Click to auto-refresh every ${AUTO_REFRESH_SECONDS} seconds`
+                }
+                className={cn(
+                  'relative shrink-0 overflow-hidden rounded-xl',
+                  autoRefresh &&
+                    'bg-emerald-600 text-white hover:bg-emerald-600/90 focus-visible:ring-emerald-600/40'
+                )}
+              >
+                {autoRefresh ? (
+                  <>
+                    <span className="relative mr-2 inline-flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                    </span>
+                    <span className="tabular-nums">
+                      Live · {secondsUntilRefresh}s
+                    </span>
+                    {/* Linear progress bar that drains over the interval and
+                        snaps back when the refresh fires. The `key` forces a
+                        clean restart of the CSS animation on each tick. */}
+                    <span
+                      key={refreshTick}
+                      aria-hidden
+                      className="absolute bottom-0 left-0 h-0.5 bg-white/80 animate-autorefresh-drain"
+                      style={{ ['--autorefresh-duration' as any]: `${AUTO_REFRESH_SECONDS}s` }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Auto-refresh
+                  </>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setIsFilterSliderOpen(true)}
@@ -412,94 +452,28 @@ function LogsContent() {
           )}
         </div>
 
-        {/* List */}
+        {/* View */}
         <div className="space-y-3">
-          {isLoading ? (
-            <Card className="border-border/50">
-              <CardContent className="!px-0 !py-0">
-                <div className="flex flex-col items-center justify-center py-16 space-y-3">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {isStreamView ? 'Loading log streams...' : 'Loading logs...'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (isStreamView ? streams.length > 0 : logs.length > 0) ? (
-            <>
-              <div className="space-y-2">
-                {isStreamView
-                  ? streams.map((stream) => (
-                      <LogStreamListItem
-                        key={stream.workflowId}
-                        stream={stream}
-                        onSelect={handleSelectStream}
-                      />
-                    ))
-                  : logs.map((log) => <LogListItem key={log.id} log={log} />)}
-              </div>
-
-              {/* Pagination */}
-              <Card className="border-border/50">
-                <CardContent className="!px-4 !py-3 sm:!px-5 sm:!py-3.5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-xs text-muted-foreground font-medium">
-                      Page {currentPage} of {Math.max(totalPages, 1)} • {totalCount.toLocaleString()} total{' '}
-                      {itemNoun}
-                      {totalCount !== 1 ? 's' : ''}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || isLoading}
-                        className="h-8 rounded-lg"
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage >= totalPages || isLoading}
-                        className="h-8 rounded-lg"
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
+          {isStreamView ? (
+            <StreamsView
+              filters={streamFilters}
+              currentPage={currentPage}
+              enabled={shouldFetch}
+              hasActiveFilters={hasActiveFilters}
+              refreshTick={refreshTick}
+              onPageChange={handlePageChange}
+              onSelectStream={handleSelectStream}
+            />
           ) : (
-            <Card className="border-border/50">
-              <CardContent className="!px-0 !py-0">
-                <div className="flex flex-col items-center justify-center py-20 px-6 space-y-3">
-                  <div className="rounded-full bg-muted/50 p-4">
-                    {isStreamView ? (
-                      <Layers className="h-7 w-7 text-muted-foreground/60" />
-                    ) : (
-                      <FileText className="h-7 w-7 text-muted-foreground/60" />
-                    )}
-                  </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      {isStreamView ? 'No log streams found' : 'No logs found'}
-                    </p>
-                    <p className="text-xs text-muted-foreground max-w-sm">
-                      {hasActiveFilters
-                        ? 'Try adjusting your filters to see more results'
-                        : isStreamView
-                        ? 'Streams will appear here when agents start executing workflows'
-                        : 'Logs will appear here when agents emit log entries for this stream'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <StreamLogsView
+              tenantId={currentTenantId}
+              filters={logFilters}
+              currentPage={currentPage}
+              enabled={shouldFetch}
+              hasActiveFilters={hasActiveFilters}
+              refreshTick={refreshTick}
+              onPageChange={handlePageChange}
+            />
           )}
         </div>
       </div>
