@@ -69,8 +69,14 @@ export function LogMessage({
 
   if (mode === 'inline') {
     const plain = stripMarkdown(message);
+    // Default to wrapping (with safe word-breaking for long unbroken tokens
+    // like URLs/hashes). Callers can opt back into single-line truncation by
+    // passing `truncate` via `className`.
     return (
-      <span className={cn('truncate', className)} title={title ?? plain}>
+      <span
+        className={cn('block break-words whitespace-pre-wrap', className)}
+        title={title ?? plain}
+      >
         {plain}
       </span>
     );

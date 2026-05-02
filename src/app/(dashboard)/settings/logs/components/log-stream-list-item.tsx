@@ -60,13 +60,15 @@ export function LogStreamListItem({ stream, onSelect }: LogStreamListItemProps) 
           </div>
 
           <div className="flex-1 min-w-0 space-y-1.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <LogLevelBadge level={stream.lastLogLevel} className="shrink-0" />
-              <MessageSquare className="hidden sm:inline-block h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div className="flex items-start gap-2 min-w-0">
+              <MessageSquare className="hidden sm:inline-block h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1" />
               <LogMessage
                 message={stream.lastLogMessage}
                 mode="inline"
-                className={cn('text-sm text-foreground flex-1 line-clamp-2 sm:line-clamp-none', isError && 'font-medium')}
+                className={cn(
+                  'text-sm text-foreground flex-1 min-w-0 line-clamp-2 sm:line-clamp-3',
+                  isError && 'font-medium'
+                )}
               />
             </div>
 

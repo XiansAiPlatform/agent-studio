@@ -106,7 +106,7 @@ export function WebhooksSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col p-0 w-full sm:w-3/4 sm:max-w-[600px] data-[expanded=true]:w-full data-[expanded=true]:max-w-full">
+      <SheetContent className="flex flex-col p-0 w-full sm:w-3/4 sm:max-w-[600px]">
         <SheetHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3">
           <SheetTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Webhook className="h-5 w-5" />

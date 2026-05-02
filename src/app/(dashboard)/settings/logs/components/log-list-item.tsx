@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { LogLevelBadge } from '@/components/features/logs';
 import { LogEntry } from '../types';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, User, Bot, Workflow, Clock, Terminal } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, User, Bot, Workflow, Clock, Terminal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { LogMessage } from './log-message';
 
@@ -22,7 +22,22 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
 
   const hasException = !!log.exception;
   const hasProperties = log.properties && Object.keys(log.properties).length > 0;
-  const hasDetails = hasException || hasProperties || log.workflowRunId;
+  const hasMetadataDetails = hasException || hasProperties || !!log.workflowRunId;
+
+  // A message is considered "long" when it has many characters or many lines.
+  // When long and collapsed, we clip it visually with a max-height + fade and
+  // let the existing expand toggle reveal the rest.
+  const messageText = log.message ?? '';
+  const messageLineCount = messageText ? messageText.split('\n').length : 0;
+  const isMessageLong = messageText.length > 240 || messageLineCount > 3;
+
+  // Rough estimate of how many lines are hidden when collapsed. The clamp
+  // shows ~3 lines of text-sm content (max-h-24 ≈ 6rem). We use newline count
+  // as a lower bound; for soft-wrapped long lines we fall back to "more".
+  const hiddenLineEstimate = Math.max(messageLineCount - 3, 0);
+
+  const canExpand = hasMetadataDetails || isMessageLong;
+  const shouldClampMessage = isMessageLong && !isExpanded;
 
   return (
     <Card 
@@ -42,13 +57,15 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
           {/* Header Row */}
           <div className="flex items-start gap-3">
             {/* Expand/Collapse Icon */}
-            {hasDetails && (
+            {canExpand && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsExpanded(!isExpanded);
                 }}
                 className="mt-1 shrink-0 hover:bg-accent rounded p-0.5 transition-colors"
+                aria-label={isExpanded ? 'Collapse log entry' : 'Expand log entry'}
+                aria-expanded={isExpanded}
               >
                 {isExpanded ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -57,20 +74,69 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
                 )}
               </button>
             )}
-            
+
             {/* Log Level Badge */}
-            <div className={cn("shrink-0", !hasDetails && "ml-1")}>
+            <div className={cn("shrink-0", !canExpand && "ml-1")}>
               <LogLevelBadge level={log.level} />
             </div>
 
             {/* Main Content */}
             <div className="flex-1 min-w-0 space-y-1.5">
-              {/* Message (markdown) */}
-              <LogMessage
-                message={log.message}
-                mode="block"
-                className={cn(hasException && '[&_p]:font-medium')}
-              />
+              {/* Message (markdown) — clipped with a fade when long & collapsed */}
+              <div
+                className={cn(
+                  'relative',
+                  shouldClampMessage && 'max-h-24 overflow-hidden'
+                )}
+              >
+                <LogMessage
+                  message={log.message}
+                  mode="block"
+                  className={cn(hasException && '[&_p]:font-medium')}
+                />
+                {shouldClampMessage && (
+                  <>
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card via-card/90 to-transparent"
+                    />
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center pb-0.5 text-muted-foreground"
+                    >
+                      <span className="text-xs font-mono leading-none">···</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              {isMessageLong && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-colors',
+                    'text-primary hover:bg-primary/10 focus-visible:bg-primary/10',
+                    'border border-dashed border-primary/40 hover:border-primary/60'
+                  )}
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" />
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      {hiddenLineEstimate > 0
+                        ? `Show ${hiddenLineEstimate} more line${hiddenLineEstimate === 1 ? '' : 's'}`
+                        : 'Show full message'}
+                    </>
+                  )}
+                </button>
+              )}
 
               {/* Metadata Row */}
               <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-[11px] sm:text-xs text-muted-foreground">
@@ -114,7 +180,7 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
           </div>
 
           {/* Expanded Details */}
-          {isExpanded && hasDetails && (
+          {isExpanded && hasMetadataDetails && (
             <div className="ml-0 sm:ml-8 mt-3 space-y-3 text-xs">
               {/* Exception Details */}
               {hasException && (

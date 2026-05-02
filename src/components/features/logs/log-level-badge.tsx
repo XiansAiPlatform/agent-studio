@@ -6,6 +6,12 @@ import { LogLevel } from '@/app/(dashboard)/settings/logs/types';
 interface LogLevelBadgeProps {
   level: LogLevel | string;
   className?: string;
+  /**
+   * Whether to show the level icon next to the label. Defaults to `true`.
+   * Set to `false` for compact contexts (e.g. stream list rows) where the
+   * label alone is enough.
+   */
+  showIcon?: boolean;
 }
 
 const LOG_LEVEL_CONFIG: Record<LogLevel, {
@@ -16,36 +22,43 @@ const LOG_LEVEL_CONFIG: Record<LogLevel, {
   Error: {
     label: 'Error',
     icon: AlertCircle,
-    className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-100 dark:bg-red-950 dark:text-red-200 dark:border-red-900',
+    // Error: solid, high-contrast — should jump off the page.
+    className:
+      'bg-red-600 text-white border-red-700 hover:bg-red-600 shadow-sm shadow-red-600/30 dark:bg-red-600 dark:text-white dark:border-red-500',
   },
   Warning: {
-    label: 'Warning',
+    label: 'Warn',
     icon: AlertTriangle,
-    className: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-950 dark:text-yellow-200 dark:border-yellow-900',
+    className:
+      'bg-amber-200 text-amber-900 border-amber-300 hover:bg-amber-200 dark:bg-amber-500/25 dark:text-amber-100 dark:border-amber-500/50',
   },
   Information: {
     label: 'Info',
     icon: Info,
-    className: 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/15 dark:bg-primary/20',
+    className:
+      'bg-primary/20 text-primary border-primary/40 hover:bg-primary/20 dark:bg-primary/25 dark:border-primary/50',
   },
   Info: {
     label: 'Info',
     icon: Info,
-    className: 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/15 dark:bg-primary/20',
+    className:
+      'bg-primary/20 text-primary border-primary/40 hover:bg-primary/20 dark:bg-primary/25 dark:border-primary/50',
   },
   Debug: {
     label: 'Debug',
     icon: Bug,
-    className: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 dark:bg-purple-950 dark:text-purple-200 dark:border-purple-900',
+    className:
+      'bg-purple-200 text-purple-900 border-purple-300 hover:bg-purple-200 dark:bg-purple-500/25 dark:text-purple-100 dark:border-purple-500/50',
   },
   Trace: {
     label: 'Trace',
     icon: FileText,
-    className: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100 dark:bg-gray-950 dark:text-gray-200 dark:border-gray-900',
+    className:
+      'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-200 dark:bg-slate-700/60 dark:text-slate-100 dark:border-slate-600',
   },
 };
 
-export function LogLevelBadge({ level, className }: LogLevelBadgeProps) {
+export function LogLevelBadge({ level, className, showIcon = true }: LogLevelBadgeProps) {
   // Normalize the level to match our config keys
   // Handle various formats: lowercase, uppercase, etc.
   let normalizedLevel: LogLevel = 'Information';
@@ -69,13 +82,21 @@ export function LogLevelBadge({ level, className }: LogLevelBadgeProps) {
     <Badge
       variant="outline"
       className={cn(
-        'flex items-center gap-1 font-medium text-xs px-2 py-0.5',
+        'inline-flex items-center gap-1.5',
+        showIcon ? 'justify-start' : 'justify-center',
+        'rounded-md px-2 py-0.5',
+        'min-w-[68px] sm:min-w-[76px]',
+        'text-[11px] font-bold uppercase tracking-wider leading-none',
+        // Override the default `[&>svg]:size-3` from the base Badge styles
+        // so the level icon reads at a glance.
+        '[&>svg]:!size-3.5',
         config.className,
         className
       )}
+      aria-label={`${config.label} log`}
     >
-      <Icon className="h-3 w-3" />
-      {/* {config.label} */}
+      {showIcon && <Icon />}
+      <span>{config.label}</span>
     </Badge>
   );
 }

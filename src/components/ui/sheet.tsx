@@ -26,7 +26,7 @@ interface SheetProps extends React.ComponentProps<typeof SheetPrimitive.Root> {
 
 function Sheet({ headerIcon, headerTitle, headerDescription, ...props }: SheetProps) {
   const [isExpanded, setIsExpanded] = React.useState(false)
-  
+
   return (
     <SheetContext.Provider value={{ isExpanded, setIsExpanded, headerIcon, headerTitle, headerDescription }}>
       <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -86,9 +86,11 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   overlayClassName?: string
 }) {
-  const { isExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
+  const { isExpanded, setIsExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
   const hasHeaderContent = headerIcon || headerTitle || headerDescription
-  
+  // Only right-side sheets expose the expand/collapse affordance.
+  const showExpandButton = side === "right"
+
   return (
     <SheetPortal>
       <SheetOverlay className={overlayClassName} />
@@ -98,9 +100,12 @@ function SheetContent({
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-lg transition-all ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
-            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full border-l",
-          side === "right" && !isExpanded && "w-full sm:w-3/4 sm:max-w-4xl",
-          side === "right" && isExpanded && "w-full max-w-full",
+            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full border-l w-full sm:w-3/4 sm:max-w-4xl",
+          // When expanded, force full width regardless of consumer overrides.
+          // Attribute-selector specificity beats plain class selectors so this
+          // wins even if the consumer passed `sm:max-w-2xl` etc. via className.
+          side === "right" &&
+            "data-[expanded=true]:w-full data-[expanded=true]:max-w-full",
           side === "left" &&
             "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-full sm:w-3/4 border-r sm:max-w-sm",
           side === "top" &&
@@ -113,39 +118,99 @@ function SheetContent({
       >
         {/* Auto-render header if content is provided via Sheet props */}
         {hasHeaderContent && <SheetHeader />}
-        
+
         {children}
-        
-        <SheetPrimitive.Close
+
+        {/* Top-right action cluster: expand (desktop, right side only) + close.
+            Lives on SheetContent so it always shows, regardless of how the
+            consumer composes its header. */}
+        <div
           className={cn(
-            "ring-offset-background focus:ring-ring absolute z-20 inline-flex items-center justify-center rounded-md transition-opacity focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none",
-            // Mobile: large touch target with subtle backdrop so it stays visible
-            // above any sticky header content.
-            "top-3 right-3 h-9 w-9 bg-background/80 text-foreground opacity-100 backdrop-blur hover:bg-muted",
-            // Desktop: revert to compact corner X (matches original spacing
-            // so it doesn't collide with the SheetHeader expand button).
-            "sm:top-4 sm:right-4 sm:h-6 sm:w-6 sm:bg-transparent sm:opacity-70 sm:backdrop-blur-0 sm:hover:bg-transparent sm:hover:opacity-100"
+            "absolute z-20 flex items-center",
+            "top-3 right-3 gap-2",
+            "sm:top-4 sm:right-4 sm:gap-1"
           )}
-          aria-label="Close"
         >
-          <XIcon className="size-5 sm:size-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
+          {showExpandButton && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
+              className="hidden sm:inline-flex items-center justify-center h-6 w-6 rounded-md text-foreground opacity-70 transition-opacity hover:opacity-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {isExpanded ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="4 14 10 14 10 20" />
+                  <polyline points="20 10 14 10 14 4" />
+                  <line x1="14" x2="21" y1="10" y2="3" />
+                  <line x1="3" x2="10" y1="21" y2="14" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" x2="14" y1="3" y2="10" />
+                  <line x1="3" x2="10" y1="21" y2="14" />
+                </svg>
+              )}
+            </button>
+          )}
+
+          <SheetPrimitive.Close
+            className={cn(
+              "ring-offset-background focus:ring-ring inline-flex items-center justify-center rounded-md transition-opacity focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none",
+              // Mobile: large touch target with subtle backdrop so it stays
+              // visible above any sticky header content.
+              "h-9 w-9 bg-background/80 text-foreground opacity-100 backdrop-blur hover:bg-muted",
+              // Desktop: compact corner X.
+              "sm:h-6 sm:w-6 sm:bg-transparent sm:opacity-70 sm:backdrop-blur-0 sm:hover:bg-transparent sm:hover:opacity-100"
+            )}
+            aria-label="Close"
+          >
+            <XIcon className="size-5 sm:size-4" />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        </div>
       </SheetPrimitive.Content>
     </SheetPortal>
   )
 }
 
 function SheetHeader({ className, children, ...props }: React.ComponentProps<"div">) {
-  const { isExpanded, setIsExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
-  
+  const { headerIcon, headerTitle, headerDescription } = useSheet()
+
   // If header content is provided via context, render it automatically
   const hasContextContent = headerIcon || headerTitle || headerDescription
-  
+
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex items-start justify-between gap-4 px-6 py-4 pr-14 sm:pr-6 bg-background border-b sticky top-0 z-10", className)}
+      // Right padding reserves room for the absolute close + expand buttons
+      // rendered by SheetContent so header content doesn't slide under them.
+      className={cn(
+        "flex items-start justify-between gap-4 px-6 py-4 pr-14 sm:pr-20 bg-background border-b sticky top-0 z-10",
+        className
+      )}
       {...props}
     >
       <div className="flex-1 flex items-start gap-3">
@@ -171,49 +236,6 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
           </div>
         )}
       </div>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="hidden sm:block shrink-0 p-2 rounded-md hover:bg-muted transition-colors"
-        aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
-      >
-        {isExpanded ? (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <polyline points="4 14 10 14 10 20" />
-            <polyline points="20 10 14 10 14 4" />
-            <line x1="14" x2="21" y1="10" y2="3" />
-            <line x1="3" x2="10" y1="21" y2="14" />
-          </svg>
-        ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <polyline points="15 3 21 3 21 9" />
-            <polyline points="9 21 3 21 3 15" />
-            <line x1="21" x2="14" y1="3" y2="10" />
-            <line x1="3" x2="10" y1="21" y2="14" />
-          </svg>
-        )}
-      </button>
     </div>
   )
 }
