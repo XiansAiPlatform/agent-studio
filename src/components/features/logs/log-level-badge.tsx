@@ -35,14 +35,16 @@ const LOG_LEVEL_CONFIG: Record<LogLevel, {
   Information: {
     label: 'Info',
     icon: Info,
+    // Use a fixed semantic blue so the level is theme-independent — otherwise
+    // a red `primary` would make Info indistinguishable from Error.
     className:
-      'bg-primary/20 text-primary border-primary/40 hover:bg-primary/20 dark:bg-primary/25 dark:border-primary/50',
+      'bg-sky-200 text-sky-900 border-sky-300 hover:bg-sky-200 dark:bg-sky-500/25 dark:text-sky-100 dark:border-sky-500/50',
   },
   Info: {
     label: 'Info',
     icon: Info,
     className:
-      'bg-primary/20 text-primary border-primary/40 hover:bg-primary/20 dark:bg-primary/25 dark:border-primary/50',
+      'bg-sky-200 text-sky-900 border-sky-300 hover:bg-sky-200 dark:bg-sky-500/25 dark:text-sky-100 dark:border-sky-500/50',
   },
   Debug: {
     label: 'Debug',
