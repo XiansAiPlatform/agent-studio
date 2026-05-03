@@ -22,41 +22,42 @@ const LOG_LEVEL_CONFIG: Record<LogLevel, {
   Error: {
     label: 'Error',
     icon: AlertCircle,
-    // Error: solid, high-contrast — should jump off the page.
+    // Outline-only across the board. Error keeps the heaviest weight via a
+    // darker, slightly thicker-feeling border to stay prominent without a fill.
     className:
-      'bg-red-600 text-white border-red-700 hover:bg-red-600 shadow-sm shadow-red-600/30 dark:bg-red-600 dark:text-white dark:border-red-500',
+      'bg-transparent text-red-700 border-red-500/70 hover:bg-transparent dark:text-red-300 dark:border-red-400/70',
   },
   Warning: {
     label: 'Warn',
     icon: AlertTriangle,
     className:
-      'bg-amber-200 text-amber-900 border-amber-300 hover:bg-amber-200 dark:bg-amber-500/25 dark:text-amber-100 dark:border-amber-500/50',
+      'bg-transparent text-amber-700 border-amber-500/60 hover:bg-transparent dark:text-amber-300 dark:border-amber-400/60',
   },
   Information: {
     label: 'Info',
     icon: Info,
-    // Use a fixed semantic blue so the level is theme-independent — otherwise
-    // a red `primary` would make Info indistinguishable from Error.
+    // Fixed semantic blue (theme-independent) so a red `primary` can never
+    // make Info look like Error.
     className:
-      'bg-sky-200 text-sky-900 border-sky-300 hover:bg-sky-200 dark:bg-sky-500/25 dark:text-sky-100 dark:border-sky-500/50',
+      'bg-transparent text-sky-700 border-sky-500/60 hover:bg-transparent dark:text-sky-300 dark:border-sky-400/60',
   },
   Info: {
     label: 'Info',
     icon: Info,
     className:
-      'bg-sky-200 text-sky-900 border-sky-300 hover:bg-sky-200 dark:bg-sky-500/25 dark:text-sky-100 dark:border-sky-500/50',
+      'bg-transparent text-sky-700 border-sky-500/60 hover:bg-transparent dark:text-sky-300 dark:border-sky-400/60',
   },
   Debug: {
     label: 'Debug',
     icon: Bug,
     className:
-      'bg-purple-200 text-purple-900 border-purple-300 hover:bg-purple-200 dark:bg-purple-500/25 dark:text-purple-100 dark:border-purple-500/50',
+      'bg-transparent text-purple-700 border-purple-500/60 hover:bg-transparent dark:text-purple-300 dark:border-purple-400/60',
   },
   Trace: {
     label: 'Trace',
     icon: FileText,
     className:
-      'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-200 dark:bg-slate-700/60 dark:text-slate-100 dark:border-slate-600',
+      'bg-transparent text-slate-600 border-slate-400/70 hover:bg-transparent dark:text-slate-300 dark:border-slate-500/70',
   },
 };
 

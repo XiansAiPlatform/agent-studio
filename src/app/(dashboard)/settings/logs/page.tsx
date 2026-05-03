@@ -24,6 +24,10 @@ import {
 const PAGE_SIZE = 20;
 const AUTO_REFRESH_INTERVAL_MS = 10_000;
 const AUTO_REFRESH_SECONDS = AUTO_REFRESH_INTERVAL_MS / 1000;
+// Auto-refresh is automatically turned off after this duration so an idle
+// open tab does not keep polling the server indefinitely.
+const AUTO_REFRESH_MAX_DURATION_MS = 15 * 60 * 1000;
+const AUTO_REFRESH_MAX_MINUTES = AUTO_REFRESH_MAX_DURATION_MS / 60_000;
 
 function LogsContent() {
   const router = useRouter();
@@ -34,7 +38,7 @@ function LogsContent() {
   const [isFilterSliderOpen, setIsFilterSliderOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
-  const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(AUTO_REFRESH_SECONDS);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedActivation, setSelectedActivation] = useState<SelectedActivation | null>(null);
   const [selectedLogLevels, setSelectedLogLevels] = useState<LogLevel[]>([]);
   const [startDate, setStartDate] = useState<string | null>(null);
@@ -156,28 +160,34 @@ function LogsContent() {
 
   const shouldFetch = Boolean(currentTenantId) && Boolean(user) && urlParamsInitialized;
 
-  // Auto-refresh countdown. Single source of truth for both the visible
-  // countdown in the toggle button and the refresh signal sent to the views.
+  // Auto-refresh ticker. Fires `refreshTick` every AUTO_REFRESH_INTERVAL_MS so
+  // the views refetch, and auto-stops after AUTO_REFRESH_MAX_DURATION_MS so an
+  // idle open tab doesn't keep polling the server indefinitely.
   useEffect(() => {
-    if (!autoRefresh || !shouldFetch) {
-      setSecondsUntilRefresh(AUTO_REFRESH_SECONDS);
-      return;
-    }
+    if (!autoRefresh || !shouldFetch) return;
 
-    setSecondsUntilRefresh(AUTO_REFRESH_SECONDS);
-    const id = setInterval(() => {
-      setSecondsUntilRefresh((s) => {
-        if (s <= 1) {
-          // Tick boundary: notify views to refetch and restart the countdown.
-          setRefreshTick((t) => t + 1);
-          return AUTO_REFRESH_SECONDS;
-        }
-        return s - 1;
-      });
-    }, 1000);
+    const intervalId = setInterval(() => {
+      setRefreshTick((t) => t + 1);
+    }, AUTO_REFRESH_INTERVAL_MS);
 
-    return () => clearInterval(id);
+    const stopId = setTimeout(() => {
+      setAutoRefresh(false);
+    }, AUTO_REFRESH_MAX_DURATION_MS);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(stopId);
+    };
   }, [autoRefresh, shouldFetch]);
+
+  // Briefly flash a "Refreshing…" state on the toggle each time a refresh
+  // fires. Purely visual feedback; decoupled from the actual fetch lifecycle.
+  useEffect(() => {
+    if (refreshTick === 0) return;
+    setIsRefreshing(true);
+    const id = setTimeout(() => setIsRefreshing(false), 1200);
+    return () => clearTimeout(id);
+  }, [refreshTick]);
 
   // Filters consumed by the streams view
   const streamFilters: LogStreamFilters = useMemo(
@@ -308,36 +318,33 @@ function LogsContent() {
                 variant={autoRefresh ? 'default' : 'outline'}
                 onClick={() => setAutoRefresh((v) => !v)}
                 aria-pressed={autoRefresh}
+                aria-live="polite"
                 title={
                   autoRefresh
-                    ? `Auto-refreshing every ${AUTO_REFRESH_SECONDS}s — click to stop`
-                    : `Click to auto-refresh every ${AUTO_REFRESH_SECONDS} seconds`
+                    ? `Auto-refreshing every ${AUTO_REFRESH_SECONDS}s — click to stop (auto-stops after ${AUTO_REFRESH_MAX_MINUTES} min)`
+                    : `Click to auto-refresh every ${AUTO_REFRESH_SECONDS} seconds (auto-stops after ${AUTO_REFRESH_MAX_MINUTES} min)`
                 }
                 className={cn(
-                  'relative shrink-0 overflow-hidden rounded-xl',
+                  'relative shrink-0 rounded-xl',
                   autoRefresh &&
                     'bg-emerald-600 text-white hover:bg-emerald-600/90 focus-visible:ring-emerald-600/40'
                 )}
               >
                 {autoRefresh ? (
-                  <>
-                    <span className="relative mr-2 inline-flex h-2 w-2 shrink-0">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                    </span>
-                    <span className="tabular-nums">
-                      Live · {secondsUntilRefresh}s
-                    </span>
-                    {/* Linear progress bar that drains over the interval and
-                        snaps back when the refresh fires. The `key` forces a
-                        clean restart of the CSS animation on each tick. */}
-                    <span
-                      key={refreshTick}
-                      aria-hidden
-                      className="absolute bottom-0 left-0 h-0.5 bg-white/80 animate-autorefresh-drain"
-                      style={{ ['--autorefresh-duration' as any]: `${AUTO_REFRESH_SECONDS}s` }}
-                    />
-                  </>
+                  isRefreshing ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Refreshing…
+                    </>
+                  ) : (
+                    <>
+                      <span className="relative mr-2 inline-flex h-2 w-2 shrink-0">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                      </span>
+                      Live
+                    </>
+                  )
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />

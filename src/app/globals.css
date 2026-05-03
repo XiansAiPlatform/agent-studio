@@ -1715,25 +1715,6 @@ html.dark[data-theme="skog"] {
   }
 }
 
-/* Auto-refresh countdown progress bar.
- * Drains a horizontal bar from full width to zero over the configured
- * interval. Used by the Logs page auto-refresh toggle button — a fresh
- * `key` on the element restarts the animation each cycle. */
-@keyframes autorefresh-drain {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
-}
-
-.animate-autorefresh-drain {
-  width: 100%;
-  transform-origin: left;
-  animation: autorefresh-drain var(--autorefresh-duration, 10s) linear forwards;
-}
-
 .animate-slide-in-up {
   animation: slideInUp 0.3s ease-out;
 }
