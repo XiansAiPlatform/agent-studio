@@ -513,17 +513,37 @@ export function KnowledgeItemDetail({
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64">
+              <DropdownMenuContent align="start" className="w-80">
                 {!hasTenantOverride && (
-                  <DropdownMenuItem onClick={() => onOverride?.(item, 'tenant')}>
-                    <Building2 className="mr-2 h-4 w-4 text-amber-500" />
-                    Override at Organization Level
+                  <DropdownMenuItem
+                    onClick={() => onOverride?.(item, 'tenant')}
+                    className="items-start gap-2 py-2"
+                  >
+                    <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">Override to Organization</span>
+                      <span className="text-xs text-muted-foreground whitespace-normal">
+                        Creates a knowledge file that any Agent of type{' '}
+                        <span className="font-medium text-foreground">
+                          {agentName ?? 'this agent'}
+                        </span>{' '}
+                        will have access to.
+                      </span>
+                    </div>
                   </DropdownMenuItem>
                 )}
                 {!hasAgentOverride && (
-                  <DropdownMenuItem onClick={() => onOverride?.(item, 'activation')}>
-                    <Zap className="mr-2 h-4 w-4 text-emerald-500" />
-                    Override at Agent Level
+                  <DropdownMenuItem
+                    onClick={() => onOverride?.(item, 'activation')}
+                    className="items-start gap-2 py-2"
+                  >
+                    <Zap className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">Override to Agent Activation</span>
+                      <span className="text-xs text-muted-foreground whitespace-normal">
+                        Create a knowledge file only this agent activation instance has access to.
+                      </span>
+                    </div>
                   </DropdownMenuItem>
                 )}
                 {hasTenantOverride && hasAgentOverride && (
@@ -556,10 +576,18 @@ export function KnowledgeItemDetail({
                       <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64">
-                    <DropdownMenuItem onClick={() => onOverride?.(item, 'activation')}>
-                      <Zap className="mr-2 h-4 w-4 text-emerald-500" />
-                      Override at Agent Level
+                  <DropdownMenuContent align="end" className="w-80">
+                    <DropdownMenuItem
+                      onClick={() => onOverride?.(item, 'activation')}
+                      className="items-start gap-2 py-2"
+                    >
+                      <Zap className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium">Override to Agent Activation</span>
+                        <span className="text-xs text-muted-foreground whitespace-normal">
+                          Create a knowledge file only this agent activation instance has access to.
+                        </span>
+                      </div>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
