@@ -391,7 +391,7 @@ export function KnowledgeItemDetail({
                   setValidationError(null);
                 }
               }}
-              mode="tree"
+              mode="code"
               readOnly={false}
             />
           </div>
