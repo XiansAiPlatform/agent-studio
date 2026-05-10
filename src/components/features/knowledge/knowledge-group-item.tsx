@@ -5,19 +5,20 @@ import {
   KnowledgeItem,
   KnowledgeScopeLevel,
   getEffectiveKnowledge,
-  getEffectiveScopeLevel,
-  SCOPE_LEVEL_CONFIG,
 } from '@/lib/xians/knowledge';
 import { cn } from '@/lib/utils';
-import { FileJson, FileText, FileCode, Clock, User, Globe, Building2, Zap, ChevronRight, Check } from 'lucide-react';
+import { FileJson, FileText, FileCode, Clock, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
+import { KnowledgeOverrideHierarchyCard } from './knowledge-override-hierarchy-card';
 
 interface KnowledgeGroupItemProps {
   group: KnowledgeGroup;
   onClick: (group: KnowledgeGroup) => void;
   onItemClick?: (item: KnowledgeItem, level: KnowledgeScopeLevel) => void;
   isSelected?: boolean;
+  agentName?: string;
+  activationName?: string;
 }
 
 const formatConfig = {
@@ -59,11 +60,16 @@ function formatDate(dateString: string): string {
   return `${months}mo ago`;
 }
 
-export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: KnowledgeGroupItemProps) {
+export function KnowledgeGroupItem({
+  group,
+  onClick,
+  onItemClick,
+  isSelected,
+  agentName,
+  activationName,
+}: KnowledgeGroupItemProps) {
   const effectiveItem = getEffectiveKnowledge(group);
-  const effectiveLevel = getEffectiveScopeLevel(group);
-  const levelConfig = SCOPE_LEVEL_CONFIG[effectiveLevel];
-  
+
   if (!effectiveItem) {
     return null;
   }
@@ -79,13 +85,12 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
         'hover:bg-accent/5',
         isSelected && 'bg-accent/10',
         'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:transition-all before:duration-200',
-        isSelected 
+        isSelected
           ? 'before:opacity-100 before:bg-primary'
           : 'before:opacity-0 before:bg-border'
       )}
     >
       <div className="flex items-start gap-3 sm:gap-4">
-        {/* Format Icon with Circle Background */}
         <IconAvatar
           icon={config.icon}
           variant={config.variant}
@@ -93,23 +98,14 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
           className="mt-0.5 shrink-0"
         />
 
-        {/* Main Content */}
         <div className="flex-1 min-w-0 space-y-3">
-          {/* Title and Override Chain */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
               <h3 className="text-base font-medium text-foreground leading-snug tracking-tight">
                 {group.name}
               </h3>
-              <Badge 
-                variant="outline" 
-                className={cn('text-xs font-medium', levelConfig.badgeColor)}
-              >
-                {levelConfig.label} Level
-              </Badge>
             </div>
-            
-            {/* Format Badge */}
+
             <div className="flex items-center gap-2 shrink-0">
               <Badge variant="outline" className={cn('text-xs font-medium', config.badge)}>
                 {effectiveItem.type.toUpperCase()}
@@ -117,117 +113,31 @@ export function KnowledgeGroupItem({ group, onClick, onItemClick, isSelected }: 
             </div>
           </div>
 
-          {/* Override Chain Breadcrumb */}
-          <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md overflow-x-auto">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (group.system_scoped && onItemClick) {
-                  onItemClick(group.system_scoped, 'system');
-                }
-              }}
-              disabled={!group.system_scoped}
-              className={cn(
-                'flex items-center gap-1.5 text-xs shrink-0 px-2 py-1 rounded transition-colors',
-                group.system_scoped && 'hover:bg-primary/10 cursor-pointer',
-                !group.system_scoped && 'opacity-40 cursor-not-allowed'
-              )}
-            >
-              <Globe className={cn(
-                'w-3.5 h-3.5',
-                group.system_scoped ? 'text-primary' : 'text-muted-foreground/30'
-              )} />
-              <span className={cn(
-                'font-medium',
-                group.system_scoped ? 'text-foreground' : 'text-muted-foreground/50'
-              )}>
-                System
-              </span>
-              {effectiveLevel === 'system' && (
-                <Check className="w-3 h-3 text-primary" />
-              )}
-            </button>
-            
-            <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />
-            
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (group.tenant_default && onItemClick) {
-                  onItemClick(group.tenant_default, 'tenant');
-                }
-              }}
-              disabled={!group.tenant_default}
-              className={cn(
-                'flex items-center gap-1.5 text-xs shrink-0 px-2 py-1 rounded transition-colors',
-                group.tenant_default && 'hover:bg-primary/10 cursor-pointer',
-                !group.tenant_default && 'opacity-40 cursor-not-allowed'
-              )}
-            >
-              <Building2 className={cn(
-                'w-3.5 h-3.5',
-                group.tenant_default ? 'text-primary' : 'text-muted-foreground/30'
-              )} />
-              <span className={cn(
-                'font-medium',
-                group.tenant_default ? 'text-foreground' : 'text-muted-foreground/50'
-              )}>
-                Organization
-              </span>
-              {effectiveLevel === 'tenant' && (
-                <Check className="w-3 h-3 text-primary" />
-              )}
-            </button>
-            
-            <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />
-            
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const activationItem = group.activations.length > 0 ? group.activations[0] : null;
-                if (activationItem && onItemClick) {
-                  onItemClick(activationItem, 'activation');
-                }
-              }}
-              disabled={group.activations.length === 0}
-              className={cn(
-                'flex items-center gap-1.5 text-xs shrink-0 px-2 py-1 rounded transition-colors',
-                group.activations.length > 0 && 'hover:bg-primary/10 cursor-pointer',
-                group.activations.length === 0 && 'opacity-40 cursor-not-allowed'
-              )}
-            >
-              <Zap className={cn(
-                'w-3.5 h-3.5',
-                group.activations.length > 0 ? 'text-primary' : 'text-muted-foreground/30'
-              )} />
-              <span className={cn(
-                'font-medium',
-                group.activations.length > 0 ? 'text-foreground' : 'text-muted-foreground/50'
-              )}>
-                Agent
-              </span>
-              {effectiveLevel === 'activation' && (
-                <Check className="w-3 h-3 text-primary" />
-              )}
-            </button>
-          </div>
+          <KnowledgeOverrideHierarchyCard
+            group={group}
+            agentName={agentName ?? effectiveItem.agent}
+            activationName={activationName}
+            onViewLevel={onItemClick}
+            showHeader={false}
+          />
 
-          {/* Metadata */}
           <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground/70 flex-wrap">
             <span className="inline-flex items-center gap-1.5 min-w-0">
               <User className="h-3 w-3 shrink-0" />
-              <span className="truncate max-w-[180px] sm:max-w-none">{effectiveItem.agent}</span>
+              <span className="truncate max-w-[180px] sm:max-w-none">
+                {effectiveItem.agent}
+              </span>
             </span>
-            
+
             <span className="text-muted-foreground/30 hidden sm:inline">•</span>
-            
+
             <span className="inline-flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
               {formatDate(effectiveItem.createdAt)}
             </span>
 
             <span className="text-muted-foreground/30 hidden sm:inline">•</span>
-            
+
             <span className="font-mono text-[10px]">
               {effectiveItem.version.slice(0, 8)}
             </span>

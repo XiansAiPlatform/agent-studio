@@ -37,7 +37,8 @@ export function KnowledgePageHeader({
                 </Badge>
               </div>
               <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-                Agent knowledge and the levels of overriding
+                Knowledge served to this activation across the System &rarr;
+                Organization &rarr; Agent override hierarchy.
               </p>
             </div>
           </div>

@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { useKnowledgePage } from './hooks/use-knowledge-page';
 import {
   KnowledgePageHeader,
-  KnowledgeStatsCards,
   KnowledgeEmptyState,
 } from './components';
 
@@ -39,7 +38,6 @@ function KnowledgeContent() {
     isLoading,
     isLoadingItem,
     error,
-    stats,
     handleRefresh,
     handleGroupClick,
     handleItemClick,
@@ -88,14 +86,6 @@ function KnowledgeContent() {
           </Card>
         )}
 
-        {lastFetchedParams && knowledgeGroups.length > 0 && (
-          <KnowledgeStatsCards
-            systemCount={stats.systemCount}
-            tenantCount={stats.tenantCount}
-            activationCount={stats.activationCount}
-          />
-        )}
-
         {lastFetchedParams && (
           <Card
             className={cn(
@@ -111,8 +101,8 @@ function KnowledgeContent() {
               </CardTitle>
               <CardDescription>
                 {knowledgeGroups.length > 0
-                  ? 'Click on a knowledge article to view the content'
-                  : 'Knowledge articles configured for this agent and activation'}
+                  ? 'Each row\u2019s breadcrumb shows where the article is sourced from. Click any level to view that version.'
+                  : 'Knowledge articles configured for this agent and activation will appear here.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="!px-0 !py-0">
@@ -130,6 +120,8 @@ function KnowledgeContent() {
                       handleItemClick(item, level, group.name)
                     }
                     isSelected={group.name === selectedGroupName}
+                    agentName={agentName}
+                    activationName={activationName}
                   />
                 ))
               ) : (

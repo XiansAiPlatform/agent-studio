@@ -45,6 +45,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { showToast } from '@/lib/toast';
 
 // Dynamically import the markdown editor to avoid SSR issues
@@ -423,18 +429,30 @@ export function KnowledgeItemDetail({
     <div className="flex flex-col h-full overflow-hidden">
       {/* Content Area with Flex Layout */}
       <div className="flex-1 flex flex-col px-6 pt-4 min-h-0">
-        {/* Metadata badges */}
+        {/* Metadata badges - level + type + version + created date */}
         <div className="flex items-center gap-3 flex-wrap text-xs mb-4 shrink-0">
-          <Badge variant="outline" className={cn('text-xs h-6 flex items-center gap-1.5', config.badgeColor)}>
+          <Badge
+            variant="outline"
+            className={cn('text-xs h-6 flex items-center gap-1.5', config.badgeColor)}
+          >
             <ScopeIcon className="h-3 w-3" />
             {config.label} Level
           </Badge>
-          <span>•</span>
+          <span className="text-muted-foreground/40">•</span>
           <Badge variant="outline" className="text-xs h-6">
             {item.type.toUpperCase()}
           </Badge>
-
-          <span>•</span>
+          <span className="text-muted-foreground/40">•</span>
+          <span
+            className="flex items-center gap-1 text-muted-foreground"
+            title={`Version ${item.version}`}
+          >
+            <span className="font-medium">v</span>
+            <span className="font-mono truncate max-w-[120px] sm:max-w-[180px]">
+              {item.version}
+            </span>
+          </span>
+          <span className="text-muted-foreground/40">•</span>
           <span className="flex items-center gap-1 text-muted-foreground">
             <Clock className="h-3 w-3" />
             {formatDate(item.createdAt)}
@@ -456,38 +474,18 @@ export function KnowledgeItemDetail({
             <ContentViewer item={item} mounted={mounted} />
           )}
         </div>
-
-        {/* Version Info */}
-        <div className="p-3 bg-muted/30 rounded-md shrink-0 mb-4">
-          <div className="text-xs text-muted-foreground flex items-center justify-between">
-            <div>
-              <span className="font-medium">Version:</span>{' '}
-              <span className="font-mono">{item.version}</span>
-            </div>
-            {item.tenantId && level !== 'system' && (
-              <button
-                onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive hover:underline font-medium"
-                title="Delete this version and revert to previous"
-              >
-                delete this version
-              </button>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Fixed Action Bar at Bottom */}
       <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-6 sm:py-4 safe-pb">
         {isEditing ? (
           // Editing mode - show Save/Cancel
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
             <Button
               variant="outline"
               size="default"
               onClick={handleCancel}
               disabled={isSaving}
-              className="flex-1 sm:max-w-[180px]"
             >
               <X className="mr-2 h-4 w-4" />
               Cancel
@@ -496,18 +494,17 @@ export function KnowledgeItemDetail({
               size="default"
               onClick={handleSave}
               disabled={isSaving || !!validationError}
-              className="flex-1 sm:max-w-[180px]"
             >
               <Save className="mr-2 h-4 w-4" />
               {isSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         ) : level === 'system' ? (
-          // System level is read-only - only show override option
-          <div className="flex items-center">
+          // System level is read-only - show disabled Edit + Override dropdown
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="default" className="w-full sm:w-auto">
+                <Button variant="outline" size="default">
                   <Copy className="mr-2 h-4 w-4" />
                   Override
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -557,77 +554,144 @@ export function KnowledgeItemDetail({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button size="default" disabled aria-disabled="true">
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-xs">
+                    System knowledge cannot be edited unless overridden at the
+                    Organization or Agent level.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         ) : level === 'tenant' ? (
           // Organization Level - show override dropdown
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => setShowDeleteAllDialog(true)}
-              className="flex-1 sm:flex-initial sm:max-w-[140px]"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="default">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                {item.tenantId && (
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="items-start gap-2 py-2"
+                  >
+                    <Trash2 className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">Delete this version</span>
+                      <span className="text-xs text-muted-foreground whitespace-normal">
+                        Removes only the current version. The previous version
+                        becomes active.
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  className="items-start gap-2 py-2"
+                >
+                  <Trash2 className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium">Delete all versions</span>
+                    <span className="text-xs text-muted-foreground whitespace-normal">
+                      Permanently removes every version of this article at the
+                      Organization level.
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {!hasAgentOverride && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="default">
+                    <Copy className="mr-2 h-4 w-4" />
+                    Override
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuItem
+                    onClick={() => onOverride?.(item, 'activation')}
+                    className="items-start gap-2 py-2"
+                  >
+                    <Zap className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">Override to Agent Activation</span>
+                      <span className="text-xs text-muted-foreground whitespace-normal">
+                        Create a knowledge file only this agent activation instance{' '}
+                        <span className="font-medium text-foreground">
+                          {activationName ?? 'this activation name'}
+                        </span>{' '}
+                        has access to.
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button size="default" onClick={handleEditClick}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
             </Button>
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
-              {!hasAgentOverride && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="default" className="flex-1 sm:flex-initial">
-                      <Copy className="mr-2 h-4 w-4" />
-                      Override
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80">
-                    <DropdownMenuItem
-                      onClick={() => onOverride?.(item, 'activation')}
-                      className="items-start gap-2 py-2"
-                    >
-                      <Zap className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-medium">Override to Agent Activation</span>
-                        <span className="text-xs text-muted-foreground whitespace-normal">
-                          Create a knowledge file only this agent activation instance{' '}
-                          <span className="font-medium text-foreground">
-                            {activationName ?? 'this activation name'}
-                          </span>{' '}
-                          has access to.
-                        </span>
-                      </div>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              <Button
-                size="default"
-                onClick={handleEditClick}
-                className="flex-1 sm:flex-initial sm:min-w-[100px]"
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-            </div>
           </div>
         ) : (
           // Agent level - fully editable
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => setShowDeleteAllDialog(true)}
-              className="flex-1 sm:max-w-[200px]"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Delete All Versions</span>
-              <span className="sm:hidden">Delete All</span>
-            </Button>
-            <Button
-              size="default"
-              onClick={handleEditClick}
-              className="flex-1 sm:max-w-[140px]"
-            >
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="default">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                {item.tenantId && (
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="items-start gap-2 py-2"
+                  >
+                    <Trash2 className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">Delete this version</span>
+                      <span className="text-xs text-muted-foreground whitespace-normal">
+                        Removes only the current version. The previous version
+                        becomes active.
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  className="items-start gap-2 py-2"
+                >
+                  <Trash2 className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium">Delete all versions</span>
+                    <span className="text-xs text-muted-foreground whitespace-normal">
+                      Permanently removes every version of this article at the
+                      Agent Activation level.
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="default" onClick={handleEditClick}>
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
