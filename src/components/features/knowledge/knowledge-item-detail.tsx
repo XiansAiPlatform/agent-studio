@@ -541,7 +541,11 @@ export function KnowledgeItemDetail({
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium">Override to Agent Activation</span>
                       <span className="text-xs text-muted-foreground whitespace-normal">
-                        Create a knowledge file only this agent activation instance has access to.
+                        Create a knowledge file only this agent activation instance{' '}
+                        <span className="font-medium text-foreground">
+                          {activationName ?? 'this activation name'}
+                        </span>{' '}
+                         has access to.
                       </span>
                     </div>
                   </DropdownMenuItem>
@@ -585,7 +589,11 @@ export function KnowledgeItemDetail({
                       <div className="flex flex-col gap-0.5">
                         <span className="text-sm font-medium">Override to Agent Activation</span>
                         <span className="text-xs text-muted-foreground whitespace-normal">
-                          Create a knowledge file only this agent activation instance has access to.
+                          Create a knowledge file only this agent activation instance{' '}
+                          <span className="font-medium text-foreground">
+                            {activationName ?? 'this activation name'}
+                          </span>{' '}
+                          has access to.
                         </span>
                       </div>
                     </DropdownMenuItem>
