@@ -315,7 +315,7 @@ function LogsContent() {
             </div>
             <div className="flex items-center gap-2 sm:shrink-0">
               <Button
-                variant={autoRefresh ? 'default' : 'outline'}
+                variant="outline"
                 onClick={() => setAutoRefresh((v) => !v)}
                 aria-pressed={autoRefresh}
                 aria-live="polite"
@@ -325,9 +325,9 @@ function LogsContent() {
                     : `Click to auto-refresh every ${AUTO_REFRESH_SECONDS} seconds (auto-stops after ${AUTO_REFRESH_MAX_MINUTES} min)`
                 }
                 className={cn(
-                  'relative shrink-0 rounded-xl',
+                  'relative shrink-0 overflow-hidden rounded-xl',
                   autoRefresh &&
-                    'bg-emerald-600 text-white hover:bg-emerald-600/90 focus-visible:ring-emerald-600/40'
+                    'border-emerald-600/60 text-emerald-700 hover:bg-emerald-600/5 hover:text-emerald-700 focus-visible:ring-emerald-600/30 dark:text-emerald-400 dark:hover:text-emerald-400'
                 )}
               >
                 {autoRefresh ? (
@@ -339,8 +339,8 @@ function LogsContent() {
                   ) : (
                     <>
                       <span className="relative mr-2 inline-flex h-2 w-2 shrink-0">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/70 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                       </span>
                       Live
                     </>
@@ -350,6 +350,17 @@ function LogsContent() {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Auto-refresh
                   </>
+                )}
+                {/* Linear progress bar that drains over the interval and
+                    snaps back when the refresh fires. The `key` forces a
+                    clean restart of the CSS animation on each tick. */}
+                {autoRefresh && (
+                  <span
+                    key={refreshTick}
+                    aria-hidden
+                    className="absolute bottom-0 left-0 h-0.5 bg-emerald-500/80 animate-autorefresh-drain"
+                    style={{ ['--autorefresh-duration' as any]: `${AUTO_REFRESH_SECONDS}s` }}
+                  />
                 )}
               </Button>
               <Button
