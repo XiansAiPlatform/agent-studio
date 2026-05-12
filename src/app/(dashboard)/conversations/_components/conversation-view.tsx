@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Conversation } from '@/lib/data/dummy-conversations';
+import { Conversation, Message } from '@/lib/data/dummy-conversations';
 import { ActivationOption } from '../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
@@ -47,6 +47,10 @@ interface ConversationViewProps {
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
   /** Agent info from deployment - shown in empty state when no messages */
   agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
+  onMessageFeedbackSubmitted?: (
+    messageId: string,
+    feedback: NonNullable<Message['feedback']>
+  ) => void;
 }
 
 /**
@@ -86,6 +90,7 @@ export function ConversationView({
   onDeleteTopic,
   chatInputRef,
   agentInfo,
+  onMessageFeedbackSubmitted,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
   const isMobile = useIsMobile();
@@ -207,6 +212,7 @@ export function ConversationView({
               isAgentActive={isAgentActive}
               chatInputRef={chatInputRef}
               agentInfo={agentInfo}
+              onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
             />
           </>
         ) : (
@@ -224,6 +230,7 @@ export function ConversationView({
             isAgentActive={isAgentActive}
             chatInputRef={chatInputRef}
             agentInfo={agentInfo}
+            onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
           />
         )}
       </div>

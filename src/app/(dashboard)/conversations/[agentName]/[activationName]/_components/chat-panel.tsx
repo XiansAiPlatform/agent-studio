@@ -1,6 +1,6 @@
 import { Bot } from 'lucide-react';
 import { ChatInterface, FileUploadPayload } from '@/components/features/conversations';
-import { Conversation, Topic } from '@/lib/data/dummy-conversations';
+import { Conversation, Topic, Message } from '@/lib/data/dummy-conversations';
 
 interface ChatPanelProps {
   conversation: Conversation;
@@ -17,6 +17,10 @@ interface ChatPanelProps {
   chatInputRef?: React.RefObject<HTMLInputElement | null>;
   /** Agent info from deployment - shown in empty state when no messages */
   agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
+  onMessageFeedbackSubmitted?: (
+    messageId: string,
+    feedback: NonNullable<Message['feedback']>
+  ) => void;
 }
 
 /**
@@ -38,6 +42,7 @@ export function ChatPanel({
   isAgentActive,
   chatInputRef,
   agentInfo,
+  onMessageFeedbackSubmitted,
 }: ChatPanelProps) {
   if (!selectedTopicId || !selectedTopic) {
     return (
@@ -71,6 +76,7 @@ export function ChatPanel({
         isActivationActive={isAgentActive}
         inputRef={chatInputRef}
         agentInfo={agentInfo}
+        onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
       />
     </div>
   );

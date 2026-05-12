@@ -5,17 +5,23 @@ import { useRouter } from 'next/navigation';
 import { Message } from '@/lib/data/dummy-conversations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, User, Copy, ThumbsUp, ThumbsDown, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink } from 'lucide-react';
+import { Bot, User, Copy, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 
+import { MessageFeedback } from './message-feedback';
+
 interface MessageItemProps {
   message: Message;
   agentName?: string;
   userName?: string;
+  onMessageFeedbackSubmitted?: (
+    messageId: string,
+    feedback: NonNullable<Message['feedback']>
+  ) => void;
 }
 
 function formatTimestamp(dateString: string): string {
@@ -27,7 +33,7 @@ function formatTimestamp(dateString: string): string {
   });
 }
 
-export function MessageItem({ message, agentName, userName }: MessageItemProps) {
+export function MessageItem({ message, agentName, userName, onMessageFeedbackSubmitted }: MessageItemProps) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const [isDraftExpanded, setIsDraftExpanded] = useState(false);
@@ -612,22 +618,32 @@ export function MessageItem({ message, agentName, userName }: MessageItemProps) 
 
         {/* Actions */}
         {!isUser && (
-          <div className="flex items-center gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={handleCopy}
-            >
-              <Copy className="h-3 w-3 mr-1" />
-              Copy
-            </Button>
-            {/* <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <ThumbsUp className="h-3 w-3" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <ThumbsDown className="h-3 w-3" />
-            </Button> */}
+          <div className="flex flex-col items-start gap-1 px-1 w-full">
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={handleCopy}
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                Copy
+              </Button>
+              {!message.feedback && (
+                <MessageFeedback
+                  message={message}
+                  agentName={agentName ?? 'Agent'}
+                  onFeedbackSubmitted={onMessageFeedbackSubmitted}
+                />
+              )}
+            </div>
+            {message.feedback && (
+              <MessageFeedback
+                message={message}
+                agentName={agentName ?? 'Agent'}
+                onFeedbackSubmitted={onMessageFeedbackSubmitted}
+              />
+            )}
           </div>
         )}
 

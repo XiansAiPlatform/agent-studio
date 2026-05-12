@@ -14,6 +14,7 @@ import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { getTopicParam, mapXiansMessageToMessage, sanitizeTopicDisplayName } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
 import type { FileUploadPayload } from '@/components/features/conversations';
+import type { XiansMessage } from '@/lib/xians/types';
 import { ConversationView } from '../../_components';
 import { ParticipantMenuBar } from './_components';
 
@@ -84,6 +85,7 @@ function ConversationContent() {
     handleIncomingMessage,
     updateTopicMessages,
     addMessageToTopic,
+    applyMessageFeedback,
   } = useConversationState({
     tenantId: currentTenantId || '',
     agentName: agentName || '',
@@ -452,9 +454,9 @@ function ConversationContent() {
           throw new Error('Invalid response format from server');
         }
 
-        const messages: Message[] = data.map((xiansMsg: Record<string, unknown>) =>
-          mapXiansMessageToMessage(xiansMsg as Parameters<typeof mapXiansMessageToMessage>[0])
-        ).reverse();
+        const messages: Message[] = data
+          .map((row: XiansMessage) => mapXiansMessageToMessage(row))
+          .reverse();
 
         setMessageStates(prev => ({
           ...prev,
@@ -671,9 +673,9 @@ function ConversationContent() {
         throw new Error('Invalid response format from server');
       }
 
-      const newMessages: Message[] = data.map((xiansMsg: Record<string, unknown>) =>
-        mapXiansMessageToMessage(xiansMsg as Parameters<typeof mapXiansMessageToMessage>[0])
-      ).reverse();
+      const newMessages: Message[] = data
+        .map((row: XiansMessage) => mapXiansMessageToMessage(row))
+        .reverse();
 
       // Filter out duplicates
       const existingIds = new Set(currentState.messages.map(m => m.id));
@@ -707,6 +709,27 @@ function ConversationContent() {
       }));
     }
   }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, messageStates, updateTopicMessages]);
+
+  const handleMessageFeedbackSubmitted = useCallback(
+    (messageId: string, feedback: NonNullable<Message['feedback']>) => {
+      if (!selectedTopicId) return;
+      applyMessageFeedback(selectedTopicId, messageId, feedback);
+      setMessageStates((prev) => {
+        const state = prev[selectedTopicId];
+        if (!state) return prev;
+        return {
+          ...prev,
+          [selectedTopicId]: {
+            ...state,
+            messages: state.messages.map((m) =>
+              m.id === messageId ? { ...m, feedback } : m
+            ),
+          },
+        };
+      });
+    },
+    [selectedTopicId, applyMessageFeedback]
+  );
 
   // Loading state
   if (isLoadingTopics) {
@@ -806,6 +829,7 @@ function ConversationContent() {
         onDeleteTopic={handleDeleteTopic}
         chatInputRef={chatInputRef}
         agentInfo={agentInfo}
+        onMessageFeedbackSubmitted={handleMessageFeedbackSubmitted}
       />
     </div>
   );

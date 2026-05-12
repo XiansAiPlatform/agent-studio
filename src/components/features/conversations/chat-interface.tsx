@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Conversation, Topic } from '@/lib/data/dummy-conversations';
+import { Conversation, Topic, Message } from '@/lib/data/dummy-conversations';
 import { ChatHeader } from './chat-header';
 import { ChatInputArea } from './chat-input-area';
 import { MessagesArea } from './messages-area';
@@ -23,6 +23,11 @@ interface ChatInterfaceProps {
   inputRef?: React.RefObject<HTMLInputElement | null>;
   /** Agent info from deployment - shown in empty state when no messages */
   agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
+  /** After rating an agent message */
+  onMessageFeedbackSubmitted?: (
+    messageId: string,
+    feedback: NonNullable<Message['feedback']>
+  ) => void;
 }
 
 function useSamplePromptClick(
@@ -52,6 +57,7 @@ export function ChatInterface({
   isActivationActive = true,
   inputRef: externalInputRef,
   agentInfo,
+  onMessageFeedbackSubmitted,
 }: ChatInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
   const onSamplePromptClick = useSamplePromptClick(setMessageInput, externalInputRef);
@@ -176,6 +182,7 @@ export function ChatInterface({
         messagesEndRef={messagesEndRef}
         agentInfo={agentInfo}
         onSamplePromptClick={onSamplePromptClick}
+        onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
       />
 
       <ChatInputArea
