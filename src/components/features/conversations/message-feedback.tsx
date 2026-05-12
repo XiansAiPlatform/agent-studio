@@ -23,14 +23,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { showErrorToast } from '@/lib/utils/error-handler';
 
-const OTHER_REASON = 'Other' as const
+const OTHER_REASON = 'Other' as const;
 
 const LEGACY_REASON_LABELS: Record<string, string> = {
   NotAccurate: 'Not accurate',
   Irrelevant: 'Irrelevant',
   MissingInstructions: 'Missing instructions',
   IncompleteResponse: 'Incomplete response',
-}
+};
 
 const REASON_OPTIONS = [
   { value: 'FactuallyIncorrect', label: 'Factually incorrect' },
@@ -47,9 +47,19 @@ const REASON_OPTIONS = [
   { value: 'PoorCodeQuality', label: 'Poor code quality' },
   { value: 'PerformanceIssue', label: 'Performance issue' },
   { value: OTHER_REASON, label: 'Other' },
-] as const
+] as const;
 
-export interface MessageFeedbackProps {
+export function agentMessageSupportsFeedback(message: Message): boolean {
+  return (
+    message.role === 'agent' &&
+    !!message.threadId &&
+    !!message.workflowId &&
+    !!message.workflowType &&
+    !!message.participantId
+  );
+}
+
+export interface MessageFeedbackPromptProps {
   message: Message;
   agentName: string;
   onFeedbackSubmitted?: (
@@ -58,11 +68,44 @@ export interface MessageFeedbackProps {
   ) => void;
 }
 
-export function MessageFeedback({
+/** Stars + reason shown inside the agent bubble after feedback exists. */
+export function MessageFeedbackSummary({
+  feedback,
+}: {
+  feedback: NonNullable<Message['feedback']>;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground w-full">
+      <span className="mr-1">Your rating:</span>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={`h-3.5 w-3.5 ${
+            n <= feedback.starRating
+              ? 'fill-amber-400 text-amber-500'
+              : 'text-muted-foreground/40'
+          }`}
+        />
+      ))}
+      {feedback.reasonCategory && (
+        <span className="ml-2 text-[10px]">
+          (
+          {REASON_OPTIONS.find((o) => o.value === feedback.reasonCategory)?.label ??
+            LEGACY_REASON_LABELS[feedback.reasonCategory] ??
+            feedback.reasonCategory}
+          )
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** “Rate response” + dialog; render next to Copy (outside the bubble). */
+export function MessageFeedbackPrompt({
   message,
   agentName,
   onFeedbackSubmitted,
-}: MessageFeedbackProps) {
+}: MessageFeedbackPromptProps) {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
@@ -71,42 +114,8 @@ export function MessageFeedback({
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const fb = message.feedback;
-  const hasRouting =
-    !!message.threadId &&
-    !!message.workflowId &&
-    !!message.workflowType &&
-    !!message.participantId;
-
-  if (message.role !== 'agent' || !hasRouting) {
+  if (!agentMessageSupportsFeedback(message) || message.feedback) {
     return null;
-  }
-
-  if (fb) {
-    return (
-      <div className="flex items-center gap-0.5 px-1 mt-1 text-xs text-muted-foreground">
-        <span className="mr-1">Your rating:</span>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Star
-            key={n}
-            className={`h-3.5 w-3.5 ${
-              n <= fb.starRating
-                ? 'fill-amber-400 text-amber-500'
-                : 'text-muted-foreground/40'
-            }`}
-          />
-        ))}
-        {fb.reasonCategory && (
-          <span className="ml-2 text-[10px]">
-            (
-            {REASON_OPTIONS.find((o) => o.value === fb.reasonCategory)?.label ??
-              LEGACY_REASON_LABELS[fb.reasonCategory] ??
-              fb.reasonCategory}
-            )
-          </span>
-        )}
-      </div>
-    );
   }
 
   const handleSubmit = async () => {
@@ -187,17 +196,15 @@ export function MessageFeedback({
 
   return (
     <>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={() => setOpen(true)}
-        >
-          Rate response
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-6 px-2 text-xs"
+        onClick={() => setOpen(true)}
+      >
+        Rate response
+      </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

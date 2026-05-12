@@ -12,7 +12,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 
-import { MessageFeedback } from './message-feedback';
+import { MessageFeedbackPrompt, MessageFeedbackSummary } from './message-feedback';
 
 interface MessageItemProps {
   message: Message;
@@ -369,6 +369,11 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
               })}
             </div>
           )}
+
+          {/* Submitted rating — inside bubble only */}
+          {!isUser && message.feedback && (
+            <MessageFeedbackSummary feedback={message.feedback} />
+          )}
         </div>
 
         {/* View Task Link - Show when message has taskId */}
@@ -616,34 +621,23 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
           </div>
         )}
 
-        {/* Actions */}
+        {/* Actions — Copy + Rate (outside bubble) */}
         {!isUser && (
-          <div className="flex flex-col items-start gap-1 px-1 w-full">
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={handleCopy}
-              >
-                <Copy className="h-3 w-3 mr-1" />
-                Copy
-              </Button>
-              {!message.feedback && (
-                <MessageFeedback
-                  message={message}
-                  agentName={agentName ?? 'Agent'}
-                  onFeedbackSubmitted={onMessageFeedbackSubmitted}
-                />
-              )}
-            </div>
-            {message.feedback && (
-              <MessageFeedback
-                message={message}
-                agentName={agentName ?? 'Agent'}
-                onFeedbackSubmitted={onMessageFeedbackSubmitted}
-              />
-            )}
+          <div className="flex items-center gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={handleCopy}
+            >
+              <Copy className="h-3 w-3 mr-1" />
+              Copy
+            </Button>
+            <MessageFeedbackPrompt
+              message={message}
+              agentName={agentName ?? 'Agent'}
+              onFeedbackSubmitted={onMessageFeedbackSubmitted}
+            />
           </div>
         )}
 
