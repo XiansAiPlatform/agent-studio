@@ -1,3 +1,6 @@
+import type { Message } from '@/lib/data/dummy-conversations';
+import type { XiansMessage } from '@/lib/xians/types';
+
 /**
  * Determine the topic parameter for API calls
  * General Discussions (id: 'general-discussions') should use empty string
@@ -69,17 +72,7 @@ function extractContent(xiansMsg: { text?: string; data?: unknown }): string {
  * Map Xians API message to our Message format.
  * Handles messageType (Reasoning, Tool, Chat) and content from text or data.
  */
-export function mapXiansMessageToMessage(
-  xiansMsg: {
-    id: string;
-    direction: string;
-    text?: string;
-    data?: unknown;
-    createdAt: string;
-    messageType?: string;
-    taskId?: string | null;
-  }
-): import('@/lib/data/dummy-conversations').Message {
+export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
   const content = extractContent(xiansMsg);
   const role = xiansMsg.direction === 'Incoming' ? ('user' as const) : ('agent' as const);
   const rawType = (xiansMsg.messageType ?? 'Chat').toLowerCase();
@@ -90,6 +83,19 @@ export function mapXiansMessageToMessage(
         ? ('tool' as const)
         : undefined;
 
+  const feedback = xiansMsg.feedback
+    ? {
+        starRating: xiansMsg.feedback.starRating,
+        reasonCategory: xiansMsg.feedback.reasonCategory ?? undefined,
+        comment: xiansMsg.feedback.comment ?? undefined,
+        submittedBy: xiansMsg.feedback.submittedBy,
+        submittedAt:
+          typeof xiansMsg.feedback.submittedAt === 'string'
+            ? xiansMsg.feedback.submittedAt
+            : new Date(xiansMsg.feedback.submittedAt).toISOString(),
+      }
+    : undefined;
+
   return {
     id: xiansMsg.id,
     content,
@@ -97,7 +103,12 @@ export function mapXiansMessageToMessage(
     timestamp: xiansMsg.createdAt,
     status: 'delivered',
     taskId: xiansMsg.taskId ?? undefined,
+    threadId: xiansMsg.threadId,
+    workflowId: xiansMsg.workflowId,
+    workflowType: xiansMsg.workflowType,
+    participantId: xiansMsg.participantId,
     ...(messageType && { messageType }),
+    ...(feedback && { feedback }),
   };
 }
 

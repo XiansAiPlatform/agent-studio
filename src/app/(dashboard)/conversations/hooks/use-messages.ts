@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Message } from '@/lib/data/dummy-conversations';
 import { XiansMessageHistoryResponse } from '@/lib/xians/types';
 import { showErrorToast } from '@/lib/utils/error-handler';
+import { mapXiansMessageToMessage } from '../utils';
 
 interface UseMessagesParams {
   tenantId: string | null;
@@ -59,13 +60,9 @@ export function useMessages({
         throw new Error('Invalid response format from server');
       }
 
-      const newMessages: Message[] = data.map((xiansMsg) => ({
-        id: xiansMsg.id,
-        content: xiansMsg.text,
-        role: xiansMsg.direction === 'Incoming' ? 'user' as const : 'agent' as const,
-        timestamp: xiansMsg.createdAt,
-        status: 'delivered' as const,
-      })).reverse();
+      const newMessages: Message[] = data
+        .map((xiansMsg) => mapXiansMessageToMessage(xiansMsg))
+        .reverse();
 
       if (append) {
         // Prepend new messages, filtering duplicates

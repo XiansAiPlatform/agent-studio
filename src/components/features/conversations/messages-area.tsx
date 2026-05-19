@@ -33,6 +33,11 @@ interface MessagesAreaProps {
   agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
   /** Called when user clicks a sample prompt to populate the chat input */
   onSamplePromptClick?: (prompt: string) => void;
+  /** Called after user submits message feedback (stars + optional reason) */
+  onMessageFeedbackSubmitted?: (
+    messageId: string,
+    feedback: NonNullable<Message['feedback']>
+  ) => void;
 }
 
 export function MessagesArea({
@@ -50,6 +55,7 @@ export function MessagesArea({
   messagesEndRef,
   agentInfo,
   onSamplePromptClick,
+  onMessageFeedbackSubmitted,
 }: MessagesAreaProps) {
   const groups = groupMessages(messages, isTyping);
   const { currentTenant } = useTenant();
@@ -117,6 +123,7 @@ export function MessagesArea({
                       message={group.message}
                       agentName={agentName}
                       userName={userName}
+                      onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
                     />
                   );
                 }

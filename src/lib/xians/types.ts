@@ -290,6 +290,14 @@ export interface XiansMessage {
   workflowType: string
   messageType: string
   origin: string | null
+  /** Embedded feedback from history API */
+  feedback?: {
+    starRating: number
+    reasonCategory?: string | null
+    comment?: string | null
+    submittedBy: string
+    submittedAt: string
+  } | null
 }
 
 // API returns array of messages directly, not wrapped

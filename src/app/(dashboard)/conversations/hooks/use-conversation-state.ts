@@ -170,6 +170,28 @@ export function useConversationState({
     });
   }, []);
 
+  const applyMessageFeedback = useCallback(
+    (topicId: string, messageId: string, feedback: NonNullable<Message['feedback']>) => {
+      setConversation((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          topics: prev.topics.map((topic) =>
+            topic.id === topicId
+              ? {
+                  ...topic,
+                  messages: topic.messages.map((m) =>
+                    m.id === messageId ? { ...m, feedback } : m
+                  ),
+                }
+              : topic
+          ),
+        };
+      });
+    },
+    []
+  );
+
   return {
     conversation,
     setConversation,
@@ -177,5 +199,6 @@ export function useConversationState({
     handleIncomingMessage,
     updateTopicMessages,
     addMessageToTopic,
+    applyMessageFeedback,
   };
 }

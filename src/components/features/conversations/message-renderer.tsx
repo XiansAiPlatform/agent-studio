@@ -7,13 +7,17 @@ interface MessageRendererProps {
   message: Message;
   agentName: string;
   userName: string;
+  onMessageFeedbackSubmitted?: (
+    messageId: string,
+    feedback: NonNullable<Message['feedback']>
+  ) => void;
 }
 
 /**
  * Routes messages to the appropriate renderer based on messageType.
  * Add ToolMessageItem and ReasoningMessageItem components when implementing those types.
  */
-export function MessageRenderer({ message, agentName, userName }: MessageRendererProps) {
+export function MessageRenderer({ message, agentName, userName, onMessageFeedbackSubmitted }: MessageRendererProps) {
   const type = message.messageType ?? 'chat';
 
   switch (type) {
@@ -23,6 +27,7 @@ export function MessageRenderer({ message, agentName, userName }: MessageRendere
           message={message}
           agentName={agentName}
           userName={userName}
+          onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
         />
       );
     case 'reasoning':
@@ -31,6 +36,7 @@ export function MessageRenderer({ message, agentName, userName }: MessageRendere
           message={message}
           agentName={agentName}
           userName={userName}
+          onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
         />
       );
     case 'chat':
@@ -40,6 +46,7 @@ export function MessageRenderer({ message, agentName, userName }: MessageRendere
           message={message}
           agentName={agentName}
           userName={userName}
+          onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
         />
       );
   }
@@ -50,6 +57,7 @@ function ToolMessageItem({
   message,
   agentName,
   userName,
+  onMessageFeedbackSubmitted,
 }: MessageRendererProps) {
   // For now, render as chat message until ToolMessageItem UI is built
   return (
@@ -57,6 +65,7 @@ function ToolMessageItem({
       message={message}
       agentName={agentName}
       userName={userName}
+      onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
     />
   );
 }
@@ -66,6 +75,7 @@ function ReasoningMessageItem({
   message,
   agentName,
   userName,
+  onMessageFeedbackSubmitted,
 }: MessageRendererProps) {
   // For now, render as chat message until ReasoningMessageItem UI is built
   return (
@@ -73,6 +83,7 @@ function ReasoningMessageItem({
       message={message}
       agentName={agentName}
       userName={userName}
+      onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
     />
   );
 }

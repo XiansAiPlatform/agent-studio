@@ -12,6 +12,19 @@ export interface Message {
   timestamp: string;
   status?: 'sent' | 'delivered' | 'read';
   taskId?: string; // Associated task ID for the message
+  /** Routing context for feedback API (from Xians history) */
+  threadId?: string;
+  workflowId?: string;
+  workflowType?: string;
+  participantId?: string;
+  /** Embedded human feedback from history API */
+  feedback?: {
+    starRating: number;
+    reasonCategory?: string;
+    comment?: string;
+    submittedBy?: string;
+    submittedAt?: string;
+  };
   attachments?: {
     type: 'task' | 'file' | 'link';
     id: string;
