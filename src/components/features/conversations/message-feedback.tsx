@@ -68,14 +68,14 @@ export interface MessageFeedbackPromptProps {
   ) => void;
 }
 
-/** Stars + reason shown inside the agent bubble after feedback exists. */
+/** Stars + reason after feedback exists; render in the actions row next to Copy (same hover visibility as that row). */
 export function MessageFeedbackSummary({
   feedback,
 }: {
   feedback: NonNullable<Message['feedback']>;
 }) {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground w-full">
+    <div className="flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground min-w-0 shrink-0 max-w-full">
       <span className="mr-1">Your rating:</span>
       {[1, 2, 3, 4, 5].map((n) => (
         <Star

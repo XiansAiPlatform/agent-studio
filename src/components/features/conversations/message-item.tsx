@@ -369,11 +369,6 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
               })}
             </div>
           )}
-
-          {/* Submitted rating — inside bubble only */}
-          {!isUser && message.feedback && (
-            <MessageFeedbackSummary feedback={message.feedback} />
-          )}
         </div>
 
         {/* View Task Link - Show when message has taskId */}
@@ -621,18 +616,21 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
           </div>
         )}
 
-        {/* Actions — Copy + Rate (outside bubble) */}
+        {/* Actions — Copy + submitted rating + Rate (outside bubble; row shows on hover) */}
         {!isUser && (
-          <div className="flex items-center gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-2 px-1 flex-wrap opacity-0 group-hover:opacity-100 transition-opacity [@media(hover:none)]:opacity-100">
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs"
+              className="h-6 px-2 text-xs shrink-0"
               onClick={handleCopy}
             >
               <Copy className="h-3 w-3 mr-1" />
               Copy
             </Button>
+            {message.feedback && (
+              <MessageFeedbackSummary feedback={message.feedback} />
+            )}
             <MessageFeedbackPrompt
               message={message}
               agentName={agentName ?? 'Agent'}
