@@ -23,6 +23,21 @@ async function canAccessSettings(
   }
 }
 
+async function canAccessSystemAdmin(
+  token: { email?: string | null; accessToken?: string } | null
+): Promise<boolean> {
+  if (!token?.email) return false
+
+  try {
+    const client = createXiansClient(token.accessToken as string)
+    const tenantsApi = new XiansTenantsApi(client)
+    const response = await tenantsApi.getParticipantTenants(token.email)
+    return response.isSystemAdmin === true
+  } catch {
+    return false
+  }
+}
+
 export default withAuth(
   async function middleware(req) {
     const token = req.nextauth.token
@@ -40,6 +55,14 @@ export default withAuth(
     if (path.startsWith('/settings')) {
       const tenantId = req.cookies.get(CURRENT_TENANT_COOKIE)?.value ?? null
       const allowed = await canAccessSettings(token, tenantId)
+      if (!allowed) {
+        return NextResponse.redirect(new URL('/dashboard', req.nextUrl.origin))
+      }
+    }
+
+    // System admin paths require the user to be a platform system administrator
+    if (path.startsWith('/system-admin')) {
+      const allowed = await canAccessSystemAdmin(token)
       if (!allowed) {
         return NextResponse.redirect(new URL('/dashboard', req.nextUrl.origin))
       }
@@ -64,5 +87,6 @@ export const config = {
     "/knowledge/:path*",
     "/enable-tenant",
     "/settings/:path*",
+    "/system-admin/:path*",
   ]
 }

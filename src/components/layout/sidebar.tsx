@@ -16,6 +16,8 @@ import {
   LayoutDashboard,
   Server,
   BookOpen,
+  ShieldCheck,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,7 @@ import {
   AgentSelectionPanel,
 } from '@/components/features/conversations/agent-selection-panel';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 
 // Types for panel configuration
 type PanelConfig = {
@@ -51,6 +54,7 @@ type NavigationItem = {
   triggersPanel?: boolean;
   panelConfig?: PanelConfig;
   children?: NavigationChild[];
+  systemAdminOnly?: boolean;
 };
 
 const navigation: NavigationItem[] = [
@@ -84,7 +88,7 @@ const navigation: NavigationItem[] = [
     },
   },
   {
-    name: 'Settings',
+    name: 'Agent Settings',
     href: '/settings',
     icon: Settings,
     children: [
@@ -129,6 +133,15 @@ const navigation: NavigationItem[] = [
       { name: 'Activity Logs', href: '/settings/logs' },
       { name: 'Users', href: '/settings/users' },
       { name: 'Secrets', href: '/settings/secrets' },
+    ],
+  },
+  {
+    name: 'System Admin',
+    href: '/system-admin',
+    icon: ShieldCheck,
+    systemAdminOnly: true,
+    children: [
+      { name: 'Tenants', href: '/system-admin/tenants' },
     ],
   },
 ];
@@ -354,6 +367,11 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const [activePanelMode, setActivePanelMode] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
+
+  const visibleNavigation = navigation.filter(
+    (item) => !item.systemAdminOnly || user?.isSystemAdmin === true
+  );
 
   const effectiveCollapsed = mobile ? false : collapsed;
   const activePanelConfig = activePanelMode ? findPanelConfig(activePanelMode) : null;
@@ -388,7 +406,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
           mobile && 'pt-2'
         )}
       >
-        {navigation.map((item) => {
+        {visibleNavigation.map((item) => {
           const isExactMatch = pathname === item.href;
           const hasActiveChild = item.children?.some(child => pathname === child.href) || false;
           const isActive = isExactMatch || hasActiveChild ||

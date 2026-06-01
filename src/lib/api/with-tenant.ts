@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession, Session } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { useTenantProvider, TenantContext } from "@/lib/tenant"
-import { requireParticipantAdmin } from "@/lib/api/auth"
+import { requireParticipantAdmin, requireSystemAdmin } from "@/lib/api/auth"
 
 /**
  * API Context provided to route handlers
@@ -233,6 +233,53 @@ export function withParticipantAdmin(handler: ApiHandler) {
       })
     } catch (error) {
       console.error('[withParticipantAdmin] Error:', error)
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+  }
+}
+
+/**
+ * Context provided to system-admin-protected route handlers.
+ * System admin operations are cross-tenant, so no tenant context is included.
+ */
+export interface SystemAdminContext {
+  /** NextAuth session with augmented user properties */
+  session: Session
+}
+
+/**
+ * Middleware wrapper for API routes that require system administrator access.
+ *
+ * Verifies the *current end user* is a system admin via a fresh backend lookup
+ * (not the session cache, and not the service API key identity). This is the
+ * authoritative authorization gate for system-admin operations — the backend
+ * AdminApi endpoints resolve roles from the service API key owner, so per-user
+ * enforcement MUST happen here rather than in client pages.
+ *
+ * @param handler - API route handler function
+ * @returns Wrapped route handler with system admin validation
+ *
+ * @example
+ * export const GET = withSystemAdmin(async (request, { session }) => {
+ *   // Only reached when the current user is a verified system admin
+ * })
+ */
+export function withSystemAdmin(
+  handler: (request: NextRequest, context: SystemAdminContext) => Promise<Response>
+) {
+  return async (request: NextRequest) => {
+    try {
+      const session = await getServerSession(authOptions)
+
+      const authError = await requireSystemAdmin(session)
+      if (authError) return authError
+
+      return handler(request, { session: session! })
+    } catch (error) {
+      console.error('[withSystemAdmin] Error:', error)
       return NextResponse.json(
         { error: 'Internal server error' },
         { status: 500 }
