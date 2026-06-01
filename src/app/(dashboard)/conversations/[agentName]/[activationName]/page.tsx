@@ -174,6 +174,7 @@ function ConversationContent() {
     serverUnavailable,
     isLoading: isHeartbeatLoading,
     refetch: refetchHeartbeat,
+    notifyActivity: notifyHeartbeatActivity,
   } = useAgentHeartbeat({
     tenantId: currentTenantId,
     agentName,
@@ -510,6 +511,8 @@ function ConversationContent() {
       return;
     }
 
+    notifyHeartbeatActivity();
+
     try {
       const topicParamValue = topicId === 'general-discussions' ? undefined : topicId;
 
@@ -564,7 +567,7 @@ function ConversationContent() {
       console.error('[ConversationPage] Error sending message:', error);
       showErrorToast(error, 'Failed to send message');
     }
-  }, [currentTenantId, agentName, activationName, addMessageToTopic]);
+  }, [currentTenantId, agentName, activationName, addMessageToTopic, notifyHeartbeatActivity]);
 
   // Handle sending file uploads (type=File per messaging doc)
   // See note on handleSendMessage above for why we don't gate on session.user.email.
@@ -578,6 +581,8 @@ function ConversationContent() {
       showErrorToast(new Error('Missing required parameters'), 'Unable to upload file');
       return;
     }
+
+    notifyHeartbeatActivity();
 
     try {
       const topicParamValue = topicId === 'general-discussions' ? undefined : topicId;
@@ -639,7 +644,7 @@ function ConversationContent() {
       console.error('[ConversationPage] Error uploading file:', error);
       showErrorToast(error, 'Failed to upload file');
     }
-  }, [currentTenantId, agentName, activationName, addMessageToTopic]);
+  }, [currentTenantId, agentName, activationName, addMessageToTopic, notifyHeartbeatActivity]);
 
   // Handle loading more messages
   const handleLoadMoreMessages = useCallback(async () => {

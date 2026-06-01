@@ -19,7 +19,7 @@ export function CategoryCard({
   showViewTimeline,
   onViewDetails,
 }: CategoryCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <Card className="border-border/60 overflow-hidden">

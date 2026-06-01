@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface UseAgentHeartbeatParams {
   tenantId: string | null;
@@ -8,8 +8,10 @@ export interface UseAgentHeartbeatParams {
   activationName: string | null;
   /** Only check heartbeat when activation is active (worker expected to run) */
   enabled?: boolean;
-  /** Interval in seconds for periodic heartbeat checks. Default 30. Set to 0 to disable. */
-  intervalSeconds?: number;
+  /** Starting interval in seconds. Doubles after each check up to maxIntervalSeconds. Default 30. */
+  baseIntervalSeconds?: number;
+  /** Maximum interval cap in seconds. Default 300 (5 min). */
+  maxIntervalSeconds?: number;
 }
 
 export interface UseAgentHeartbeatResult {
@@ -18,24 +20,40 @@ export interface UseAgentHeartbeatResult {
   /** true when API/server unreachable (network error, 5xx). Distinct from worker unavailable. */
   serverUnavailable: boolean;
   isLoading: boolean;
-  /** Refetch heartbeat (e.g. when user returns to tab or activation) */
+  /** Hard refetch (shows loading state) and resets the backoff timer. */
   refetch: () => void;
+  /**
+   * Notify the hook that the user is active (e.g. sent a message).
+   * Resets the backoff timer back to baseIntervalSeconds without triggering an
+   * immediate check — the next scheduled check will fire after the base interval.
+   */
+  notifyActivity: () => void;
 }
 
 /**
  * Checks agent worker liveness via heartbeat endpoint when a new activation is opened.
  * Returns worker availability to show Live tag or warning in the conversation header.
+ *
+ * Uses exponential backoff for periodic checks: starts at baseIntervalSeconds and
+ * doubles the wait after each check (capped at maxIntervalSeconds). The backoff resets
+ * to the base interval on user activity, manual refetch, activation change, or tab focus.
  */
 export function useAgentHeartbeat({
   tenantId,
   agentName,
   activationName,
   enabled = true,
-  intervalSeconds = 30,
+  baseIntervalSeconds = 30,
+  maxIntervalSeconds = 300,
 }: UseAgentHeartbeatParams): UseAgentHeartbeatResult {
   const [workerAvailable, setWorkerAvailable] = useState<boolean | null>(null);
   const [serverUnavailable, setServerUnavailable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Tracks the current backoff interval; mutated inside the scheduling effect.
+  const currentIntervalRef = useRef(baseIntervalSeconds);
+  // Incrementing this cancels + restarts the scheduling effect (resets backoff).
+  const [scheduleTrigger, setScheduleTrigger] = useState(0);
 
   const checkHeartbeat = useCallback(
     async (background = false) => {
@@ -83,27 +101,65 @@ export function useAgentHeartbeat({
     [tenantId, agentName, activationName, enabled]
   );
 
-  // Refetch for manual trigger (user click) - shows loading state
-  const refetch = useCallback(() => checkHeartbeat(false), [checkHeartbeat]);
-
   // Initial check when activation changes
   useEffect(() => {
     checkHeartbeat(false);
   }, [checkHeartbeat]);
 
-  // Periodic checks (background, no loading state)
+  // Exponential backoff scheduling.
+  // Re-runs on activation change (checkHeartbeat identity change) OR on explicit reset
+  // (scheduleTrigger increment). Always restarts from baseIntervalSeconds.
   useEffect(() => {
-    if (!enabled || !tenantId || !agentName || !activationName || intervalSeconds <= 0) {
-      return;
-    }
-    const id = setInterval(() => checkHeartbeat(true), intervalSeconds * 1000);
-    return () => clearInterval(id);
-  }, [checkHeartbeat, enabled, tenantId, agentName, activationName, intervalSeconds]);
+    if (!enabled || !tenantId || !agentName || !activationName) return;
+
+    currentIntervalRef.current = baseIntervalSeconds;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const scheduleNext = () => {
+      timeoutId = setTimeout(async () => {
+        await checkHeartbeat(true);
+        const next = currentIntervalRef.current * 2;
+        if (next > maxIntervalSeconds) {
+          // Reached the cap — stop polling until user activity or tab refocus resets backoff.
+          return;
+        }
+        currentIntervalRef.current = next;
+        scheduleNext();
+      }, currentIntervalRef.current * 1000);
+    };
+
+    scheduleNext();
+    return () => clearTimeout(timeoutId);
+  }, [checkHeartbeat, enabled, tenantId, agentName, activationName, baseIntervalSeconds, maxIntervalSeconds, scheduleTrigger]);
+
+  // Reset backoff when the user returns to this tab
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        setScheduleTrigger((n) => n + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  /** Resets the backoff schedule to baseIntervalSeconds without an immediate check. */
+  const notifyActivity = useCallback(() => {
+    setScheduleTrigger((n) => n + 1);
+  }, []);
+
+  /** Hard check (shows loading) + resets backoff. */
+  const refetch = useCallback(() => {
+    setScheduleTrigger((n) => n + 1);
+    checkHeartbeat(false);
+  }, [checkHeartbeat]);
 
   return {
     workerAvailable,
     serverUnavailable,
     isLoading,
     refetch,
+    notifyActivity,
   };
 }
