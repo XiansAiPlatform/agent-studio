@@ -492,9 +492,20 @@ function ConversationContent() {
   }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent]);
 
   // Handle sending messages
+  // Note: we intentionally do not gate on `session.user.email` here. After a period
+  // of inactivity the SessionProvider refetches `/api/auth/session` (on window focus
+  // or on the 5-min interval), during which `useSession()` is transiently in a
+  // loading state with `data: null`. The actual POST below doesn't carry the email
+  // in the body — the server identifies the user from the auth cookie — so the
+  // email check would cause false-positive failures without protecting anything.
+  // A truly unauthenticated request is still caught by the `!response.ok` branch.
   const handleSendMessage = useCallback(async (content: string, topicId: string) => {
-    if (!currentTenantId || !agentName || !activationName || !session?.user?.email) {
-      console.error('[ConversationPage] Missing required parameters for sending message');
+    if (!currentTenantId || !agentName || !activationName) {
+      console.error('[ConversationPage] Missing required parameters for sending message', {
+        hasTenant: !!currentTenantId,
+        hasAgent: !!agentName,
+        hasActivation: !!activationName,
+      });
       showErrorToast(new Error('Missing required parameters'), 'Unable to send message');
       return;
     }
@@ -553,12 +564,17 @@ function ConversationContent() {
       console.error('[ConversationPage] Error sending message:', error);
       showErrorToast(error, 'Failed to send message');
     }
-  }, [currentTenantId, agentName, activationName, session?.user?.email, addMessageToTopic]);
+  }, [currentTenantId, agentName, activationName, addMessageToTopic]);
 
   // Handle sending file uploads (type=File per messaging doc)
+  // See note on handleSendMessage above for why we don't gate on session.user.email.
   const handleSendFile = useCallback(async (file: FileUploadPayload, topicId: string) => {
-    if (!currentTenantId || !agentName || !activationName || !session?.user?.email) {
-      console.error('[ConversationPage] Missing required parameters for file upload');
+    if (!currentTenantId || !agentName || !activationName) {
+      console.error('[ConversationPage] Missing required parameters for file upload', {
+        hasTenant: !!currentTenantId,
+        hasAgent: !!agentName,
+        hasActivation: !!activationName,
+      });
       showErrorToast(new Error('Missing required parameters'), 'Unable to upload file');
       return;
     }
@@ -623,7 +639,7 @@ function ConversationContent() {
       console.error('[ConversationPage] Error uploading file:', error);
       showErrorToast(error, 'Failed to upload file');
     }
-  }, [currentTenantId, agentName, activationName, session?.user?.email, addMessageToTopic]);
+  }, [currentTenantId, agentName, activationName, addMessageToTopic]);
 
   // Handle loading more messages
   const handleLoadMoreMessages = useCallback(async () => {
