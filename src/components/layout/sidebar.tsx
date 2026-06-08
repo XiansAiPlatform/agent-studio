@@ -142,6 +142,7 @@ const navigation: NavigationItem[] = [
     systemAdminOnly: true,
     children: [
       { name: 'Tenants', href: '/system-admin/tenants' },
+      { name: 'Users', href: '/system-admin/users' },
     ],
   },
 ];
