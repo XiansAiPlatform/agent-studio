@@ -19,13 +19,17 @@ export class XiansTenantsApi {
     console.log(`[Xians Tenants] Fetching tenant: ${tenantId}`)
     
     try {
-      const tenant = await this.client.get<XiansTenant>(`/api/v1/admin/tenants/${tenantId}`)
-      console.log(`[Xians Tenants] Successfully fetched tenant: ${tenantId}`, {
+      // Encode the tenant ID to keep it confined to a single URL path segment.
+      // Prevents path traversal / server-side request forgery via crafted IDs.
+      const tenant = await this.client.get<XiansTenant>(
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}`
+      )
+      console.log('[Xians Tenants] Successfully fetched tenant: %s', tenantId, {
         name: tenant.name
       })
       return tenant
     } catch (error: any) {
-      console.error(`[Xians Tenants] Failed to fetch tenant: ${tenantId}`, {
+      console.error('[Xians Tenants] Failed to fetch tenant: %s', tenantId, {
         error: error.message,
         status: error.status
       })
