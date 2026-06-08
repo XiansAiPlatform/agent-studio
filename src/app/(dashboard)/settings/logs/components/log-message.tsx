@@ -51,8 +51,14 @@ function stripMarkdown(input: string): string {
   text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
   text = text.replace(/(\*|_)(.*?)\1/g, '$2');
   text = text.replace(/~~(.*?)~~/g, '$1');
-  // HTML tags
-  text = text.replace(/<[^>]+>/g, '');
+  // HTML tags. Repeat until stable: a single pass can re-form a tag
+  // (e.g. "<scr<script>ipt>" -> "<script>"), so keep stripping until no
+  // more tag-like sequences remain.
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]+>/g, '');
+  } while (text !== previous);
   // Collapse whitespace to single spaces
   text = text.replace(/\s+/g, ' ').trim();
 
