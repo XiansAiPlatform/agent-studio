@@ -24,12 +24,12 @@ export class XiansTenantsApi {
       const tenant = await this.client.get<XiansTenant>(
         `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}`
       )
-      console.log(`[Xians Tenants] Successfully fetched tenant: ${tenantId}`, {
+      console.log('[Xians Tenants] Successfully fetched tenant: %s', tenantId, {
         name: tenant.name
       })
       return tenant
     } catch (error: any) {
-      console.error(`[Xians Tenants] Failed to fetch tenant: ${tenantId}`, {
+      console.error('[Xians Tenants] Failed to fetch tenant: %s', tenantId, {
         error: error.message,
         status: error.status
       })
