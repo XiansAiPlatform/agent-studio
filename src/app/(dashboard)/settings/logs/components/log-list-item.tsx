@@ -48,6 +48,11 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
         isExpanded && 'shadow-md'
       )}
       onClick={() => {
+        // Don't toggle when the user is selecting/copying text (e.g. from the
+        // log body) — collapsing on mouseup makes selection impossible.
+        if (typeof window !== 'undefined' && window.getSelection()?.toString()) {
+          return;
+        }
         if (onClick) onClick();
         else setIsExpanded(!isExpanded);
       }}
