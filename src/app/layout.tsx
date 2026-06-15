@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, DM_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorThemeProvider } from "@/components/theme-color-provider";
@@ -16,6 +16,23 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Self-hosted via next/font (no external <link> to fonts.googleapis.com).
+// DM Sans powers the Zenith theme; weights 300/400/700.
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "700"],
+  display: "swap",
+});
+
+// Inter powers the Gaia theme; weights 400/500/600/700.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -45,21 +62,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable} ${dmSans.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
       <head>
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />
-        {/* DM Sans for Zenith theme (weights 300/400/700) */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;700&display=swap"
-          rel="stylesheet"
-        />
-        {/* Inter for Gaia theme (weights 400/500/600/700) */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
         {/* Inline script runs before React — cannot import COLOR_THEMES. Keep the theme list below in sync with src/lib/themes.ts when adding new themes. */}
         <script
           dangerouslySetInnerHTML={{
