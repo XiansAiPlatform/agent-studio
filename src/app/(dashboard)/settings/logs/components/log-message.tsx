@@ -92,11 +92,14 @@ export function LogMessage({
     <div
       className={cn(
         'text-sm leading-relaxed text-foreground markdown-content',
+        // Wrap long unbroken tokens (URLs, hashes, JSON blobs without spaces)
+        // instead of overflowing the card horizontally.
+        'min-w-0 [overflow-wrap:anywhere] break-words',
         '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
-        '[&_p]:my-1.5 [&_p]:leading-relaxed',
+        '[&_p]:my-1.5 [&_p]:leading-relaxed [&_p]:[overflow-wrap:anywhere]',
         '[&_ul]:list-disc [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:space-y-1',
         '[&_ol]:list-decimal [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:space-y-1',
-        '[&_li]:leading-relaxed',
+        '[&_li]:leading-relaxed [&_li]:[overflow-wrap:anywhere]',
         '[&_strong]:font-semibold',
         '[&_em]:italic',
         '[&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5',
@@ -123,7 +126,7 @@ export function LogMessage({
             return inline ? (
               <code
                 {...props}
-                className="px-1 py-0.5 rounded text-[0.85em] font-mono bg-muted text-foreground"
+                className="px-1 py-0.5 rounded text-[0.85em] font-mono bg-muted text-foreground [overflow-wrap:anywhere]"
               />
             ) : (
               <code
