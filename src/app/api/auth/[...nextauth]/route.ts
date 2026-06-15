@@ -223,10 +223,17 @@ export const authOptions: NextAuthOptions = {
     },
     
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
+      try {
+        // Allow only relative paths (reject protocol-relative "//" and
+        // backslash tricks that some browsers normalize to an external host)
+        if (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\")) {
+          return `${baseUrl}${url}`
+        }
+        // Allow callback URLs on the same origin only
+        if (new URL(url).origin === baseUrl) return url
+      } catch {
+        // Malformed callbackUrl - fall through to the safe default
+      }
       return baseUrl
     },
   },
