@@ -13,14 +13,14 @@ export interface Activation {
   deactivatedAt?: string;
 }
 
-export function useActivations(tenantId: string | null, shouldFetch: boolean = true) {
+export function useActivations(shouldFetch: boolean = true) {
   const [activations, setActivations] = useState<Activation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!tenantId || !shouldFetch) {
+    if (!shouldFetch) {
       setActivations([]);
       setIsLoading(false);
       return;
@@ -96,7 +96,7 @@ export function useActivations(tenantId: string | null, shouldFetch: boolean = t
         abortControllerRef.current.abort();
       }
     };
-  }, [tenantId, shouldFetch]);
+  }, [shouldFetch]);
 
   return { activations, isLoading, error };
 }

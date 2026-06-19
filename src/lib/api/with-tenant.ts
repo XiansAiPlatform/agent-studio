@@ -58,6 +58,55 @@ export function getTenantIdFromCookie(request: NextRequest): string | null {
 }
 
 /**
+ * Defense-in-depth guard for cookie-scoped routes.
+ *
+ * These routes ALWAYS resolve tenant (and user) identity server-side from the
+ * session + httpOnly `current-tenant-id` cookie. A client must never attempt to
+ * supply tenant identity via the query string, a request header, or the JSON
+ * body — any such attempt is rejected outright so it can never be silently
+ * trusted by a future handler change.
+ *
+ * The body is inspected on a clone so the handler can still read it normally.
+ * Body inspection is best-effort: non-JSON or unparseable bodies are ignored
+ * (there is no `tenantId` field to leak in that case).
+ *
+ * @returns a 400 NextResponse if client-supplied identity is detected, else null
+ */
+export async function rejectClientTenantId(
+  request: NextRequest
+): Promise<NextResponse | null> {
+  const message =
+    'tenantId must not be supplied by the client; it is resolved server-side from the session cookie'
+
+  // 1. Query string
+  if (request.nextUrl.searchParams.has('tenantId')) {
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+
+  // 2. Request header (clients must not pin the upstream tenant header)
+  if (request.headers.get('x-tenant-id')) {
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+
+  // 3. JSON body — peek via a clone so the handler can still read the original.
+  const method = request.method.toUpperCase()
+  const contentType = request.headers.get('content-type') ?? ''
+  if (method !== 'GET' && method !== 'HEAD' && contentType.includes('application/json')) {
+    try {
+      const cloned = request.clone()
+      const body = await cloned.json()
+      if (body && typeof body === 'object' && 'tenantId' in body) {
+        return NextResponse.json({ error: message }, { status: 400 })
+      }
+    } catch {
+      // Unparseable / empty body — nothing to reject.
+    }
+  }
+
+  return null
+}
+
+/**
  * Middleware wrapper for tenant-aware API routes
  * 
  * Validates:
@@ -143,6 +192,10 @@ export function withTenant(handler: ApiHandler) {
 export function withTenantFromSession(handler: ApiHandler) {
   return async (request: NextRequest) => {
     try {
+      // Tenant is resolved server-side only — reject any client-supplied identity.
+      const identityError = await rejectClientTenantId(request)
+      if (identityError) return identityError
+
       const session = await getServerSession(authOptions)
       
       if (!session || !session.user?.id || !session.user?.email) {
@@ -201,13 +254,10 @@ export function withTenantFromSession(handler: ApiHandler) {
 export function withParticipantAdmin(handler: ApiHandler) {
   return async (request: NextRequest) => {
     try {
-      // Reject any client-supplied tenantId — tenant must come from the server-side cookie only.
-      if (request.nextUrl.searchParams.has('tenantId')) {
-        return NextResponse.json(
-          { error: 'tenantId must not be supplied by the client; it is resolved server-side from the session cookie' },
-          { status: 400 }
-        )
-      }
+      // Reject any client-supplied tenantId (query/header/body) — tenant must come
+      // from the server-side cookie only.
+      const identityError = await rejectClientTenantId(request)
+      if (identityError) return identityError
 
       const session = await getServerSession(authOptions)
 
@@ -266,12 +316,8 @@ export function withParticipantAdmin(handler: ApiHandler) {
 export function withTenantAdmin(handler: ApiHandler) {
   return async (request: NextRequest) => {
     try {
-      if (request.nextUrl.searchParams.has('tenantId')) {
-        return NextResponse.json(
-          { error: 'tenantId must not be supplied by the client; it is resolved server-side from the session cookie' },
-          { status: 400 }
-        )
-      }
+      const identityError = await rejectClientTenantId(request)
+      if (identityError) return identityError
 
       const session = await getServerSession(authOptions)
 

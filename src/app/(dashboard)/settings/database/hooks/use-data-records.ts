@@ -5,7 +5,6 @@ import { DataResponse } from '../types';
 import { showErrorToast } from '@/lib/utils/error-handler';
 
 export function useDataRecords(
-  tenantId: string | null,
   agentName: string | null,
   activationName: string | null,
   dataType: string | null,
@@ -20,7 +19,7 @@ export function useDataRecords(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tenantId || !agentName || !activationName || !dataType || !shouldFetch || !startDate || !endDate) {
+    if (!agentName || !activationName || !dataType || !shouldFetch || !startDate || !endDate) {
       setData(null);
       setIsLoading(false);
       return;
@@ -73,7 +72,7 @@ export function useDataRecords(
     };
 
     fetchRecords();
-  }, [tenantId, agentName, activationName, dataType, startDate, endDate, skip, limit, shouldFetch]);
+  }, [agentName, activationName, dataType, startDate, endDate, skip, limit, shouldFetch]);
 
   return { data, isLoading, error };
 }

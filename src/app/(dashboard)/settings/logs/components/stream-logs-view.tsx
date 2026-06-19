@@ -7,7 +7,6 @@ import { LogListItem } from './log-list-item';
 import { LogsPaginationBar } from './logs-pagination-bar';
 
 interface StreamLogsViewProps {
-  tenantId: string | null;
   filters: LogFilters;
   currentPage: number;
   enabled: boolean;
@@ -21,7 +20,6 @@ interface StreamLogsViewProps {
 }
 
 export function StreamLogsView({
-  tenantId,
   filters,
   currentPage,
   enabled,
@@ -30,7 +28,6 @@ export function StreamLogsView({
   onPageChange,
 }: StreamLogsViewProps) {
   const { logs, totalCount, totalPages, isLoading, refetch } = useLogs(
-    tenantId,
     filters,
     enabled
   );

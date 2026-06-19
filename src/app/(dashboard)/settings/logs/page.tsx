@@ -484,7 +484,6 @@ function LogsContent() {
             />
           ) : (
             <StreamLogsView
-              tenantId={currentTenantId}
               filters={logFilters}
               currentPage={currentPage}
               enabled={shouldFetch}

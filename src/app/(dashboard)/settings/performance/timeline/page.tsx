@@ -41,7 +41,6 @@ function TimelineContent() {
   const shouldFetch = Boolean(currentTenantId) && Boolean(user) && Boolean(category) && Boolean(type);
 
   const { data, isLoading, error } = useMetricsTimeseries(
-    currentTenantId,
     category,
     type,
     startDate,

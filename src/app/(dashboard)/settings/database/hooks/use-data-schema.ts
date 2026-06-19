@@ -5,7 +5,6 @@ import { DataSchemaResponse } from '../types';
 import { showErrorToast } from '@/lib/utils/error-handler';
 
 export function useDataSchema(
-  tenantId: string | null,
   agentName: string | null,
   activationName: string | null,
   startDate: string,
@@ -20,7 +19,6 @@ export function useDataSchema(
 
   useEffect(() => {
     console.log('[useDataSchema] Effect triggered:', {
-      tenantId,
       agentName,
       activationName,
       shouldFetch,
@@ -28,7 +26,7 @@ export function useDataSchema(
       endDate: endDate?.substring(0, 10)
     });
 
-    if (!tenantId || !agentName || !activationName || !shouldFetch || !startDate || !endDate) {
+    if (!agentName || !activationName || !shouldFetch || !startDate || !endDate) {
       console.log('[useDataSchema] Skipping fetch - missing required params');
       setData(null);
       setIsLoading(false);
@@ -36,7 +34,7 @@ export function useDataSchema(
     }
 
     // Create a unique key for these parameters
-    const paramsKey = `${tenantId}-${agentName}-${activationName}-${startDate}-${endDate}`;
+    const paramsKey = `${agentName}-${activationName}-${startDate}-${endDate}`;
     
     // Skip if we already fetched with these exact parameters
     if (lastFetchParamsRef.current === paramsKey) {
@@ -112,7 +110,7 @@ export function useDataSchema(
         abortControllerRef.current.abort();
       }
     };
-  }, [tenantId, agentName, activationName, startDate, endDate, shouldFetch]);
+  }, [agentName, activationName, startDate, endDate, shouldFetch]);
 
   return { data, isLoading, error };
 }

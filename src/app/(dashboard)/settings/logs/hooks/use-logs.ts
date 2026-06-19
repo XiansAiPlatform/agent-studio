@@ -13,8 +13,11 @@ interface UseLogsResult {
   refetch: () => Promise<void>;
 }
 
+/**
+ * Fetch logs for the current tenant. The tenant is resolved server-side from the
+ * session cookie; callers only control whether/when to fetch via `enabled`.
+ */
 export function useLogs(
-  tenantId: string | null,
   filters: LogFilters,
   enabled: boolean = true
 ): UseLogsResult {
@@ -44,7 +47,7 @@ export function useLogs(
   ]);
 
   const fetchLogs = useCallback(async (signal?: AbortSignal) => {
-    if (!tenantId || !enabled) {
+    if (!enabled) {
       setLogs([]);
       setIsLoading(false);
       return;
@@ -130,7 +133,7 @@ export function useLogs(
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, enabled, filtersKey]);
+  }, [enabled, filtersKey]);
 
   useEffect(() => {
     const abortController = new AbortController();

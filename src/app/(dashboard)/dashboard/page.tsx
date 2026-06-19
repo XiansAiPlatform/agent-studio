@@ -114,7 +114,6 @@ export default function DashboardPage() {
     Boolean(currentTenantId)
   );
   const { logs: recentLogs, isLoading: isLoadingLogs } = useLogs(
-    currentTenantId,
     { pageSize: 10, page: 1 },
     Boolean(currentTenantId) && Boolean(user)
   );

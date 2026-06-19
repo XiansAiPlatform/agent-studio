@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useTenant } from '@/hooks/use-tenant'
 import { 
   OIDCConnection, 
   CreateConnectionRequest, 
@@ -62,13 +63,12 @@ function createMutationState<T>(
   return { isPending, error, mutateAsync, mutate }
 }
 
-// API client functions
+// API client functions.
+// NOTE: None of these send a tenant id — the backend resolves the tenant
+// server-side from the session cookie. Callers only gate on tenant presence.
 async function fetchConnections(
-  tenantId: string, 
   options?: UseConnectionsOptions
 ): Promise<OIDCConnection[]> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
   // If agentName and activationName are provided, fetch from integrations endpoint
   if (options?.agentName && options?.activationName) {
     const params = new URLSearchParams()
@@ -133,11 +133,8 @@ async function fetchConnections(
 }
 
 async function createConnection(
-  tenantId: string, 
   data: CreateConnectionRequest
 ): Promise<OIDCConnection> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
   const response = await fetch(`/api/connections`, {
     method: 'POST',
     headers: {
@@ -156,11 +153,8 @@ async function createConnection(
 }
 
 async function initiateConnection(
-  tenantId: string, 
   data: InitiateConnectionRequest
 ): Promise<InitiateConnectionResponse> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
   const response = await fetch(`/api/connections/initiate`, {
     method: 'POST',
     headers: {
@@ -178,12 +172,9 @@ async function initiateConnection(
 }
 
 async function updateConnection(
-  tenantId: string, 
   connectionId: string, 
   data: UpdateConnectionRequest
 ): Promise<OIDCConnection> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
   const response = await fetch(`/api/connections/${connectionId}`, {
     method: 'PUT',
     headers: {
@@ -201,9 +192,7 @@ async function updateConnection(
   return result.connection
 }
 
-async function deleteConnection(tenantId: string, connectionId: string): Promise<void> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
+async function deleteConnection(connectionId: string): Promise<void> {
   const response = await fetch(`/api/connections/${connectionId}`, {
     method: 'DELETE',
   })
@@ -214,9 +203,7 @@ async function deleteConnection(tenantId: string, connectionId: string): Promise
   }
 }
 
-async function deleteIntegration(tenantId: string, integrationId: string): Promise<void> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
+async function deleteIntegration(integrationId: string): Promise<void> {
   const response = await fetch(`/api/integrations/${integrationId}`, {
     method: 'DELETE',
   })
@@ -227,9 +214,7 @@ async function deleteIntegration(tenantId: string, integrationId: string): Promi
   }
 }
 
-async function testConnection(tenantId: string, connectionId: string): Promise<ConnectionTestResult> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
+async function testConnection(connectionId: string): Promise<ConnectionTestResult> {
   const response = await fetch(`/api/connections/${connectionId}/test`, {
     method: 'POST',
   })
@@ -244,11 +229,8 @@ async function testConnection(tenantId: string, connectionId: string): Promise<C
 }
 
 async function authorizeConnection(
-  tenantId: string, 
   connectionId: string
 ): Promise<AuthorizeConnectionResponse> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
   const response = await fetch(`/api/connections/${connectionId}/authorize`, {
     method: 'POST',
     headers: {
@@ -266,11 +248,8 @@ async function authorizeConnection(
 }
 
 async function createIntegration(
-  tenantId: string,
   data: any
 ): Promise<{ id: string; webhookUrl: string }> {
-  if (!tenantId) throw new Error('Tenant ID is required')
-  
   const response = await fetch(`/api/integrations`, {
     method: 'POST',
     headers: {
@@ -288,7 +267,10 @@ async function createIntegration(
 }
 
 // Main hook
-export function useConnections(tenantId?: string, options?: UseConnectionsOptions) {
+export function useConnections(options?: UseConnectionsOptions) {
+  // Tenant is resolved server-side from the session cookie; the current
+  // selection only gates fetching and keys the cache.
+  const { currentTenantId } = useTenant()
   const [connections, setConnections] = useState<OIDCConnection[] | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -297,7 +279,7 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
   
   // Create stable string key using useMemo
   const optionsKey = useMemo(() => JSON.stringify({
-    tenantId,
+    tenantId: currentTenantId,
     search: options?.search,
     status: options?.status,
     providerId: options?.providerId,
@@ -305,7 +287,7 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
     agentName: options?.agentName,
     activationName: options?.activationName,
   }), [
-    tenantId,
+    currentTenantId,
     options?.search,
     options?.status,
     options?.providerId,
@@ -315,7 +297,7 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
   ])
 
   useEffect(() => {
-    if (!tenantId) return
+    if (!currentTenantId) return
     
     // Skip if already fetched with these exact parameters
     if (lastFetchKeyRef.current === optionsKey) {
@@ -335,7 +317,7 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
       setIsLoading(true)
       setError(null)
       try {
-        const data = await fetchConnections(tenantId, options)
+        const data = await fetchConnections(options)
         setConnections(data)
         
         // Mark these parameters as fetched
@@ -362,13 +344,13 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
         abortControllerRef.current.abort()
       }
     }
-  }, [tenantId, optionsKey, options])
+  }, [currentTenantId, optionsKey, options])
 
   const refetch = useCallback(async () => {
     // Reset the last fetch key to force a new fetch
     lastFetchKeyRef.current = null
     
-    if (!tenantId) return
+    if (!currentTenantId) return
     
     // Cancel any pending request
     if (abortControllerRef.current) {
@@ -381,7 +363,7 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
     setIsLoading(true)
     setError(null)
     try {
-      const data = await fetchConnections(tenantId, options)
+      const data = await fetchConnections(options)
       setConnections(data)
       lastFetchKeyRef.current = optionsKey
     } catch (err) {
@@ -395,46 +377,46 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
     } finally {
       setIsLoading(false)
     }
-  }, [tenantId, optionsKey, options])
+  }, [currentTenantId, optionsKey, options])
 
   // Mutations
   const createConnectionMutation = createMutationState<CreateConnectionRequest>(
-    (data) => createConnection(tenantId!, data),
+    (data) => createConnection(data),
     refetch
   )
 
   const initiateConnectionMutation = createMutationState<InitiateConnectionRequest>(
-    (data) => initiateConnection(tenantId!, data),
+    (data) => initiateConnection(data),
     refetch
   )
 
   const updateConnectionMutation = createMutationState<{ id: string; data: UpdateConnectionRequest }>(
-    ({ id, data }) => updateConnection(tenantId!, id, data),
+    ({ id, data }) => updateConnection(id, data),
     refetch
   )
 
   const deleteConnectionMutation = createMutationState<string>(
-    (connectionId) => deleteConnection(tenantId!, connectionId),
+    (connectionId) => deleteConnection(connectionId),
     refetch
   )
 
   const deleteIntegrationMutation = createMutationState<string>(
-    (integrationId) => deleteIntegration(tenantId!, integrationId),
+    (integrationId) => deleteIntegration(integrationId),
     refetch
   )
 
   const testConnectionMutation = createMutationState<string>(
-    (connectionId) => testConnection(tenantId!, connectionId),
+    (connectionId) => testConnection(connectionId),
     refetch
   )
 
   const authorizeConnectionMutation = createMutationState<string>(
-    (connectionId) => authorizeConnection(tenantId!, connectionId),
+    (connectionId) => authorizeConnection(connectionId),
     refetch
   )
 
   const createIntegrationMutation = createMutationState<any>(
-    (data) => createIntegration(tenantId!, data),
+    (data) => createIntegration(data),
     refetch
   )
 
@@ -455,13 +437,14 @@ export function useConnections(tenantId?: string, options?: UseConnectionsOption
 }
 
 // Individual connection hook
-export function useConnection(tenantId?: string, connectionId?: string) {
+export function useConnection(connectionId?: string) {
+  const { currentTenantId } = useTenant()
   const [connection, setConnection] = useState<OIDCConnection | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
   const refetch = useCallback(async () => {
-    if (!tenantId || !connectionId) return
+    if (!currentTenantId || !connectionId) return
     
     setIsLoading(true)
     setError(null)
@@ -478,7 +461,7 @@ export function useConnection(tenantId?: string, connectionId?: string) {
     } finally {
       setIsLoading(false)
     }
-  }, [tenantId, connectionId])
+  }, [currentTenantId, connectionId])
 
   useEffect(() => {
     refetch()

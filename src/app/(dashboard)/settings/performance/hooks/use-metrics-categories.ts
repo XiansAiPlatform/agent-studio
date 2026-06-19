@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { MetricsCategoriesResponse } from '../types';
 
 export function useMetricsCategories(
-  tenantId: string | null,
   startDate: string,
   endDate: string,
   agentName?: string | null,
@@ -16,7 +15,7 @@ export function useMetricsCategories(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tenantId || !shouldFetch || !startDate || !endDate) {
+    if (!shouldFetch || !startDate || !endDate) {
       setData(null);
       setIsLoading(false);
       return;
@@ -67,7 +66,7 @@ export function useMetricsCategories(
     };
 
     fetchCategories();
-  }, [tenantId, startDate, endDate, agentName, activationName, shouldFetch]);
+  }, [startDate, endDate, agentName, activationName, shouldFetch]);
 
   return { data, isLoading, error };
 }

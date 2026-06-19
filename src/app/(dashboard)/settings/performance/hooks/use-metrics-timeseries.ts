@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { MetricTimeseriesResponse } from '../types';
 
 export function useMetricsTimeseries(
-  tenantId: string | null,
   category: string,
   type: string,
   startDate: string,
@@ -19,7 +18,7 @@ export function useMetricsTimeseries(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tenantId || !shouldFetch || !startDate || !endDate || !category || !type) {
+    if (!shouldFetch || !startDate || !endDate || !category || !type) {
       setData(null);
       setIsLoading(false);
       return;
@@ -73,7 +72,7 @@ export function useMetricsTimeseries(
     };
 
     fetchTimeseries();
-  }, [tenantId, category, type, startDate, endDate, agentName, activationName, groupBy, shouldFetch]);
+  }, [category, type, startDate, endDate, agentName, activationName, groupBy, shouldFetch]);
 
   return { data, isLoading, error };
 }

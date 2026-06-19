@@ -22,7 +22,6 @@ import {
   Bot,
   Server 
 } from 'lucide-react';
-import { useTenant } from '@/hooks/use-tenant';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { OIDCConnection, ConnectionStatus } from './types';
 import { useConnections } from './hooks/use-connections';
@@ -35,7 +34,6 @@ import { TeamsWizardSheet } from './components/teams-wizard-sheet';
 import { WebhooksSheet } from './components/webhooks-sheet';
 
 function ConnectionsContent() {
-  const { currentTenantId } = useTenant();
   const searchParams = useSearchParams();
   const agentName = searchParams.get('agentName');
   const activationName = searchParams.get('activationName');
@@ -112,7 +110,7 @@ function ConnectionsContent() {
     testConnection,
     authorizeConnection,
     createIntegration
-  } = useConnections(currentTenantId ?? undefined, connectionOptions);
+  } = useConnections(connectionOptions);
 
   // Filter connections based on search and filters
   const filteredConnections = connections?.filter(conn => {
@@ -464,7 +462,6 @@ function ConnectionsContent() {
           <WebhooksSheet
             open={showWebhooksSheet}
             onOpenChange={setShowWebhooksSheet}
-            tenantId={currentTenantId ?? null}
             agentName={agentName ?? null}
             activationName={activationName ?? null}
             onCreated={refetch}

@@ -20,11 +20,11 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
+import { useTenant } from '@/hooks/use-tenant';
 
 interface WebhooksSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tenantId: string | null;
   agentName?: string | null;
   activationName?: string | null;
   /** Called after a webhook is created so the parent can refetch the main list */
@@ -34,11 +34,13 @@ interface WebhooksSheetProps {
 export function WebhooksSheet({
   open,
   onOpenChange,
-  tenantId,
   agentName,
   activationName,
   onCreated,
 }: WebhooksSheetProps) {
+  // Tenant is resolved server-side from the session cookie; used here only to
+  // gate the create action client-side.
+  const { currentTenantId } = useTenant();
   const [showCreateForm, setShowCreateForm] = useState(true);
   const [useDefaultOptions, setUseDefaultOptions] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -70,7 +72,7 @@ export function WebhooksSheet({
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId || !validateCreate()) return;
+    if (!currentTenantId || !validateCreate()) return;
     setIsCreating(true);
     try {
       const res = await fetch(`/api/webhooks`, {

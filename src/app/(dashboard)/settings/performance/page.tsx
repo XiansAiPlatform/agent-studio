@@ -128,7 +128,6 @@ function PerformanceContent() {
   // Fetch data
   const shouldFetch = Boolean(currentTenantId) && Boolean(user) && urlParamsInitialized;
   const { data, isLoading, error } = useMetricsCategories(
-    currentTenantId,
     startDate,
     endDate,
     selectedAgent,
@@ -140,7 +139,7 @@ function PerformanceContent() {
   const {
     activations,
     isLoading: isLoadingActivations,
-  } = useActivations(currentTenantId, shouldFetch);
+  } = useActivations(shouldFetch);
 
   // Extract unique agent names from activations for the dropdown
   const availableAgents = Array.from(

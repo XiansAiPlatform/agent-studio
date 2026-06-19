@@ -3,8 +3,12 @@ import { XiansAgentDeployment } from '@/lib/xians/types';
 import { EnhancedDeployment } from '../types';
 import { getAgentIcon, getAgentColor } from '../utils/agent-helpers';
 import { showErrorToast } from '@/lib/utils/error-handler';
+import { useTenant } from '@/hooks/use-tenant';
 
-export const useAgentDeployments = (tenantId: string | null) => {
+export const useAgentDeployments = () => {
+  // Tenant is resolved server-side from the session cookie; the current
+  // selection only gates whether we fetch and triggers a refetch on change.
+  const { currentTenantId } = useTenant();
   const [deployedAgents, setDeployedAgents] = useState<EnhancedDeployment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +16,7 @@ export const useAgentDeployments = (tenantId: string | null) => {
 
   useEffect(() => {
     async function fetchDeployments() {
-      if (!tenantId) return;
+      if (!currentTenantId) return;
       
       // Cancel any pending request
       if (abortControllerRef.current) {
@@ -77,13 +81,13 @@ export const useAgentDeployments = (tenantId: string | null) => {
 
     fetchDeployments();
 
-    // Cleanup function to abort request if component unmounts or tenantId changes
+    // Cleanup function to abort request if component unmounts or tenant changes
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [tenantId]);
+  }, [currentTenantId]);
 
   return { 
     deployedAgents, 

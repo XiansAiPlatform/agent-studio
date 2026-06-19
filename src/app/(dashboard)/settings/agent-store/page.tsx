@@ -31,7 +31,7 @@ export default function AgentTemplatesPage() {
   const { data: session } = useSession();
   
   // Use custom hooks for data fetching
-  const { deployedAgents, isLoading, error } = useAgentDeployments(currentTenantId);
+  const { deployedAgents, isLoading, error } = useAgentDeployments();
   const { 
     availableTemplates, 
     isLoadingTemplates, 

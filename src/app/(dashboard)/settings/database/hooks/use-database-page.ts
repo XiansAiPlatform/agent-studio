@@ -6,12 +6,11 @@ import { useDataRecords } from './use-data-records';
 import { DATE_RANGES, type DateRange, type DataSchemaResponse, type DataResponse } from '../types';
 import { formatDateFromInput } from '../utils';
 import { showToast } from '@/lib/toast';
+import { useTenant } from '@/hooks/use-tenant';
 
 const PAGE_SIZE = 50;
 
 export interface UseDatabasePageParams {
-  currentTenantId: string | null;
-  tenantLoading: boolean;
   agentName: string | null;
   activationName: string | null;
 }
@@ -54,11 +53,12 @@ export interface UseDatabasePageReturn {
 }
 
 export function useDatabasePage({
-  currentTenantId,
-  tenantLoading,
   agentName,
   activationName,
 }: UseDatabasePageParams): UseDatabasePageReturn {
+  // Tenant is resolved server-side from the session cookie. We read the current
+  // selection here only to gate fetches and mutations client-side.
+  const { currentTenantId, isLoading: tenantLoading } = useTenant();
   const [selectedDateRange, setSelectedDateRange] = useState(DATE_RANGES[4]);
   const [customStartDate, setCustomStartDate] = useState(DATE_RANGES[4].startDate);
   const [customEndDate, setCustomEndDate] = useState(DATE_RANGES[4].endDate);
@@ -74,7 +74,6 @@ export function useDatabasePage({
   const recordsEnabled = !!(selectedDataType && currentTenantId && agentName && activationName && !tenantLoading);
 
   const { data: schemaData, isLoading: schemaLoading, error: schemaError } = useDataSchema(
-    currentTenantId,
     agentName,
     activationName,
     customStartDate,
@@ -83,7 +82,6 @@ export function useDatabasePage({
   );
 
   const { data: recordsData, isLoading: recordsLoading, error: recordsError } = useDataRecords(
-    currentTenantId,
     agentName,
     activationName,
     selectedDataType,

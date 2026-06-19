@@ -61,13 +61,11 @@ function SelectAgentState() {
 
 function DatabaseContent() {
   const searchParams = useSearchParams();
-  const { currentTenantId, isLoading: tenantLoading } = useTenant();
+  const { isLoading: tenantLoading } = useTenant();
   const agentName = searchParams.get('agentName');
   const activationName = searchParams.get('activationName');
 
   const page = useDatabasePage({
-    currentTenantId,
-    tenantLoading,
     agentName,
     activationName,
   });
