@@ -30,15 +30,12 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUsers } from './hooks/use-users'
-import { TenantUser, ParticipantRole } from './types'
+import { TenantUser, TenantRole, TENANT_ROLE_LABELS } from './types'
 import { AddUserDialog } from './components/add-user-dialog'
 import { EditUserDialog } from './components/edit-user-dialog'
 import { DeleteUserDialog } from './components/delete-user-dialog'
 
-const ROLE_LABEL: Record<ParticipantRole, string> = {
-  TenantParticipant: 'User',
-  TenantParticipantAdmin: 'Admin',
-}
+const ADMIN_ROLES = new Set<TenantRole>(['TenantAdmin', 'TenantParticipantAdmin'])
 
 const PAGE_SIZE = 20
 
@@ -88,7 +85,7 @@ export default function UsersPage() {
   }, [fetchUsers, page, debouncedSearch])
 
   // ── Add ──────────────────────────────────────────────────────────────────
-  const handleAdd = async (data: { email: string; name: string; role: ParticipantRole }) => {
+  const handleAdd = async (data: { email: string; name: string; roles: TenantRole[] }) => {
     try {
       await createUser(data)
       toast.success(`User "${data.name}" added successfully`)
@@ -106,7 +103,7 @@ export default function UsersPage() {
       name?: string
       email?: string
       isApproved?: boolean
-      role?: ParticipantRole
+      roles?: TenantRole[]
     }
   ) => {
     try {
@@ -268,17 +265,24 @@ export default function UsersPage() {
                   </DropdownMenu>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  {user.role === 'TenantParticipantAdmin' ? (
-                    <Badge
-                      variant="default"
-                      className="gap-1 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/15"
-                    >
-                      <ShieldCheck className="h-3 w-3" />
-                      {ROLE_LABEL[user.role]}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">{ROLE_LABEL[user.role]}</Badge>
-                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {(user.roles ?? []).map((role) =>
+                      ADMIN_ROLES.has(role) ? (
+                        <Badge
+                          key={role}
+                          variant="default"
+                          className="gap-1 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/15"
+                        >
+                          <ShieldCheck className="h-3 w-3" />
+                          {TENANT_ROLE_LABELS[role]}
+                        </Badge>
+                      ) : (
+                        <Badge key={role} variant="secondary">
+                          {TENANT_ROLE_LABELS[role]}
+                        </Badge>
+                      )
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>Approved</span>
                     {togglingUserId === user.userId ? (
@@ -357,17 +361,24 @@ export default function UsersPage() {
                       {user.email}
                     </td>
                     <td className="px-4 py-3">
-                      {user.role === 'TenantParticipantAdmin' ? (
-                        <Badge
-                          variant="default"
-                          className="gap-1 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/15"
-                        >
-                          <ShieldCheck className="h-3 w-3" />
-                          {ROLE_LABEL[user.role]}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">{ROLE_LABEL[user.role]}</Badge>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {(user.roles ?? []).map((role) =>
+                          ADMIN_ROLES.has(role) ? (
+                            <Badge
+                              key={role}
+                              variant="default"
+                              className="gap-1 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/15"
+                            >
+                              <ShieldCheck className="h-3 w-3" />
+                              {TENANT_ROLE_LABELS[role]}
+                            </Badge>
+                          ) : (
+                            <Badge key={role} variant="secondary">
+                              {TENANT_ROLE_LABELS[role]}
+                            </Badge>
+                          )
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-center">
                       {togglingUserId === user.userId ? (

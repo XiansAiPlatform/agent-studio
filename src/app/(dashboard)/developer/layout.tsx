@@ -7,19 +7,11 @@ import { CURRENT_TENANT_COOKIE } from '@/lib/api/with-tenant'
 
 export const dynamic = 'force-dynamic'
 
-/** Roles that may access Agent Settings (all non-participant admin roles). */
-const AGENT_SETTINGS_ROLES = new Set([
-  'TenantAdmin',
-  'TenantParticipantAdmin',
-  'TenantUser',
-])
-
 /**
- * Agent Settings layout - accessible to TenantAdmin, TenantParticipantAdmin,
- * TenantUser (Developer), and system admins.
- * Plain TenantParticipant users are redirected to dashboard.
+ * Developer layout — restricts access to TenantUser (Developer), TenantParticipantAdmin,
+ * TenantAdmin, and system admins. Plain TenantParticipants are redirected.
  */
-export default async function SettingsLayout({
+export default async function DeveloperLayout({
   children,
 }: {
   children: React.ReactNode
@@ -30,7 +22,6 @@ export default async function SettingsLayout({
     redirect('/login')
   }
 
-  // System admins always have access
   if (session.user?.isSystemAdmin) {
     return <>{children}</>
   }
@@ -53,10 +44,13 @@ export default async function SettingsLayout({
     : tenants[0]
 
   const participantRole = currentTenantData?.participantRole
+  const developerRoles = new Set(['TenantAdmin', 'TenantParticipantAdmin', 'TenantUser'])
 
-  if (!participantRole || !AGENT_SETTINGS_ROLES.has(participantRole)) {
+  if (!participantRole || !developerRoles.has(participantRole)) {
     console.log(
-      `[Settings Layout] Access denied - role "${participantRole}" is not in allowed set, redirecting to dashboard`
+      '[Developer Layout] Access denied — role',
+      participantRole,
+      'not in developer roles, redirecting to dashboard'
     )
     redirect('/dashboard')
   }

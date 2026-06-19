@@ -117,13 +117,14 @@ export async function isSystemAdmin(session: Session | null): Promise<boolean> {
  *
  * @param session - The user's session
  * @param currentTenantId - The tenant ID from the current-tenant-id cookie
- * @returns Object with isParticipantAdmin boolean and user email
+ * @returns Object with isParticipantAdmin boolean, isSystemAdmin boolean, and user email
  */
 export async function verifyParticipantAdmin(
   session: Session | null,
   currentTenantId: string | null
 ): Promise<{
   isParticipantAdmin: boolean
+  isSystemAdmin: boolean
   email: string
 }> {
   if (!session?.user?.email) {
@@ -133,7 +134,7 @@ export async function verifyParticipantAdmin(
   const email = session.user.email
 
   if (!currentTenantId) {
-    return { isParticipantAdmin: false, email }
+    return { isParticipantAdmin: false, isSystemAdmin: false, email }
   }
 
   try {
@@ -141,12 +142,20 @@ export async function verifyParticipantAdmin(
     const tenantsApi = new XiansTenantsApi(client)
     const response = await tenantsApi.getParticipantTenants(email)
 
+    // System admins are always granted participant admin access
+    if (response.isSystemAdmin) {
+      return { isParticipantAdmin: true, isSystemAdmin: true, email }
+    }
+
     const currentTenant = response.tenants.find(
       (t) => t.tenantId === currentTenantId
     )
-    const isParticipantAdmin = currentTenant?.role === 'TenantParticipantAdmin'
+    // TenantAdmin, TenantParticipantAdmin, and TenantUser (Developer) all have
+    // access to agent-level settings routes.
+    const agentAdminRoles = new Set(['TenantAdmin', 'TenantParticipantAdmin', 'TenantUser'])
+    const isParticipantAdmin = agentAdminRoles.has(currentTenant?.role ?? '')
 
-    return { isParticipantAdmin, email }
+    return { isParticipantAdmin, isSystemAdmin: false, email }
   } catch (error: any) {
     console.error('[Auth] Failed to verify participant admin status:', error)
     throw new Error(
@@ -156,8 +165,95 @@ export async function verifyParticipantAdmin(
 }
 
 /**
- * Require TenantParticipantAdmin (or system admin) for an API route.
- * Use for /settings/* related operations.
+ * Verify if a user has the TenantAdmin role for the current tenant.
+ * Used for tenant management operations (user/tenant settings).
+ * System admins are always allowed.
+ */
+export async function verifyTenantAdmin(
+  session: Session | null,
+  currentTenantId: string | null
+): Promise<{
+  isTenantAdmin: boolean
+  isSystemAdmin: boolean
+  email: string
+}> {
+  if (!session?.user?.email) {
+    throw new Error('User email not found in session')
+  }
+
+  const email = session.user.email
+
+  if (!currentTenantId) {
+    return { isTenantAdmin: false, isSystemAdmin: false, email }
+  }
+
+  try {
+    const client = createXiansClient((session as any)?.accessToken)
+    const tenantsApi = new XiansTenantsApi(client)
+    const response = await tenantsApi.getParticipantTenants(email)
+
+    if (response.isSystemAdmin) {
+      return { isTenantAdmin: true, isSystemAdmin: true, email }
+    }
+
+    const currentTenant = response.tenants.find(
+      (t) => t.tenantId === currentTenantId
+    )
+    const isTenantAdmin = currentTenant?.role === 'TenantAdmin'
+
+    return { isTenantAdmin, isSystemAdmin: false, email }
+  } catch (error: any) {
+    console.error('[Auth] Failed to verify tenant admin status:', error)
+    throw new Error(`Failed to verify tenant admin status: ${error.message}`)
+  }
+}
+
+/**
+ * Require TenantAdmin (or system admin) for an API route.
+ * Use for tenant user-management operations (/tenant-settings/*).
+ *
+ * @param session - The user's session
+ * @param currentTenantId - The tenant ID from the current-tenant-id cookie
+ * @returns null if authorized, NextResponse with error if not
+ */
+export async function requireTenantAdmin(
+  session: Session | null,
+  currentTenantId: string | null
+): Promise<NextResponse | null> {
+  if (!session) {
+    return unauthorizedError('Authentication required')
+  }
+
+  if (!currentTenantId) {
+    return forbiddenError('Tenant admin access requires a selected tenant')
+  }
+
+  try {
+    const { isTenantAdmin, isSystemAdmin, email } = await verifyTenantAdmin(
+      session,
+      currentTenantId
+    )
+
+    if (isSystemAdmin) {
+      console.log('[Auth] System admin access granted for tenant admin route:', email)
+      return null
+    }
+
+    if (!isTenantAdmin) {
+      console.warn('[Auth] Access denied - user is not a tenant admin:', email)
+      return forbiddenError('Tenant administrator access required')
+    }
+
+    return null
+  } catch (error: any) {
+    console.error('[Auth] Tenant admin verification failed:', error)
+    return forbiddenError('Unable to verify tenant administrator access')
+  }
+}
+
+/**
+ * Require TenantAdmin, TenantParticipantAdmin, or TenantUser (or system admin) for an API route.
+ * Use for agent-level settings operations (/settings/*, /api/logs, etc.).
  *
  * @param session - The user's session
  * @param currentTenantId - The tenant ID from the current-tenant-id cookie
@@ -176,10 +272,15 @@ export async function requireParticipantAdmin(
   }
 
   try {
-    const { isParticipantAdmin, email } = await verifyParticipantAdmin(
+    const { isParticipantAdmin, isSystemAdmin, email } = await verifyParticipantAdmin(
       session,
       currentTenantId
     )
+
+    if (isSystemAdmin) {
+      console.log('[Auth] System admin access granted for participant admin route:', email)
+      return null
+    }
 
     if (!isParticipantAdmin) {
       console.warn(

@@ -14,21 +14,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { Loader2, UserCog } from 'lucide-react'
-import { TenantUser, UpdateUserRequest, ParticipantRole } from '../types'
+import { TenantUser, UpdateUserRequest, TenantRole, TENANT_ROLES, TENANT_ROLE_LABELS } from '../types'
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
   email: z.string().email('Please enter a valid email address'),
-  role: z.enum(['TenantParticipant', 'TenantParticipantAdmin']),
+  roles: z
+    .array(z.enum(TENANT_ROLES))
+    .min(1, 'Select at least one role'),
   isApproved: z.boolean(),
 })
 
@@ -63,24 +59,35 @@ export function EditUserDialog({
     defaultValues: {
       name: '',
       email: '',
-      role: 'TenantParticipant',
+      roles: ['TenantParticipant'],
       isApproved: true,
     },
   })
 
   useEffect(() => {
     if (user) {
+      const validRoles = user.roles.filter((r): r is TenantRole =>
+        TENANT_ROLES.includes(r as TenantRole)
+      )
       reset({
         name: user.name,
         email: user.email,
-        role: user.role,
+        roles: validRoles.length > 0 ? validRoles : ['TenantParticipant'],
         isApproved: user.isApproved,
       })
     }
   }, [user, reset])
 
-  const selectedRole = watch('role')
+  const selectedRoles = watch('roles') as TenantRole[]
   const isApprovedValue = watch('isApproved')
+
+  const toggleRole = (role: TenantRole) => {
+    if (selectedRoles.includes(role)) {
+      setValue('roles', selectedRoles.filter((r) => r !== role), { shouldValidate: true })
+    } else {
+      setValue('roles', [...selectedRoles, role], { shouldValidate: true })
+    }
+  }
 
   const onValid = async (values: FormValues) => {
     if (!user) return
@@ -89,7 +96,7 @@ export function EditUserDialog({
       await onSubmit(user.userId, {
         name: values.name,
         email: values.email,
-        role: values.role as ParticipantRole,
+        roles: values.roles as TenantRole[],
         isApproved: values.isApproved,
       })
       onOpenChange(false)
@@ -144,19 +151,26 @@ export function EditUserDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-role">Role</Label>
-            <Select
-              value={selectedRole}
-              onValueChange={(value) => setValue('role', value as ParticipantRole)}
-            >
-              <SelectTrigger id="edit-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TenantParticipant">User</SelectItem>
-                <SelectItem value="TenantParticipantAdmin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Roles</Label>
+            <div className="rounded-lg border divide-y">
+              {TENANT_ROLES.map((role) => (
+                <label
+                  key={role}
+                  htmlFor={`edit-role-${role}`}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                >
+                  <Checkbox
+                    id={`edit-role-${role}`}
+                    checked={selectedRoles.includes(role)}
+                    onCheckedChange={() => toggleRole(role)}
+                  />
+                  <span className="text-sm font-medium">{TENANT_ROLE_LABELS[role]}</span>
+                </label>
+              ))}
+            </div>
+            {errors.roles && (
+              <p className="text-xs text-destructive">{errors.roles.message}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between rounded-lg border px-4 py-3">

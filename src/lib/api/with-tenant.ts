@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession, Session } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { useTenantProvider, TenantContext } from "@/lib/tenant"
-import { requireParticipantAdmin, requireSystemAdmin } from "@/lib/api/auth"
+import { requireParticipantAdmin, requireTenantAdmin, requireSystemAdmin } from "@/lib/api/auth"
 
 /**
  * API Context provided to route handlers
@@ -191,12 +191,24 @@ export function withTenantFromSession(handler: ApiHandler) {
  * Middleware wrapper for API routes that require TenantParticipantAdmin (or system admin).
  * Use for /settings/* related operations. Extends withTenantFromSession with role check.
  *
+ * SECURITY: The tenant is ALWAYS resolved from the server-side httpOnly
+ * `current-tenant-id` cookie. Clients must never supply a tenantId in query
+ * params or request body — any such value is explicitly rejected below.
+ *
  * @param handler - API route handler function
  * @returns Wrapped route handler with tenant and participant admin validation
  */
 export function withParticipantAdmin(handler: ApiHandler) {
   return async (request: NextRequest) => {
     try {
+      // Reject any client-supplied tenantId — tenant must come from the server-side cookie only.
+      if (request.nextUrl.searchParams.has('tenantId')) {
+        return NextResponse.json(
+          { error: 'tenantId must not be supplied by the client; it is resolved server-side from the session cookie' },
+          { status: 400 }
+        )
+      }
+
       const session = await getServerSession(authOptions)
 
       if (!session || !session.user?.id || !session.user?.email) {
@@ -237,6 +249,60 @@ export function withParticipantAdmin(handler: ApiHandler) {
         { error: 'Internal server error' },
         { status: 500 }
       )
+    }
+  }
+}
+
+/**
+ * Middleware wrapper for API routes that require TenantAdmin (or system admin).
+ * Use for tenant user-management operations (/api/settings/users/*).
+ *
+ * SECURITY: Same cookie-only tenant resolution as withParticipantAdmin.
+ * TenantParticipantAdmin and TenantUser are NOT allowed here.
+ *
+ * @param handler - API route handler function
+ * @returns Wrapped route handler with strict tenant admin validation
+ */
+export function withTenantAdmin(handler: ApiHandler) {
+  return async (request: NextRequest) => {
+    try {
+      if (request.nextUrl.searchParams.has('tenantId')) {
+        return NextResponse.json(
+          { error: 'tenantId must not be supplied by the client; it is resolved server-side from the session cookie' },
+          { status: 400 }
+        )
+      }
+
+      const session = await getServerSession(authOptions)
+
+      if (!session || !session.user?.id || !session.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const tenantId = getTenantIdFromCookie(request)
+
+      const authError = await requireTenantAdmin(session, tenantId)
+      if (authError) return authError
+
+      const tenantProvider = useTenantProvider()
+      const tenantContext = await tenantProvider.getTenantContext(
+        session.user.id,
+        tenantId!,
+        session.accessToken,
+        session.user.email
+      )
+
+      if (!tenantContext) {
+        return NextResponse.json(
+          { error: 'Access denied to this tenant' },
+          { status: 403 }
+        )
+      }
+
+      return handler(request, { session, tenantContext, tenantId: tenantId! })
+    } catch (error) {
+      console.error('[withTenantAdmin] Error:', error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
   }
 }

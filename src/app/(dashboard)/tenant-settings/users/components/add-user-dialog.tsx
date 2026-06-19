@@ -14,20 +14,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2, UserPlus } from 'lucide-react'
-import { CreateUserRequest, ParticipantRole } from '../types'
+import { CreateUserRequest, TenantRole, TENANT_ROLES, TENANT_ROLE_LABELS } from '../types'
 
 const schema = z.object({
   email: z.string().email('Please enter a valid email address'),
   name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
-  role: z.enum(['TenantParticipant', 'TenantParticipantAdmin']),
+  roles: z
+    .array(z.enum(TENANT_ROLES))
+    .min(1, 'Select at least one role'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -57,11 +53,19 @@ export function AddUserDialog({
     defaultValues: {
       email: '',
       name: '',
-      role: 'TenantParticipant',
+      roles: ['TenantParticipant'],
     },
   })
 
-  const selectedRole = watch('role')
+  const selectedRoles = watch('roles')
+
+  const toggleRole = (role: TenantRole) => {
+    if (selectedRoles.includes(role)) {
+      setValue('roles', selectedRoles.filter((r) => r !== role), { shouldValidate: true })
+    } else {
+      setValue('roles', [...selectedRoles, role], { shouldValidate: true })
+    }
+  }
 
   const handleClose = (open: boolean) => {
     if (!open) reset()
@@ -74,7 +78,7 @@ export function AddUserDialog({
       await onSubmit({
         email: values.email,
         name: values.name,
-        role: values.role as ParticipantRole,
+        roles: values.roles as TenantRole[],
       })
       reset()
       onOpenChange(false)
@@ -135,21 +139,25 @@ export function AddUserDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="add-role">Role</Label>
-            <Select
-              value={selectedRole}
-              onValueChange={(value) => setValue('role', value as ParticipantRole)}
-            >
-              <SelectTrigger id="add-role">
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TenantParticipant">User</SelectItem>
-                <SelectItem value="TenantParticipantAdmin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.role && (
-              <p className="text-xs text-destructive">{errors.role.message}</p>
+            <Label>Roles</Label>
+            <div className="rounded-lg border divide-y">
+              {TENANT_ROLES.map((role) => (
+                <label
+                  key={role}
+                  htmlFor={`add-role-${role}`}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                >
+                  <Checkbox
+                    id={`add-role-${role}`}
+                    checked={selectedRoles.includes(role)}
+                    onCheckedChange={() => toggleRole(role)}
+                  />
+                  <span className="text-sm font-medium">{TENANT_ROLE_LABELS[role]}</span>
+                </label>
+              ))}
+            </div>
+            {errors.roles && (
+              <p className="text-xs text-destructive">{errors.roles.message}</p>
             )}
           </div>
         </form>

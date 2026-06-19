@@ -8,31 +8,13 @@ import {
   Plus,
   Search,
   Loader2,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Power,
-  PowerOff,
   RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useTenants } from './hooks/use-tenants';
 import { Tenant, CreateTenantRequest, UpdateTenantRequest } from './types';
 import { AddTenantDialog } from './components/add-tenant-dialog';
@@ -60,9 +42,6 @@ export default function TenantsPage() {
     deleteTenant,
   } = useTenants();
 
-  // Client-side UX guard. Real authorization is enforced server-side in the
-  // API routes (withSystemAdmin) and middleware — this only avoids flashing the
-  // page to non-admins.
   useEffect(() => {
     if (!isAuthLoading && user?.isSystemAdmin === false) {
       router.replace('/dashboard');
@@ -94,7 +73,7 @@ export default function TenantsPage() {
   const handleAdd = async (data: CreateTenantRequest) => {
     try {
       await createTenant(data);
-      toast.success(`Tenant “${data.name}” created`);
+      toast.success(`Tenant "${data.name}" created`);
       fetchTenants();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create tenant');
@@ -116,18 +95,24 @@ export default function TenantsPage() {
   const handleToggleEnabled = async (tenant: Tenant) => {
     setTogglingTenantId(tenant.tenantId);
     try {
-      await updateTenant(tenant.tenantId, { enabled: !tenant.enabled });
+      const updated = await updateTenant(tenant.tenantId, { enabled: !tenant.enabled });
       toast.success(
         tenant.enabled
           ? `${tenant.name} disabled`
           : `${tenant.name} enabled`
       );
+      // Keep the edit panel open with the updated tenant data
+      setEditTarget(updated);
       fetchTenants();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update tenant');
     } finally {
       setTogglingTenantId(null);
     }
+  };
+
+  const handleDeleteRequest = (tenant: Tenant) => {
+    setDeleteTarget(tenant);
   };
 
   const handleDeleteConfirm = async () => {
@@ -216,98 +201,58 @@ export default function TenantsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredTenants.map((tenant) => (
-            <Card key={tenant.id} className="transition-colors">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                      <Building2 className="h-5 w-5 text-primary" />
+            <Card
+              key={tenant.id}
+              className="transition-colors hover:bg-accent/40 cursor-pointer"
+              onClick={() => setEditTarget(tenant)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                      <Building2 className="h-4 w-4 text-primary" />
                     </div>
-                    <div>
-                      <CardTitle className="text-base">{tenant.name}</CardTitle>
-                      <CardDescription className="text-xs font-mono">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-tight truncate">{tenant.name}</p>
+                      <p className="text-xs font-mono text-muted-foreground truncate mt-0.5">
                         {tenant.tenantId}
-                      </CardDescription>
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={tenant.enabled ? 'default' : 'secondary'}>
-                      {tenant.enabled ? 'Enabled' : 'Disabled'}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          {togglingTenantId === tenant.tenantId ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <MoreHorizontal className="h-4 w-4" />
-                          )}
-                          <span className="sr-only">Actions for {tenant.name}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditTarget(tenant)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleEnabled(tenant)}>
-                          {tenant.enabled ? (
-                            <>
-                              <PowerOff className="mr-2 h-4 w-4" />
-                              Disable
-                            </>
-                          ) : (
-                            <>
-                              <Power className="mr-2 h-4 w-4" />
-                              Enable
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setDeleteTarget(tenant)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                  <Badge
+                    variant={tenant.enabled ? 'default' : 'secondary'}
+                    className="text-xs px-1.5 py-0 shrink-0"
+                  >
+                    {tenant.enabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+
+                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground border-t pt-3">
                   {tenant.domain && (
-                    <span>
-                      Domain:{' '}
-                      <span className="font-medium text-foreground">
-                        {tenant.domain}
-                      </span>
-                    </span>
+                    <div className="truncate">
+                      <span className="block text-[10px] uppercase tracking-wide font-medium text-muted-foreground/60">Domain</span>
+                      <span className="font-medium text-foreground truncate block">{tenant.domain}</span>
+                    </div>
                   )}
                   {tenant.timezone && (
-                    <span>
-                      Timezone:{' '}
-                      <span className="font-medium text-foreground">
-                        {tenant.timezone}
-                      </span>
-                    </span>
+                    <div className="truncate">
+                      <span className="block text-[10px] uppercase tracking-wide font-medium text-muted-foreground/60">Timezone</span>
+                      <span className="font-medium text-foreground truncate block">{tenant.timezone}</span>
+                    </div>
                   )}
-                  <span>
-                    Created:{' '}
-                    <span className="font-medium text-foreground">
-                      {new Date(tenant.createdAt).toLocaleDateString()}
-                    </span>
-                  </span>
+                  <div className="truncate">
+                    <span className="block text-[10px] uppercase tracking-wide font-medium text-muted-foreground/60">Created</span>
+                    <span className="font-medium text-foreground">{new Date(tenant.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {tenant.description && (
+                    <div className="col-span-2 truncate">
+                      <span className="block text-[10px] uppercase tracking-wide font-medium text-muted-foreground/60">Description</span>
+                      <span className="text-foreground/80 truncate block">{tenant.description}</span>
+                    </div>
+                  )}
                 </div>
-                {tenant.description && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {tenant.description}
-                  </p>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -327,6 +272,9 @@ export default function TenantsPage() {
           if (!open) setEditTarget(null);
         }}
         onSubmit={handleEdit}
+        onToggleEnabled={handleToggleEnabled}
+        onDeleteRequest={handleDeleteRequest}
+        isToggling={togglingTenantId === editTarget?.tenantId}
       />
 
       <DeleteTenantDialog

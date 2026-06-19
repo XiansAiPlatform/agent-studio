@@ -17,6 +17,8 @@ interface Props {
   initialTenants: Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
+    isTenantAdmin: boolean
+    isDeveloper: boolean
   }>
   /** Server-determined: show sidebar (admin layout) vs single panel (participant layout) */
   showSidebar: boolean

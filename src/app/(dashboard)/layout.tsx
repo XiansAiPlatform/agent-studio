@@ -58,15 +58,26 @@ export default async function DashboardLayout({
     ? tenants.find((t) => t.tenant.id === currentTenantId)
     : tenants[0]
   const participantRole = currentTenantData?.participantRole
-  const showSidebar =
-    participantRole !== 'TenantParticipant' // TenantParticipantAdmin or undefined (cookie mismatch / no tenant access) → full layout for robustness
+  // Anyone who is not a plain TenantParticipant gets the full sidebar layout.
+  // This covers TenantAdmin, TenantParticipantAdmin, TenantUser (Developer),
+  // and the undefined case (cookie mismatch / no tenant access → full layout for robustness).
+  const showSidebar = participantRole !== 'TenantParticipant'
 
   const tenantHasTheme = !!currentTenantData?.tenant?.theme
-  const isParticipantAdmin = participantRole === 'TenantParticipantAdmin'
-  const canCustomizeTheme = isParticipantAdmin || !tenantHasTheme
+  const isAdminRole =
+    participantRole === 'TenantAdmin' ||
+    participantRole === 'TenantParticipantAdmin' ||
+    participantRole === 'TenantUser'
+  const canCustomizeTheme = isAdminRole || !tenantHasTheme
 
-  // Strip participantRole from tenants - never pass to client
-  const initialTenants = tenants.map(({ tenant, role }) => ({ tenant, role }))
+  // Strip raw participantRole from tenants but surface the isTenantAdmin / isDeveloper
+  // flags so the sidebar can distinguish roles without exposing the raw string.
+  const initialTenants = tenants.map(({ tenant, role, isTenantAdmin, isDeveloper }) => ({
+    tenant,
+    role,
+    isTenantAdmin: isTenantAdmin ?? false,
+    isDeveloper: isDeveloper ?? false,
+  }))
 
   console.log(
     '[Dashboard Layout] User has',

@@ -18,6 +18,8 @@ import {
   BookOpen,
   ShieldCheck,
   Building2,
+  Users,
+  Code2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,7 @@ import {
 } from '@/components/features/conversations/agent-selection-panel';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { useTenant } from '@/hooks/use-tenant';
 
 // Types for panel configuration
 type PanelConfig = {
@@ -55,6 +58,8 @@ type NavigationItem = {
   panelConfig?: PanelConfig;
   children?: NavigationChild[];
   systemAdminOnly?: boolean;
+  tenantAdminOnly?: boolean;
+  developerOnly?: boolean;
 };
 
 const navigation: NavigationItem[] = [
@@ -131,8 +136,25 @@ const navigation: NavigationItem[] = [
       },
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' },
-      { name: 'Users', href: '/settings/users' },
       { name: 'Secrets', href: '/settings/secrets' },
+    ],
+  },
+  {
+    name: 'Tenant Admin',
+    href: '/tenant-settings',
+    icon: Users,
+    tenantAdminOnly: true,
+    children: [
+      { name: 'Users', href: '/tenant-settings/users' },
+    ],
+  },
+  {
+    name: 'Developer',
+    href: '/developer',
+    icon: Code2,
+    developerOnly: true,
+    children: [
+      { name: 'Secrets', href: '/developer/secrets' },
     ],
   },
   {
@@ -369,10 +391,20 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { currentTenant } = useTenant();
+  const isTenantAdmin = currentTenant?.isTenantAdmin === true || user?.isSystemAdmin === true;
+  // Developers see the Developer menu; system admins and tenant admins can too
+  const isDeveloper =
+    currentTenant?.isDeveloper === true ||
+    currentTenant?.isTenantAdmin === true ||
+    user?.isSystemAdmin === true;
 
-  const visibleNavigation = navigation.filter(
-    (item) => !item.systemAdminOnly || user?.isSystemAdmin === true
-  );
+  const visibleNavigation = navigation.filter((item) => {
+    if (item.systemAdminOnly && user?.isSystemAdmin !== true) return false;
+    if (item.tenantAdminOnly && !isTenantAdmin) return false;
+    if (item.developerOnly && !isDeveloper) return false;
+    return true;
+  });
 
   const effectiveCollapsed = mobile ? false : collapsed;
   const activePanelConfig = activePanelMode ? findPanelConfig(activePanelMode) : null;

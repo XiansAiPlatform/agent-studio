@@ -4,36 +4,32 @@ import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
 /**
- * System Admin → enable / disable (lock out) a user.
- * System administrators only (enforced via withSystemAdmin).
+ * PUT /api/system-admin/users/[userId]/status
  *
- * Wraps the upstream tenant-scoped enable/disable endpoints behind a single
- * PUT that accepts `{ enabled: boolean, reason?: string }`.
+ * Enable or disable a user account.
+ *
+ * Without tenantId: uses the global endpoint PUT /api/v1/admin/users/{userId}/status
+ *   — affects the user's account platform-wide.
+ *
+ * With tenantId: uses the tenant-scoped enable/disable endpoint
+ *   PUT /api/v1/admin/tenants/{tenantId}/users/{userId}/enable|disable
+ *   — kept for backward compatibility when operating in tenant context.
  */
 
-/** Extract userId from /api/system-admin/users/{userId}/status. */
 function extractUserId(pathname: string): string | null {
   const match = pathname.match(/\/api\/system-admin\/users\/([^/]+)\/status$/)
   return match ? decodeURIComponent(match[1]) : null
 }
 
 function getTenantId(request: NextRequest): string | null {
-  const tenantId = request.nextUrl.searchParams.get('tenantId')
-  return tenantId && tenantId.trim() ? tenantId.trim() : null
+  const v = request.nextUrl.searchParams.get('tenantId')
+  return v && v.trim() ? v.trim() : null
 }
 
-/**
- * PUT /api/system-admin/users/[userId]/status?tenantId=
- * Body: { enabled: boolean, reason?: string }
- */
 export const PUT = withSystemAdmin(async (request: NextRequest) => {
   const userId = extractUserId(request.nextUrl.pathname)
-  const tenantId = getTenantId(request)
   if (!userId) {
     return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-  }
-  if (!tenantId) {
-    return NextResponse.json({ error: 'tenantId is required' }, { status: 400 })
   }
 
   let body: { enabled?: boolean; reason?: string }
@@ -44,19 +40,29 @@ export const PUT = withSystemAdmin(async (request: NextRequest) => {
   }
 
   if (typeof body.enabled !== 'boolean') {
-    return NextResponse.json(
-      { error: 'enabled (boolean) is required' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'enabled (boolean) is required' }, { status: 400 })
   }
 
-  const base = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}`
+  const tenantId = getTenantId(request)
 
   try {
     const client = createXiansClient()
-    const data = body.enabled
-      ? await client.put(`${base}/enable`, {})
-      : await client.put(`${base}/disable`, { reason: body.reason })
+
+    if (!tenantId) {
+      // Global status update — no tenant context required.
+      const data = await client.put(
+        `/api/v1/admin/users/${encodeURIComponent(userId)}/status`,
+        { enabled: body.enabled, reason: body.reason }
+      )
+      return NextResponse.json(data)
+    }
+
+    // Tenant-scoped enable / disable (legacy path).
+    const action = body.enabled ? 'enable' : 'disable'
+    const data = await client.put(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/${action}`,
+      body.reason ? { reason: body.reason } : {}
+    )
     return NextResponse.json(data)
   } catch (error) {
     return handleApiError(error, 'system-admin/users/[userId]/status PUT', {

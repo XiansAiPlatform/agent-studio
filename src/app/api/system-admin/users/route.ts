@@ -7,41 +7,61 @@ import { TENANT_ROLES } from '@/app/(dashboard)/system-admin/users/types'
 /**
  * System Admin → Users API.
  *
- * Authorization is enforced server-side via withSystemAdmin — only verified
- * platform system administrators reach these handlers. The upstream Xians
- * AdminApi is called with the service API key (which resolves to SysAdmin
- * scope), targeting the tenant-scoped user endpoints
- * (/api/v1/admin/tenants/{tenantId}/users).
- *
- * The tenant to operate on is supplied as a `tenantId` query parameter because
- * these are cross-tenant system-admin operations (the admin explicitly selects
- * which tenant's users to manage).
+ * GET without tenantId  → global list via GET /api/v1/admin/users (native pagination,
+ *                          no fan-out required).
+ * GET with tenantId     → tenant-scoped list via GET /api/v1/admin/tenants/{id}/users.
+ * POST with tenantId    → create user in a specific tenant.
  */
 
-/** Read and validate the required `tenantId` query parameter. */
 function getTenantId(request: NextRequest): string | null {
-  const tenantId = request.nextUrl.searchParams.get('tenantId')
-  return tenantId && tenantId.trim() ? tenantId.trim() : null
+  const v = request.nextUrl.searchParams.get('tenantId')
+  return v && v.trim() ? v.trim() : null
 }
 
 /**
- * GET /api/system-admin/users?tenantId=&page=&pageSize=&search=&role=
- * List the users that belong to a tenant. System administrators only.
+ * GET /api/system-admin/users
+ *
+ * Without tenantId: lists all users across the platform using the global
+ *   endpoint GET /api/v1/admin/users (supports page, pageSize, search,
+ *   isSysAdmin, isEnabled filters).
+ *
+ * With tenantId: lists users for that specific tenant (paginated).
  */
 export const GET = withSystemAdmin(async (request: NextRequest) => {
   const tenantId = getTenantId(request)
+  const params = request.nextUrl.searchParams
+
+  // ── Global list ──────────────────────────────────────────────────────────
   if (!tenantId) {
-    return NextResponse.json({ error: 'tenantId is required' }, { status: 400 })
+    const upstreamQuery = new URLSearchParams()
+    upstreamQuery.set('page', params.get('page') ?? '1')
+    upstreamQuery.set('pageSize', params.get('pageSize') ?? '20')
+    const search = params.get('search')
+    if (search?.trim()) upstreamQuery.set('search', search.trim())
+    const isSysAdmin = params.get('isSysAdmin')
+    if (isSysAdmin !== null) upstreamQuery.set('isSysAdmin', isSysAdmin)
+    const isEnabled = params.get('isEnabled')
+    if (isEnabled !== null) upstreamQuery.set('isEnabled', isEnabled)
+
+    try {
+      const client = createXiansClient()
+      const data = await client.get(`/api/v1/admin/users?${upstreamQuery.toString()}`)
+      return NextResponse.json(data)
+    } catch (error) {
+      return handleApiError(error, 'system-admin/users GET (global)', {
+        fallbackMessage: 'Failed to list users',
+      })
+    }
   }
 
-  const params = request.nextUrl.searchParams
+  // ── Tenant-scoped list ────────────────────────────────────────────────────
   const upstreamQuery = new URLSearchParams()
   upstreamQuery.set('page', params.get('page') ?? '1')
   upstreamQuery.set('pageSize', params.get('pageSize') ?? '20')
   const search = params.get('search')
-  if (search && search.trim()) upstreamQuery.set('search', search.trim())
+  if (search?.trim()) upstreamQuery.set('search', search.trim())
   const role = params.get('role')
-  if (role && role.trim()) upstreamQuery.set('role', role.trim())
+  if (role?.trim()) upstreamQuery.set('role', role.trim())
 
   try {
     const client = createXiansClient()
@@ -50,7 +70,7 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
     )
     return NextResponse.json(data)
   } catch (error) {
-    return handleApiError(error, 'system-admin/users GET', {
+    return handleApiError(error, 'system-admin/users GET (tenant)', {
       fallbackMessage: 'Failed to list users',
     })
   }
@@ -58,8 +78,7 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
 
 /**
  * POST /api/system-admin/users?tenantId=
- * Create a new user in the tenant and grant them a tenant-scoped role.
- * System administrators only.
+ * Create a new user in the specified tenant. tenantId is required.
  */
 export const POST = withSystemAdmin(async (request: NextRequest) => {
   const tenantId = getTenantId(request)

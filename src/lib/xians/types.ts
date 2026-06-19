@@ -22,8 +22,15 @@ export interface XiansTenant {
   }
 }
 
-/** Participant role from Xians API - used for layout/access; never exposed to client */
-export type XiansParticipantRole = 'TenantParticipant' | 'TenantParticipantAdmin'
+/**
+ * Participant role from Xians API - used for layout/access; never exposed to client.
+ * TenantAdmin and TenantUser are non-participant admin roles that may also appear here.
+ */
+export type XiansParticipantRole =
+  | 'TenantParticipant'
+  | 'TenantParticipantAdmin'
+  | 'TenantAdmin'
+  | 'TenantUser'
 
 /**
  * Participant tenant from the participant API
@@ -34,6 +41,8 @@ export interface XiansParticipantTenant {
   tenantId: string
   tenantName: string
   role?: XiansParticipantRole
+  /** Whether this participation has been approved by a tenant admin */
+  isApproved?: boolean
   theme?: string
   logo?: {
     url?: string | null

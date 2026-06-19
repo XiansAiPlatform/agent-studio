@@ -98,12 +98,16 @@ export class XiansClient {
         )
       }
 
-      // Handle empty responses (204 No Content)
+      // Handle empty responses: 204 No Content, or any 2xx with no body
       if (response.status === 204) {
         return null as T
       }
 
-      return response.json()
+      const text = await response.text()
+      if (!text.trim()) {
+        return null as T
+      }
+      return JSON.parse(text) as T
     } catch (error) {
       if (error instanceof XiansApiError) {
         throw error

@@ -6,6 +6,10 @@ interface TenantState {
   tenants: Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
+    /** True only when the user's participant role for this tenant is TenantAdmin */
+    isTenantAdmin: boolean
+    /** True only when the user's participant role for this tenant is TenantUser (Developer) */
+    isDeveloper: boolean
   }>
   currentTenantId: string | null
   isLoading: boolean

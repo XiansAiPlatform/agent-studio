@@ -57,7 +57,17 @@ export function UserMenu() {
     email: session?.user?.email || '',
     avatar: session?.user?.image || '',
     initials: session?.user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U',
-  };
+  }
+
+  const tenantRoleLabel = currentTenant
+    ? currentTenant.isTenantAdmin
+      ? 'Tenant Admin'
+      : currentTenant.isDeveloper
+      ? 'Developer'
+      : currentTenant.role === 'admin'
+      ? 'Participant Admin'
+      : 'Participant'
+    : null;
 
   if (status === 'loading') {
     return (
@@ -192,6 +202,11 @@ export function UserMenu() {
                     System Admin
                   </Badge>
                 )}
+                {tenantRoleLabel && (
+                  <Badge variant="outline" className="w-fit text-[10px] px-1.5 py-0 h-4">
+                    {tenantRoleLabel}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -204,8 +219,7 @@ export function UserMenu() {
                     <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div className="flex flex-col flex-1 min-w-0">
                       <p className="text-xs text-muted-foreground">Current Tenant</p>
-                      <p className="text-sm font-medium truncate">{currentTenant.tenant.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono truncate">{currentTenant.tenant.id}</p>
+                      <p className="text-sm font-medium truncate">{currentTenant.tenant.name} ({currentTenant.tenant.id})</p>
                     </div>
                   </div>
                 </DropdownMenuLabel>

@@ -15,7 +15,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Pencil } from 'lucide-react'
+import { Loader2, Building2, Power, PowerOff, Trash2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { Tenant, UpdateTenantRequest } from '../types'
 
 const schema = z.object({
@@ -55,6 +57,9 @@ interface EditTenantDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (tenantId: string, data: UpdateTenantRequest) => Promise<void>
+  onToggleEnabled?: (tenant: Tenant) => Promise<void>
+  onDeleteRequest?: (tenant: Tenant) => void
+  isToggling?: boolean
 }
 
 export function EditTenantDialog({
@@ -62,6 +67,9 @@ export function EditTenantDialog({
   open,
   onOpenChange,
   onSubmit,
+  onToggleEnabled,
+  onDeleteRequest,
+  isToggling = false,
 }: EditTenantDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -102,18 +110,39 @@ export function EditTenantDialog({
     }
   }
 
+  const handleToggle = async () => {
+    if (!tenant || !onToggleEnabled) return
+    await onToggleEnabled(tenant)
+  }
+
+  const handleDeleteClick = () => {
+    if (!tenant || !onDeleteRequest) return
+    onOpenChange(false)
+    onDeleteRequest(tenant)
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex flex-col sm:max-w-md w-full">
         <div className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center gap-3 pr-8">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Pencil className="h-5 w-5 text-primary" />
+              <Building2 className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <SheetTitle className="text-base font-semibold">Edit Tenant</SheetTitle>
-              <SheetDescription className="text-sm mt-0.5">
-                {tenant ? `Update “${tenant.tenantId}”` : 'Update tenant details'}
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="text-base font-semibold truncate">
+                {tenant?.name ?? 'Edit Tenant'}
+              </SheetTitle>
+              <SheetDescription className="text-sm mt-0.5 flex items-center gap-2">
+                <span className="font-mono truncate">{tenant?.tenantId}</span>
+                {tenant && (
+                  <Badge
+                    variant={tenant.enabled ? 'default' : 'secondary'}
+                    className="text-xs px-1.5 py-0 shrink-0"
+                  >
+                    {tenant.enabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                )}
               </SheetDescription>
             </div>
           </div>
@@ -176,6 +205,68 @@ export function EditTenantDialog({
             {errors.description && (
               <p className="text-xs text-destructive">{errors.description.message}</p>
             )}
+          </div>
+
+          <Separator />
+
+          {/* Enable / Disable */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Tenant Status</Label>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">
+                  {tenant?.enabled ? 'Currently enabled' : 'Currently disabled'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {tenant?.enabled
+                    ? 'Users can access this tenant.'
+                    : 'Users cannot access this tenant.'}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant={tenant?.enabled ? 'outline' : 'default'}
+                size="sm"
+                onClick={handleToggle}
+                disabled={isToggling || isSubmitting}
+                className="shrink-0 ml-3"
+              >
+                {isToggling ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                ) : tenant?.enabled ? (
+                  <PowerOff className="h-4 w-4 mr-1.5" />
+                ) : (
+                  <Power className="h-4 w-4 mr-1.5" />
+                )}
+                {tenant?.enabled ? 'Disable' : 'Enable'}
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Danger zone */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-destructive">Danger Zone</Label>
+            <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Delete tenant</p>
+                <p className="text-xs text-muted-foreground">
+                  Permanently removes the tenant and all its data.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteClick}
+                disabled={isSubmitting || isToggling}
+                className="shrink-0 ml-3"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Delete
+              </Button>
+            </div>
           </div>
         </form>
 
