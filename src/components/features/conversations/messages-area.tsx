@@ -142,6 +142,7 @@ export function MessagesArea({
                         width={32}
                         height={32}
                         className="object-contain"
+                        unoptimized
                       />
                     ) : (
                       <Building2 className="h-7 w-7 text-primary" />

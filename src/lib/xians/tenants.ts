@@ -5,7 +5,7 @@
  */
 
 import { XiansClient } from './client'
-import { XiansTenant, XiansParticipantTenant, XiansParticipantTenantsResponse } from './types'
+import { XiansTenant, XiansAdminTenant, XiansParticipantTenant, XiansParticipantTenantsResponse } from './types'
 
 export class XiansTenantsApi {
   constructor(private client: XiansClient) {}
@@ -60,6 +60,30 @@ export class XiansTenantsApi {
       })
       
       return false
+    }
+  }
+
+  /**
+   * List every tenant on the platform.
+   * GET /api/v1/admin/tenants
+   * Requires system-admin scope (provided by the service API key). Used to give
+   * system admins access to all tenants in the tenant switcher.
+   */
+  async getAllTenants(): Promise<XiansAdminTenant[]> {
+    console.log('[Xians Tenants] Fetching all tenants (system-admin scope)')
+
+    try {
+      const tenants = await this.client.get<XiansAdminTenant[]>(
+        '/api/v1/admin/tenants'
+      )
+      console.log(`[Xians Tenants] Fetched ${tenants?.length ?? 0} tenant(s)`)
+      return tenants ?? []
+    } catch (error: any) {
+      console.error('[Xians Tenants] Failed to fetch all tenants:', {
+        error: error.message,
+        status: error.status,
+      })
+      throw error
     }
   }
 

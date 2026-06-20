@@ -38,7 +38,7 @@ export function DashboardLayoutClient({
   showSidebar,
   canCustomizeTheme = true,
 }: Props) {
-  const { setTenants, setCanCustomizeTheme, clearTenants } = useTenantStore()
+  const { setTenants, setCanCustomizeTheme, clearTenants, setTenantLogo } = useTenantStore()
   const router = useRouter()
   const pathname = usePathname()
   const [isValidating, setIsValidating] = useState(true)
@@ -121,6 +121,13 @@ export function DashboardLayoutClient({
               router.push('/no-access')
               return
             }
+
+            // Lazily hydrate the current tenant's logo (the list is built from a
+            // single call without per-tenant logos). Validate already fetched the
+            // full tenant server-side, so we just merge the logo into the store.
+            if (data.tenant?.logo) {
+              setTenantLogo(finalSelectedTenantId, data.tenant.logo)
+            }
           } catch (error) {
             // Ignore abort errors
             if (error instanceof Error && error.name === 'AbortError') {
@@ -154,7 +161,7 @@ export function DashboardLayoutClient({
         abortControllerRef.current.abort()
       }
     }
-  }, [initialTenants, setTenants, setCanCustomizeTheme, canCustomizeTheme, router, clearTenants])
+  }, [initialTenants, setTenants, setCanCustomizeTheme, canCustomizeTheme, router, clearTenants, setTenantLogo])
 
   // Show loading while validating selected tenant
   if (isValidating) {

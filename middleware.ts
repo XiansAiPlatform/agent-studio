@@ -5,6 +5,14 @@ import { XiansTenantsApi } from "@/lib/xians/tenants"
 
 const CURRENT_TENANT_COOKIE = 'current-tenant-id'
 
+// Roles that may access Agent Settings (mirrors settings/layout.tsx and
+// requireParticipantAdmin). System admins are always allowed.
+const AGENT_SETTINGS_ROLES = new Set([
+  'TenantAdmin',
+  'TenantParticipantAdmin',
+  'TenantUser',
+])
+
 async function canAccessSettings(
   token: { email?: string | null; accessToken?: string } | null,
   tenantId: string | null
@@ -16,8 +24,10 @@ async function canAccessSettings(
     const client = createXiansClient(token.accessToken as string)
     const tenantsApi = new XiansTenantsApi(client)
     const response = await tenantsApi.getParticipantTenants(token.email)
+    // System admins have access to settings for any tenant.
+    if (response.isSystemAdmin) return true
     const currentTenant = response.tenants.find((t) => t.tenantId === tenantId)
-    return currentTenant?.role === 'TenantParticipantAdmin'
+    return AGENT_SETTINGS_ROLES.has(currentTenant?.role ?? '')
   } catch {
     return false
   }

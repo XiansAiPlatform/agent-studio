@@ -2,8 +2,9 @@ import { TenantProvider } from "./provider"
 import { Tenant, TenantContext } from "@/types/tenant"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
-import { XiansTenant } from "@/lib/xians/types"
+import { XiansTenant, XiansAdminTenant, XiansParticipantTenant, XiansParticipantRole } from "@/lib/xians/types"
 import { COLOR_THEMES, type ColorThemeId } from "@/lib/themes"
+import { proxyTenantLogo } from "@/lib/tenant/logo"
 
 const VALID_THEMES = Object.keys(COLOR_THEMES) as ColorThemeId[]
 
@@ -22,7 +23,7 @@ export class XiansTenantProvider implements TenantProvider {
       slug: xiansTenant.tenantId.toLowerCase(),
       theme,
       metadata: {
-        logo: xiansTenant.logo
+        logo: proxyTenantLogo(xiansTenant.tenantId, xiansTenant.logo)
       }
     }
   }
@@ -93,12 +94,115 @@ export class XiansTenantProvider implements TenantProvider {
     }
   }
 
+  /**
+   * Build the tenant list for a system admin: every enabled tenant on the
+   * platform with full admin access. Where the admin also has an explicit
+   * participant role, that role is preserved; otherwise the tenant is surfaced
+   * with admin-level flags so the full layout (sidebar, developer, tenant admin)
+   * is available.
+   */
+  private async getSystemAdminTenants(
+    tenantsApi: XiansTenantsApi,
+    participantTenants: XiansParticipantTenant[]
+  ): Promise<Array<{
+    tenant: Tenant
+    role: 'owner' | 'admin' | 'member' | 'viewer'
+    isTenantAdmin: boolean
+    isDeveloper: boolean
+    participantRole: XiansParticipantRole | undefined
+  }>> {
+    let allTenants: XiansAdminTenant[]
+    try {
+      allTenants = await tenantsApi.getAllTenants()
+    } catch (error) {
+      console.error(
+        '[XiansTenantProvider] Failed to fetch all tenants for system admin, falling back to participant tenants:',
+        error
+      )
+      // Fall back to participant tenants so the admin still has some access.
+      return this.mapParticipantTenants(participantTenants)
+    }
+
+    // Map explicit participant roles by tenantId so we can preserve them.
+    const participantRoleById = new Map<string, XiansParticipantRole | undefined>(
+      participantTenants.map((t) => [t.tenantId, t.role])
+    )
+
+    const enabledTenants = allTenants.filter((t) => t.enabled !== false)
+
+    console.log(
+      '[XiansTenantProvider] System admin has access to all',
+      enabledTenants.length,
+      'enabled tenant(s)'
+    )
+
+    return enabledTenants.map((adminTenant) => {
+      const xiansTenant: XiansTenant = {
+        tenantId: adminTenant.tenantId,
+        name: adminTenant.name,
+        theme: adminTenant.theme ?? undefined,
+      }
+      // Preserve the admin's explicit role where one exists; otherwise treat
+      // them as a tenant admin so layout/theme decisions grant full access.
+      const participantRole = participantRoleById.get(adminTenant.tenantId) ?? 'TenantAdmin'
+      return {
+        tenant: this.mapXiansTenantToTenant(xiansTenant),
+        role: 'admin' as const,
+        isTenantAdmin: true,
+        isDeveloper: true,
+        participantRole,
+      }
+    })
+  }
+
+  /**
+   * Map a list of participant tenants (approved only) to the internal tenant
+   * shape using only the data already present in the participant list response.
+   *
+   * Full per-tenant details (notably the logo) are intentionally NOT fetched
+   * here to keep tenant-list loading to a single API call regardless of how
+   * many tenants the user belongs to. The current tenant's logo is hydrated
+   * lazily on the client via /api/tenants/validate.
+   */
+  private mapParticipantTenants(
+    participantTenants: XiansParticipantTenant[]
+  ): Array<{
+    tenant: Tenant
+    role: 'owner' | 'admin' | 'member' | 'viewer'
+    isTenantAdmin: boolean
+    isDeveloper: boolean
+    participantRole: XiansParticipantRole | undefined
+  }> {
+    return participantTenants
+      .filter((t) => t.isApproved !== false)
+      .map((participantTenant) => {
+        const participantRole = participantTenant.role
+        const isTenantAdmin = participantRole === 'TenantAdmin'
+        const isDeveloper = participantRole === 'TenantUser'
+        const role: 'owner' | 'admin' | 'member' | 'viewer' =
+          participantRole === 'TenantParticipant' ? 'member' : 'admin'
+        const xiansTenant: XiansTenant = {
+          tenantId: participantTenant.tenantId,
+          name: participantTenant.tenantName,
+          theme: participantTenant.theme,
+          logo: participantTenant.logo,
+        }
+        return {
+          tenant: this.mapXiansTenantToTenant(xiansTenant),
+          role,
+          isTenantAdmin,
+          isDeveloper,
+          participantRole,
+        }
+      })
+  }
+
   async getUserTenants(userId: string, authToken?: string, userEmail?: string): Promise<Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
     isTenantAdmin: boolean
     isDeveloper: boolean
-    participantRole: string | undefined
+    participantRole: XiansParticipantRole | undefined
   }>> {
     const client = createXiansClient(authToken)
     const tenantsApi = new XiansTenantsApi(client)
@@ -111,74 +215,33 @@ export class XiansTenantProvider implements TenantProvider {
     // Get participant tenants using the new API
     // This returns tenant IDs and names where user has TenantParticipant role
     const response = await tenantsApi.getParticipantTenants(userEmail)
-    
+
+    // System admins get access to EVERY tenant on the platform via the tenant
+    // switcher, regardless of explicit participation.
+    if (response.isSystemAdmin) {
+      return this.getSystemAdminTenants(tenantsApi, response.tenants)
+    }
+
     if (response.tenants.length === 0) {
       console.log('[XiansTenantProvider] User has no tenant access')
       return []
     }
 
-    // Only include tenants where the participation has been approved
-    const approvedTenants = response.tenants.filter(
-      (t) => t.isApproved !== false
-    )
+    const tenants = this.mapParticipantTenants(response.tenants)
 
-    if (approvedTenants.length === 0) {
+    if (tenants.length === 0) {
       console.log('[XiansTenantProvider] User has no approved tenant access')
       return []
     }
 
     console.log(
       '[XiansTenantProvider] User has access to',
-      approvedTenants.length,
+      tenants.length,
       '/',
       response.tenants.length,
-      'approved tenant(s), isSystemAdmin:',
-      response.isSystemAdmin
+      'approved tenant(s)'
     )
 
-    // Fetch full tenant details for each approved participant tenant
-    const tenantPromises = approvedTenants.map(async (participantTenant) => {
-      const tenantId = participantTenant.tenantId
-      const participantRole = participantTenant.role
-      const isTenantAdmin = participantRole === 'TenantAdmin'
-      const isDeveloper = participantRole === 'TenantUser'
-      const role: 'owner' | 'admin' | 'member' | 'viewer' =
-        participantRole === 'TenantParticipant' ? 'member' : 'admin'
-      try {
-        const xiansTenant = await tenantsApi.getTenant(tenantId)
-        // Prefer the theme from the full tenant response; fall back to the participant list value
-        if (!xiansTenant.theme && participantTenant.theme) {
-          xiansTenant.theme = participantTenant.theme
-        }
-        return {
-          tenant: this.mapXiansTenantToTenant(xiansTenant),
-          role,
-          isTenantAdmin,
-          isDeveloper,
-          participantRole,
-        }
-      } catch (error) {
-        console.warn(`[XiansTenantProvider] Could not fetch full details for tenant ${tenantId}, using participant list data`)
-        // Fall back to the data already available from the participant list response
-        const fallbackTenant: XiansTenant = {
-          tenantId: participantTenant.tenantId,
-          name: participantTenant.tenantName,
-          theme: participantTenant.theme,
-          logo: participantTenant.logo,
-        }
-        return {
-          tenant: this.mapXiansTenantToTenant(fallbackTenant),
-          role,
-          isTenantAdmin,
-          isDeveloper,
-          participantRole,
-        }
-      }
-    })
-    
-    const tenants = await Promise.all(tenantPromises)
-    
-    // Filter out nulls (failed fetches or disabled tenants)
-    return tenants.filter((t): t is NonNullable<typeof t> => t !== null)
+    return tenants
   }
 }

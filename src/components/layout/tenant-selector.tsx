@@ -61,6 +61,7 @@ export function TenantSelector() {
                     width={tLogo?.width || 24}
                     height={tLogo?.height || 24}
                     className="object-contain h-full w-full"
+                    unoptimized
                   />
                 ) : (
                   <Building2 className="h-3 w-3 text-muted-foreground" />

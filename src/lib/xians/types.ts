@@ -23,6 +23,26 @@ export interface XiansTenant {
 }
 
 /**
+ * Tenant from the admin list endpoint
+ * GET /api/v1/admin/tenants
+ * Returns every tenant on the platform (system-admin scope). Unlike
+ * {@link XiansTenant} this includes the `enabled` flag and admin metadata.
+ */
+export interface XiansAdminTenant {
+  id: string
+  tenantId: string
+  name: string
+  domain?: string | null
+  description?: string | null
+  theme?: string | null
+  timezone?: string | null
+  enabled: boolean
+  createdAt?: string
+  createdBy?: string
+  updatedAt?: string | null
+}
+
+/**
  * Participant role from Xians API - used for layout/access; never exposed to client.
  * TenantAdmin and TenantUser are non-participant admin roles that may also appear here.
  */

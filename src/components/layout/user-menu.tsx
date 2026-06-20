@@ -100,6 +100,7 @@ export function UserMenu() {
                   width={tLogo?.width || 20}
                   height={tLogo?.height || 20}
                   className="object-contain h-full w-full"
+                  unoptimized
                 />
               ) : (
                 <Building2 className="h-3 w-3 text-muted-foreground" />

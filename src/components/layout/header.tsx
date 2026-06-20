@@ -56,6 +56,7 @@ export function Header({ onOpenSidebar }: HeaderProps = {}) {
                 height={logo?.height || 40}
                 className="object-contain max-h-10 w-auto"
                 priority
+                unoptimized
               />
             ) : (
               <Building2 className="h-6 w-6 text-primary" />

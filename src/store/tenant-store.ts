@@ -2,6 +2,13 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Tenant } from '@/types/tenant'
 
+interface TenantLogo {
+  url?: string | null
+  imgBase64?: string | null
+  width?: number
+  height?: number
+}
+
 interface TenantState {
   tenants: Array<{
     tenant: Tenant
@@ -21,6 +28,8 @@ interface TenantState {
   // Actions
   setTenants: (tenants: TenantState['tenants']) => void
   setCanCustomizeTheme: (value: boolean) => void
+  /** Lazily hydrate a tenant's logo (fetched after the list is loaded). */
+  setTenantLogo: (tenantId: string, logo: TenantLogo | null | undefined) => void
   setCurrentTenant: (tenantId: string) => void
   getCurrentTenant: () => TenantState['tenants'][0] | undefined
   setLoading: (isLoading: boolean) => void
@@ -40,6 +49,22 @@ export const useTenantStore = create<TenantState>()(
       canCustomizeTheme: true,
 
       setCanCustomizeTheme: (value) => set({ canCustomizeTheme: value }),
+
+      setTenantLogo: (tenantId, logo) => {
+        set((state) => ({
+          tenants: state.tenants.map((t) =>
+            t.tenant.id === tenantId
+              ? {
+                  ...t,
+                  tenant: {
+                    ...t.tenant,
+                    metadata: { ...t.tenant.metadata, logo },
+                  },
+                }
+              : t
+          ),
+        }))
+      },
 
       setTenants: (tenants) => {
         set({ tenants, error: null, hasAttemptedFetch: true })
