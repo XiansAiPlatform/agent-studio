@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { useTenantProvider } from '@/lib/tenant'
-import { createXiansClient } from '@/lib/xians/client'
-import { XiansTenantsApi } from '@/lib/xians/tenants'
-import { proxyTenantLogo } from '@/lib/tenant/logo'
 
 /**
  * POST /api/tenants/validate
@@ -48,23 +45,19 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const xiansClient = createXiansClient((session as any).accessToken)
-    const tenantsApi = new XiansTenantsApi(xiansClient)
-    const tenant = await tenantsApi.getTenant(tenantId)
+    // getTenantContext already fetched (and mapped) the tenant — including the
+    // same-origin proxied logo used for the header/favicon — so reuse it rather
+    // than issuing a second identical upstream lookup.
+    const { tenant } = tenantContext
 
     return NextResponse.json({
       exists: true,
       enabled: true,
       tenant: {
-        id: tenant.tenantId,
+        id: tenant.id,
         name: tenant.name,
         theme: tenant.theme,
-        // Logo is hydrated lazily on the client: the tenant list is built from a
-        // single list call (no per-tenant fetch), so the current tenant's logo
-        // is surfaced here for the header/favicon. Rewritten to the same-origin
-        // proxy so `next/image` can load it (the backend URL is cross-origin and
-        // requires the service API key).
-        logo: proxyTenantLogo(tenant.tenantId, tenant.logo),
+        logo: tenant.metadata?.logo,
       },
     })
   } catch (error: any) {
