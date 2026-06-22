@@ -33,6 +33,11 @@ export default async function DashboardLayout({
       return <BackendUnavailable errorMessage={result.message} />
     }
 
+    if (result.error === 'config_error') {
+      console.error('[Dashboard Layout] Backend authentication failed (check XIANS_APIKEY):', result.message)
+      return <BackendUnavailable variant="configuration" errorMessage={result.message} />
+    }
+
     if (result.error === 'access_denied') {
       console.error('[Dashboard Layout] Access denied:', result.message)
       return <AccountLocked errorMessage={result.message} />

@@ -7,6 +7,7 @@ export type UserTenantsResult =
   | { success: true; tenants: any[]; session: any }
   | { success: false; error: 'no_session' }
   | { success: false; error: 'backend_unavailable'; message: string }
+  | { success: false; error: 'config_error'; message: string }
   | { success: false; error: 'access_denied'; message: string }
   | { success: false; error: 'unknown'; message: string }
 
@@ -44,6 +45,17 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
       return {
         success: false,
         error: 'backend_unavailable',
+        message: error.message
+      }
+    }
+
+    // 401 here is a service-to-service auth failure: Agent Studio's XIANS_APIKEY
+    // is invalid / revoked / not registered in the backend. This is a deployment
+    // configuration problem, not a user-facing auth or connectivity issue.
+    if (error instanceof XiansApiError && error.status === 401) {
+      return {
+        success: false,
+        error: 'config_error',
         message: error.message
       }
     }
