@@ -5,6 +5,7 @@ import KeycloakProvider from "next-auth/providers/keycloak"
 import { VismaConnectProvider } from "@/lib/auth-providers/visma-connect"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
+import { describeXiansError, isServiceApiKeyError } from "@/lib/xians/errors"
 
 /**
  * Note: Tenant validation is now handled client-side by TenantValidator component
@@ -144,7 +145,14 @@ export const authOptions: NextAuthOptions = {
           
           console.log(`[Auth] User ${user.email} has access to ${response.tenants.length} tenant(s), isSystemAdmin: ${response.isSystemAdmin}`)
         } catch (error) {
-          console.error('[Auth] Error checking tenant access during sign-in:', error)
+          if (isServiceApiKeyError(error)) {
+            console.error(
+              '[Auth] Cannot check tenant access during sign-in - backend rejected the service credential:',
+              describeXiansError(error)
+            )
+          } else {
+            console.error('[Auth] Error checking tenant access during sign-in:', describeXiansError(error))
+          }
           // Allow sign in even if check fails - we'll validate again on redirect
           user.hasTenantAccess = true
           user.isSystemAdmin = false
@@ -200,7 +208,7 @@ export const authOptions: NextAuthOptions = {
           // existing claims and try again on the next refresh cycle.
           console.error(
             '[Auth] Failed to re-validate tenant access during jwt refresh:',
-            error
+            describeXiansError(error)
           )
         }
       }

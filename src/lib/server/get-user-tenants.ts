@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { useTenantProvider } from '@/lib/tenant'
 import { XiansApiError } from '@/lib/xians/client'
+import { describeXiansError, isBackendUnreachableError, isServiceApiKeyError } from '@/lib/xians/errors'
 
 export type UserTenantsResult = 
   | { success: true; tenants: any[]; session: any }
@@ -38,10 +39,10 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
       session
     }
   } catch (error) {
-    console.error('[Server] Error fetching tenants:', error)
+    console.error('[Server] Error fetching tenants:', describeXiansError(error))
     
     // Check if it's a network/backend unavailable error
-    if (error instanceof XiansApiError && error.status === 0) {
+    if (isBackendUnreachableError(error)) {
       return {
         success: false,
         error: 'backend_unavailable',
@@ -52,7 +53,7 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
     // 401 here is a service-to-service auth failure: Agent Studio's XIANS_APIKEY
     // is invalid / revoked / not registered in the backend. This is a deployment
     // configuration problem, not a user-facing auth or connectivity issue.
-    if (error instanceof XiansApiError && error.status === 401) {
+    if (isServiceApiKeyError(error)) {
       return {
         success: false,
         error: 'config_error',

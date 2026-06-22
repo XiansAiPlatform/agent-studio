@@ -7,6 +7,7 @@
 import { XiansClient } from './client'
 import { XiansTenant, XiansAdminTenant, XiansParticipantTenant, XiansParticipantTenantsResponse } from './types'
 import { createTtlCache, TENANT_LOOKUP_TTL_MS } from './cache'
+import { SERVICE_API_KEY_ERROR_HINT, isServiceApiKeyError } from './errors'
 
 // Module-level caches shared across every XiansTenantsApi instance (a fresh
 // instance is created per request). Keyed purely by the upstream lookup args
@@ -42,7 +43,8 @@ export class XiansTenantsApi {
       } catch (error: any) {
         console.error('[Xians Tenants] Failed to fetch tenant: %s', tenantId, {
           error: error.message,
-          status: error.status
+          status: error.status,
+          ...(isServiceApiKeyError(error) ? { hint: SERVICE_API_KEY_ERROR_HINT } : {})
         })
         throw error
       }
@@ -95,6 +97,7 @@ export class XiansTenantsApi {
         console.error('[Xians Tenants] Failed to fetch all tenants:', {
           error: error.message,
           status: error.status,
+          ...(isServiceApiKeyError(error) ? { hint: SERVICE_API_KEY_ERROR_HINT } : {})
         })
         throw error
       }
@@ -122,7 +125,8 @@ export class XiansTenantsApi {
       } catch (error: any) {
         console.error(`[Xians Tenants] Failed to fetch participant tenants for ${email}:`, {
           error: error.message,
-          status: error.status
+          status: error.status,
+          ...(isServiceApiKeyError(error) ? { hint: SERVICE_API_KEY_ERROR_HINT } : {})
         })
 
         // If 404, user has no tenants - return empty response
