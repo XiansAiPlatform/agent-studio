@@ -76,7 +76,7 @@ function buildImageResponse(
     return new NextResponse(null, { status: 304, headers })
   }
 
-  return new NextResponse(entry.body, { status: 200, headers })
+  return new NextResponse(new Uint8Array(entry.body), { status: 200, headers })
 }
 
 export async function GET(
