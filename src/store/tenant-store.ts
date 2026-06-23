@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Tenant } from '@/types/tenant'
 import type { Capability } from '@/lib/auth/capabilities'
+import type { ColorThemeId } from '@/lib/themes'
 
 interface TenantLogo {
   url?: string | null
@@ -31,6 +32,11 @@ interface TenantState {
   setCanCustomizeTheme: (value: boolean) => void
   /** Lazily hydrate a tenant's logo (fetched after the list is loaded). */
   setTenantLogo: (tenantId: string, logo: TenantLogo | null | undefined) => void
+  /**
+   * Update a tenant's color theme in the live store so the change is reflected
+   * immediately (and survives tenant switches) without re-fetching the list.
+   */
+  setTenantTheme: (tenantId: string, theme: ColorThemeId | null | undefined) => void
   setCurrentTenant: (tenantId: string) => void
   getCurrentTenant: () => TenantState['tenants'][0] | undefined
   setLoading: (isLoading: boolean) => void
@@ -50,6 +56,16 @@ export const useTenantStore = create<TenantState>()(
       canCustomizeTheme: true,
 
       setCanCustomizeTheme: (value) => set({ canCustomizeTheme: value }),
+
+      setTenantTheme: (tenantId, theme) => {
+        set((state) => ({
+          tenants: state.tenants.map((t) =>
+            t.tenant.id === tenantId
+              ? { ...t, tenant: { ...t.tenant, theme: theme ?? undefined } }
+              : t
+          ),
+        }))
+      },
 
       setTenantLogo: (tenantId, logo) => {
         set((state) => ({

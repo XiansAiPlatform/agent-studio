@@ -306,7 +306,7 @@ export default function DashboardPage() {
                   <Zap className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-semibold text-foreground truncate">Your Team</h2>
+                  <h2 className="text-lg font-semibold text-foreground truncate">Your Agent Team</h2>
                   <p className="text-xs text-muted-foreground truncate">Agents working for you</p>
                 </div>
               </div>

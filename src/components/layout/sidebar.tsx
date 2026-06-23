@@ -158,6 +158,8 @@ const navigation: NavigationItem[] = [
     capability: 'tenant:manage-users',
     children: [
       { name: 'Users', href: '/tenant-settings/users' },
+      { name: 'Branding', href: '/tenant-settings/branding' },
+      { name: 'OIDC Providers', href: '/tenant-settings/oidc' },
     ],
   },
   {

@@ -7,11 +7,11 @@ import {
   LogOut,
   Building2,
   ShieldCheck,
-  Palette,
   Check,
   ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
+  Search,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -19,27 +19,23 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useTenant } from '@/hooks/use-tenant';
-import { useColorTheme } from '@/hooks/use-color-theme';
-import { useTenantStore } from '@/store/tenant-store';
 import { useIsMobile } from '@/hooks/use-is-mobile';
-import { COLOR_THEMES, type ColorThemeId } from '@/lib/themes';
 
-type Panel = 'main' | 'tenants' | 'themes';
+type Panel = 'main' | 'tenants';
+
+// Above this many tenants, show a search box so large tenant lists stay usable.
+const SEARCH_THRESHOLD = 8;
 
 export function UserMenu() {
   const { data: session, status } = useSession();
   const { currentTenant, tenants, switchTenant } = useTenant();
-  const { colorTheme, setColorTheme } = useColorTheme();
-  const canCustomizeTheme = useTenantStore((s) => s.canCustomizeTheme);
   const hasMultipleTenants = tenants.length > 1;
   const isMobile = useIsMobile();
 
@@ -47,6 +43,7 @@ export function UserMenu() {
   // because Radix submenus open beside the trigger and have nowhere to fit on a
   // narrow screen when the parent menu is already at the right edge.
   const [panel, setPanel] = useState<Panel>('main');
+  const [tenantQuery, setTenantQuery] = useState('');
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' });
@@ -69,8 +66,19 @@ export function UserMenu() {
     );
   }
 
+  const showTenantSearch = tenants.length > SEARCH_THRESHOLD;
+
+  const filteredTenants = (() => {
+    const q = tenantQuery.trim().toLowerCase();
+    if (!q) return tenants;
+    return tenants.filter(
+      ({ tenant: t }) =>
+        t.name.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)
+    );
+  })();
+
   const tenantItems = currentTenant
-    ? tenants.map(({ tenant: t }) => {
+    ? filteredTenants.map(({ tenant: t }) => {
         const isActive = t.id === currentTenant.tenant.id;
         const tLogo = t.metadata?.logo;
         const tLogoSrc = tLogo?.imgBase64
@@ -105,28 +113,14 @@ export function UserMenu() {
       })
     : null;
 
-  const themeItems = (Object.entries(COLOR_THEMES) as [ColorThemeId, { name: string; primarySwatch: string }][]).map(
-    ([id, { name, primarySwatch }]) => (
-      <DropdownMenuItem
-        key={id}
-        onSelect={() => setColorTheme(id)}
-        className="flex items-center gap-2"
-      >
-        <div
-          className="h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
-          style={{ backgroundColor: primarySwatch }}
-        />
-        <span className="flex-1 truncate min-w-0">{name}</span>
-        {colorTheme === id && <Check className="h-4 w-4 shrink-0" />}
-      </DropdownMenuItem>
-    )
-  );
-
   // Drill-down "back" header used in mobile sub-panels.
   const BackHeader = ({ title }: { title: string }) => (
     <button
       type="button"
-      onClick={() => setPanel('main')}
+      onClick={() => {
+        setPanel('main');
+        setTenantQuery('');
+      }}
       className="flex items-center gap-1 w-full px-2 py-1.5 -mx-1 -mt-1 mb-1 text-sm font-medium border-b hover:bg-accent rounded-t-md"
     >
       <ChevronLeft className="h-4 w-4 shrink-0" />
@@ -137,7 +131,10 @@ export function UserMenu() {
   return (
     <DropdownMenu
       onOpenChange={(open) => {
-        if (!open) setPanel('main');
+        if (!open) {
+          setPanel('main');
+          setTenantQuery('');
+        }
       }}
     >
       <DropdownMenuTrigger asChild>
@@ -165,14 +162,31 @@ export function UserMenu() {
         {isMobile && panel === 'tenants' && currentTenant && (
           <>
             <BackHeader title="Switch tenant" />
-            {tenantItems}
-          </>
-        )}
-
-        {isMobile && panel === 'themes' && (
-          <>
-            <BackHeader title="Theme" />
-            {themeItems}
+            {showTenantSearch && (
+              <div className="p-1">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={tenantQuery}
+                    onChange={(e) => setTenantQuery(e.target.value)}
+                    placeholder="Search tenants…"
+                    className="h-9 pl-8 text-base"
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Escape') e.stopPropagation();
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="max-h-[50vh] overflow-y-auto">
+              {filteredTenants.length === 0 ? (
+                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                  No tenants found
+                </div>
+              ) : (
+                tenantItems
+              )}
+            </div>
           </>
         )}
 
@@ -217,71 +231,25 @@ export function UserMenu() {
                   </div>
                 </DropdownMenuLabel>
 
-                {hasMultipleTenants &&
-                  (isMobile ? (
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        setPanel('tenants');
-                      }}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <ArrowLeftRight className="h-4 w-4 shrink-0" />
-                      <span className="flex-1">Switch tenant</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger className="flex items-center gap-2">
-                        <ArrowLeftRight className="h-4 w-4" />
-                        <span>Switch tenant</span>
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="w-56">
-                        {tenantItems}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                  ))}
+                {/* Tenant switching lives in the header TenantSelector on desktop;
+                    on mobile that selector is hidden, so keep this drill-down. */}
+                {hasMultipleTenants && isMobile && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setPanel('tenants');
+                    }}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <ArrowLeftRight className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">Switch tenant</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuSeparator />
               </>
             )}
-
-            {canCustomizeTheme ? (
-              <>
-                {isMobile ? (
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setPanel('themes');
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <Palette className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">Theme</span>
-                    <div
-                      className="h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
-                      style={{ backgroundColor: COLOR_THEMES[colorTheme].primarySwatch }}
-                    />
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="flex items-center gap-2">
-                      <Palette className="h-4 w-4" />
-                      <span>Theme</span>
-                      <div
-                        className="ml-auto h-3.5 w-3.5 rounded-full border border-border/50 shrink-0"
-                        style={{ backgroundColor: COLOR_THEMES[colorTheme].primarySwatch }}
-                      />
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-44">
-                      {themeItems}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                )}
-                <DropdownMenuSeparator />
-              </>
-            ) : null}
 
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="h-4 w-4" />
