@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useTenantStore } from '@/store/tenant-store'
 import { Tenant } from '@/types/tenant'
+import type { Capability } from '@/lib/auth/capabilities'
 import { cn } from '@/lib/utils'
 import { ParticipantLayoutProvider } from '@/contexts/participant-layout-context'
 import { ParticipantLayoutShell } from '@/app/(dashboard)/participant/_components/participant-layout-shell'
@@ -17,8 +18,8 @@ interface Props {
   initialTenants: Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
-    isTenantAdmin: boolean
-    isDeveloper: boolean
+    capabilities: Capability[]
+    roleLabel: string | null
   }>
   /** Server-determined: show sidebar (admin layout) vs single panel (participant layout) */
   showSidebar: boolean

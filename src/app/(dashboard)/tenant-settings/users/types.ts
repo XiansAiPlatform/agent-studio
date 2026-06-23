@@ -1,19 +1,9 @@
-/** Roles a tenant admin can assign within their own tenant. SysAdmin is excluded. */
-export const TENANT_ROLES = [
-  'TenantAdmin',
-  'TenantUser',
-  'TenantParticipantAdmin',
-  'TenantParticipant',
-] as const
+// Roles a tenant admin can assign within their own tenant (SysAdmin excluded).
+// Defined once in the single source of truth at `@/lib/auth/roles`.
+export { TENANT_ROLES, TENANT_ROLE_LABELS } from '@/lib/auth/roles'
+export type { TenantRole } from '@/lib/auth/roles'
 
-export type TenantRole = (typeof TENANT_ROLES)[number]
-
-export const TENANT_ROLE_LABELS: Record<TenantRole, string> = {
-  TenantAdmin: 'Tenant Admin',
-  TenantUser: 'Developer',
-  TenantParticipantAdmin: 'Participant Admin',
-  TenantParticipant: 'Participant',
-}
+import type { TenantRole } from '@/lib/auth/roles'
 
 export interface TenantUser {
   userId: string

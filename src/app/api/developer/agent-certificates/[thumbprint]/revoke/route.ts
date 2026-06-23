@@ -16,6 +16,8 @@ function extractThumbprint(pathname: string): string | null {
 export const POST = withParticipantAdmin(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
+    // Identify the user by email so revoke scopes match the userId used when
+    // generating/listing certificates.
     const userId = session.user?.email ?? session.user?.id
     const thumbprint = extractThumbprint(request.nextUrl.pathname)
 

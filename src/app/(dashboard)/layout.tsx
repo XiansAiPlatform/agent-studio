@@ -5,6 +5,8 @@ import { DashboardLayoutClient } from './layout-client'
 import { BackendUnavailable } from '@/components/backend-unavailable'
 import { AccountLocked } from '@/components/account-locked'
 import { CURRENT_TENANT_COOKIE } from '@/lib/api/with-tenant'
+import { getCapabilities, hasCapability } from '@/lib/auth/capabilities'
+import { roleLabel } from '@/lib/auth/roles'
 
 /**
  * Server Component - Dashboard Layout
@@ -56,32 +58,38 @@ export default async function DashboardLayout({
     redirect('/no-access')
   }
 
-  // Determine layout mode from current tenant's participant role (server-only)
+  // Resolve capabilities server-side from the participant role + system-admin
+  // flag. The raw participantRole is never sent to the client; capabilities (a
+  // safe, derived abstraction) and a display label are sent instead.
+  const isSystemAdmin = result.session?.user?.isSystemAdmin === true
+
   const cookieStore = await cookies()
   const currentTenantId = cookieStore.get(CURRENT_TENANT_COOKIE)?.value
   const currentTenantData = currentTenantId
     ? tenants.find((t) => t.tenant.id === currentTenantId)
     : tenants[0]
   const participantRole = currentTenantData?.participantRole
-  // Anyone who is not a plain TenantParticipant gets the full sidebar layout.
-  // This covers TenantAdmin, TenantParticipantAdmin, TenantUser (Developer),
-  // and the undefined case (cookie mismatch / no tenant access → full layout for robustness).
-  const showSidebar = participantRole !== 'TenantParticipant'
+  const currentCapabilities = getCapabilities({ participantRole, isSystemAdmin })
+
+  // Anyone with the full-layout capability gets the sidebar. An unknown current
+  // tenant (cookie mismatch / no tenant access) falls back to the full layout
+  // for robustness, matching prior behavior.
+  const showSidebar =
+    participantRole === undefined
+      ? true
+      : hasCapability(currentCapabilities, 'app:use-full-layout')
 
   const tenantHasTheme = !!currentTenantData?.tenant?.theme
-  const isAdminRole =
-    participantRole === 'TenantAdmin' ||
-    participantRole === 'TenantParticipantAdmin' ||
-    participantRole === 'TenantUser'
-  const canCustomizeTheme = isAdminRole || !tenantHasTheme
+  const canCustomizeTheme =
+    hasCapability(currentCapabilities, 'theme:customize') || !tenantHasTheme
 
-  // Strip raw participantRole from tenants but surface the isTenantAdmin / isDeveloper
-  // flags so the sidebar can distinguish roles without exposing the raw string.
-  const initialTenants = tenants.map(({ tenant, role, isTenantAdmin, isDeveloper }) => ({
+  // Map each tenant to client-safe data: capabilities + a display role label.
+  // The raw participantRole is intentionally stripped here.
+  const initialTenants = tenants.map(({ tenant, role, participantRole: pr }) => ({
     tenant,
     role,
-    isTenantAdmin: isTenantAdmin ?? false,
-    isDeveloper: isDeveloper ?? false,
+    capabilities: getCapabilities({ participantRole: pr, isSystemAdmin }),
+    roleLabel: pr ? roleLabel(pr) : null,
   }))
 
   console.log(

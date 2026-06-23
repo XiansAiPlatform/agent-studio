@@ -10,6 +10,9 @@ import { handleApiError } from '@/lib/api/error-handler'
 export const GET = withParticipantAdmin(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
+    // Identify the user by email. The backend resolves the agent (certificate OU) to a
+    // user during agent authentication; email is the identifier this app shares with the
+    // backend (the OIDC sub differs per provider and is not stored server-side).
     const userId = session.user?.email ?? session.user?.id
 
     if (!userId) {
@@ -40,6 +43,7 @@ export const GET = withParticipantAdmin(
 export const POST = withParticipantAdmin(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
+    // Identify the user by email. See GET handler above.
     const userId = session.user?.email ?? session.user?.id
 
     if (!userId) {

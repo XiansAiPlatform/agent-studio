@@ -20,6 +20,7 @@ import {
   Building2,
   Users,
   Code2,
+  CalendarClock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,8 @@ import {
   AgentSelectionPanel,
 } from '@/components/features/conversations/agent-selection-panel';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
-import { useTenant } from '@/hooks/use-tenant';
+import { usePermissions } from '@/hooks/use-permissions';
+import type { Capability } from '@/lib/auth/capabilities';
 
 // Types for panel configuration
 type PanelConfig = {
@@ -57,9 +58,8 @@ type NavigationItem = {
   triggersPanel?: boolean;
   panelConfig?: PanelConfig;
   children?: NavigationChild[];
-  systemAdminOnly?: boolean;
-  tenantAdminOnly?: boolean;
-  developerOnly?: boolean;
+  /** When set, the item is only shown if the user has this capability. */
+  capability?: Capability;
 };
 
 const navigation: NavigationItem[] = [
@@ -134,6 +134,18 @@ const navigation: NavigationItem[] = [
           icon: Server,
         },
       },
+      {
+        name: 'Schedules',
+        href: '/settings/schedules',
+        triggersPanel: true,
+        panelConfig: {
+          title: 'Select an Agent',
+          description: 'Choose an agent to manage its schedules',
+          basePath: '/settings/schedules',
+          useQueryParams: true,
+          icon: CalendarClock,
+        },
+      },
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' },
       { name: 'Secrets', href: '/settings/secrets' },
@@ -143,7 +155,7 @@ const navigation: NavigationItem[] = [
     name: 'Tenant Admin',
     href: '/tenant-settings',
     icon: Users,
-    tenantAdminOnly: true,
+    capability: 'tenant:manage-users',
     children: [
       { name: 'Users', href: '/tenant-settings/users' },
     ],
@@ -152,7 +164,7 @@ const navigation: NavigationItem[] = [
     name: 'Developer',
     href: '/developer',
     icon: Code2,
-    developerOnly: true,
+    capability: 'developer:access',
     children: [
       { name: 'Secrets', href: '/developer/secrets' },
     ],
@@ -161,7 +173,7 @@ const navigation: NavigationItem[] = [
     name: 'System Admin',
     href: '/system-admin',
     icon: ShieldCheck,
-    systemAdminOnly: true,
+    capability: 'system:admin',
     children: [
       { name: 'Tenants', href: '/system-admin/tenants' },
       { name: 'Users', href: '/system-admin/users' },
@@ -390,21 +402,11 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const [activePanelMode, setActivePanelMode] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
-  const { currentTenant } = useTenant();
-  const isTenantAdmin = currentTenant?.isTenantAdmin === true || user?.isSystemAdmin === true;
-  // Developers see the Developer menu; system admins and tenant admins can too
-  const isDeveloper =
-    currentTenant?.isDeveloper === true ||
-    currentTenant?.isTenantAdmin === true ||
-    user?.isSystemAdmin === true;
+  const { can } = usePermissions();
 
-  const visibleNavigation = navigation.filter((item) => {
-    if (item.systemAdminOnly && user?.isSystemAdmin !== true) return false;
-    if (item.tenantAdminOnly && !isTenantAdmin) return false;
-    if (item.developerOnly && !isDeveloper) return false;
-    return true;
-  });
+  const visibleNavigation = navigation.filter((item) =>
+    item.capability ? can(item.capability) : true
+  );
 
   const effectiveCollapsed = mobile ? false : collapsed;
   const activePanelConfig = activePanelMode ? findPanelConfig(activePanelMode) : null;

@@ -11,6 +11,7 @@ import {
   Bot,
   ArrowRight,
   KeyRound,
+  CalendarClock,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -36,6 +37,14 @@ export default function SettingsPage() {
       description: 'View and manage your database schema and records',
       href: '/settings/database',
       icon: Database,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      title: 'Schedules',
+      description: 'View and manage scheduled agent workflows',
+      href: '/settings/schedules',
+      icon: CalendarClock,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },

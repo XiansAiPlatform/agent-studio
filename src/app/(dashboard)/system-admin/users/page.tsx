@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { useCan } from '@/hooks/use-permissions';
+import { RequireCapability } from '@/components/auth/can';
 import {
   Users as UsersIcon,
   UserPlus,
@@ -49,9 +50,8 @@ import { UserDetailPanel } from './components/user-detail-panel';
 const PAGE_SIZE = 20;
 const ALL_TENANTS = '__all__';
 
-export default function UsersPage() {
-  const router = useRouter();
-  const { user, isLoading: isAuthLoading } = useAuth();
+function UsersPageContent() {
+  const { isLoading: isAuthLoading } = useAuth();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string>(ALL_TENANTS);
   const [searchInput, setSearchInput] = useState('');
@@ -79,14 +79,7 @@ export default function UsersPage() {
     deleteUser,
   } = useUsers()
 
-  // Client-side UX guard. Real authorization is enforced server-side.
-  useEffect(() => {
-    if (!isAuthLoading && user?.isSystemAdmin === false) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthLoading, user, router]);
-
-  const isSystemAdmin = user?.isSystemAdmin === true;
+  const isSystemAdmin = useCan('system:admin');
 
   useEffect(() => {
     if (isSystemAdmin) fetchTenants();
@@ -466,5 +459,20 @@ export default function UsersPage() {
         isDeleting={isDeleting}
       />
     </div>
+  );
+}
+
+export default function UsersPage() {
+  return (
+    <RequireCapability
+      permission="system:admin"
+      fallback={
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <UsersPageContent />
+    </RequireCapability>
   );
 }

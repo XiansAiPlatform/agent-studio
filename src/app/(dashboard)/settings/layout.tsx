@@ -2,21 +2,15 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { getUserTenants } from '@/lib/server/get-user-tenants'
 import { CURRENT_TENANT_COOKIE } from '@/lib/api/with-tenant'
+import { hasCapability } from '@/lib/auth/capabilities'
+import { getCapabilitiesFromSession } from '@/lib/auth/server-capabilities'
 
 export const dynamic = 'force-dynamic'
 
-/** Roles that may access Agent Settings (all non-participant admin roles). */
-const AGENT_SETTINGS_ROLES = new Set([
-  'TenantAdmin',
-  'TenantParticipantAdmin',
-  'TenantUser',
-])
-
 /**
- * Agent Settings layout - accessible to TenantAdmin, TenantParticipantAdmin,
- * TenantUser (Developer), and system admins.
+ * Agent Settings layout - requires the `settings:view` capability (TenantAdmin,
+ * TenantParticipantAdmin, TenantUser, and system admins).
  * Plain TenantParticipant users are redirected to dashboard.
  */
 export default async function SettingsLayout({
@@ -30,33 +24,13 @@ export default async function SettingsLayout({
     redirect('/login')
   }
 
-  // System admins always have access
-  if (session.user?.isSystemAdmin) {
-    return <>{children}</>
-  }
-
-  const result = await getUserTenants()
-
-  if (!result.success) {
-    if (result.error === 'no_session') {
-      redirect('/login')
-    }
-    redirect('/dashboard')
-  }
-
-  const { tenants } = result
-
   const cookieStore = await cookies()
-  const currentTenantId = cookieStore.get(CURRENT_TENANT_COOKIE)?.value
-  const currentTenantData = currentTenantId
-    ? tenants.find((t: { tenant: { id: string } }) => t.tenant.id === currentTenantId)
-    : tenants[0]
+  const currentTenantId = cookieStore.get(CURRENT_TENANT_COOKIE)?.value ?? null
+  const capabilities = await getCapabilitiesFromSession(session, currentTenantId)
 
-  const participantRole = currentTenantData?.participantRole
-
-  if (!participantRole || !AGENT_SETTINGS_ROLES.has(participantRole)) {
+  if (!hasCapability(capabilities, 'settings:view')) {
     console.log(
-      `[Settings Layout] Access denied - role "${participantRole}" is not in allowed set, redirecting to dashboard`
+      '[Settings Layout] Access denied - missing settings:view capability, redirecting to dashboard'
     )
     redirect('/dashboard')
   }

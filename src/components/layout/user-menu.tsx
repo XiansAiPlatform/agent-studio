@@ -59,15 +59,7 @@ export function UserMenu() {
     initials: session?.user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U',
   }
 
-  const tenantRoleLabel = currentTenant
-    ? currentTenant.isTenantAdmin
-      ? 'Tenant Admin'
-      : currentTenant.isDeveloper
-      ? 'Developer'
-      : currentTenant.role === 'admin'
-      ? 'Participant Admin'
-      : 'Participant'
-    : null;
+  const tenantRoleLabel = currentTenant?.roleLabel ?? null;
 
   if (status === 'loading') {
     return (

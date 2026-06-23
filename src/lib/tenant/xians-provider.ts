@@ -5,6 +5,7 @@ import { XiansTenantsApi } from "@/lib/xians/tenants"
 import { XiansTenant, XiansAdminTenant, XiansParticipantTenant, XiansParticipantRole } from "@/lib/xians/types"
 import { COLOR_THEMES, type ColorThemeId } from "@/lib/themes"
 import { proxyTenantLogo } from "@/lib/tenant/logo"
+import { getCapabilities, hasCapability } from "@/lib/auth/capabilities"
 
 const VALID_THEMES = Object.keys(COLOR_THEMES) as ColorThemeId[]
 
@@ -79,12 +80,12 @@ export class XiansTenantProvider implements TenantProvider {
     const tenant = await this.getTenant(tenantId, authToken)
     if (!tenant) return null
 
-    // TenantAdmin, TenantParticipantAdmin, and TenantUser (Developer) all receive
-    // full admin permissions for agent-level operations. Tenant management
-    // operations (user/tenant settings) are further gated by withParticipantAdmin
-    // which only allows TenantAdmin.
-    const adminRoles = new Set(['TenantAdmin', 'TenantParticipantAdmin', 'TenantUser'])
-    const isAdmin = adminRoles.has(participant?.role ?? '') || isSystemAdmin
+    // Agent-level admin permissions map to the `settings:view` capability
+    // (TenantAdmin, TenantParticipantAdmin, TenantUser, and system admins).
+    // Tenant management operations (user/tenant settings) are further gated by
+    // withTenantAdmin which requires `tenant:manage-users`.
+    const capabilities = getCapabilities({ participantRole: participant?.role, isSystemAdmin })
+    const isAdmin = hasCapability(capabilities, 'settings:view')
     return {
       tenant,
       userRole: isAdmin ? 'admin' : 'member',
@@ -107,8 +108,6 @@ export class XiansTenantProvider implements TenantProvider {
   ): Promise<Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
-    isTenantAdmin: boolean
-    isDeveloper: boolean
     participantRole: XiansParticipantRole | undefined
   }>> {
     let allTenants: XiansAdminTenant[]
@@ -144,12 +143,11 @@ export class XiansTenantProvider implements TenantProvider {
       }
       // Preserve the admin's explicit role where one exists; otherwise treat
       // them as a tenant admin so layout/theme decisions grant full access.
+      // System-admin status grants all capabilities regardless of this role.
       const participantRole = participantRoleById.get(adminTenant.tenantId) ?? 'TenantAdmin'
       return {
         tenant: this.mapXiansTenantToTenant(xiansTenant),
         role: 'admin' as const,
-        isTenantAdmin: true,
-        isDeveloper: true,
         participantRole,
       }
     })
@@ -169,16 +167,12 @@ export class XiansTenantProvider implements TenantProvider {
   ): Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
-    isTenantAdmin: boolean
-    isDeveloper: boolean
     participantRole: XiansParticipantRole | undefined
   }> {
     return participantTenants
       .filter((t) => t.isApproved !== false)
       .map((participantTenant) => {
         const participantRole = participantTenant.role
-        const isTenantAdmin = participantRole === 'TenantAdmin'
-        const isDeveloper = participantRole === 'TenantUser'
         const role: 'owner' | 'admin' | 'member' | 'viewer' =
           participantRole === 'TenantParticipant' ? 'member' : 'admin'
         const xiansTenant: XiansTenant = {
@@ -190,8 +184,6 @@ export class XiansTenantProvider implements TenantProvider {
         return {
           tenant: this.mapXiansTenantToTenant(xiansTenant),
           role,
-          isTenantAdmin,
-          isDeveloper,
           participantRole,
         }
       })
@@ -200,8 +192,6 @@ export class XiansTenantProvider implements TenantProvider {
   async getUserTenants(userId: string, authToken?: string, userEmail?: string): Promise<Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
-    isTenantAdmin: boolean
-    isDeveloper: boolean
     participantRole: XiansParticipantRole | undefined
   }>> {
     const client = createXiansClient(authToken)

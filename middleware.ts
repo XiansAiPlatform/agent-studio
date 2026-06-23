@@ -1,51 +1,24 @@
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
-import { createXiansClient } from "@/lib/xians/client"
-import { XiansTenantsApi } from "@/lib/xians/tenants"
+import { hasCapability } from "@/lib/auth/capabilities"
+import { getCapabilitiesFromToken } from "@/lib/auth/server-capabilities"
 
 const CURRENT_TENANT_COOKIE = 'current-tenant-id'
-
-// Roles that may access Agent Settings (mirrors settings/layout.tsx and
-// requireParticipantAdmin). System admins are always allowed.
-const AGENT_SETTINGS_ROLES = new Set([
-  'TenantAdmin',
-  'TenantParticipantAdmin',
-  'TenantUser',
-])
 
 async function canAccessSettings(
   token: { email?: string | null; accessToken?: string } | null,
   tenantId: string | null
 ): Promise<boolean> {
-  if (!token?.email) return false
   if (!tenantId) return false
-
-  try {
-    const client = createXiansClient(token.accessToken as string)
-    const tenantsApi = new XiansTenantsApi(client)
-    const response = await tenantsApi.getParticipantTenants(token.email)
-    // System admins have access to settings for any tenant.
-    if (response.isSystemAdmin) return true
-    const currentTenant = response.tenants.find((t) => t.tenantId === tenantId)
-    return AGENT_SETTINGS_ROLES.has(currentTenant?.role ?? '')
-  } catch {
-    return false
-  }
+  const capabilities = await getCapabilitiesFromToken(token, tenantId)
+  return hasCapability(capabilities, 'settings:view')
 }
 
 async function canAccessSystemAdmin(
   token: { email?: string | null; accessToken?: string } | null
 ): Promise<boolean> {
-  if (!token?.email) return false
-
-  try {
-    const client = createXiansClient(token.accessToken as string)
-    const tenantsApi = new XiansTenantsApi(client)
-    const response = await tenantsApi.getParticipantTenants(token.email)
-    return response.isSystemAdmin === true
-  } catch {
-    return false
-  }
+  const capabilities = await getCapabilitiesFromToken(token, null)
+  return hasCapability(capabilities, 'system:admin')
 }
 
 export default withAuth(

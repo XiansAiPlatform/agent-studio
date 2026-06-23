@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { useCan } from '@/hooks/use-permissions';
+import { RequireCapability } from '@/components/auth/can';
 import {
   Building2,
   Plus,
@@ -21,9 +22,8 @@ import { AddTenantDialog } from './components/add-tenant-dialog';
 import { EditTenantDialog } from './components/edit-tenant-dialog';
 import { DeleteTenantDialog } from './components/delete-tenant-dialog';
 
-export default function TenantsPage() {
-  const router = useRouter();
-  const { user, isLoading: isAuthLoading } = useAuth();
+function TenantsPageContent() {
+  const { isLoading: isAuthLoading } = useAuth();
 
   const [search, setSearch] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -42,13 +42,7 @@ export default function TenantsPage() {
     deleteTenant,
   } = useTenants();
 
-  useEffect(() => {
-    if (!isAuthLoading && user?.isSystemAdmin === false) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthLoading, user, router]);
-
-  const isSystemAdmin = user?.isSystemAdmin === true;
+  const isSystemAdmin = useCan('system:admin');
 
   useEffect(() => {
     if (isSystemAdmin) {
@@ -287,5 +281,20 @@ export default function TenantsPage() {
         isDeleting={isDeleting}
       />
     </div>
+  );
+}
+
+export default function TenantsPage() {
+  return (
+    <RequireCapability
+      permission="system:admin"
+      fallback={
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <TenantsPageContent />
+    </RequireCapability>
   );
 }

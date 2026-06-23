@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Bot } from 'lucide-react';
 import { useTenant } from '@/hooks/use-tenant';
+import { useCan } from '@/hooks/use-permissions';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 
 // Local imports
@@ -29,6 +30,8 @@ import { ActivationConfigWizard, ActivationWizardData, InstanceMetadata } from '
 export default function AgentTemplatesPage() {
   const { currentTenantId } = useTenant();
   const { data: session } = useSession();
+  // Only system admins can import/browse the global template store.
+  const canImportTemplates = useCan('system:admin');
   
   // Use custom hooks for data fetching
   const { deployedAgents, isLoading, error } = useAgentDeployments();
@@ -445,7 +448,7 @@ export default function AgentTemplatesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap md:flex-nowrap md:shrink-0">
-          {session?.user?.isSystemAdmin && (
+          {canImportTemplates && (
             <Button variant="outline" onClick={handleOpenStore} className="flex-1 md:flex-initial">
               Import Template
             </Button>
@@ -491,7 +494,7 @@ export default function AgentTemplatesPage() {
           {/* Available Agents */}
           <section className="space-y-6">
             {deployedAgents.length === 0 ? (
-              session?.user?.isSystemAdmin ? (
+              canImportTemplates ? (
                 // System admin: Show Browse Agent Templates card
                 <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm p-6">
                   <AddFromStoreCard
@@ -581,7 +584,7 @@ export default function AgentTemplatesPage() {
                 </div>
                 
                 {/* Add from Store - Only for System Admins */}
-                {session?.user?.isSystemAdmin && (
+                {canImportTemplates && (
                   <section className="space-y-4">
                     <h3 className="text-sm font-medium text-muted-foreground">Add more</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

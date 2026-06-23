@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Tenant } from '@/types/tenant'
+import type { Capability } from '@/lib/auth/capabilities'
 
 interface TenantLogo {
   url?: string | null
@@ -13,10 +14,10 @@ interface TenantState {
   tenants: Array<{
     tenant: Tenant
     role: 'owner' | 'admin' | 'member' | 'viewer'
-    /** True only when the user's participant role for this tenant is TenantAdmin */
-    isTenantAdmin: boolean
-    /** True only when the user's participant role for this tenant is TenantUser (Developer) */
-    isDeveloper: boolean
+    /** Capabilities the current user has within this tenant (derived server-side). */
+    capabilities: Capability[]
+    /** Human-readable role label for display (e.g. "Developer"); null if unknown. */
+    roleLabel: string | null
   }>
   currentTenantId: string | null
   isLoading: boolean

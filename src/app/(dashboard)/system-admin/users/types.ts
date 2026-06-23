@@ -3,32 +3,17 @@
  * Mirrors the Xians server AdminUserEndpoints and AdminGlobalUserEndpoints DTOs.
  */
 
-/** Roles that can be assigned to a user within a tenant (everything except SysAdmin). */
-export const TENANT_ROLES = [
-  'TenantAdmin',
-  'TenantUser',
-  'TenantParticipantAdmin',
-  'TenantParticipant',
-] as const
+// Role identifiers and labels live in the single source of truth at
+// `@/lib/auth/roles` and are re-exported here for backwards compatibility.
+export {
+  TENANT_ROLES,
+  ALL_ROLES,
+  ROLE_LABELS,
+  roleLabel,
+} from '@/lib/auth/roles'
+export type { TenantRole, Role } from '@/lib/auth/roles'
 
-/** All assignable roles. SysAdmin is a global flag that only a system admin may grant. */
-export const ALL_ROLES = ['SysAdmin', ...TENANT_ROLES] as const
-
-export type TenantRole = (typeof TENANT_ROLES)[number]
-export type Role = (typeof ALL_ROLES)[number]
-
-/** Human-readable labels for each role. */
-export const ROLE_LABELS: Record<Role, string> = {
-  SysAdmin: 'System Admin',
-  TenantAdmin: 'Tenant Admin',
-  TenantUser: 'Developer',
-  TenantParticipantAdmin: 'Participant Admin',
-  TenantParticipant: 'Participant',
-}
-
-export function roleLabel(role: string): string {
-  return (ROLE_LABELS as Record<string, string>)[role] ?? role
-}
+import type { Role, TenantRole } from '@/lib/auth/roles'
 
 // ── Tenant-scoped user type (used for per-tenant list & role assignment) ────
 
