@@ -21,18 +21,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { showErrorToast } from '@/lib/utils/error-handler';
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 
 const OTHER_REASON = 'Other' as const;
 
-const LEGACY_REASON_LABELS: Record<string, string> = {
+export const LEGACY_REASON_LABELS: Record<string, string> = {
   NotAccurate: 'Not accurate',
   Irrelevant: 'Irrelevant',
   MissingInstructions: 'Missing instructions',
   IncompleteResponse: 'Incomplete response',
 };
 
-const REASON_OPTIONS = [
+export const REASON_OPTIONS = [
   { value: 'FactuallyIncorrect', label: 'Factually incorrect' },
   { value: 'MissingImportantDetails', label: 'Missing important details' },
   { value: 'DidNotAnswerActualQuestion', label: 'Did not answer the actual question' },
@@ -48,6 +48,16 @@ const REASON_OPTIONS = [
   { value: 'PerformanceIssue', label: 'Performance issue' },
   { value: OTHER_REASON, label: 'Other' },
 ] as const;
+
+/** Resolve a human-readable label for a feedback reason category value. */
+export function getReasonLabel(reasonCategory: string | null | undefined): string | null {
+  if (!reasonCategory) return null;
+  return (
+    REASON_OPTIONS.find((o) => o.value === reasonCategory)?.label ??
+    LEGACY_REASON_LABELS[reasonCategory] ??
+    reasonCategory
+  );
+}
 
 export function agentMessageSupportsFeedback(message: Message): boolean {
   return (
@@ -118,6 +128,20 @@ export function MessageFeedbackPrompt({
     return null;
   }
 
+  const resetForm = () => {
+    setStarRating(0);
+    setReasonCategory('');
+    setComment('');
+    setHoveredStar(0);
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      resetForm();
+    }
+  };
+
   const handleSubmit = async () => {
     if (starRating < 1 || starRating > 5) {
       showErrorToast(new Error('Pick a star rating'), 'Rating required');
@@ -183,10 +207,10 @@ export function MessageFeedbackPrompt({
         submittedAt,
       });
 
+      showSuccessToast('Thanks for your feedback');
+
       setOpen(false);
-      setStarRating(0);
-      setReasonCategory('');
-      setComment('');
+      resetForm();
     } catch (e) {
       showErrorToast(e, 'Could not submit feedback');
     } finally {
@@ -206,7 +230,7 @@ export function MessageFeedbackPrompt({
         Rate response
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Rate this response</DialogTitle>
@@ -225,7 +249,12 @@ export function MessageFeedbackPrompt({
                       className="p-1 rounded focus:outline-none focus:ring-2 focus:ring-primary"
                       onMouseEnter={() => setHoveredStar(n)}
                       onMouseLeave={() => setHoveredStar(0)}
-                      onClick={() => setStarRating(n)}
+                      onClick={() => {
+                        setStarRating(n);
+                        if (n >= 4) {
+                          setReasonCategory('');
+                        }
+                      }}
                       aria-label={`${n} stars`}
                     >
                       <Star
@@ -259,29 +288,27 @@ export function MessageFeedbackPrompt({
               </div>
             )}
 
-            <div>
-              <Label htmlFor="feedback-comment">
-                {starRating > 0 && starRating < 4 && reasonCategory === OTHER_REASON
-                  ? 'Comment (required)'
-                  : 'Comment (optional)'}
-              </Label>
-              <Textarea
-                id="feedback-comment"
-                className="mt-1 min-h-[72px]"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Add details…"
-                required={
-                  starRating > 0 && starRating < 4 && reasonCategory === OTHER_REASON
-                }
-                aria-required={
-                  starRating > 0 && starRating < 4 && reasonCategory === OTHER_REASON
-                }
-              />
-            </div>
+            {starRating > 0 && (
+              <div>
+                <Label htmlFor="feedback-comment">
+                  {starRating < 4 && reasonCategory === OTHER_REASON
+                    ? 'Comment (required)'
+                    : 'Comment (optional)'}
+                </Label>
+                <Textarea
+                  id="feedback-comment"
+                  className="mt-1 min-h-[72px]"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add details…"
+                  required={starRating < 4 && reasonCategory === OTHER_REASON}
+                  aria-required={starRating < 4 && reasonCategory === OTHER_REASON}
+                />
+              </div>
+            )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -293,7 +320,14 @@ export function MessageFeedbackPrompt({
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting || starRating < 1}
+              disabled={
+                submitting ||
+                starRating < 1 ||
+                (starRating < 4 && !reasonCategory) ||
+                (starRating < 4 &&
+                  reasonCategory === OTHER_REASON &&
+                  !comment.trim())
+              }
             >
               {submitting ? 'Submitting…' : 'Submit'}
             </Button>

@@ -22,6 +22,12 @@ interface MessageItemProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  /**
+   * Hide the "Rate response" action. Existing feedback is still shown as a
+   * read-only summary. Used in read-only contexts such as the feedback
+   * analytics thread view.
+   */
+  disableFeedback?: boolean;
 }
 
 function formatTimestamp(dateString: string): string {
@@ -33,7 +39,7 @@ function formatTimestamp(dateString: string): string {
   });
 }
 
-export function MessageItem({ message, agentName, userName, onMessageFeedbackSubmitted }: MessageItemProps) {
+export function MessageItem({ message, agentName, userName, onMessageFeedbackSubmitted, disableFeedback }: MessageItemProps) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const [isDraftExpanded, setIsDraftExpanded] = useState(false);
@@ -631,11 +637,13 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
             {message.feedback && (
               <MessageFeedbackSummary feedback={message.feedback} />
             )}
-            <MessageFeedbackPrompt
-              message={message}
-              agentName={agentName ?? 'Agent'}
-              onFeedbackSubmitted={onMessageFeedbackSubmitted}
-            />
+            {!disableFeedback && (
+              <MessageFeedbackPrompt
+                message={message}
+                agentName={agentName ?? 'Agent'}
+                onFeedbackSubmitted={onMessageFeedbackSubmitted}
+              />
+            )}
           </div>
         )}
 
