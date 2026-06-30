@@ -14,6 +14,7 @@ export interface Tenant {
   theme?: string | null
   timezone?: string | null
   enabled: boolean
+  useSpecificTemporalNamespace: boolean
   createdAt: string
   createdBy: string
   updatedAt?: string | null
@@ -30,6 +31,7 @@ export interface CreateTenantRequest {
   description?: string
   theme?: string
   timezone?: string
+  useSpecificTemporalNamespace?: boolean
 }
 
 export interface UpdateTenantRequest {
@@ -39,4 +41,5 @@ export interface UpdateTenantRequest {
   theme?: string
   timezone?: string
   enabled?: boolean
+  useSpecificTemporalNamespace?: boolean
 }
