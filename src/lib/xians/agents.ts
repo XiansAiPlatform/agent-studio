@@ -163,6 +163,21 @@ export class XiansAgentsApi {
   }
 
   /**
+   * Promote a running tenant-scoped agent deployment into a new system-scoped template.
+   * The source deployment is left untouched; a new template agent is created as a copy.
+   * System administrators only.
+   * POST /api/v1/admin/tenants/{tenantId}/agentDeployments/{agentName}/promote-to-template
+   */
+  async promoteAgentToTemplate(
+    tenantId: string,
+    agentName: string
+  ): Promise<XiansAgent> {
+    return this.client.post<XiansAgent>(
+      `/api/v1/admin/tenants/${tenantId}/agentDeployments/${agentName}/promote-to-template`
+    )
+  }
+
+  /**
    * Create an agent deployment from a template (deprecated - use deployAgentTemplate)
    * POST /api/v1/admin/tenants/{tenantId}/agentDeployments
    */

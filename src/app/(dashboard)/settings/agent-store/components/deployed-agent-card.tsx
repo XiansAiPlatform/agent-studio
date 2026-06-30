@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Bot, Play, MoreVertical, Trash2 } from 'lucide-react';
+import { Bot, Play, MoreVertical, Trash2, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EnhancedDeployment } from '../types';
 import { getCategoryLabel } from '../utils/category-utils';
@@ -14,16 +14,20 @@ interface DeployedAgentCardProps {
   onClick?: () => void;
   onStartNewRun?: () => void;
   onDelete?: () => void;
+  canPromoteToTemplate?: boolean;
+  onPromoteToTemplate?: () => void;
 }
 
-export function DeployedAgentCard({ 
-  deployment, 
+export function DeployedAgentCard({
+  deployment,
   isNewlyDeployed = false,
   isExpanded = false,
   onToggleExpanded,
   onClick,
   onStartNewRun,
-  onDelete
+  onDelete,
+  canPromoteToTemplate = false,
+  onPromoteToTemplate
 }: DeployedAgentCardProps) {
   const Icon = deployment.icon || Bot;
   const hasDescription = deployment.description && deployment.description.trim() !== '';
@@ -79,6 +83,18 @@ export function DeployedAgentCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {canPromoteToTemplate && (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPromoteToTemplate?.();
+                    }}
+                  >
+                    <Layers className="h-4 w-4 mr-2" />
+                    Convert to Template
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className="text-red-600 dark:text-red-400 focus:text-red-700 dark:focus:text-red-300 cursor-pointer"
                   onClick={(e) => {

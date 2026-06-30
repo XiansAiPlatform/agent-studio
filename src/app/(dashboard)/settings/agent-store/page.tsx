@@ -23,6 +23,7 @@ import { DeployedAgentCard } from './components/deployed-agent-card';
 import { AddFromStoreCard } from './components/add-from-store-card';
 import { StoreSliderSheet } from './components/store-slider-sheet';
 import { DeleteAgentDialog } from './components/delete-agent-dialog';
+import { PromoteToTemplateDialog } from './components/promote-to-template-dialog';
 import { CategoryFilter } from './components/category-filter';
 import { getCategoryLabel, groupByCategory, getUniqueCategories } from './utils/category-utils';
 import { ActivationConfigWizard, ActivationWizardData, InstanceMetadata } from '@/components/features/agents/activation-config-wizard';
@@ -50,6 +51,9 @@ export default function AgentTemplatesPage() {
   const [isDeletingAgent, setIsDeletingAgent] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<EnhancedDeployment | null>(null);
+  const [isPromotingAgent, setIsPromotingAgent] = useState(false);
+  const [showPromoteDialog, setShowPromoteDialog] = useState(false);
+  const [agentToPromote, setAgentToPromote] = useState<EnhancedDeployment | null>(null);
   const [isCreatingInstance, setIsCreatingInstance] = useState(false);
   const [isStoreSliderOpen, setIsStoreSliderOpen] = useState(false);
   const [mainGridExpanded, setMainGridExpanded] = useState(false);
@@ -252,6 +256,52 @@ export default function AgentTemplatesPage() {
   const handleCancelDelete = () => {
     setShowDeleteDialog(false);
     setAgentToDelete(null);
+  };
+
+  const handlePromoteClick = (deployment: EnhancedDeployment) => {
+    setAgentToPromote(deployment);
+    setShowPromoteDialog(true);
+  };
+
+  const handleConfirmPromote = async () => {
+    if (!agentToPromote) return;
+
+    try {
+      setIsPromotingAgent(true);
+
+      const response = await fetch(
+        `/api/agent-deployments/${encodeURIComponent(agentToPromote.name)}/promote-to-template`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.error || errorData.message || 'Failed to convert agent to a template';
+        const error: any = new Error(errorMessage);
+        error.status = response.status;
+        error.code = errorData.code;
+        throw error;
+      }
+
+      showSuccessToast(
+        'Converted to Template',
+        `${agentToPromote.name} is now available as a template for any tenant to import`,
+        { icon: '📦' }
+      );
+
+      setShowPromoteDialog(false);
+    } catch (err) {
+      showErrorToast(err);
+      setShowPromoteDialog(false);
+    } finally {
+      setIsPromotingAgent(false);
+      setAgentToPromote(null);
+    }
+  };
+
+  const handleCancelPromote = () => {
+    setShowPromoteDialog(false);
+    setAgentToPromote(null);
   };
 
   const toggleMainGridExpanded = () => {
@@ -560,6 +610,8 @@ export default function AgentTemplatesPage() {
                               onClick={() => handleDeploymentClick(deployment)}
                               onStartNewRun={() => handleStartNewRun(deployment)}
                               onDelete={() => handleDeleteClick(deployment)}
+                              canPromoteToTemplate={canImportTemplates}
+                              onPromoteToTemplate={() => handlePromoteClick(deployment)}
                             />
                           ))}
                         </div>
@@ -627,6 +679,16 @@ export default function AgentTemplatesPage() {
         isDeleting={isDeletingAgent}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
+      />
+
+      {/* Convert to Template Confirmation Dialog */}
+      <PromoteToTemplateDialog
+        open={showPromoteDialog}
+        onOpenChange={setShowPromoteDialog}
+        agent={agentToPromote}
+        isPromoting={isPromotingAgent}
+        onConfirm={handleConfirmPromote}
+        onCancel={handleCancelPromote}
       />
 
       {/* Configuration Wizard with Instance Metadata */}
