@@ -11,8 +11,9 @@ import type { FileUploadPayload } from './types';
 interface ChatInterfaceProps {
   conversation: Conversation;
   selectedTopicId: string;
-  onSendMessage?: (content: string, topicId: string) => void;
-  onSendFile?: (file: FileUploadPayload, topicId: string) => void;
+  onSendMessage?: (content: string, topicId: string, files?: FileUploadPayload[]) => void;
+  /** Whether file attachments are supported for this conversation. */
+  allowFileUpload?: boolean;
   isLoadingMessages?: boolean;
   onLoadMoreMessages?: () => void;
   isLoadingMoreMessages?: boolean;
@@ -20,7 +21,7 @@ interface ChatInterfaceProps {
   activationName?: string;
   hideHeader?: boolean;
   isActivationActive?: boolean;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   /** Agent info from deployment - shown in empty state when no messages */
   agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
   /** After rating an agent message */
@@ -32,7 +33,7 @@ interface ChatInterfaceProps {
 
 function useSamplePromptClick(
   setMessageInput: (v: string) => void,
-  inputRef?: React.RefObject<HTMLInputElement | null>
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>
 ) {
   return useCallback(
     (prompt: string) => {
@@ -47,7 +48,7 @@ export function ChatInterface({
   conversation,
   selectedTopicId,
   onSendMessage,
-  onSendFile,
+  allowFileUpload = false,
   isLoadingMessages = false,
   onLoadMoreMessages,
   isLoadingMoreMessages = false,
@@ -117,8 +118,10 @@ export function ChatInterface({
     scheduleTypingEnd();
   }, [selectedTopic?.messages, isTyping, scheduleTypingEnd]);
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedTopicId || !isActivationActive) return;
+  const handleSendMessage = (files?: FileUploadPayload[]) => {
+    const hasText = messageInput.trim().length > 0;
+    const hasFiles = !!files && files.length > 0;
+    if ((!hasText && !hasFiles) || !selectedTopicId || !isActivationActive) return;
 
     const currentTopic = conversation.topics.find(t => t.id === selectedTopicId);
     if (currentTopic) {
@@ -128,22 +131,8 @@ export function ChatInterface({
       lastAgentMessageIdRef.current = agentChatMessages[agentChatMessages.length - 1]?.id ?? null;
     }
 
-    onSendMessage?.(messageInput, selectedTopicId);
+    onSendMessage?.(messageInput, selectedTopicId, files);
     setMessageInput('');
-    lastProgressMessageIdRef.current = null;
-    setIsTyping(true);
-    scheduleTypingEnd();
-  };
-
-  const handleSendFile = (payload: FileUploadPayload, topicId: string) => {
-    const currentTopic = conversation.topics.find(t => t.id === topicId);
-    if (currentTopic) {
-      const agentChatMessages = currentTopic.messages.filter(
-        m => m.role === 'agent' && (m.messageType?.toLowerCase() !== 'reasoning' && m.messageType?.toLowerCase() !== 'tool')
-      );
-      lastAgentMessageIdRef.current = agentChatMessages[agentChatMessages.length - 1]?.id ?? null;
-    }
-    onSendFile?.(payload, topicId);
     lastProgressMessageIdRef.current = null;
     setIsTyping(true);
     scheduleTypingEnd();
@@ -189,7 +178,7 @@ export function ChatInterface({
         messageInput={messageInput}
         onMessageChange={setMessageInput}
         onSendMessage={handleSendMessage}
-        onSendFile={onSendFile ? handleSendFile : undefined}
+        allowFileUpload={allowFileUpload}
         selectedTopicId={selectedTopicId}
         activationName={activationName || 'Agent'}
         isActivationActive={isActivationActive}

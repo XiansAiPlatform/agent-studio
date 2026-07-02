@@ -29,6 +29,10 @@ export interface Message {
     type: 'task' | 'file' | 'link';
     id: string;
     name: string;
+    /** Storage id for file attachments backed by server (GridFS) storage. */
+    fileId?: string;
+    /** Download URL for the attachment, when available. */
+    url?: string;
   }[];
   contentDraft?: {
     id: string;

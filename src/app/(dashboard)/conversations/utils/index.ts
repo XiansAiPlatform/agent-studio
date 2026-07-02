@@ -69,11 +69,53 @@ function extractContent(xiansMsg: { text?: string; data?: unknown }): string {
 }
 
 /**
+ * Extract file attachments from a File-type message's data payload.
+ * Supports the multi-file shape `{ files: [{ fileName, ... }] }` and the
+ * legacy single-file shape `{ fileName, ... }`.
+ */
+function extractFileAttachments(
+  data: unknown,
+  messageId: string
+): NonNullable<Message['attachments']> | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const record = data as Record<string, unknown>;
+
+  const rawFiles = Array.isArray(record.files)
+    ? (record.files as unknown[])
+    : record.fileName != null
+      ? [record]
+      : [];
+
+  const attachments = rawFiles
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const record = entry as Record<string, unknown>;
+      const fileName = record.fileName;
+      if (typeof fileName !== 'string' || !fileName) return null;
+      const fileId = typeof record.fileId === 'string' && record.fileId ? record.fileId : undefined;
+      // Files stored in GridFS expose a download URL via the proxy; inline (legacy) files do not.
+      const url = fileId ? `/api/messaging/files/${encodeURIComponent(fileId)}` : undefined;
+      return {
+        type: 'file' as const,
+        id: `${messageId}-file-${index}`,
+        name: fileName,
+        ...(fileId && { fileId }),
+        ...(url && { url }),
+      };
+    })
+    .filter(
+      (a): a is { type: 'file'; id: string; name: string; fileId?: string; url?: string } =>
+        a !== null
+    );
+
+  return attachments.length > 0 ? attachments : undefined;
+}
+
+/**
  * Map Xians API message to our Message format.
- * Handles messageType (Reasoning, Tool, Chat) and content from text or data.
+ * Handles messageType (Reasoning, Tool, File, Chat) and content from text or data.
  */
 export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
-  const content = extractContent(xiansMsg);
   const role = xiansMsg.direction === 'Incoming' ? ('user' as const) : ('agent' as const);
   const rawType = (xiansMsg.messageType ?? 'Chat').toLowerCase();
   const messageType =
@@ -82,6 +124,14 @@ export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
       : rawType === 'tool'
         ? ('tool' as const)
         : undefined;
+
+  // File messages carry base64 payloads in `data`; never run the generic
+  // content fallback (which would stringify the base64 into the bubble).
+  const isFile = rawType === 'file';
+  const attachments = isFile
+    ? extractFileAttachments(xiansMsg.data, xiansMsg.id)
+    : undefined;
+  const content = isFile ? (xiansMsg.text ?? '') : extractContent(xiansMsg);
 
   const feedback = xiansMsg.feedback
     ? {
@@ -109,6 +159,7 @@ export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
     participantId: xiansMsg.participantId,
     ...(messageType && { messageType }),
     ...(feedback && { feedback }),
+    ...(attachments && { attachments }),
   };
 }
 
