@@ -1,4 +1,4 @@
-import type { Message } from '@/lib/data/dummy-conversations';
+import type { Message } from '@/types/conversation';
 import type { XiansMessage } from '@/lib/xians/types';
 
 /**

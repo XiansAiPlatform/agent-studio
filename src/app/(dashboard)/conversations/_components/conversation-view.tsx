@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Conversation, Message } from '@/lib/data/dummy-conversations';
+import { Conversation, Message } from '@/types/conversation';
 import { ActivationOption } from '../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';

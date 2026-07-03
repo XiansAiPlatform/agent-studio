@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Conversation, Topic, Message } from '@/lib/data/dummy-conversations';
+import { Conversation, Topic, Message } from '@/types/conversation';
 import { ChatHeader } from './chat-header';
 import { ChatInputArea } from './chat-input-area';
 import { MessagesArea } from './messages-area';

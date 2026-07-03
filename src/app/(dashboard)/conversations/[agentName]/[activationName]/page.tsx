@@ -8,7 +8,7 @@ import { useTenant } from '@/hooks/use-tenant';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { toast } from 'sonner';
-import { Message, Topic } from '@/lib/data/dummy-conversations';
+import { Message, Topic } from '@/types/conversation';
 import { useActivations, useTopics, useConversationState, useAgentHeartbeat } from '../../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { getTopicParam, mapXiansMessageToMessage, sanitizeTopicDisplayName } from '../../utils';

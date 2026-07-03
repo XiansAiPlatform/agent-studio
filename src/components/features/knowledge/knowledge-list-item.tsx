@@ -1,6 +1,6 @@
 'use client';
 
-import { KnowledgeArticle } from '@/lib/data/dummy-knowledge';
+import { KnowledgeArticle } from '@/types/knowledge';
 import { FileJson, FileText, FileCode, Clock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';

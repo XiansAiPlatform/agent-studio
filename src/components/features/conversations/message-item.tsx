@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Message } from '@/lib/data/dummy-conversations';
+import { Message } from '@/types/conversation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bot, User, Copy, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink, Download } from 'lucide-react';

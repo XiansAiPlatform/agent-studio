@@ -1,6 +1,6 @@
 import { Bot } from 'lucide-react';
 import { ChatInterface, FileUploadPayload } from '@/components/features/conversations';
-import { Conversation, Topic, Message } from '@/lib/data/dummy-conversations';
+import { Conversation, Topic, Message } from '@/types/conversation';
 
 interface ChatPanelProps {
   conversation: Conversation;

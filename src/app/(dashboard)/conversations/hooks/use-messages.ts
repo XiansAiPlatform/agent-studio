@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Message } from '@/lib/data/dummy-conversations';
+import { Message } from '@/types/conversation';
 import { XiansMessageHistoryResponse } from '@/lib/xians/types';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { mapXiansMessageToMessage } from '../utils';

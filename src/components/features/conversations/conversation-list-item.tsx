@@ -1,6 +1,6 @@
 'use client';
 
-import { Conversation } from '@/lib/data/dummy-conversations';
+import { Conversation } from '@/types/conversation';
 import { Badge } from '@/components/ui/badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import { Bot, Clock, MessageSquare } from 'lucide-react';
