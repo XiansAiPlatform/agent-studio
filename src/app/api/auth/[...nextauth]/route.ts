@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
 import KeycloakProvider from "next-auth/providers/keycloak"
+import CredentialsProvider from "next-auth/providers/credentials"
 import { VismaConnectProvider } from "@/lib/auth-providers/visma-connect"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
@@ -117,6 +118,52 @@ if (process.env.VISMA_CONNECT_CLIENT_ID && process.env.VISMA_CONNECT_ISSUER) {
   )
 } else {
   console.log('[Auth] Visma Connect SSO disabled - VISMA_CONNECT_CLIENT_ID and/or VISMA_CONNECT_ISSUER not configured')
+}
+
+// Local development login (env-gated). Parses LOCAL_AUTH_USERS into an
+// email -> password map once at module load. NEVER enable in production.
+function parseLocalAuthUsers(raw: string | undefined): Map<string, string> {
+  const users = new Map<string, string>()
+  for (const entry of (raw ?? '').split(',')) {
+    const trimmed = entry.trim()
+    if (!trimmed) continue
+    const sep = trimmed.indexOf(':')
+    if (sep <= 0 || sep === trimmed.length - 1) {
+      console.warn('[Auth] Skipping malformed LOCAL_AUTH_USERS entry (expected email:password)')
+      continue
+    }
+    users.set(trimmed.slice(0, sep).trim().toLowerCase(), trimmed.slice(sep + 1))
+  }
+  return users
+}
+
+const localAuthUsers = parseLocalAuthUsers(process.env.LOCAL_AUTH_USERS)
+
+if (process.env.LOCAL_AUTH_ENABLED === 'true' && localAuthUsers.size > 0) {
+  console.warn(`[Auth] WARNING: Local credentials login is ENABLED for ${localAuthUsers.size} user(s). Never use this in production.`)
+  providers.push(
+    CredentialsProvider({
+      id: 'local',
+      name: 'Local Development',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email?.trim().toLowerCase()
+        if (!email || !credentials?.password) {
+          return null
+        }
+        const expected = localAuthUsers.get(email)
+        if (expected && expected === credentials.password) {
+          return { id: email, name: email.split('@')[0], email }
+        }
+        return null
+      },
+    })
+  )
+} else if (process.env.LOCAL_AUTH_ENABLED === 'true') {
+  console.warn('[Auth] LOCAL_AUTH_ENABLED is true but LOCAL_AUTH_USERS is empty or invalid - local login disabled')
 }
 
 export const authOptions: NextAuthOptions = {

@@ -29,6 +29,10 @@ This directory contains comprehensive documentation for the authentication syste
    - Configure both Google and Microsoft
    - User identity management across providers
 
+5. **[Local Mode Auth Setup](./LOCAL_AUTH_SETUP.md)**
+   - Simple email/password login for quick local deployments
+   - Env-gated, multi-user, dev-only
+
 ### Architecture & Implementation
 
 5. **[Authentication Implementation](./AUTHENTICATION_IMPLEMENTATION.md)**
@@ -70,6 +74,7 @@ This directory contains comprehensive documentation for the authentication syste
    - Google: [Google SSO Setup](./GOOGLE_SSO_SETUP.md)
    - Microsoft: [Microsoft SSO Setup](./MICROSOFT_SSO_SETUP.md)
    - Both: [Multi-Provider Setup](./MULTI_PROVIDER_SSO_SETUP.md)
+   - Local dev (email/password): [Local Mode Auth Setup](./LOCAL_AUTH_SETUP.md)
 3. **Test**: Follow the testing steps in your chosen guide
 4. **Deploy**: Update production environment variables
 
