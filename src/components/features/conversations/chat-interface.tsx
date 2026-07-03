@@ -84,6 +84,7 @@ export function ChatInterface({
     isLoadingMoreMessages,
     onLoadMoreMessages,
     selectedTopicId,
+    isTyping,
   });
 
   // Clear typing indicator only when agent *chat* response arrives (not reasoning/tool steps)
