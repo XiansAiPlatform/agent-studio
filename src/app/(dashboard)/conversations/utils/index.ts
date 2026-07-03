@@ -11,13 +11,6 @@ export function getTopicParam(topicId: string): string {
 }
 
 /**
- * Get the display name for a topic
- */
-export function getTopicDisplayName(topicId: string): string {
-  return topicId === 'general-discussions' ? 'General Discussions' : topicId;
-}
-
-/**
  * Sanitize a URL-derived topic param for safe display in the UI.
  * Used when creating synthetic topics from query params (e.g. ?topic=...) —
  * raw values can be malformed or contain path-like strings, HTML entities, or script-injection attempts.
@@ -38,13 +31,6 @@ export function sanitizeTopicDisplayName(raw: string | null | undefined): string
     .trim();
   if (!sanitized) return 'New conversation';
   return sanitized.slice(0, 200);
-}
-
-/**
- * Check if a topic ID represents the general discussions topic
- */
-export function isGeneralTopic(topicId: string): boolean {
-  return topicId === 'general-discussions';
 }
 
 /**
@@ -162,14 +148,3 @@ export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
     ...(attachments && { attachments }),
   };
 }
-
-/**
- * Constants for the conversations page
- */
-export const CONVERSATIONS_CONSTANTS = {
-  GENERAL_TOPIC_ID: 'general-discussions',
-  GENERAL_TOPIC_NAME: 'General Discussions',
-  TOPICS_PAGE_SIZE: 20,
-  MESSAGES_PAGE_SIZE: 10,
-  INITIAL_LOAD_DELAY: 1500,
-} as const;

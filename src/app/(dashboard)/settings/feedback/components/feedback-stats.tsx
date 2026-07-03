@@ -156,7 +156,7 @@ export function FeedbackStats({ stats, loading, error }: FeedbackStatsProps) {
                         background: 'var(--popover)',
                         color: 'var(--popover-foreground)',
                       }}
-                      formatter={(value: number) => [value, 'Count']}
+                      formatter={(value) => [value as number, 'Count']}
                     />
                     <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={64}>
                       {ratingData.map((d) => (

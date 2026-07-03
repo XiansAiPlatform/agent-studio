@@ -18,15 +18,6 @@ export interface AgentCertificate {
   expiresAt: string
 }
 
-export interface GenerateCertificateRequest {
-  /** Required display label stored alongside the certificate */
-  name: string
-  revokePrevious: boolean
-}
-
-/** Response from the generate endpoint — a base64-encoded PFX certificate bundle */
-export type GenerateCertificateResponse = string
-
 // ─── Admin API Keys ───────────────────────────────────────────────────────────
 
 export interface AdminApiKey {
@@ -35,10 +26,6 @@ export interface AdminApiKey {
   createdAt: string
   createdBy: string
   lastRotatedAt: string | null
-}
-
-export interface CreateAdminApiKeyRequest {
-  name: string
 }
 
 export interface CreateAdminApiKeyResponse {

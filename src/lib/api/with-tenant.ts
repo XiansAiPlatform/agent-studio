@@ -417,6 +417,7 @@ export function withSystemAdmin(
  *     // ...
  *   }
  * )
+ * @public
  */
 export function withTenantPermission(
   requiredPermission: string,

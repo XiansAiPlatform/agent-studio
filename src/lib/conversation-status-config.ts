@@ -2,9 +2,6 @@
 
 import { Activity, CheckCircle, Archive, Circle } from 'lucide-react';
 
-export type TopicStatus = 'active' | 'resolved' | 'archived';
-export type AgentStatus = 'online' | 'offline' | 'busy';
-
 export const TOPIC_STATUS_CONFIG = {
   active: {
     label: 'Active',
