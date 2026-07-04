@@ -154,8 +154,9 @@ membership check). The client must never choose the tenant per request.
 Two invariants enforce this:
 
 1. **`rejectClientTenantId`** — cookie-scoped wrappers reject any request that
-   carries a `tenantId` in the query string, an `x-tenant-id` header, or the JSON
-   body. The client cannot smuggle a different tenant.
+   carries a `tenantId` in the query string, an `x-tenant-id` header, or the
+   request body (JSON **and** form-encoded, so it can't be smuggled by switching
+   Content-Type). The client cannot supply a different tenant.
 2. **Membership validation** — `getTenantContext` (in
    `src/lib/tenant/xians-provider.ts`) confirms the user is a member of (or a
    SysAdmin for) the resolved tenant before any data is returned.
@@ -229,11 +230,33 @@ still needs review. Run it in CI and before merging any change that adds routes.
 
 ## Known Limitations
 
-- **No backend per-user backstop.** Since the AdminApi authorizes the key creator
-  (a SysAdmin) and never the end user, there is no second line of defense behind the
-  BFF. A future improvement would have Agent Studio forward the authenticated end
-  user's identity and the AdminApi resolve *that user's* role for the target tenant.
-  This is an architectural change spanning both repositories.
+- **No backend *role* backstop for the end user.** The AdminApi authorizes the API
+  **key creator** (a SysAdmin) and never resolves the Agent Studio end user's role,
+  so the BFF remains the authoritative gate for *who may perform an operation*. A
+  future improvement would have Agent Studio forward the authenticated end user's
+  identity and the AdminApi resolve *that user's* role for the target tenant. This
+  is an architectural change spanning both repositories.
+- **Per-*resource*-owner checks DO exist on the backend for the credential
+  endpoints** (verified in `XiansAi.Server` `Features/AdminApi`). This is a genuine
+  second line of defense for those routes, so the BFF is not the *only* thing
+  standing between a user and another user's credentials:
+  - Admin API keys — `AdminApiKeyService` scopes get/revoke/rotate to keys whose
+    `created_by` equals the `userId` the BFF sends.
+  - Agent certificates — `CertificateService.RevokeCertificateAsync` requires the
+    certificate's `IssuedTo` **and** `TenantId` to match.
+  - `AdminApiKeyEndpoints.CanActOnBehalfOf` additionally forbids a non-SysAdmin
+    caller from targeting another `userId`.
+
+  Because the BFF forwards `userId = session.user.email` (server-derived, never
+  from the client), these checks mean a tenant member cannot revoke/rotate/read
+  another member's keys or certificates even by guessing an id. Any new route that
+  forwards a resource id to these endpoints **must keep passing the session-derived
+  `userId`** — the backend ownership check is keyed on it.
+- **Secret values are never exposed through the AdminApi.** Every admin secret
+  endpoint returns value-redacted metadata only (list/get/fetch return metadata;
+  create/update responses are stripped via `RedactValue`). Only the cert-authenticated
+  AgentApi returns secret values. So `settings:view` users managing secrets in the UI
+  can see keys/metadata but never the stored secret material.
 - **`messaging/files/[fileId]`** relies on the backend enforcing tenant isolation on
   stored files and is scoped to the current tenant, but has no per-participant
   ownership check. Enforcing per-participant access requires backend support.

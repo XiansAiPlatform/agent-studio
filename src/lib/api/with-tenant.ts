@@ -56,8 +56,10 @@ export function getTenantIdFromCookie(request: NextRequest): string | null {
  * trusted by a future handler change.
  *
  * The body is inspected on a clone so the handler can still read it normally.
- * Body inspection is best-effort: non-JSON or unparseable bodies are ignored
- * (there is no `tenantId` field to leak in that case).
+ * Both JSON and form-encoded (urlencoded / multipart) bodies are inspected so a
+ * `tenantId` can't be smuggled by simply changing the Content-Type. Bodies we
+ * cannot parse (e.g. arbitrary text/binary) carry no addressable `tenantId`
+ * field for a handler to read, so they are ignored.
  *
  * @returns a 400 NextResponse if client-supplied identity is detected, else null
  */
@@ -77,15 +79,27 @@ export async function rejectClientTenantId(
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
-  // 3. JSON body — peek via a clone so the handler can still read the original.
+  // 3. Request body — peek via a clone so the handler can still read the
+  //    original. Cover both JSON and form-encoded bodies: keying only off
+  //    `application/json` would let a client resend `tenantId` as form data
+  //    under a different Content-Type and bypass this guard.
   const method = request.method.toUpperCase()
-  const contentType = request.headers.get('content-type') ?? ''
-  if (method !== 'GET' && method !== 'HEAD' && contentType.includes('application/json')) {
+  if (method !== 'GET' && method !== 'HEAD') {
+    const contentType = request.headers.get('content-type') ?? ''
     try {
-      const cloned = request.clone()
-      const body = await cloned.json()
-      if (body && typeof body === 'object' && 'tenantId' in body) {
-        return NextResponse.json({ error: message }, { status: 400 })
+      if (contentType.includes('application/json')) {
+        const body = await request.clone().json()
+        if (body && typeof body === 'object' && 'tenantId' in body) {
+          return NextResponse.json({ error: message }, { status: 400 })
+        }
+      } else if (
+        contentType.includes('application/x-www-form-urlencoded') ||
+        contentType.includes('multipart/form-data')
+      ) {
+        const form = await request.clone().formData()
+        if (form.has('tenantId')) {
+          return NextResponse.json({ error: message }, { status: 400 })
+        }
       }
     } catch {
       // Unparseable / empty body — nothing to reject.
