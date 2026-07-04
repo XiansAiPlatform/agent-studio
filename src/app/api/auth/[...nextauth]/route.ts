@@ -22,6 +22,11 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
   )
 }
 
+// Whether to use "__Secure-"/"__Host-" prefixed, Secure cookies. Keyed off the
+// NEXTAUTH_URL scheme to stay consistent with NextAuth's getToken() (used by
+// middleware); see the cookies config below for why this matters.
+const useSecureCookies = (process.env.NEXTAUTH_URL ?? '').startsWith('https://')
+
 // Build providers array dynamically based on available environment variables
 const providers = []
 
@@ -304,39 +309,47 @@ export const authOptions: NextAuthOptions = {
     updateAge: 30 * 60, // refresh JWT (and re-run tenant check) every 30 min
   },
   
-  // Secure cookie configuration
+  // Secure cookie configuration.
+  //
+  // IMPORTANT: derive cookie security from the NEXTAUTH_URL scheme, NOT from
+  // NODE_ENV. NextAuth's getToken() (used by middleware) picks the cookie name
+  // based on whether NEXTAUTH_URL starts with "https://". If we keyed the
+  // cookie name off NODE_ENV instead, a production build served over plain
+  // http (e.g. a local Docker deployment on http://localhost) would write a
+  // "__Secure-" prefixed cookie while middleware looked for the unprefixed
+  // name - causing an infinite /login <-> /dashboard redirect loop.
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
+      name: useSecureCookies
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: useSecureCookies
       }
     },
     callbackUrl: {
-      name: process.env.NODE_ENV === 'production'
+      name: useSecureCookies
         ? '__Secure-next-auth.callback-url'
         : 'next-auth.callback-url',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: useSecureCookies
       }
     },
     csrfToken: {
-      name: process.env.NODE_ENV === 'production'
+      name: useSecureCookies
         ? '__Host-next-auth.csrf-token'
         : 'next-auth.csrf-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: useSecureCookies
       }
     }
   },
