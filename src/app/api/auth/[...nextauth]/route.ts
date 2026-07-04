@@ -205,8 +205,11 @@ export const authOptions: NextAuthOptions = {
           } else {
             console.error('[Auth] Error checking tenant access during sign-in:', describeXiansError(error))
           }
-          // Allow sign in even if check fails - we'll validate again on redirect
-          user.hasTenantAccess = true
+          // Fail closed: if we cannot confirm tenant access, do not grant it.
+          // Access is re-validated on the next JWT refresh and by every tenant-
+          // scoped API route, so a transient backend issue means the user must
+          // retry rather than being optimistically let in.
+          user.hasTenantAccess = false
           user.isSystemAdmin = false
         }
       }
@@ -227,7 +230,6 @@ export const authOptions: NextAuthOptions = {
         const resolvedEmail = user.email || getEmailFromProfile(profile)
 
         token.id = user.id
-        token.role = user.role || 'user' // Default role
         token.email = resolvedEmail ?? token.email
         token.hasTenantAccess = user.hasTenantAccess
         token.isSystemAdmin = user.isSystemAdmin
@@ -272,7 +274,6 @@ export const authOptions: NextAuthOptions = {
       // Send properties to the client
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
         session.user.email = (token.email as string | null | undefined) ?? session.user.email
         session.accessToken = token.accessToken as string
         session.user.hasTenantAccess = token.hasTenantAccess as boolean

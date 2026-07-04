@@ -45,6 +45,11 @@ This directory contains comprehensive documentation for the authentication syste
    - Common patterns and examples
    - Code snippets
 
+6b. **[Authorization Model](./authorization-model.md)** 🔐 REQUIRED READING FOR API ROUTES
+   - Why the Next.js layer is the sole per-user authorization boundary
+   - Role → capability mapping and the route wrapper ladder
+   - Tenant resolution invariants and the `check:auth` guard
+
 ### Tenant Management
 
 7. **[Tenant Implementation](./TENANT_IMPLEMENTATION.md)**
@@ -191,6 +196,7 @@ npm run test:network
 ## 📖 Additional Documentation
 
 - **[Security Setup](./SECURITY_SETUP.md)** - General security configuration
+- **[Authorization Model](./authorization-model.md)** - BFF trust model, roles, capabilities, and route-guard invariants
 
 ## 🤝 Contributing
 

@@ -32,23 +32,28 @@ src/
 
 ## Usage
 
-### Basic Route
+### Basic Route (member-level)
 ```typescript
-import { withTenant } from "@/lib/api/with-tenant"
+import { withTenantFromSession } from "@/lib/api/with-tenant"
 
-export const GET = withTenant(async (request, { tenantContext }) => {
+// Tenant is read from the httpOnly current-tenant-id cookie, not the URL/client.
+export const GET = withTenantFromSession(async (request, { tenantContext }) => {
   return Response.json({ tenant: tenantContext.tenant })
 })
 ```
 
-### With Permission
+### With Capability Check (management route)
 ```typescript
-import { withTenantPermission } from "@/lib/api/with-tenant"
+import { withParticipantAdmin } from "@/lib/api/with-tenant"
 
-export const POST = withTenantPermission('write', async (request, { tenantContext }) => {
+// Requires `settings:view`; use withTenantAdmin / withSystemAdmin for higher tiers.
+export const POST = withParticipantAdmin(async (request, { tenantContext }) => {
   return Response.json({ success: true })
 })
 ```
+
+> See [Authorization Model](./authorization-model.md) for the full wrapper ladder,
+> the capability model, and why the Next.js layer is the sole authorization boundary.
 
 ## Default Tenants
 

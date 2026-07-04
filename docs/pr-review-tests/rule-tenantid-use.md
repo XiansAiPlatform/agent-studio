@@ -19,8 +19,9 @@ Presentation layer must not pass the tenant id to Next.js api routes. Instead th
 
 ## Implementation Patterns
 
-- **`withTenantFromSession`** — reads tenant from httpOnly cookie (set by `POST /api/user/current-tenant`). Use for most tenant-scoped routes.
-- **`withTenant`** — reads tenant from URL path (e.g. `/api/tenants/[tenantId]/...`). Use when the route exposes tenant in the path.
+- **`withTenantFromSession`** — reads tenant from httpOnly cookie (set by `POST /api/user/current-tenant`). Use for most tenant-scoped routes. Admits any tenant member (including plain participants), so the handler must confine work to the caller's own data or add a capability check.
+- **`withParticipantAdmin` / `withTenantAdmin` / `withSystemAdmin`** — same cookie-based tenant resolution plus a capability gate. Use for management routes. See [Authorization Model](../auth/authorization-model.md#the-route-wrapper-ladder).
+- **Path-based tenant routes** (e.g. `/api/tenants/[tenantId]/...`) — read the tenant from the URL path and **must** call `getTenantContext` to verify membership before serving data, because the backend service key is a SysAdmin key and will not reject a foreign tenant. Example: `src/app/api/tenants/[tenantId]/logo/route.ts`.
 
 ## Avoid
 
@@ -34,7 +35,7 @@ These endpoints legitimately accept `tenantId` in the body:
 - `POST /api/user/current-tenant` — sets the current-tenant cookie
 - `POST /api/tenants/validate` — validates before switching tenant
 
-Routes under `/api/tenants/[tenantId]/...` use `withTenant` and read tenant from the path; this is a documented pattern.
+Routes under `/api/tenants/[tenantId]/...` read the tenant from the path and must validate membership with `getTenantContext`; this is a documented pattern.
 
 ## Quick Reference
 

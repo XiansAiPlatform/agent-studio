@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "knip": "knip",
+    "check:auth": "node scripts/check-route-auth.mjs",
     "test:network": "node scripts/test-network.js"
   },
   "dependencies": {

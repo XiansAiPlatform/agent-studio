@@ -2,7 +2,8 @@ import { createHash } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { unauthorizedError } from '@/lib/api/error-handler'
+import { forbiddenError, unauthorizedError } from '@/lib/api/error-handler'
+import { useTenantProvider } from '@/lib/tenant'
 
 /**
  * GET /api/tenants/[tenantId]/logo
@@ -84,13 +85,27 @@ export async function GET(
   context: { params: Promise<{ tenantId: string }> }
 ) {
   const session = await getServerSession(authOptions)
-  if (!session) {
+  if (!session?.user?.id || !session.user?.email) {
     return unauthorizedError()
   }
 
   const { tenantId } = await context.params
   if (!tenantId) {
     return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
+  }
+
+  // `tenantId` comes from the client-controlled URL path. Verify the caller is a
+  // member of (or system admin for) this tenant before proxying its logo, so a
+  // logged-in user can't enumerate/fetch other tenants' logos by guessing IDs.
+  const tenantProvider = useTenantProvider()
+  const tenantContext = await tenantProvider.getTenantContext(
+    session.user.id,
+    tenantId,
+    (session as { accessToken?: string }).accessToken,
+    session.user.email
+  )
+  if (!tenantContext) {
+    return forbiddenError('Access denied to this tenant')
   }
 
   const ifNoneMatch = request.headers.get('if-none-match')

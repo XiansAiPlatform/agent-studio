@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { requireParticipantAdmin } from '@/lib/api/auth'
 import { createXiansClient } from '@/lib/xians/client'
 
 /**
@@ -7,18 +8,18 @@ import { createXiansClient } from '@/lib/xians/client'
  * List tasks or fetch single task by ID. Tenant is injected from session (httpOnly cookie).
  */
 export const GET = withTenantFromSession(
-  async (request: NextRequest, { tenantContext, session }: ApiContext) => {
+  async (request: NextRequest, { tenantContext, session, tenantId: cookieTenantId }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id
       const { searchParams } = new URL(request.url)
       const taskId = searchParams.get('taskId')
 
-      if (taskId) {
-        const client = createXiansClient((session as any)?.accessToken)
-        const response = await client.get<any>(
-          `/api/v1/admin/tenants/${tenantId}/tasks/by-id?taskId=${encodeURIComponent(taskId)}`
+      const participantId = session.user?.email
+      if (!participantId) {
+        return NextResponse.json(
+          { error: 'User email not found in session' },
+          { status: 401 }
         )
-        return NextResponse.json(response)
       }
 
       const agentName = searchParams.get('agentName')
@@ -27,12 +28,22 @@ export const GET = withTenantFromSession(
       const status = searchParams.get('status')
       const viewType = searchParams.get('viewType') || 'my'
 
-      const participantId = session.user?.email
-      if (!participantId) {
-        return NextResponse.json(
-          { error: 'User email not found in session' },
-          { status: 401 }
+      // Only the caller's own tasks are unrestricted. Any tenant-wide view
+      // ("everyone") or fetch of an arbitrary task by id is an admin/reviewer
+      // action and requires Agent Settings access — otherwise a plain
+      // participant could read every task in the tenant by editing the URL.
+      const isOwnTasksView = viewType === 'my' && !taskId
+      if (!isOwnTasksView) {
+        const authError = await requireParticipantAdmin(session, cookieTenantId)
+        if (authError) return authError
+      }
+
+      if (taskId) {
+        const client = createXiansClient((session as any)?.accessToken)
+        const response = await client.get<any>(
+          `/api/v1/admin/tenants/${tenantId}/tasks/by-id?taskId=${encodeURIComponent(taskId)}`
         )
+        return NextResponse.json(response)
       }
 
       const xiansParams = new URLSearchParams()
