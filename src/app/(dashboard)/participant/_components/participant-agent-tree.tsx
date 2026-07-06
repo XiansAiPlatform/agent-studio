@@ -16,7 +16,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useTenant } from '@/hooks/use-tenant'
 import { useActivations } from '@/app/(dashboard)/conversations/hooks'
-import { Topic } from '@/lib/data/dummy-conversations'
+import { Topic } from '@/types/conversation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

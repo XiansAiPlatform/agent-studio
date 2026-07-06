@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, Fragment } from 'react';
-import { Topic } from '@/lib/data/dummy-conversations';
+import { Topic } from '@/types/conversation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -538,7 +538,7 @@ export function UserDetailPanel({
                         {isAddingTenant
                           ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                           : <Plus className="mr-1 h-3 w-3" />}
-                        Add
+                        Save
                       </Button>
                       <Button
                         variant="ghost"
@@ -694,7 +694,7 @@ export function UserDetailPanel({
                                   handleAddRole(m, (addRolePickers[m.tenantId] ?? availableRoles[0]) as Role)
                                 }
                               >
-                                Add
+                                Save
                               </Button>
                               <Button
                                 variant="ghost"

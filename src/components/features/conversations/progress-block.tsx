@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { Message } from '@/lib/data/dummy-conversations';
+import { Message } from '@/types/conversation';
 import { ChevronRight, Wrench, Brain, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

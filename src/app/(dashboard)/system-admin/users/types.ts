@@ -71,6 +71,8 @@ export interface ListGlobalUsersParams {
   search?: string
   isSysAdmin?: boolean
   isEnabled?: boolean
+  /** Filter by role: 'SysAdmin' or any tenant role (matched in any tenant). */
+  role?: string
 }
 
 /** A user's role inside one tenant, returned as part of GlobalUserDetail. */
@@ -118,14 +120,6 @@ export interface NewUserFormData {
   memberships: TenantMembershipInput[]
 }
 
-/** Tenant-scoped update (role, isApproved still need tenant context). */
-export interface UpdateUserRequest {
-  name?: string
-  email?: string
-  role?: Role
-  isApproved?: boolean
-}
-
 /** Global profile update — only name and email; no tenant required. */
 export interface UpdateGlobalUserRequest {
   name?: string
@@ -139,11 +133,4 @@ export interface GetUserTenantsResponse {
   userId: string
   email: string
   memberships: UserTenantMembership[]
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-export function effectiveRole(user: TenantUser): Role {
-  if (user.isSysAdmin) return 'SysAdmin'
-  return (user.roles?.[0] as Role) ?? 'TenantParticipant'
 }

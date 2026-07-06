@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Star } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import type { Message } from '@/lib/data/dummy-conversations';
+import type { Message } from '@/types/conversation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

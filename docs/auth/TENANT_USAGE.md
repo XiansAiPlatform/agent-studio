@@ -15,14 +15,20 @@ All tenant-scoped APIs follow this simple pattern:
 
 ### 1. Basic Usage
 
-```typescript
-import { withTenant } from "@/lib/api/with-tenant"
+> The tenant is resolved server-side from the httpOnly `current-tenant-id` cookie —
+> never from the client. See [Authorization Model](./authorization-model.md) for the
+> full wrapper ladder and invariants.
 
-export const GET = withTenant(async (request, { tenantContext, session }) => {
+```typescript
+import { withTenantFromSession } from "@/lib/api/with-tenant"
+
+// Member-level: admits any tenant member (including plain participants), so the
+// handler must confine work to the caller's own data.
+export const GET = withTenantFromSession(async (request, { tenantContext, session }) => {
   // tenantContext.tenant - The tenant object
-  // tenantContext.userRole - User's role (owner/admin/member/viewer)
+  // tenantContext.userRole - User's role (admin/member)
   // tenantContext.permissions - User's permissions array
-  
+
   return Response.json({
     tenant: tenantContext.tenant.name,
     role: tenantContext.userRole
@@ -30,15 +36,17 @@ export const GET = withTenant(async (request, { tenantContext, session }) => {
 })
 ```
 
-### 2. With Permission Check
+### 2. With Capability Check (management routes)
 
 ```typescript
-import { withTenantPermission } from "@/lib/api/with-tenant"
+import { withParticipantAdmin } from "@/lib/api/with-tenant"
 
-export const POST = withTenantPermission('write', async (request, { tenantContext }) => {
+// Requires the `settings:view` capability — excludes plain participants.
+// Use withTenantAdmin (tenant:manage-users) or withSystemAdmin (system:admin)
+// for more privileged operations.
+export const POST = withParticipantAdmin(async (request, { tenantContext }) => {
   const data = await request.json()
-  // Only users with 'write' permission can access this
-  
+
   return Response.json({ success: true })
 })
 ```

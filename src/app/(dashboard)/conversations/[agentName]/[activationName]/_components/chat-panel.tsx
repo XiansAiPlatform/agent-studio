@@ -1,20 +1,20 @@
 import { Bot } from 'lucide-react';
 import { ChatInterface, FileUploadPayload } from '@/components/features/conversations';
-import { Conversation, Topic, Message } from '@/lib/data/dummy-conversations';
+import { Conversation, Topic, Message } from '@/types/conversation';
 
 interface ChatPanelProps {
   conversation: Conversation;
   selectedTopic: Topic | undefined;
   selectedTopicId: string;
-  onSendMessage: (content: string, topicId: string) => void;
-  onSendFile?: (file: FileUploadPayload, topicId: string) => void;
+  onSendMessage: (content: string, topicId: string, files?: FileUploadPayload[]) => void;
+  allowFileUpload?: boolean;
   isLoadingMessages: boolean;
   onLoadMoreMessages: () => void;
   isLoadingMoreMessages: boolean;
   hasMoreMessages: boolean;
   activationName: string | null;
   isAgentActive: boolean;
-  chatInputRef?: React.RefObject<HTMLInputElement | null>;
+  chatInputRef?: React.RefObject<HTMLTextAreaElement | null>;
   /** Agent info from deployment - shown in empty state when no messages */
   agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
   onMessageFeedbackSubmitted?: (
@@ -33,7 +33,7 @@ export function ChatPanel({
   selectedTopic,
   selectedTopicId,
   onSendMessage,
-  onSendFile,
+  allowFileUpload,
   isLoadingMessages,
   onLoadMoreMessages,
   isLoadingMoreMessages,
@@ -66,7 +66,7 @@ export function ChatPanel({
         conversation={conversation}
         selectedTopicId={selectedTopicId}
         onSendMessage={onSendMessage}
-        onSendFile={onSendFile}
+        allowFileUpload={allowFileUpload}
         isLoadingMessages={isLoadingMessages}
         onLoadMoreMessages={onLoadMoreMessages}
         isLoadingMoreMessages={isLoadingMoreMessages}

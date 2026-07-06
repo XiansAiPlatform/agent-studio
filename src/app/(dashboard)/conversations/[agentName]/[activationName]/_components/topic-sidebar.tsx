@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TopicList } from '@/components/features/conversations';
-import { Topic } from '@/lib/data/dummy-conversations';
+import { Topic } from '@/types/conversation';
 import { ActivationOption } from '../../../hooks';
 import { cn } from '@/lib/utils';
 

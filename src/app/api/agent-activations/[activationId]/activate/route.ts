@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 
 /**
@@ -10,7 +10,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ activationId: string }> }
 ) {
-  const handler = withTenantFromSession(async (req: NextRequest, apiContext: ApiContext) => {
+  const handler = withParticipantAdmin(async (req: NextRequest, apiContext: ApiContext) => {
     try {
       const { activationId } = await context.params
       const body = await req.json()

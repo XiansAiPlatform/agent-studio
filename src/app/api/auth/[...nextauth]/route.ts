@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
 import KeycloakProvider from "next-auth/providers/keycloak"
+import CredentialsProvider from "next-auth/providers/credentials"
 import { VismaConnectProvider } from "@/lib/auth-providers/visma-connect"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
@@ -20,6 +21,11 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
     'Generate one with: openssl rand -base64 32'
   )
 }
+
+// Whether to use "__Secure-"/"__Host-" prefixed, Secure cookies. Keyed off the
+// NEXTAUTH_URL scheme to stay consistent with NextAuth's getToken() (used by
+// middleware); see the cookies config below for why this matters.
+const useSecureCookies = (process.env.NEXTAUTH_URL ?? '').startsWith('https://')
 
 // Build providers array dynamically based on available environment variables
 const providers = []
@@ -119,6 +125,52 @@ if (process.env.VISMA_CONNECT_CLIENT_ID && process.env.VISMA_CONNECT_ISSUER) {
   console.log('[Auth] Visma Connect SSO disabled - VISMA_CONNECT_CLIENT_ID and/or VISMA_CONNECT_ISSUER not configured')
 }
 
+// Local development login (env-gated). Parses LOCAL_AUTH_USERS into an
+// email -> password map once at module load. NEVER enable in production.
+function parseLocalAuthUsers(raw: string | undefined): Map<string, string> {
+  const users = new Map<string, string>()
+  for (const entry of (raw ?? '').split(',')) {
+    const trimmed = entry.trim()
+    if (!trimmed) continue
+    const sep = trimmed.indexOf(':')
+    if (sep <= 0 || sep === trimmed.length - 1) {
+      console.warn('[Auth] Skipping malformed LOCAL_AUTH_USERS entry (expected email:password)')
+      continue
+    }
+    users.set(trimmed.slice(0, sep).trim().toLowerCase(), trimmed.slice(sep + 1))
+  }
+  return users
+}
+
+const localAuthUsers = parseLocalAuthUsers(process.env.LOCAL_AUTH_USERS)
+
+if (process.env.LOCAL_AUTH_ENABLED === 'true' && localAuthUsers.size > 0) {
+  console.warn(`[Auth] WARNING: Local credentials login is ENABLED for ${localAuthUsers.size} user(s). Never use this in production.`)
+  providers.push(
+    CredentialsProvider({
+      id: 'local',
+      name: 'Local Development',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email?.trim().toLowerCase()
+        if (!email || !credentials?.password) {
+          return null
+        }
+        const expected = localAuthUsers.get(email)
+        if (expected && expected === credentials.password) {
+          return { id: email, name: email.split('@')[0], email }
+        }
+        return null
+      },
+    })
+  )
+} else if (process.env.LOCAL_AUTH_ENABLED === 'true') {
+  console.warn('[Auth] LOCAL_AUTH_ENABLED is true but LOCAL_AUTH_USERS is empty or invalid - local login disabled')
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   
@@ -153,8 +205,11 @@ export const authOptions: NextAuthOptions = {
           } else {
             console.error('[Auth] Error checking tenant access during sign-in:', describeXiansError(error))
           }
-          // Allow sign in even if check fails - we'll validate again on redirect
-          user.hasTenantAccess = true
+          // Fail closed: if we cannot confirm tenant access, do not grant it.
+          // Access is re-validated on the next JWT refresh and by every tenant-
+          // scoped API route, so a transient backend issue means the user must
+          // retry rather than being optimistically let in.
+          user.hasTenantAccess = false
           user.isSystemAdmin = false
         }
       }
@@ -175,7 +230,6 @@ export const authOptions: NextAuthOptions = {
         const resolvedEmail = user.email || getEmailFromProfile(profile)
 
         token.id = user.id
-        token.role = user.role || 'user' // Default role
         token.email = resolvedEmail ?? token.email
         token.hasTenantAccess = user.hasTenantAccess
         token.isSystemAdmin = user.isSystemAdmin
@@ -220,7 +274,6 @@ export const authOptions: NextAuthOptions = {
       // Send properties to the client
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
         session.user.email = (token.email as string | null | undefined) ?? session.user.email
         session.accessToken = token.accessToken as string
         session.user.hasTenantAccess = token.hasTenantAccess as boolean
@@ -257,39 +310,47 @@ export const authOptions: NextAuthOptions = {
     updateAge: 30 * 60, // refresh JWT (and re-run tenant check) every 30 min
   },
   
-  // Secure cookie configuration
+  // Secure cookie configuration.
+  //
+  // IMPORTANT: derive cookie security from the NEXTAUTH_URL scheme, NOT from
+  // NODE_ENV. NextAuth's getToken() (used by middleware) picks the cookie name
+  // based on whether NEXTAUTH_URL starts with "https://". If we keyed the
+  // cookie name off NODE_ENV instead, a production build served over plain
+  // http (e.g. a local Docker deployment on http://localhost) would write a
+  // "__Secure-" prefixed cookie while middleware looked for the unprefixed
+  // name - causing an infinite /login <-> /dashboard redirect loop.
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
+      name: useSecureCookies
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: useSecureCookies
       }
     },
     callbackUrl: {
-      name: process.env.NODE_ENV === 'production'
+      name: useSecureCookies
         ? '__Secure-next-auth.callback-url'
         : 'next-auth.callback-url',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: useSecureCookies
       }
     },
     csrfToken: {
-      name: process.env.NODE_ENV === 'production'
+      name: useSecureCookies
         ? '__Host-next-auth.csrf-token'
         : 'next-auth.csrf-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: useSecureCookies
       }
     }
   },

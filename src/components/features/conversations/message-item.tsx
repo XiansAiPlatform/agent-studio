@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Message } from '@/lib/data/dummy-conversations';
+import { Message } from '@/types/conversation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, User, Copy, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink } from 'lucide-react';
+import { Bot, User, Copy, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -333,6 +333,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
             <div className="mt-3 space-y-2">
               {message.attachments.map((attachment) => {
                 const isFileAttachment = attachment.type === 'file';
+                const isDownloadable = isFileAttachment && !!attachment.url;
                 const content = (
                   <>
                     <FileText className="h-4 w-4 flex-shrink-0" />
@@ -344,8 +345,30 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                         {attachment.type}
                       </p>
                     </div>
+                    {isDownloadable && (
+                      <Download className="h-4 w-4 flex-shrink-0 opacity-70" />
+                    )}
                   </>
                 );
+                if (isDownloadable) {
+                  return (
+                    <a
+                      key={attachment.id}
+                      href={attachment.url}
+                      download={attachment.name}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        'flex items-center gap-2 p-2 rounded border transition-colors',
+                        isUser
+                          ? 'border-primary-foreground/20 hover:bg-primary-foreground/10'
+                          : 'border-border bg-muted/30 hover:bg-accent'
+                      )}
+                    >
+                      {content}
+                    </a>
+                  );
+                }
                 return isFileAttachment ? (
                   <div
                     key={attachment.id}

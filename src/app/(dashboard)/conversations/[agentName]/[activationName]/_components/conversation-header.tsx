@@ -1,7 +1,7 @@
 import { AlertTriangle, Bot, Loader2, PanelLeft } from 'lucide-react';
 import { ParticipantMenuButton } from './participant-menu-bar';
 import { cn } from '@/lib/utils';
-import { Topic } from '@/lib/data/dummy-conversations';
+import { Topic } from '@/types/conversation';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 
 interface ConversationHeaderProps {

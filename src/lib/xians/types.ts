@@ -271,6 +271,7 @@ export interface CreateAgentActivationRequest {
 }
 
 // Conversation types
+/** @public Xians backend conversation contract. */
 export interface XiansConversation {
   id: string
   tenantId: string
@@ -368,8 +369,10 @@ export interface SSEHeartbeatEvent {
   }
 }
 
+/** @public SSE event union for the Xians listen stream. */
 export type SSEEvent = SSEMessageEvent | SSEHeartbeatEvent
 
+/** @public */
 export interface SSEListenParams {
   tenantId: string
   agentName: string
@@ -405,6 +408,7 @@ export interface XiansTenantStats {
 }
 
 // Common API response wrapper
+/** @public Generic Xians API response envelope. */
 export interface XiansApiResponse<T> {
   success: boolean
   data: T
