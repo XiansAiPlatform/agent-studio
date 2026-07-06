@@ -96,13 +96,24 @@ function UsersPageContent() {
     setPage(1);
   }, [selectedTenantId, search, roleFilter]);
 
+  // Reset the role filter when the tenant selection changes, since the set of
+  // valid role options differs between global and tenant-scoped modes.
+  useEffect(() => {
+    setRoleFilter('all');
+  }, [selectedTenantId]);
+
   const isAllTenants = selectedTenantId === ALL_TENANTS;
 
   const loadUsers = useMemo(
     () => () => {
       if (!isSystemAdmin) return;
       if (isAllTenants) {
-        fetchGlobalUsers({ page, pageSize: PAGE_SIZE, search: search || undefined });
+        fetchGlobalUsers({
+          page,
+          pageSize: PAGE_SIZE,
+          search: search || undefined,
+          role: roleFilter === 'all' ? undefined : roleFilter,
+        });
       } else {
         fetchTenantUsers({
           tenantId: selectedTenantId,
@@ -235,22 +246,23 @@ function UsersPageContent() {
           />
         </div>
 
-        {/* Role filter only shown in tenant-scoped mode */}
-        {!isAllTenants && (
-          <div className="w-44">
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="All roles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All roles</SelectItem>
-                {TENANT_ROLES.map((role) => (
-                  <SelectItem key={role} value={role}>{roleLabel(role)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Role filter: in All Tenants mode a System Admin option is also available */}
+        <div className="w-44">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              {isAllTenants && (
+                <SelectItem value="SysAdmin">{roleLabel('SysAdmin')}</SelectItem>
+              )}
+              {TENANT_ROLES.map((role) => (
+                <SelectItem key={role} value={role}>{roleLabel(role)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <Button
           variant="outline"

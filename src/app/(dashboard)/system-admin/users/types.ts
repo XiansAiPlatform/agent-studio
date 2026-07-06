@@ -71,6 +71,8 @@ export interface ListGlobalUsersParams {
   search?: string
   isSysAdmin?: boolean
   isEnabled?: boolean
+  /** Filter by role: 'SysAdmin' or any tenant role (matched in any tenant). */
+  role?: string
 }
 
 /** A user's role inside one tenant, returned as part of GlobalUserDetail. */
