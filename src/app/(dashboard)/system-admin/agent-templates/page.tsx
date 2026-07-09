@@ -49,7 +49,10 @@ function AgentTemplatesPageContent() {
   const [deleteTarget, setDeleteTarget] = useState<AgentTemplate | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { tenants, fetchTenants } = useTenants();
+  // Tenant names are used to label deployments below — the full tenant list
+  // is needed for that lookup, not a single page (see the Tenants management
+  // page for the paginated view via `fetchTenants`/`tenants`).
+  const { allTenants: tenants, fetchAllTenants: fetchTenants } = useTenants();
   const {
     templates,
     isLoading,

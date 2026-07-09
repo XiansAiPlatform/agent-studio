@@ -19,8 +19,25 @@ export interface Tenant {
   updatedAt?: string | null
 }
 
+export interface TenantsPagination {
+  page: number
+  pageSize: number
+  totalPages: number
+  totalItems: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
 export interface ListTenantsResponse {
   tenants: Tenant[]
+  pagination: TenantsPagination
+}
+
+export interface ListTenantsParams {
+  page?: number
+  pageSize?: number
+  /** Case-insensitive server-side match on tenantId, name, domain or description. */
+  search?: string
 }
 
 export interface CreateTenantRequest {

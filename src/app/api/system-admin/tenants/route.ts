@@ -2,21 +2,33 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withSystemAdmin } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
-import type { Tenant } from '@/app/(dashboard)/system-admin/tenants/types'
+import type { ListTenantsResponse, Tenant } from '@/app/(dashboard)/system-admin/tenants/types'
 
 /**
- * GET /api/system-admin/tenants
- * List every tenant on the platform. System administrators only.
+ * GET /api/system-admin/tenants?page=&pageSize=&search=
+ * List tenants on the platform, one page at a time. System administrators only.
  *
  * Authorization is enforced server-side via withSystemAdmin — the browser page
  * cannot bypass it. The upstream Xians AdminApi is called with the service API
- * key (no tenant header) which resolves to SysAdmin scope.
+ * key (no tenant header) which resolves to SysAdmin scope. Pagination and
+ * search filtering are applied upstream (defaults to page 1 / pageSize 20,
+ * capped at 100; search matches tenantId, name, domain and description) and
+ * the `{ tenants, pagination }` shape is passed through unchanged.
  */
-export const GET = withSystemAdmin(async () => {
+export const GET = withSystemAdmin(async (request: NextRequest) => {
+  const params = request.nextUrl.searchParams
+  const upstreamQuery = new URLSearchParams()
+  upstreamQuery.set('page', params.get('page') ?? '1')
+  upstreamQuery.set('pageSize', params.get('pageSize') ?? '20')
+  const search = params.get('search')
+  if (search?.trim()) upstreamQuery.set('search', search.trim())
+
   try {
     const client = createXiansClient()
-    const tenants = await client.get<Tenant[]>('/api/v1/admin/tenants')
-    return NextResponse.json({ tenants: tenants ?? [] })
+    const data = await client.get<ListTenantsResponse>(
+      `/api/v1/admin/tenants?${upstreamQuery.toString()}`
+    )
+    return NextResponse.json(data)
   } catch (error) {
     return handleApiError(error, 'system-admin/tenants GET', {
       fallbackMessage: 'Failed to list tenants',

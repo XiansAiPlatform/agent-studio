@@ -64,7 +64,10 @@ function UsersPageContent() {
   const [deleteTarget, setDeleteTarget] = useState<TenantUser | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { tenants, fetchTenants } = useTenants();
+  // The tenant selector needs the full tenant list, not a single page — the
+  // Tenants management page uses `fetchTenants`/`tenants` for its own
+  // paginated view, this page uses the "fetch every page" variant instead.
+  const { allTenants: tenants, fetchAllTenants: fetchTenants } = useTenants();
   const {
     users,
     totalCount,
