@@ -135,7 +135,7 @@ export class XiansTenantProvider implements TenantProvider {
       'enabled tenant(s)'
     )
 
-    return enabledTenants.map((adminTenant) => {
+    const mapped = enabledTenants.map((adminTenant) => {
       const xiansTenant: XiansTenant = {
         tenantId: adminTenant.tenantId,
         name: adminTenant.name,
@@ -151,6 +151,28 @@ export class XiansTenantProvider implements TenantProvider {
         participantRole,
       }
     })
+
+    // The admin-scope tenant list should be a superset of the admin's own
+    // participant tenants, but defensively fall back to the participant
+    // tenants for any that are missing from it (e.g. the service API key
+    // isn't actually scoped for system-admin access and the endpoint just
+    // returns an empty/partial list instead of an error). This guarantees a
+    // system admin never loses access to tenants they already know about.
+    const coveredTenantIds = new Set(mapped.map((m) => m.tenant.id))
+    const missingParticipantTenants = participantTenants.filter(
+      (t) => !coveredTenantIds.has(t.tenantId)
+    )
+    if (missingParticipantTenants.length > 0) {
+      console.warn(
+        '[XiansTenantProvider] Admin-scope tenant list is missing',
+        missingParticipantTenants.length,
+        'tenant(s) the system admin is a known participant of; adding them back in:',
+        missingParticipantTenants.map((t) => t.tenantId).join(', ')
+      )
+      mapped.push(...this.mapParticipantTenants(missingParticipantTenants))
+    }
+
+    return mapped
   }
 
   /**
