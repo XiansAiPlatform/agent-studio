@@ -135,7 +135,11 @@ export class XiansTenantProvider implements TenantProvider {
       'enabled tenant(s)'
     )
 
-    const mapped = enabledTenants.map((adminTenant) => {
+    const mapped: Array<{
+      tenant: Tenant
+      role: 'owner' | 'admin' | 'member' | 'viewer'
+      participantRole: XiansParticipantRole | undefined
+    }> = enabledTenants.map((adminTenant) => {
       const xiansTenant: XiansTenant = {
         tenantId: adminTenant.tenantId,
         name: adminTenant.name,
