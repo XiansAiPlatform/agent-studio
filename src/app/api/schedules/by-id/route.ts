@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 
 function schedulesBasePath(tenantId: string, agentName: string): string {
@@ -20,7 +20,7 @@ function errorResponse(error: any) {
  * GET /api/schedules/by-id?agentName=...&scheduleId=...
  * Returns a single schedule belonging to the agent.
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id
@@ -50,7 +50,7 @@ export const GET = withTenantFromSession(
  * DELETE /api/schedules/by-id?agentName=...&scheduleId=...
  * Deletes a single schedule belonging to the agent.
  */
-export const DELETE = withTenantFromSession(
+export const DELETE = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id

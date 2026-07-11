@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 
 /**
  * POST /api/tasks/actions
- * Perform task action. Tenant is injected from session (httpOnly cookie).
+ * Perform task action (approve/reject/etc.) on any task in the tenant. This is a
+ * reviewer action, so it is gated to Agent Settings access — a plain participant
+ * must not be able to act on arbitrary tasks by editing the taskId in the URL.
+ * Tenant is injected from session (httpOnly cookie).
  */
-export const POST = withTenantFromSession(
+export const POST = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id

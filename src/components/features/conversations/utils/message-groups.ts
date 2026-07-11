@@ -1,4 +1,4 @@
-import { Message } from '@/lib/data/dummy-conversations';
+import { Message } from '@/types/conversation';
 
 export type MessageGroupType = 'user' | 'system' | 'agent-chat' | 'progress-block';
 

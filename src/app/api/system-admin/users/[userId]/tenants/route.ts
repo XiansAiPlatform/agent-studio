@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withSystemAdmin } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
+import { XiansTenantsApi } from '@/lib/xians/tenants'
 import { handleApiError } from '@/lib/api/error-handler'
 import type {
   TenantUser,
   UserTenantMembership,
   GetUserTenantsResponse,
 } from '@/app/(dashboard)/system-admin/users/types'
-import type { Tenant } from '@/app/(dashboard)/system-admin/tenants/types'
 
 /**
  * System Admin → user tenant memberships.
@@ -38,14 +38,10 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
   try {
     const client = createXiansClient()
 
-    const tenantsRaw = await client.get<unknown>('/api/v1/admin/tenants')
-
-    // Normalise — backend may return a plain array or a wrapped object.
-    const tenants: Tenant[] = Array.isArray(tenantsRaw)
-      ? (tenantsRaw as Tenant[])
-      : Array.isArray((tenantsRaw as { tenants?: Tenant[] })?.tenants)
-        ? (tenantsRaw as { tenants: Tenant[] }).tenants
-        : []
+    // The tenants endpoint paginates, so fetch every tenant to fan out
+    // against — otherwise memberships on tenants past the first page would be
+    // silently missed.
+    const tenants = await new XiansTenantsApi(client).getAllTenants()
 
     const results = await Promise.allSettled(
       (tenants ?? []).map(async (tenant): Promise<UserTenantMembership | null> => {

@@ -42,18 +42,6 @@ function useSheet() {
   return context
 }
 
-function SheetTrigger({
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
-}
-
-function SheetClose({
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Close>) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
-}
-
 function SheetPortal({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
@@ -81,6 +69,8 @@ function SheetContent({
   children,
   side = "right",
   overlayClassName,
+  ref,
+  onPointerDownOutside,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
@@ -91,10 +81,42 @@ function SheetContent({
   // Only right-side sheets expose the expand/collapse affordance.
   const showExpandButton = side === "right"
 
+  const contentRef = React.useRef<HTMLDivElement | null>(null)
+  const composedRef = (node: HTMLDivElement | null) => {
+    contentRef.current = node
+    if (typeof ref === "function") ref(node)
+    else if (ref) ref.current = node
+  }
+
+  const handlePointerDownOutside = (
+    event: Parameters<NonNullable<typeof onPointerDownOutside>>[0]
+  ) => {
+    onPointerDownOutside?.(event)
+    if (event.defaultPrevented) return
+    // When a portalled popper inside the sheet (e.g. a Select dropdown) is
+    // open, Radix disables pointer-events on the rest of the page. A click on
+    // the sheet itself then hit-tests to <html> and is reported as "outside",
+    // which would close the sheet. Keep the sheet open when the pointer-down
+    // physically landed within its bounds.
+    const rect = contentRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const { clientX, clientY } = event.detail.originalEvent
+    if (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    ) {
+      event.preventDefault()
+    }
+  }
+
   return (
     <SheetPortal>
       <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
+        ref={composedRef}
+        onPointerDownOutside={handlePointerDownOutside}
         data-slot="sheet-content"
         data-expanded={isExpanded}
         className={cn(
@@ -285,8 +307,6 @@ function SheetDescription({
 
 export {
   Sheet,
-  SheetTrigger,
-  SheetClose,
   SheetContent,
   SheetHeader,
   SheetFooter,

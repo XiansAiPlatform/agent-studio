@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 
 /**
  * PUT /api/tasks/draft
- * Update task draft. Tenant is injected from session (httpOnly cookie).
+ * Update a task's draft. Editing arbitrary tasks is a reviewer action, so it is
+ * gated to Agent Settings access (excludes plain participants).
+ * Tenant is injected from session (httpOnly cookie).
  */
-export const PUT = withTenantFromSession(
+export const PUT = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id

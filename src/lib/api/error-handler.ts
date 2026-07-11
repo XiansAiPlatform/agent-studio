@@ -133,6 +133,7 @@ function validateRequired(
 
 /**
  * Create a validation error response
+ * @public
  */
 export function validationError(
   message: string,

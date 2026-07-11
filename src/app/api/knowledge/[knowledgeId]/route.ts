@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant';
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
 import { KnowledgeItem } from '@/lib/xians/knowledge';
 
@@ -11,8 +11,9 @@ function extractKnowledgeIdFromPath(pathname: string): string | null {
 /**
  * GET /api/knowledge/[knowledgeId]
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
+ * Restricted to users with Agent Settings access (excludes plain participants).
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantId }: ApiContext) => {
     const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
     if (!knowledgeId) {
@@ -45,8 +46,9 @@ export const GET = withTenantFromSession(
 /**
  * PATCH /api/knowledge/[knowledgeId]
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
+ * Restricted to users with Agent Settings access (excludes plain participants).
  */
-export const PATCH = withTenantFromSession(
+export const PATCH = withParticipantAdmin(
   async (request: NextRequest, { tenantId }: ApiContext) => {
     const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
     if (!knowledgeId) {
@@ -90,8 +92,9 @@ export const PATCH = withTenantFromSession(
 /**
  * DELETE /api/knowledge/[knowledgeId]
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
+ * Restricted to users with Agent Settings access (excludes plain participants).
  */
-export const DELETE = withTenantFromSession(
+export const DELETE = withParticipantAdmin(
   async (request: NextRequest, { tenantId }: ApiContext) => {
     const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
     if (!knowledgeId) {

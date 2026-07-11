@@ -1,6 +1,6 @@
 'use client';
 
-import { Conversation, Topic } from '@/lib/data/dummy-conversations';
+import { Conversation, Topic } from '@/types/conversation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bot, MoreVertical, Circle } from 'lucide-react';

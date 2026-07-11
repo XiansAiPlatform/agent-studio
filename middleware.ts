@@ -34,8 +34,12 @@ export default withAuth(
       return NextResponse.next()
     }
 
-    // Settings paths require TenantParticipantAdmin (or system admin)
-    if (path.startsWith('/settings')) {
+    // Agent Settings surfaces require settings:view (TenantUser /
+    // TenantParticipantAdmin / TenantAdmin / system admin). The Knowledge Base
+    // is part of this surface — its data is tenant-wide agent configuration and
+    // its APIs require the same capability — so gate the page here too, rather
+    // than letting a plain participant load a page that only errors on fetch.
+    if (path.startsWith('/settings') || path.startsWith('/knowledge')) {
       const tenantId = req.cookies.get(CURRENT_TENANT_COOKIE)?.value ?? null
       const allowed = await canAccessSettings(token, tenantId)
       if (!allowed) {

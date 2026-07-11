@@ -91,14 +91,6 @@ export interface MetricTimeseriesResponse {
   summary: TimeseriesSummary;
 }
 
-// UI State Types
-export interface PerformanceFilters {
-  agentName: string | null;
-  activationName: string | null;
-  startDate: string;
-  endDate: string;
-}
-
 export type DateRangePreset =
   | 'last7days'
   | 'last30days'

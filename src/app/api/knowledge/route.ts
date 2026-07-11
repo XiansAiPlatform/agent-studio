@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant';
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
 import { KnowledgeApiResponse } from '@/lib/xians/knowledge';
 
@@ -7,8 +7,10 @@ import { KnowledgeApiResponse } from '@/lib/xians/knowledge';
  * GET /api/knowledge
  * Fetch knowledge groups for an agent and activation.
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
+ * Agent knowledge is tenant-wide configuration; restricted to users with Agent
+ * Settings access (excludes plain participants).
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantId }: ApiContext) => {
     try {
       const { searchParams } = new URL(request.url);

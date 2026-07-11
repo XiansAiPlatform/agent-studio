@@ -9,6 +9,9 @@ import {
   MoreHorizontal,
   XCircle,
   FileKey2,
+  Server,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -47,15 +50,32 @@ function certStatusBadge(cert: AgentCertificate): { label: string; variant: 'def
 }
 
 export function AgentCertificatesSection() {
-  const { certificates, isLoading, error, fetchCertificates, generateCertificate, revokeCertificate } =
-    useAgentCertificates()
+  const {
+    certificates,
+    isLoading,
+    error,
+    serverUrl,
+    fetchCertificates,
+    fetchServerUrl,
+    generateCertificate,
+    revokeCertificate,
+  } = useAgentCertificates()
   const [showGenerate, setShowGenerate] = useState(false)
   const [revokeTarget, setRevokeTarget] = useState<AgentCertificate | null>(null)
   const [isRevoking, setIsRevoking] = useState(false)
+  const [copiedServerUrl, setCopiedServerUrl] = useState(false)
 
   useEffect(() => {
     fetchCertificates()
-  }, [fetchCertificates])
+    fetchServerUrl()
+  }, [fetchCertificates, fetchServerUrl])
+
+  const handleCopyServerUrl = async () => {
+    if (!serverUrl) return
+    await navigator.clipboard.writeText(serverUrl)
+    setCopiedServerUrl(true)
+    setTimeout(() => setCopiedServerUrl(false), 2000)
+  }
 
   const handleGenerate = async (name: string, revokePrevious: boolean): Promise<string> => {
     try {
@@ -117,6 +137,43 @@ export function AgentCertificatesSection() {
           <Button onClick={() => setShowGenerate(true)} size="sm" className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             Generate
+          </Button>
+        </div>
+      </div>
+
+      {/* Connection settings: server URL + certificate */}
+      <div className="rounded-lg border bg-card/60 p-3 space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Agents need two settings to connect: the Xians server URL below, and an agent certificate
+          generated here.
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-md bg-primary/10 text-primary shrink-0">
+            <Server className="h-3.5 w-3.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              Xians Server URL
+            </p>
+            {serverUrl ? (
+              <code className="font-mono text-xs text-foreground break-all">{serverUrl}</code>
+            ) : (
+              <span className="text-xs text-muted-foreground italic">Unavailable</span>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleCopyServerUrl}
+            disabled={!serverUrl}
+            title="Copy server URL"
+            className="h-7 w-7 shrink-0"
+          >
+            {copiedServerUrl ? (
+              <Check className="h-3.5 w-3.5 text-green-500" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
           </Button>
         </div>
       </div>

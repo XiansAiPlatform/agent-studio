@@ -14,6 +14,7 @@ export function useAgentCertificates() {
     error: null,
   })
   const [isMutating, setIsMutating] = useState(false)
+  const [serverUrl, setServerUrl] = useState<string | null>(null)
 
   const fetchCertificates = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }))
@@ -31,6 +32,17 @@ export function useAgentCertificates() {
         isLoading: false,
         error: err instanceof Error ? err.message : 'Unknown error',
       })
+    }
+  }, [])
+
+  const fetchServerUrl = useCallback(async () => {
+    try {
+      const res = await fetch('/api/developer/agent-certificates/server-url', { cache: 'no-store' })
+      if (!res.ok) return
+      const data: { serverUrl: string | null } = await res.json()
+      setServerUrl(data.serverUrl ?? null)
+    } catch {
+      // Non-critical: the section still works without the server URL hint
     }
   }, [])
 
@@ -96,7 +108,9 @@ export function useAgentCertificates() {
   return {
     ...state,
     isMutating,
+    serverUrl,
     fetchCertificates,
+    fetchServerUrl,
     generateCertificate,
     revokeCertificate,
   }

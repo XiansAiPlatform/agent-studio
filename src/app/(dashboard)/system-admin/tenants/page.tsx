@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useCan } from '@/hooks/use-permissions';
 import { RequireCapability } from '@/components/auth/can';
@@ -10,6 +10,8 @@ import {
   Search,
   Loader2,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,10 +24,14 @@ import { AddTenantDialog } from './components/add-tenant-dialog';
 import { EditTenantDialog } from './components/edit-tenant-dialog';
 import { DeleteTenantDialog } from './components/delete-tenant-dialog';
 
+const PAGE_SIZE = 20;
+
 function TenantsPageContent() {
   const { isLoading: isAuthLoading } = useAuth();
 
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editTarget, setEditTarget] = useState<Tenant | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Tenant | null>(null);
@@ -34,6 +40,7 @@ function TenantsPageContent() {
 
   const {
     tenants,
+    pagination,
     isLoading,
     error,
     fetchTenants,
@@ -44,31 +51,38 @@ function TenantsPageContent() {
 
   const isSystemAdmin = useCan('system:admin');
 
+  // Debounce search input, and jump back to page 1 whenever the term changes —
+  // the current page number is meaningless against a different result set.
   useEffect(() => {
-    if (isSystemAdmin) {
-      fetchTenants();
-    }
-  }, [isSystemAdmin, fetchTenants]);
+    const id = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
-  const filteredTenants = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const sorted = [...tenants].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
-    if (!q) return sorted;
-    return sorted.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.tenantId.toLowerCase().includes(q) ||
-        (t.domain ?? '').toLowerCase().includes(q)
-    );
-  }, [tenants, search]);
+  const refresh = useCallback(() => {
+    if (!isSystemAdmin) return;
+    fetchTenants({ page, pageSize: PAGE_SIZE, search: search || undefined });
+  }, [isSystemAdmin, fetchTenants, page, search]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const sortedTenants = useMemo(
+    () =>
+      [...tenants].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      ),
+    [tenants]
+  );
 
   const handleAdd = async (data: CreateTenantRequest) => {
     try {
       await createTenant(data);
       toast.success(`Tenant "${data.name}" created`);
-      fetchTenants();
+      refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create tenant');
       throw err;
@@ -79,7 +93,7 @@ function TenantsPageContent() {
     try {
       await updateTenant(tenantId, data);
       toast.success('Tenant updated');
-      fetchTenants();
+      refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update tenant');
       throw err;
@@ -97,7 +111,7 @@ function TenantsPageContent() {
       );
       // Keep the edit panel open with the updated tenant data
       setEditTarget(updated);
-      fetchTenants();
+      refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update tenant');
     } finally {
@@ -116,7 +130,13 @@ function TenantsPageContent() {
       await deleteTenant(deleteTarget.tenantId);
       toast.success(`${deleteTarget.name} deleted`);
       setDeleteTarget(null);
-      fetchTenants();
+      // Deleting the last tenant on a page (other than page 1) would leave an
+      // empty page stranded — step back a page so the view stays populated.
+      if (tenants.length === 1 && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        refresh();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete tenant');
     } finally {
@@ -152,23 +172,23 @@ function TenantsPageContent() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tenants..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
         </div>
         <Button
           variant="outline"
           size="icon"
-          onClick={() => fetchTenants()}
+          onClick={refresh}
           disabled={isLoading}
           title="Refresh"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
-        {tenants.length > 0 && (
+        {pagination.totalItems > 0 && (
           <span className="text-sm text-muted-foreground ml-auto">
-            {tenants.length} {tenants.length === 1 ? 'tenant' : 'tenants'}
+            {pagination.totalItems} {pagination.totalItems === 1 ? 'tenant' : 'tenants'}
           </span>
         )}
       </div>
@@ -179,12 +199,12 @@ function TenantsPageContent() {
         </div>
       )}
 
-      {isLoading && tenants.length === 0 ? (
+      {isLoading && sortedTenants.length === 0 ? (
         <div className="rounded-xl border bg-card px-4 py-16 text-center text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
           Loading tenants…
         </div>
-      ) : filteredTenants.length === 0 ? (
+      ) : sortedTenants.length === 0 ? (
         <div className="rounded-xl border bg-card px-4 py-16 text-center text-muted-foreground">
           <Building2 className="h-8 w-8 mx-auto mb-3 opacity-30" />
           <p className="font-medium text-foreground">No tenants found</p>
@@ -196,7 +216,7 @@ function TenantsPageContent() {
         </div>
       ) : (
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredTenants.map((tenant) => (
+          {sortedTenants.map((tenant) => (
             <Card
               key={tenant.id}
               className="transition-colors hover:bg-accent/40 cursor-pointer"
@@ -250,6 +270,30 @@ function TenantsPageContent() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-end gap-2">
+          <span className="text-sm text-muted-foreground">
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={!pagination.hasPrevious || isLoading}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+            disabled={!pagination.hasNext || isLoading}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
 

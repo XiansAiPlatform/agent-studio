@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withTenantFromSession, withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * GET /api/agent-activations
  * List agent activations. Tenant is injected from session (httpOnly cookie).
+ * Kept at tenant-member level: participants need the list of available agents to
+ * start conversations. Mutating activations is gated to Agent Settings access below.
  */
 export const GET = withTenantFromSession(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
@@ -36,8 +38,9 @@ export const GET = withTenantFromSession(
 /**
  * POST /api/agent-activations
  * Create a new agent activation. Tenant is injected from session.
+ * Restricted to users with Agent Settings access (excludes plain participants).
  */
-export const POST = withTenantFromSession(
+export const POST = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const data = await request.json()
