@@ -24,6 +24,15 @@
 .DS_Store
 *.pem
 
+# credentials and secrets
+credentials.json
+credentials.yaml
+secrets.yaml
+secrets.yml
+*.key
+*.p12
+*.pfx
+
 # debug
 npm-debug.log*
 yarn-debug.log*
