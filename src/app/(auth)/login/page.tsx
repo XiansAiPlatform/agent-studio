@@ -8,7 +8,10 @@ export default async function LoginPage() {
   const session = await getServerSession(authOptions)
   
   if (session) {
-    // Check if user has tenant access
+    // Determine destination based on tenant access. Note: redirect() throws a
+    // NEXT_REDIRECT control-flow signal, so it must be called OUTSIDE the
+    // try/catch - otherwise the catch swallows it and logs a false error.
+    let destination = '/dashboard'
     try {
       const tenantProvider = useTenantProvider()
       const userTenants = await tenantProvider.getUserTenants(
@@ -16,19 +19,16 @@ export default async function LoginPage() {
         session.accessToken,
         session.user.email ?? undefined
       )
-      
+
       if (userTenants.length === 0) {
-        // User has no tenant access, redirect to no-access page
-        redirect('/no-access')
+        destination = '/no-access'
       }
-      
-      // User has tenant access, proceed to dashboard
-      redirect('/dashboard')
     } catch (error) {
       console.error('[Login] Error checking tenant access:', error)
-      // If error occurs, still redirect to dashboard and let client-side handle it
-      redirect('/dashboard')
+      // Fall back to dashboard and let client-side validation handle it
     }
+
+    redirect(destination)
   }
   
   return (

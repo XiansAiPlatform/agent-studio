@@ -43,6 +43,21 @@ export interface XiansAdminTenant {
 }
 
 /**
+ * Response shape of the paginated GET /api/v1/admin/tenants endpoint.
+ */
+export interface XiansAdminTenantsPage {
+  tenants: XiansAdminTenant[]
+  pagination: {
+    page: number
+    pageSize: number
+    totalPages: number
+    totalItems: number
+    hasNext: boolean
+    hasPrevious: boolean
+  }
+}
+
+/**
  * Participant role from Xians API - used for layout/access; never exposed to client.
  * TenantAdmin and TenantUser are non-participant admin roles that may also appear here.
  */
@@ -271,6 +286,7 @@ export interface CreateAgentActivationRequest {
 }
 
 // Conversation types
+/** @public Xians backend conversation contract. */
 export interface XiansConversation {
   id: string
   tenantId: string
@@ -368,8 +384,10 @@ export interface SSEHeartbeatEvent {
   }
 }
 
+/** @public SSE event union for the Xians listen stream. */
 export type SSEEvent = SSEMessageEvent | SSEHeartbeatEvent
 
+/** @public */
 export interface SSEListenParams {
   tenantId: string
   agentName: string
@@ -405,6 +423,7 @@ export interface XiansTenantStats {
 }
 
 // Common API response wrapper
+/** @public Generic Xians API response envelope. */
 export interface XiansApiResponse<T> {
   success: boolean
   data: T

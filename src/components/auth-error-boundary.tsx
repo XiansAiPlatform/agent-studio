@@ -203,18 +203,3 @@ export class AuthErrorBoundary extends Component<Props, State> {
     }
   }
 }
-
-// Functional wrapper for easier use
-export function WithAuthErrorBoundary({ 
-  children, 
-  fallback 
-}: { 
-  children: ReactNode
-  fallback?: ReactNode 
-}) {
-  return (
-    <AuthErrorBoundary fallbackComponent={fallback}>
-      {children}
-    </AuthErrorBoundary>
-  )
-}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 
 function schedulesBasePath(tenantId: string, agentName: string): string {
@@ -10,7 +10,7 @@ function schedulesBasePath(tenantId: string, agentName: string): string {
  * POST /api/schedules/pause?agentName=...&scheduleId=...&note=...
  * Pauses (suspends) a schedule so it stops triggering new runs.
  */
-export const POST = withTenantFromSession(
+export const POST = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id

@@ -59,11 +59,3 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
     </ColorThemeContext.Provider>
   );
 }
-
-export function useColorTheme() {
-  const ctx = React.useContext(ColorThemeContext);
-  if (!ctx) {
-    throw new Error('useColorTheme must be used within ColorThemeProvider');
-  }
-  return ctx;
-}

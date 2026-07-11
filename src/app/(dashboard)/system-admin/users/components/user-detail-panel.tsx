@@ -47,7 +47,28 @@ import {
   roleLabel,
 } from '../types'
 import { useUsers } from '../hooks/use-users'
-import type { Tenant } from '@/app/(dashboard)/system-admin/tenants/types'
+import type { Tenant, ListTenantsResponse } from '@/app/(dashboard)/system-admin/tenants/types'
+
+/**
+ * Fetch every tenant on the platform for the "add to tenant" dropdown below.
+ * The tenants endpoint paginates, so this walks every page (at the max page
+ * size) rather than assuming a single request returns the full list.
+ */
+async function fetchAllTenantsForDropdown(): Promise<Tenant[]> {
+  const collected: Tenant[] = []
+  let page = 1
+  const maxPageSize = 100
+  // Safety cap so an unexpected `hasNext: true` can't loop forever.
+  for (let i = 0; i < 1000; i++) {
+    const res = await fetch(`/api/system-admin/tenants?page=${page}&pageSize=${maxPageSize}`)
+    if (!res.ok) break
+    const data: ListTenantsResponse = await res.json()
+    collected.push(...(data.tenants ?? []))
+    if (!data.pagination?.hasNext) break
+    page += 1
+  }
+  return collected
+}
 
 const infoSchema = z.object({
   name: z
@@ -111,16 +132,12 @@ export function UserDetailPanel({
     setIsDetailLoading(true)
     setDetailError(null)
     try {
-      const [data, tenantsRes] = await Promise.all([
+      const [data] = await Promise.all([
         fetchUser(user.userId),
-        fetch('/api/system-admin/tenants'),
+        fetchAllTenantsForDropdown().then(setAllTenants),
       ])
       setDetail(data)
       reset({ name: data.name ?? '', email: data.email ?? '' })
-      if (tenantsRes.ok) {
-        const body = await tenantsRes.json()
-        setAllTenants(body.tenants ?? [])
-      }
     } catch (err) {
       setDetailError(err instanceof Error ? err.message : 'Failed to load user details')
     } finally {
@@ -538,7 +555,7 @@ export function UserDetailPanel({
                         {isAddingTenant
                           ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                           : <Plus className="mr-1 h-3 w-3" />}
-                        Add
+                        Save
                       </Button>
                       <Button
                         variant="ghost"
@@ -694,7 +711,7 @@ export function UserDetailPanel({
                                   handleAddRole(m, (addRolePickers[m.tenantId] ?? availableRoles[0]) as Role)
                                 }
                               >
-                                Add
+                                Save
                               </Button>
                               <Button
                                 variant="ghost"

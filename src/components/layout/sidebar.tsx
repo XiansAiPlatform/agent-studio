@@ -148,6 +148,7 @@ const navigation: NavigationItem[] = [
       },
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' },
+      { name: 'Feedback', href: '/settings/feedback' },
       { name: 'Secrets', href: '/settings/secrets' },
     ],
   },
@@ -179,6 +180,7 @@ const navigation: NavigationItem[] = [
     children: [
       { name: 'Tenants', href: '/system-admin/tenants' },
       { name: 'Users', href: '/system-admin/users' },
+      { name: 'Templates', href: '/system-admin/agent-templates' },
     ],
   },
 ];

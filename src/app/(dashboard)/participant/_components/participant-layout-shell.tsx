@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useParticipantLayout } from '@/contexts/participant-layout-context'
 import { ParticipantAgentTree } from './participant-agent-tree'
-import { Topic } from '@/lib/data/dummy-conversations'
+import { Topic } from '@/types/conversation'
 
 interface ParticipantLayoutShellProps {
   children: React.ReactNode

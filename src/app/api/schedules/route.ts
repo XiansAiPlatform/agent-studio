@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 
 /**
@@ -25,7 +25,7 @@ function errorResponse(error: any) {
  * GET /api/schedules?agentName=...&status=...&workflowType=...&searchTerm=...&pageSize=...&pageToken=...
  * Lists schedules for an agent. Tenant is resolved server-side from the session cookie.
  */
-export const GET = withTenantFromSession(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id
@@ -67,7 +67,7 @@ export const GET = withTenantFromSession(
  * DELETE /api/schedules?agentName=...
  * Deletes ALL schedules for the agent. This action cannot be undone.
  */
-export const DELETE = withTenantFromSession(
+export const DELETE = withParticipantAdmin(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id

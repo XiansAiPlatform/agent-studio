@@ -19,8 +19,6 @@ declare module "next-auth" {
     user: {
       /** User's unique identifier */
       id: string
-      /** User's role in the system */
-      role: string
       /** Whether user has access to at least one tenant */
       hasTenantAccess?: boolean
       /** Whether user is a system administrator */
@@ -35,7 +33,6 @@ declare module "next-auth" {
    * Used during sign-in callbacks
    */
   interface User extends DefaultUser {
-    role?: string
     hasTenantAccess?: boolean
     isSystemAdmin?: boolean
   }
@@ -49,8 +46,6 @@ declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     /** User's unique identifier */
     id: string
-    /** User's role in the system */
-    role: string
     /** OAuth access token */
     accessToken?: string
     /** OAuth ID token */

@@ -4,6 +4,8 @@ import { signIn, getProviders } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Loader2, AlertCircle, Wifi, WifiOff } from "lucide-react"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
@@ -14,13 +16,15 @@ export function SignInForm() {
   const [error, setError] = useState<string | null>(null)
   const [isOnline, setIsOnline] = useState(true)
   const [providers, setProviders] = useState<Record<string, ClientSafeProvider> | null>(null)
+  const [localEmail, setLocalEmail] = useState('')
+  const [localPassword, setLocalPassword] = useState('')
 
   // Fetch available providers
   useEffect(() => {
     const fetchProviders = async () => {
       try {
         const availableProviders = await getProviders()
-        setProviders(availableProviders)
+        setProviders(availableProviders ?? {})
       } catch (error) {
         console.error('[Auth] Error fetching providers:', error)
         setProviders({}) // Set to empty object to indicate loading is complete
@@ -100,6 +104,43 @@ export function SignInForm() {
       setIsLoading(null)
     }
   }
+
+  const handleLocalSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!localEmail || !localPassword) {
+      setError('Please enter both email and password.')
+      return
+    }
+
+    setIsLoading('local')
+    setError(null)
+
+    try {
+      const result = await signIn('local', {
+        email: localEmail,
+        password: localPassword,
+        callbackUrl: '/dashboard',
+        redirect: false,
+      })
+
+      if (result?.error) {
+        const errorMessage = 'Invalid email or password.'
+        setError(errorMessage)
+        toast.error(errorMessage)
+      } else if (result?.url) {
+        window.location.href = result.url
+      }
+    } catch (err) {
+      console.error('[Auth] Local sign-in error:', err)
+      const errorMessage = 'An unexpected error occurred. Please try again.'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
@@ -269,6 +310,68 @@ export function SignInForm() {
             )}
             {isLoading === 'visma-connect' ? 'Signing in...' : 'Sign in with Visma Connect'}
           </Button>
+        )}
+
+        {/* Local development login (only when the credentials provider is enabled) */}
+        {providers?.local && (
+          <div className="space-y-4">
+            {(providers && Object.keys(providers).length > 1) && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+            )}
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Local development login is enabled. Do not use this in production.
+              </AlertDescription>
+            </Alert>
+
+            <form onSubmit={handleLocalSignIn} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="local-email">Email</Label>
+                <Input
+                  id="local-email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="you@example.com"
+                  value={localEmail}
+                  onChange={(e) => setLocalEmail(e.target.value)}
+                  disabled={isLoading !== null}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="local-password">Password</Label>
+                <Input
+                  id="local-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={localPassword}
+                  onChange={(e) => setLocalPassword(e.target.value)}
+                  disabled={isLoading !== null}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={isLoading !== null}
+              >
+                {isLoading === 'local' ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : null}
+                {isLoading === 'local' ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </form>
+          </div>
         )}
 
         {/* Connection status for better UX */}

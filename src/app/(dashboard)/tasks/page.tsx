@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Task } from '@/lib/data/dummy-tasks';
+import { Task } from '@/types/task';
 import { TaskListItem } from '@/components/features/tasks/task-list-item';
 import { TaskDetail } from '@/components/features/tasks/task-detail';
 import { TaskFilterSlider, TaskFilters, SelectedActivation } from '@/components/features/tasks';

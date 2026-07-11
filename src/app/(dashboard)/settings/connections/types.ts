@@ -94,12 +94,6 @@ export interface InitiateConnectionResponse {
   state: string        // OAuth state parameter
 }
 
-export interface CompleteConnectionRequest {
-  connectionId: string
-  code: string
-  state: string
-}
-
 export interface UserTokenInfo {
   accessToken: string
   refreshToken?: string
@@ -136,32 +130,8 @@ export interface ConnectionTestResult {
   testedAt: string
 }
 
-export interface ConnectionUsageStats {
-  totalRequests: number
-  successfulRequests: number
-  failedRequests: number
-  averageResponseTime: number
-  lastUsed?: string
-  usageByDay: Array<{
-    date: string
-    requests: number
-    errors: number
-  }>
-}
-
-export interface AuthorizeConnectionRequest {
-  connectionId: string
-  returnUrl?: string
-}
-
 export interface AuthorizeConnectionResponse {
   authUrl: string
-  state: string
-}
-
-export interface ConnectionCallbackRequest {
-  connectionId: string
-  code: string
   state: string
 }
 
@@ -187,67 +157,3 @@ export interface ConnectionResponse {
 export interface ConnectionTestResponse {
   result: ConnectionTestResult
 }
-
-export interface ConnectionUsageResponse {
-  usage: ConnectionUsageStats
-}
-
-// UI-specific types
-export interface ConnectionFormData {
-  name: string
-  providerId: string
-  description: string
-  clientId: string
-  clientSecret: string
-  customScopes: string
-  wellKnownUrl: string
-}
-
-export interface ConnectionCardProps {
-  connection: OIDCConnection
-  onEdit: (connection: OIDCConnection) => void
-  onDelete: (connectionId: string) => void
-  onTest: (connectionId: string) => void
-  onToggleActive: (connectionId: string, active: boolean) => void
-  onViewUsage: (connectionId: string) => void
-}
-
-// Filter and sort options
-export interface ConnectionsFilter {
-  status?: ConnectionStatus[]
-  providerId?: string[]
-  search?: string
-  onlyActive?: boolean
-}
-
-export type ConnectionsSortBy = 
-  | 'name'
-  | 'createdAt'
-  | 'lastUsed'
-  | 'status'
-  | 'providerId'
-
-export interface ConnectionsSortOptions {
-  sortBy: ConnectionsSortBy
-  sortOrder: 'asc' | 'desc'
-}
-
-// Error types
-export interface ConnectionError {
-  code: string
-  message: string
-  details?: Record<string, any>
-}
-
-export const CONNECTION_ERROR_CODES = {
-  INVALID_CLIENT: 'invalid_client',
-  INVALID_CREDENTIALS: 'invalid_credentials',
-  SCOPE_NOT_SUPPORTED: 'scope_not_supported',
-  NETWORK_ERROR: 'network_error',
-  TOKEN_EXPIRED: 'token_expired',
-  REFRESH_FAILED: 'refresh_failed',
-  API_ERROR: 'api_error',
-  UNKNOWN_ERROR: 'unknown_error',
-} as const
-
-export type ConnectionErrorCode = typeof CONNECTION_ERROR_CODES[keyof typeof CONNECTION_ERROR_CODES]

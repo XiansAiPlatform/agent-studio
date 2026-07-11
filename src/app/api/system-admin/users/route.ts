@@ -23,7 +23,8 @@ function getTenantId(request: NextRequest): string | null {
  *
  * Without tenantId: lists all users across the platform using the global
  *   endpoint GET /api/v1/admin/users (supports page, pageSize, search,
- *   isSysAdmin, isEnabled filters).
+ *   isSysAdmin, isEnabled and role filters; role may be 'SysAdmin' or any
+ *   tenant role, matched in any tenant).
  *
  * With tenantId: lists users for that specific tenant (paginated).
  */
@@ -42,6 +43,8 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
     if (isSysAdmin !== null) upstreamQuery.set('isSysAdmin', isSysAdmin)
     const isEnabled = params.get('isEnabled')
     if (isEnabled !== null) upstreamQuery.set('isEnabled', isEnabled)
+    const globalRole = params.get('role')
+    if (globalRole?.trim()) upstreamQuery.set('role', globalRole.trim())
 
     try {
       const client = createXiansClient()

@@ -5,7 +5,7 @@
  */
 
 import { XiansClient } from './client'
-import { XiansTenant, XiansAdminTenant, XiansParticipantTenant, XiansParticipantTenantsResponse } from './types'
+import { XiansTenant, XiansAdminTenant, XiansAdminTenantsPage, XiansParticipantTenant, XiansParticipantTenantsResponse } from './types'
 import { createTtlCache, TENANT_LOOKUP_TTL_MS } from './cache'
 import { SERVICE_API_KEY_ERROR_HINT, isServiceApiKeyError } from './errors'
 
@@ -79,20 +79,33 @@ export class XiansTenantsApi {
 
   /**
    * List every tenant on the platform.
-   * GET /api/v1/admin/tenants
+   * GET /api/v1/admin/tenants?page=&pageSize= (paginated upstream, max pageSize 100)
    * Requires system-admin scope (provided by the service API key). Used to give
    * system admins access to all tenants in the tenant switcher.
+   *
+   * The upstream endpoint always paginates, so this walks every page (at the
+   * max page size) and flattens the results to preserve the "get everything"
+   * contract this method's callers rely on.
    */
   async getAllTenants(): Promise<XiansAdminTenant[]> {
     return allTenantsCache.get(ALL_TENANTS_CACHE_KEY, async () => {
       console.log('[Xians Tenants] Fetching all tenants (system-admin scope)')
 
       try {
-        const tenants = await this.client.get<XiansAdminTenant[]>(
-          '/api/v1/admin/tenants'
-        )
-        console.log(`[Xians Tenants] Fetched ${tenants?.length ?? 0} tenant(s)`)
-        return tenants ?? []
+        const maxPageSize = 100
+        const collected: XiansAdminTenant[] = []
+        let page = 1
+        // Safety cap so an unexpected `hasNext: true` can't loop forever.
+        for (let i = 0; i < 1000; i++) {
+          const data = await this.client.get<XiansAdminTenantsPage>(
+            `/api/v1/admin/tenants?page=${page}&pageSize=${maxPageSize}`
+          )
+          collected.push(...(data?.tenants ?? []))
+          if (!data?.pagination?.hasNext) break
+          page += 1
+        }
+        console.log(`[Xians Tenants] Fetched ${collected.length} tenant(s)`)
+        return collected
       } catch (error: any) {
         console.error('[Xians Tenants] Failed to fetch all tenants:', {
           error: error.message,

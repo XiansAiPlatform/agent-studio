@@ -1,6 +1,6 @@
 'use client';
 
-import { Task } from '@/lib/data/dummy-tasks';
+import { Task } from '@/types/task';
 import { Bot, Clock, Flag, User, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

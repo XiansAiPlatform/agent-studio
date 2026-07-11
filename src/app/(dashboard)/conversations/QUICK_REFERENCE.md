@@ -217,7 +217,7 @@ const {
 - `/src/components/ui/` - UI primitives
 - `/src/hooks/use-tenant.ts` - Tenant management
 - `/src/hooks/use-message-listener.ts` - SSE connection
-- `/src/lib/data/dummy-conversations.ts` - Type definitions
+- `/src/types/conversation.ts` - Type definitions
 
 ## 💡 Pro Tips
 
