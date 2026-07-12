@@ -60,6 +60,12 @@ export interface LogStream {
   logCount: number;
   lastLogLevel: LogLevel;
   lastLogMessage: string;
+  /**
+   * Number of Error/Critical logs in this stream. Used to flag streams that
+   * contain errors anywhere in their history, not only when the latest log is
+   * an error. May be absent from older API responses (treated as 0).
+   */
+  errorCount?: number;
 }
 
 export interface LogStreamsResponse {
