@@ -1,11 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { LogLevelBadge } from '@/components/features/logs';
 import { LogEntry } from '../types';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, ChevronUp, User, Bot, Workflow, Clock, Terminal } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Copy,
+  User,
+  Bot,
+  Workflow,
+  Clock,
+  Terminal,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { LogMessage } from './log-message';
 
@@ -16,6 +25,14 @@ interface LogListItemProps {
 
 export function LogListItem({ log, onClick }: LogListItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+    };
+  }, []);
 
   const formattedTime = formatDistanceToNow(new Date(log.createdAt), { addSuffix: true });
   const absoluteTime = new Date(log.createdAt).toLocaleString();
@@ -39,10 +56,24 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
   const canExpand = hasMetadataDetails || isMessageLong;
   const shouldClampMessage = isMessageLong && !isExpanded;
 
+  const handleCopyMessage = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!messageText) return;
+
+    try {
+      await navigator.clipboard.writeText(messageText);
+      setCopied(true);
+      if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+      copiedResetRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('[LogListItem] Failed to copy log message:', err);
+    }
+  };
+
   return (
-    <Card 
+    <Card
       className={cn(
-        'border-border/50 transition-all cursor-pointer',
+        'group/log border-border/50 transition-all cursor-pointer',
         !hasException && 'hover:border-border',
         hasException && 'border-l-4 border-l-red-500 rounded-l-none hover:shadow-lg hover:bg-accent/5',
         isExpanded && 'shadow-md'
@@ -81,41 +112,83 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
             )}
 
             {/* Log Level Badge */}
-            <div className={cn("shrink-0", !canExpand && "ml-1")}>
+            <div className={cn('shrink-0', !canExpand && 'ml-1')}>
               <LogLevelBadge level={log.level} />
             </div>
 
             {/* Main Content */}
             <div className="flex-1 min-w-0 space-y-1.5">
               {/* Message (markdown) — clipped with a fade when long & collapsed */}
-              <div
-                className={cn(
-                  'relative',
-                  shouldClampMessage && 'max-h-24 overflow-hidden'
+              <div className="relative">
+                {messageText && (
+                  <button
+                    type="button"
+                    onClick={handleCopyMessage}
+                    className={cn(
+                      'absolute -top-0.5 right-0 z-10 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5',
+                      'text-[11px] font-medium text-muted-foreground',
+                      'bg-card/95 border border-border/60 shadow-sm backdrop-blur-sm',
+                      'hover:text-foreground hover:bg-accent hover:border-border',
+                      'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      // Always show after copy; on hover-capable pointers reveal on
+                      // card hover. Touch devices keep it visible (no hover).
+                      copied
+                        ? 'opacity-100'
+                        : 'opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/log:opacity-100 focus-visible:opacity-100'
+                    )}
+                    aria-label={copied ? 'Log message copied' : 'Copy log message'}
+                    title={copied ? 'Copied' : 'Copy message'}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" />
+                        Copy
+                      </>
+                    )}
+                  </button>
                 )}
-              >
-                <LogMessage
-                  message={log.message}
-                  mode="block"
-                  className={cn(hasException && '[&_p]:font-medium')}
-                />
-                {shouldClampMessage && (
-                  <>
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card via-card/90 to-transparent"
-                    />
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center pb-0.5 text-muted-foreground"
-                    >
-                      <span className="text-xs font-mono leading-none">···</span>
-                    </div>
-                  </>
-                )}
+
+                <div
+                  className={cn(
+                    'relative',
+                    shouldClampMessage && 'max-h-24 overflow-hidden',
+                    // Keep message clear of the hover copy control.
+                    messageText && 'pr-14'
+                  )}
+                >
+                  <LogMessage
+                    message={log.message}
+                    mode="block"
+                    className={cn(hasException && '[&_p]:font-medium')}
+                  />
+                  {shouldClampMessage && (
+                    <>
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card via-card/90 to-transparent"
+                      />
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center pb-0.5 text-muted-foreground"
+                      >
+                        <span className="text-xs font-mono leading-none">···</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
+
+              {/* Expand / collapse for long messages — collapse sits at the
+                  bottom of the expanded message body so it's easy to find
+                  after scrolling through a long entry. */}
               {isMessageLong && (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsExpanded(!isExpanded);
@@ -130,7 +203,7 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
                   {isExpanded ? (
                     <>
                       <ChevronUp className="h-3 w-3" />
-                      Show less
+                      Collapse message
                     </>
                   ) : (
                     <>
@@ -159,7 +232,9 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
                     {log.activation && (
                       <>
                         <span className="hidden sm:inline text-muted-foreground/50">•</span>
-                        <span className="hidden sm:inline text-muted-foreground/80 truncate">{log.activation}</span>
+                        <span className="hidden sm:inline text-muted-foreground/80 truncate">
+                          {log.activation}
+                        </span>
                       </>
                     )}
                   </div>
@@ -244,6 +319,27 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
                     {JSON.stringify(log.properties, null, 2)}
                   </pre>
                 </div>
+              )}
+
+              {/* Bottom collapse for long messages after scrolling through
+                  expanded details (exception / properties / ids). */}
+              {isMessageLong && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(false);
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-colors',
+                    'text-primary hover:bg-primary/10 focus-visible:bg-primary/10',
+                    'border border-dashed border-primary/40 hover:border-primary/60'
+                  )}
+                  aria-label="Collapse message"
+                >
+                  <ChevronUp className="h-3 w-3" />
+                  Collapse message
+                </button>
               )}
             </div>
           )}
