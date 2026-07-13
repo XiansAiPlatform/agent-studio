@@ -117,6 +117,8 @@ function DialogDescription({
   )
 }
 
+const DialogTrigger = DialogPrimitive.Trigger
+
 export {
   Dialog,
   DialogContent,
@@ -126,4 +128,5 @@ export {
   DialogOverlay,
   DialogPortal,
   DialogTitle,
+  DialogTrigger,
 }

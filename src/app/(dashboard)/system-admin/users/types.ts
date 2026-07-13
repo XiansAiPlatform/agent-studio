@@ -9,7 +9,9 @@ export {
   TENANT_ROLES,
   ALL_ROLES,
   ROLE_LABELS,
+  ROLE_METADATA,
   roleLabel,
+  roleSummary,
 } from '@/lib/auth/roles'
 export type { TenantRole, Role } from '@/lib/auth/roles'
 

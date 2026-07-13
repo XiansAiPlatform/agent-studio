@@ -1,6 +1,11 @@
 // Roles a tenant admin can assign within their own tenant (SysAdmin excluded).
 // Defined once in the single source of truth at `@/lib/auth/roles`.
-export { TENANT_ROLES, TENANT_ROLE_LABELS } from '@/lib/auth/roles'
+export {
+  TENANT_ROLES,
+  TENANT_ROLE_LABELS,
+  ROLE_METADATA,
+  roleSummary,
+} from '@/lib/auth/roles'
 export type { TenantRole } from '@/lib/auth/roles'
 
 import type { TenantRole } from '@/lib/auth/roles'

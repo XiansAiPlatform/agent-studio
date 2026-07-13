@@ -42,10 +42,14 @@ import {
   UserTenantMembership,
   UpdateGlobalUserRequest,
   TENANT_ROLES,
+  ALL_ROLES,
   TenantRole,
   Role,
   roleLabel,
+  ROLE_METADATA,
 } from '../types'
+import { RolesHelp } from '@/components/features/users/roles-help'
+import { RoleSelectItem } from '@/components/features/users/role-select-item'
 import { useUsers } from '../hooks/use-users'
 import type { Tenant, ListTenantsResponse } from '@/app/(dashboard)/system-admin/tenants/types'
 
@@ -329,7 +333,7 @@ export function UserDetailPanel({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex flex-col w-full sm:max-w-lg p-0 gap-0">
+      <SheetContent side="right" className="flex flex-col w-full sm:max-w-2xl p-0 gap-0">
 
         {/* ── Header ──────────────────────────────────────────── */}
         <div className="px-6 pt-6 pb-5 border-b">
@@ -426,7 +430,7 @@ export function UserDetailPanel({
                 <div className="space-y-0.5 min-w-0 mr-4">
                   <p className="text-sm font-medium">System Admin</p>
                   <p className="text-xs text-muted-foreground">
-                    Platform-wide administrative access across all tenants.
+                    {ROLE_METADATA.SysAdmin.description}
                   </p>
                 </div>
                 {isSysAdminToggling ? (
@@ -476,6 +480,7 @@ export function UserDetailPanel({
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <h3 className="text-sm font-medium">Tenant Roles</h3>
+                  <RolesHelp roles={ALL_ROLES} />
                 </div>
                 <div className="flex items-center gap-2">
                   {detail && detail.memberships.length > 0 && (
@@ -505,13 +510,13 @@ export function UserDetailPanel({
                 return (
                   <div className="mb-3 rounded-lg border bg-muted/30 p-3 space-y-3">
                     <p className="text-xs font-medium text-muted-foreground">Add to tenant</p>
-                    <div className="flex gap-2">
+                    <div className="space-y-2">
                       <Select
                         value={addTenantId}
                         onValueChange={setAddTenantId}
                         disabled={isAddingTenant}
                       >
-                        <SelectTrigger className="h-8 flex-1 text-xs">
+                        <SelectTrigger className="h-8 w-full text-xs">
                           <SelectValue placeholder="Select tenant…" />
                         </SelectTrigger>
                         <SelectContent>
@@ -533,14 +538,12 @@ export function UserDetailPanel({
                         onValueChange={(v) => setAddTenantRole(v as TenantRole)}
                         disabled={isAddingTenant}
                       >
-                        <SelectTrigger className="h-8 w-40 text-xs">
+                        <SelectTrigger className="h-8 w-full text-xs">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="w-[var(--radix-select-trigger-width)]">
                           {TENANT_ROLES.map((role) => (
-                            <SelectItem key={role} value={role} className="text-xs">
-                              {roleLabel(role)}
-                            </SelectItem>
+                            <RoleSelectItem key={role} role={role} />
                           ))}
                         </SelectContent>
                       </Select>
@@ -618,6 +621,8 @@ export function UserDetailPanel({
                             </div>
                           </div>
 
+                          <Separator />
+
                           {/* Role rows — each has a select (change) + remove button */}
                           <div className="space-y-1.5">
                             {assignedRoles.length === 0 ? (
@@ -643,11 +648,9 @@ export function UserDetailPanel({
                                           <SelectTrigger className="h-7 flex-1 text-xs">
                                             <SelectValue />
                                           </SelectTrigger>
-                                          <SelectContent>
+                                          <SelectContent className="w-[var(--radix-select-trigger-width)]">
                                             {TENANT_ROLES.map((r) => (
-                                              <SelectItem key={r} value={r} className="text-xs">
-                                                {roleLabel(r)}
-                                              </SelectItem>
+                                              <RoleSelectItem key={r} role={r} />
                                             ))}
                                           </SelectContent>
                                         </Select>
@@ -696,11 +699,9 @@ export function UserDetailPanel({
                                 <SelectTrigger className="h-7 flex-1 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="w-[var(--radix-select-trigger-width)]">
                                   {availableRoles.map((role) => (
-                                    <SelectItem key={role} value={role} className="text-xs">
-                                      {roleLabel(role)}
-                                    </SelectItem>
+                                    <RoleSelectItem key={role} role={role} />
                                   ))}
                                 </SelectContent>
                               </Select>
