@@ -23,6 +23,11 @@ import { Tenant, CreateTenantRequest, UpdateTenantRequest } from './types';
 import { AddTenantDialog } from './components/add-tenant-dialog';
 import { EditTenantDialog } from './components/edit-tenant-dialog';
 import { DeleteTenantDialog } from './components/delete-tenant-dialog';
+import {
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page';
 
 const PAGE_SIZE = 20;
 
@@ -153,20 +158,20 @@ function TenantsPageContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tenants</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage all tenants across the platform.
-          </p>
-        </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Tenant
-        </Button>
-      </div>
+    <DashboardPage>
+      <DashboardPageHeader
+        title="Tenants"
+        description="Manage all tenants across the platform."
+        icon={<Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
+        actions={
+          <Button onClick={() => setShowAddDialog(true)} className="gap-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" />
+            New Tenant
+          </Button>
+        }
+      />
 
+      <DashboardPageBody className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -296,6 +301,7 @@ function TenantsPageContent() {
           </Button>
         </div>
       )}
+      </DashboardPageBody>
 
       <AddTenantDialog
         open={showAddDialog}
@@ -324,7 +330,7 @@ function TenantsPageContent() {
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />
-    </div>
+    </DashboardPage>
   );
 }
 

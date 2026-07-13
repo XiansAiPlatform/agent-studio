@@ -29,6 +29,11 @@ import { useAgentTemplates } from './hooks/use-agent-templates';
 import { AgentTemplate } from './types';
 import { TemplateDetailPanel } from './components/template-detail-panel';
 import { DeleteTemplateDialog } from './components/delete-template-dialog';
+import {
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page';
 
 function formatDate(value: string | undefined | null): string {
   if (!value) return '—';
@@ -121,18 +126,14 @@ function AgentTemplatesPageContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <DashboardPage>
+      <DashboardPageHeader
+        title="Agent Templates"
+        description="Manage system-wide agent templates and review where they are deployed."
+        icon={<Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
+      />
 
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Agent Templates</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage system-wide agent templates and review where they are deployed.
-          </p>
-        </div>
-      </div>
-
+      <DashboardPageBody className="space-y-6">
       {/* ── Filters ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[12rem] max-w-sm">
@@ -296,6 +297,7 @@ function AgentTemplatesPageContent() {
           </div>
         </div>
       )}
+      </DashboardPageBody>
 
       {/* ── Dialogs / panels ────────────────────────────────────── */}
       <TemplateDetailPanel
@@ -316,7 +318,7 @@ function AgentTemplatesPageContent() {
         fetchDeployments={fetchDeployments}
         tenantNameById={tenantNameById}
       />
-    </div>
+    </DashboardPage>
   );
 }
 

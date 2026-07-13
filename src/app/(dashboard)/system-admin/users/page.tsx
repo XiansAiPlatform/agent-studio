@@ -43,6 +43,11 @@ import {
   TENANT_ROLES,
   roleLabel,
 } from './types'
+import {
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page';
 import { AddUserDialog } from './components/add-user-dialog';
 import { DeleteUserDialog } from './components/delete-user-dialog';
 import { UserDetailPanel } from './components/user-detail-panel';
@@ -207,22 +212,20 @@ function UsersPageContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <DashboardPage>
+      <DashboardPageHeader
+        title="Users"
+        description="Manage users, assign roles, and configure system admin access."
+        icon={<UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
+        actions={
+          <Button onClick={() => setShowAddDialog(true)} className="gap-2 w-full sm:w-auto">
+            <UserPlus className="h-4 w-4" />
+            New User
+          </Button>
+        }
+      />
 
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage users, assign roles, and configure system admin access.
-          </p>
-        </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          New User
-        </Button>
-      </div>
-
+      <DashboardPageBody className="space-y-6">
       {/* ── Filters ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full sm:w-64">
@@ -447,6 +450,7 @@ function UsersPageContent() {
           Showing all platform users. Select a specific tenant to add or remove users.
         </p>
       )}
+      </DashboardPageBody>
 
       {/* ── Dialogs / panels ────────────────────────────────────── */}
       <AddUserDialog
@@ -473,7 +477,7 @@ function UsersPageContent() {
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />
-    </div>
+    </DashboardPage>
   );
 }
 
