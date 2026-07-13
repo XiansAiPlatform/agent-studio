@@ -1,83 +1,76 @@
 'use client'
 
 import Link from 'next/link'
-import { Building2, Users, Bot, ArrowRight, Loader2, Shield } from 'lucide-react'
+import { Building2, Users, Bot } from 'lucide-react'
 import { usePlatformSummary } from '../hooks/use-platform-summary'
 import { cn } from '@/lib/utils'
 
-const CARD_STYLE =
-  'space-y-4 p-4 sm:p-5 rounded-xl bg-card border border-border shadow-md'
-
 /**
- * SysAdmin-only strip showing platform-wide tenant, user, and template counts.
+ * SysAdmin-only thin strip — platform-wide counts without a heavy card.
  * Mount only when the user has `system:admin`.
  */
 export function PlatformStrip() {
   const { summary, isLoading } = usePlatformSummary(true)
 
-  return (
-    <section className={cn(CARD_STYLE)}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="dashboard-icon-wrap p-1.5 rounded-lg bg-primary/10 shrink-0">
-            <Shield className="h-4 w-4 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-foreground truncate">Platform administration</h2>
-            <p className="text-xs text-muted-foreground truncate">
-              Cross-tenant counts for system administrators
-            </p>
-          </div>
-        </div>
-      </div>
+  const items = [
+    {
+      href: '/system-admin/tenants',
+      label: 'Tenants',
+      icon: Building2,
+      value: summary.tenantCount,
+    },
+    {
+      href: '/system-admin/users',
+      label: 'Users',
+      icon: Users,
+      value: summary.userCount,
+    },
+    {
+      href: '/system-admin/agent-templates',
+      label: 'Templates',
+      icon: Bot,
+      value: summary.agentTemplateCount,
+    },
+  ] as const
 
-      {isLoading ? (
-        <div className="flex items-center gap-2 py-4">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Loading platform counts...</span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-4 sm:gap-6">
-          <Link
-            href="/system-admin/tenants"
-            className="group block min-w-0 rounded-lg p-3 -m-1 hover:bg-accent/40 transition-colors"
-          >
-            <div className="flex items-center gap-2 mb-2 text-muted-foreground">
-              <Building2 className="h-4 w-4 shrink-0" />
-              <span className="text-xs font-medium uppercase tracking-wide">Tenants</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-light tabular-nums tracking-tight text-foreground group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors">
-              {summary.tenantCount}
-            </div>
-          </Link>
-          <Link
-            href="/system-admin/users"
-            className="group block min-w-0 rounded-lg p-3 -m-1 hover:bg-accent/40 transition-colors"
-          >
-            <div className="flex items-center gap-2 mb-2 text-muted-foreground">
-              <Users className="h-4 w-4 shrink-0" />
-              <span className="text-xs font-medium uppercase tracking-wide">Users</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-light tabular-nums tracking-tight text-foreground group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors">
-              {summary.userCount}
-            </div>
-          </Link>
-          <Link
-            href="/system-admin/agent-templates"
-            className="group block min-w-0 rounded-lg p-3 -m-1 hover:bg-accent/40 transition-colors"
-          >
-            <div className="flex items-center gap-2 mb-2 text-muted-foreground min-w-0">
-              <Bot className="h-4 w-4 shrink-0" />
-              <span className="text-xs font-medium uppercase tracking-wide truncate">
-                Agent templates
-              </span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-light tabular-nums tracking-tight text-foreground group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors">
-              {summary.agentTemplateCount}
-            </div>
-          </Link>
-        </div>
-      )}
+  return (
+    <section className="border-y border-border/70 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground shrink-0">
+          Platform
+        </p>
+
+        {isLoading ? (
+          <div className="flex flex-1 gap-6 sm:gap-8 animate-pulse">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-5 w-20 rounded bg-muted/50" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 sm:gap-x-8">
+            {items.map(({ href, label, icon: Icon, value }) => (
+              <Link
+                key={href}
+                href={href}
+                className="group inline-flex items-baseline gap-2 transition-colors"
+              >
+                <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0 translate-y-px" />
+                <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                  {label}
+                </span>
+                <span
+                  className={cn(
+                    'text-sm font-medium tabular-nums text-foreground',
+                    'group-hover:text-foreground/70 transition-colors'
+                  )}
+                >
+                  {value}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   )
 }
