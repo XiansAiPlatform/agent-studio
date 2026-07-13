@@ -119,7 +119,7 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
             {/* Main Content */}
             <div className="flex-1 min-w-0 space-y-1.5">
               {/* Message (markdown) — clipped with a fade when long & collapsed */}
-              <div className="relative">
+              <div className="relative min-w-0 max-w-full">
                 {messageText && (
                   <button
                     type="button"
@@ -155,7 +155,7 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
 
                 <div
                   className={cn(
-                    'relative',
+                    'relative min-w-0 max-w-full',
                     shouldClampMessage && 'max-h-24 overflow-hidden',
                     // Keep message clear of the hover copy control.
                     messageText && 'pr-14'
