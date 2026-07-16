@@ -11,10 +11,14 @@
 This document specifies the technology stack, architecture patterns, and technical decisions for Agent Studio. The platform uses **Next.js 14+** with the App Router, TypeScript, and modern best practices for building scalable, performant web applications.
 
 **Related Documents:**
+- **[architecture/SYSTEM_OVERVIEW.md](./architecture/SYSTEM_OVERVIEW.md)** - 🆕 Complete system architecture
+- **[architecture/MULTI_TENANCY.md](./architecture/MULTI_TENANCY.md)** - 🆕 Multi-tenant architecture
+- **[architecture/DATA_MODEL.md](./architecture/DATA_MODEL.md)** - 🆕 Data models and schemas
+- **[architecture/API_CONTRACT.md](./architecture/API_CONTRACT.md)** - 🆕 REST API specification
 - **[theme.md](./theme.md)** - Complete design system specifications
 - **[layout.md](./layout.md)** - Project structure and routing patterns
 - **[development.md](./development.md)** - Development workflow and deployment
-- **[auth.md](./auth.md)** - Authentication implementation
+- **[auth/auth.md](./auth/auth.md)** - Authentication implementation
 - **[requirements.md](./requirements.md)** - Functional requirements
 
 ## Core Technologies
@@ -608,6 +612,10 @@ eventSource.addEventListener('message', (event) => {
   // Handle streamed data
 });
 ```
+
+**For complete SSE implementation details, see:**
+- **[implementation-notes/SSE_REAL_TIME_MESSAGING.md](./implementation-notes/SSE_REAL_TIME_MESSAGING.md)** - Detailed SSE patterns
+- **[architecture/SYSTEM_OVERVIEW.md#real-time-communication](./architecture/SYSTEM_OVERVIEW.md#real-time-communication)** - Architectural context
 
 
 ---
