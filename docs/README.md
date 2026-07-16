@@ -97,9 +97,9 @@ Welcome to Agent Studio - a general-purpose AI agent platform. This documentatio
 
 | Domain | Description | Start Here |
 |--------|-------------|------------|
+| [architecture/](./architecture/README.md) | **System architecture, data models, security** | [System Overview](./architecture/SYSTEM_OVERVIEW.md) |
 | [auth/](./auth/README.md) | Authentication, SSO, tenants, security | [SSO Quick Reference](./auth/SSO_QUICK_REFERENCE.md) |
 | [deploy/](./deploy/README.md) | Docker, CI/CD, cloud deployment | [Quick Start](./deploy/QUICK_START.md) |
-| [configuration-wizard/](./configuration-wizard/README.md) | Agent workflow configuration wizard | [Unified Wizard Flow](./configuration-wizard/UNIFIED_WIZARD_FLOW.md) |
 | [implementation-notes/](./implementation-notes/README.md) | Fixes, features (toast, SSE, API) | [README](./implementation-notes/README.md) |
 | [pr-review-tests/](./pr-review-tests/README.md) | PR review rules | [README](./pr-review-tests/README.md) |
 
@@ -117,12 +117,18 @@ docs/
 │   ├── theme.md                 - Design system
 │   ├── layout.md                - Application structure
 │   ├── technology.md            - Tech stack & architecture
-│   ├── auth.md                  - Authentication (→ auth/auth.md)
 │   └── development.md           - Development & deployment
+│
+├── architecture/                - 🆕 System architecture (NEW - comprehensive)
+│   ├── README.md               - Architecture index
+│   ├── SYSTEM_OVERVIEW.md      - End-to-end architecture & BFF pattern
+│   ├── MULTI_TENANCY.md        - Multi-tenant isolation model
+│   ├── DATA_MODEL.md           - Entity relationships & data flow
+│   ├── API_CONTRACT.md         - REST API specification
+│   └── SECURITY_ARCHITECTURE.md - Security controls & threat model
 │
 ├── auth/                        - Authentication domain (SSO, tenant, security)
 ├── deploy/                      - Deployment & DevOps (Docker, CI/CD)
-├── configuration-wizard/        - Agent configuration wizard flows
 ├── implementation-notes/        - Fixes, features (toast, SSE, API fixes)
 └── pr-review-tests/             - PR review rules & tests
 ```
@@ -138,6 +144,11 @@ docs/
 | Question | Document |
 |----------|----------|
 | What features we're building | [requirements.md](./requirements.md) |
+| System architecture overview | [architecture/SYSTEM_OVERVIEW.md](./architecture/SYSTEM_OVERVIEW.md) 🆕 |
+| How multi-tenancy works | [architecture/MULTI_TENANCY.md](./architecture/MULTI_TENANCY.md) 🆕 |
+| Database schema and entities | [architecture/DATA_MODEL.md](./architecture/DATA_MODEL.md) 🆕 |
+| API endpoints and contracts | [architecture/API_CONTRACT.md](./architecture/API_CONTRACT.md) 🆕 |
+| Security model and controls | [architecture/SECURITY_ARCHITECTURE.md](./architecture/SECURITY_ARCHITECTURE.md) 🆕 |
 | What colors to use | [theme.md#color-system](./theme.md#color-system) |
 | What components are available | [theme.md#components](./theme.md#components) |
 | How the layout is structured | [layout.md](./layout.md) |
@@ -145,11 +156,11 @@ docs/
 | How to style something | [theme.md](./theme.md) |
 | Backend architecture | [technology.md#backend-architecture](./technology.md#backend-architecture) |
 | Real-time implementation | [technology.md#real-time-communication](./technology.md#real-time-communication) |
-| How to authenticate users | [auth.md](./auth.md) |
-| How to implement RBAC | [auth.md#role-based-access-control-rbac](./auth.md#role-based-access-control-rbac) |
+| How to authenticate users | [auth/auth.md](./auth/auth.md) |
+| BFF trust model | [auth/authorization-model.md](./auth/authorization-model.md) |
+| How to implement RBAC | [auth/auth.md#role-based-access-control-rbac](./auth/auth.md#role-based-access-control-rbac) |
 | How to test | [development.md#testing-strategy](./development.md#testing-strategy) |
 | How to deploy | [deploy/README.md](./deploy/README.md) |
-| Configuration wizard flow | [configuration-wizard/README.md](./configuration-wizard/README.md) |
 | Toast notifications | [implementation-notes/TOAST.md](./implementation-notes/TOAST.md) |
 | Real-time messaging (SSE) | [implementation-notes/SSE_REAL_TIME_MESSAGING.md](./implementation-notes/SSE_REAL_TIME_MESSAGING.md) |
 
@@ -159,13 +170,22 @@ docs/
 
 ### For Developers
 
+**Day 1: Product & Architecture**
 1. Read [requirements.md](./requirements.md) - Understand the product
-2. Read [theme.md](./theme.md) - Understand the design system
-3. Read [layout.md](./layout.md) - Understand the structure
-4. Read [technology.md](./technology.md) - Understand the tech stack
-5. Read [auth.md](./auth.md) - Understand authentication
-6. Read [development.md](./development.md) - Set up dev environment
-7. **Start coding!**
+2. Read [architecture/SYSTEM_OVERVIEW.md](./architecture/SYSTEM_OVERVIEW.md) 🆕 - Understand system architecture
+3. Read [architecture/MULTI_TENANCY.md](./architecture/MULTI_TENANCY.md) 🆕 - Understand tenant isolation
+4. Read [auth/authorization-model.md](./auth/authorization-model.md) - Understand BFF pattern
+
+**Day 2: Data & API**
+5. Read [architecture/DATA_MODEL.md](./architecture/DATA_MODEL.md) 🆕 - Understand entities
+6. Read [architecture/API_CONTRACT.md](./architecture/API_CONTRACT.md) 🆕 - Understand API patterns
+7. Read [theme.md](./theme.md) - Understand design system
+
+**Day 3: Security & Implementation**
+8. Read [architecture/SECURITY_ARCHITECTURE.md](./architecture/SECURITY_ARCHITECTURE.md) 🆕 - Security model
+9. Read [technology.md](./technology.md) - Tech stack details
+10. Read [development.md](./development.md) - Set up dev environment
+11. **Start coding!**
 
 *Contributing to docs?* Read [DOCUMENTATION_GUIDELINES.md](./DOCUMENTATION_GUIDELINES.md) first.
 
