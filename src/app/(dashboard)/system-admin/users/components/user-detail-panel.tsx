@@ -42,12 +42,37 @@ import {
   UserTenantMembership,
   UpdateGlobalUserRequest,
   TENANT_ROLES,
+  ALL_ROLES,
   TenantRole,
   Role,
   roleLabel,
+  ROLE_METADATA,
 } from '../types'
+import { RolesHelp } from '@/components/features/users/roles-help'
+import { RoleSelectItem } from '@/components/features/users/role-select-item'
 import { useUsers } from '../hooks/use-users'
-import type { Tenant } from '@/app/(dashboard)/system-admin/tenants/types'
+import type { Tenant, ListTenantsResponse } from '@/app/(dashboard)/system-admin/tenants/types'
+
+/**
+ * Fetch every tenant on the platform for the "add to tenant" dropdown below.
+ * The tenants endpoint paginates, so this walks every page (at the max page
+ * size) rather than assuming a single request returns the full list.
+ */
+async function fetchAllTenantsForDropdown(): Promise<Tenant[]> {
+  const collected: Tenant[] = []
+  let page = 1
+  const maxPageSize = 100
+  // Safety cap so an unexpected `hasNext: true` can't loop forever.
+  for (let i = 0; i < 1000; i++) {
+    const res = await fetch(`/api/system-admin/tenants?page=${page}&pageSize=${maxPageSize}`)
+    if (!res.ok) break
+    const data: ListTenantsResponse = await res.json()
+    collected.push(...(data.tenants ?? []))
+    if (!data.pagination?.hasNext) break
+    page += 1
+  }
+  return collected
+}
 
 const infoSchema = z.object({
   name: z
@@ -111,16 +136,12 @@ export function UserDetailPanel({
     setIsDetailLoading(true)
     setDetailError(null)
     try {
-      const [data, tenantsRes] = await Promise.all([
+      const [data] = await Promise.all([
         fetchUser(user.userId),
-        fetch('/api/system-admin/tenants'),
+        fetchAllTenantsForDropdown().then(setAllTenants),
       ])
       setDetail(data)
       reset({ name: data.name ?? '', email: data.email ?? '' })
-      if (tenantsRes.ok) {
-        const body = await tenantsRes.json()
-        setAllTenants(body.tenants ?? [])
-      }
     } catch (err) {
       setDetailError(err instanceof Error ? err.message : 'Failed to load user details')
     } finally {
@@ -312,7 +333,7 @@ export function UserDetailPanel({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex flex-col w-full sm:max-w-lg p-0 gap-0">
+      <SheetContent side="right" className="flex flex-col w-full sm:max-w-2xl p-0 gap-0">
 
         {/* ── Header ──────────────────────────────────────────── */}
         <div className="px-6 pt-6 pb-5 border-b">
@@ -409,7 +430,7 @@ export function UserDetailPanel({
                 <div className="space-y-0.5 min-w-0 mr-4">
                   <p className="text-sm font-medium">System Admin</p>
                   <p className="text-xs text-muted-foreground">
-                    Platform-wide administrative access across all tenants.
+                    {ROLE_METADATA.SysAdmin.description}
                   </p>
                 </div>
                 {isSysAdminToggling ? (
@@ -459,6 +480,7 @@ export function UserDetailPanel({
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <h3 className="text-sm font-medium">Tenant Roles</h3>
+                  <RolesHelp roles={ALL_ROLES} />
                 </div>
                 <div className="flex items-center gap-2">
                   {detail && detail.memberships.length > 0 && (
@@ -488,13 +510,13 @@ export function UserDetailPanel({
                 return (
                   <div className="mb-3 rounded-lg border bg-muted/30 p-3 space-y-3">
                     <p className="text-xs font-medium text-muted-foreground">Add to tenant</p>
-                    <div className="flex gap-2">
+                    <div className="space-y-2">
                       <Select
                         value={addTenantId}
                         onValueChange={setAddTenantId}
                         disabled={isAddingTenant}
                       >
-                        <SelectTrigger className="h-8 flex-1 text-xs">
+                        <SelectTrigger className="h-8 w-full text-xs">
                           <SelectValue placeholder="Select tenant…" />
                         </SelectTrigger>
                         <SelectContent>
@@ -516,14 +538,12 @@ export function UserDetailPanel({
                         onValueChange={(v) => setAddTenantRole(v as TenantRole)}
                         disabled={isAddingTenant}
                       >
-                        <SelectTrigger className="h-8 w-40 text-xs">
+                        <SelectTrigger className="h-8 w-full text-xs">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="w-[var(--radix-select-trigger-width)]">
                           {TENANT_ROLES.map((role) => (
-                            <SelectItem key={role} value={role} className="text-xs">
-                              {roleLabel(role)}
-                            </SelectItem>
+                            <RoleSelectItem key={role} role={role} />
                           ))}
                         </SelectContent>
                       </Select>
@@ -538,7 +558,7 @@ export function UserDetailPanel({
                         {isAddingTenant
                           ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                           : <Plus className="mr-1 h-3 w-3" />}
-                        Add
+                        Save
                       </Button>
                       <Button
                         variant="ghost"
@@ -601,6 +621,8 @@ export function UserDetailPanel({
                             </div>
                           </div>
 
+                          <Separator />
+
                           {/* Role rows — each has a select (change) + remove button */}
                           <div className="space-y-1.5">
                             {assignedRoles.length === 0 ? (
@@ -626,11 +648,9 @@ export function UserDetailPanel({
                                           <SelectTrigger className="h-7 flex-1 text-xs">
                                             <SelectValue />
                                           </SelectTrigger>
-                                          <SelectContent>
+                                          <SelectContent className="w-[var(--radix-select-trigger-width)]">
                                             {TENANT_ROLES.map((r) => (
-                                              <SelectItem key={r} value={r} className="text-xs">
-                                                {roleLabel(r)}
-                                              </SelectItem>
+                                              <RoleSelectItem key={r} role={r} />
                                             ))}
                                           </SelectContent>
                                         </Select>
@@ -679,11 +699,9 @@ export function UserDetailPanel({
                                 <SelectTrigger className="h-7 flex-1 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="w-[var(--radix-select-trigger-width)]">
                                   {availableRoles.map((role) => (
-                                    <SelectItem key={role} value={role} className="text-xs">
-                                      {roleLabel(role)}
-                                    </SelectItem>
+                                    <RoleSelectItem key={role} role={role} />
                                   ))}
                                 </SelectContent>
                               </Select>
@@ -694,7 +712,7 @@ export function UserDetailPanel({
                                   handleAddRole(m, (addRolePickers[m.tenantId] ?? availableRoles[0]) as Role)
                                 }
                               >
-                                Add
+                                Save
                               </Button>
                               <Button
                                 variant="ghost"

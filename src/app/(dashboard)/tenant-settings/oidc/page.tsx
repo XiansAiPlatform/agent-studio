@@ -34,6 +34,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import {
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page'
 import { useOidcConfig } from './hooks/use-oidc-config'
 import { OidcConfig } from './types'
 
@@ -147,25 +152,14 @@ export default function OidcPage() {
   const isDirty = draft !== (config ? formatJson(config) : '')
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
-      {/* Header */}
-      <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto p-4 sm:p-6">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 sm:gap-3">
-              <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-              OIDC Providers
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Configure which external OIDC providers are accepted when
-              authenticating User API requests for this tenant.
-            </p>
-          </div>
-        </div>
-      </div>
+    <DashboardPage width="narrow">
+      <DashboardPageHeader
+        title="OIDC Providers"
+        description="Configure which external OIDC providers are accepted when authenticating User API requests for this tenant."
+        icon={<ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
+      />
 
-      {/* Content */}
-      <div className="container mx-auto p-4 sm:p-6 space-y-6 max-w-3xl">
+      <DashboardPageBody className="space-y-6">
         {error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
             {error}
@@ -309,7 +303,7 @@ export default function OidcPage() {
             </AlertDialog>
           </CardFooter>
         </Card>
-      </div>
-    </div>
+      </DashboardPageBody>
+    </DashboardPage>
   )
 }

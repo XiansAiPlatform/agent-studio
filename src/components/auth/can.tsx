@@ -6,23 +6,6 @@ import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import type { Capability } from '@/lib/auth/capabilities'
 
-interface CanProps {
-  /** Capability required to render the children. */
-  permission: Capability
-  children: React.ReactNode
-  /** Rendered when the user lacks the capability. Defaults to nothing. */
-  fallback?: React.ReactNode
-}
-
-/**
- * Conditionally render UI based on a capability. UX-only; never a substitute
- * for server-side enforcement.
- */
-export function Can({ permission, children, fallback = null }: CanProps) {
-  const { can } = usePermissions()
-  return <>{can(permission) ? children : fallback}</>
-}
-
 interface RequireCapabilityProps {
   /** Capability required to stay on the page. */
   permission: Capability

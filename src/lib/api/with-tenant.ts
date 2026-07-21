@@ -39,17 +39,6 @@ export type ApiHandler = (
 export const CURRENT_TENANT_COOKIE = 'current-tenant-id'
 
 /**
- * Extract tenant ID from URL pathname
- * @param pathname - Request pathname
- * @returns Tenant ID or null if not found
- */
-function extractTenantIdFromPath(pathname: string): string | null {
-  // Match pattern: /api/tenants/{tenantId}/...
-  const match = pathname.match(/\/api\/tenants\/([^\/]+)/)
-  return match ? match[1] : null
-}
-
-/**
  * Extract tenant ID from request cookie (injected from session context).
  * Use this for routes that must NOT receive tenant ID from the frontend.
  */
@@ -67,8 +56,10 @@ export function getTenantIdFromCookie(request: NextRequest): string | null {
  * trusted by a future handler change.
  *
  * The body is inspected on a clone so the handler can still read it normally.
- * Body inspection is best-effort: non-JSON or unparseable bodies are ignored
- * (there is no `tenantId` field to leak in that case).
+ * Both JSON and form-encoded (urlencoded / multipart) bodies are inspected so a
+ * `tenantId` can't be smuggled by simply changing the Content-Type. Bodies we
+ * cannot parse (e.g. arbitrary text/binary) carry no addressable `tenantId`
+ * field for a handler to read, so they are ignored.
  *
  * @returns a 400 NextResponse if client-supplied identity is detected, else null
  */
@@ -88,15 +79,27 @@ export async function rejectClientTenantId(
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
-  // 3. JSON body — peek via a clone so the handler can still read the original.
+  // 3. Request body — peek via a clone so the handler can still read the
+  //    original. Cover both JSON and form-encoded bodies: keying only off
+  //    `application/json` would let a client resend `tenantId` as form data
+  //    under a different Content-Type and bypass this guard.
   const method = request.method.toUpperCase()
-  const contentType = request.headers.get('content-type') ?? ''
-  if (method !== 'GET' && method !== 'HEAD' && contentType.includes('application/json')) {
+  if (method !== 'GET' && method !== 'HEAD') {
+    const contentType = request.headers.get('content-type') ?? ''
     try {
-      const cloned = request.clone()
-      const body = await cloned.json()
-      if (body && typeof body === 'object' && 'tenantId' in body) {
-        return NextResponse.json({ error: message }, { status: 400 })
+      if (contentType.includes('application/json')) {
+        const body = await request.clone().json()
+        if (body && typeof body === 'object' && 'tenantId' in body) {
+          return NextResponse.json({ error: message }, { status: 400 })
+        }
+      } else if (
+        contentType.includes('application/x-www-form-urlencoded') ||
+        contentType.includes('multipart/form-data')
+      ) {
+        const form = await request.clone().formData()
+        if (form.has('tenantId')) {
+          return NextResponse.json({ error: message }, { status: 400 })
+        }
       }
     } catch {
       // Unparseable / empty body — nothing to reject.
@@ -104,77 +107,6 @@ export async function rejectClientTenantId(
   }
 
   return null
-}
-
-/**
- * Middleware wrapper for tenant-aware API routes
- * 
- * Validates:
- * - User has valid authentication session
- * - Tenant ID is present in URL
- * - User has access to the specified tenant
- * 
- * @param handler - API route handler function
- * @returns Wrapped route handler with tenant validation
- * 
- * @example
- * export const GET = withTenant(async (request, context) => {
- *   const { session, tenantContext, tenantId } = context
- *   // session.user.id, session.accessToken are fully typed
- *   // ...
- * })
- */
-export function withTenant(handler: ApiHandler) {
-  return async (request: NextRequest) => {
-    try {
-      // Get authenticated session
-      const session = await getServerSession(authOptions)
-      
-      // Validate session exists and has required properties
-      if (!session || !session.user?.id || !session.user?.email) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        )
-      }
-      
-      // Extract tenant ID from URL
-      const url = new URL(request.url)
-      const tenantId = extractTenantIdFromPath(url.pathname)
-      
-      if (!tenantId) {
-        return NextResponse.json(
-          { error: 'Tenant ID not found in URL path' },
-          { status: 400 }
-        )
-      }
-      
-      // Validate tenant access
-      const tenantProvider = useTenantProvider()
-      const tenantContext = await tenantProvider.getTenantContext(
-        session.user.id,
-        tenantId,
-        session.accessToken,
-        session.user.email
-      )
-      
-      if (!tenantContext) {
-        return NextResponse.json(
-          { error: 'Access denied to this tenant' },
-          { status: 403 }
-        )
-      }
-      
-      // Call handler with validated context
-      return handler(request, { session, tenantContext, tenantId })
-    } catch (error) {
-      console.error('[withTenant] Error:', error)
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      )
-    }
-  }
 }
 
 /**
@@ -241,8 +173,14 @@ export function withTenantFromSession(handler: ApiHandler) {
 }
 
 /**
- * Middleware wrapper for API routes that require TenantParticipantAdmin (or system admin).
- * Use for /settings/* related operations. Extends withTenantFromSession with role check.
+ * Middleware wrapper for API routes that require the `settings:view` capability
+ * (TenantUser / TenantParticipantAdmin / TenantAdmin, or system admin).
+ *
+ * Use for Agent Settings operations AND for tenant-wide workspace management that
+ * a plain TenantParticipant must never reach by manipulating the frontend/URL:
+ * agent activations (create/update/activate/deactivate), knowledge CRUD,
+ * schedules, webhooks, tenant stats, and task review actions. Extends
+ * withTenantFromSession with a capability check.
  *
  * SECURITY: The tenant is ALWAYS resolved from the server-side httpOnly
  * `current-tenant-id` cookie. Clients must never supply a tenantId in query
@@ -400,40 +338,3 @@ export function withSystemAdmin(
   }
 }
 
-/**
- * Middleware wrapper for permission-protected API routes
- * 
- * Extends withTenant with additional permission checking
- * 
- * @param requiredPermission - Permission string required to access the route
- * @param handler - API route handler function
- * @returns Wrapped route handler with tenant and permission validation
- * 
- * @example
- * export const DELETE = withTenantPermission(
- *   'admin',
- *   async (request, context) => {
- *     // Only users with 'admin' permission can access
- *     // ...
- *   }
- * )
- */
-export function withTenantPermission(
-  requiredPermission: string,
-  handler: ApiHandler
-) {
-  return withTenant(async (request, context) => {
-    // Check if user has required permission
-    if (!context.tenantContext.permissions.includes(requiredPermission)) {
-      return NextResponse.json(
-        { 
-          error: `Permission denied: ${requiredPermission} required`,
-          requiredPermission,
-          userPermissions: context.tenantContext.permissions
-        },
-        { status: 403 }
-      )
-    }
-    return handler(request, context)
-  })
-}

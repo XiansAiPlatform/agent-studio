@@ -43,6 +43,11 @@ import {
   TENANT_ROLES,
   roleLabel,
 } from './types'
+import {
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page';
 import { AddUserDialog } from './components/add-user-dialog';
 import { DeleteUserDialog } from './components/delete-user-dialog';
 import { UserDetailPanel } from './components/user-detail-panel';
@@ -64,7 +69,10 @@ function UsersPageContent() {
   const [deleteTarget, setDeleteTarget] = useState<TenantUser | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { tenants, fetchTenants } = useTenants();
+  // The tenant selector needs the full tenant list, not a single page — the
+  // Tenants management page uses `fetchTenants`/`tenants` for its own
+  // paginated view, this page uses the "fetch every page" variant instead.
+  const { allTenants: tenants, fetchAllTenants: fetchTenants } = useTenants();
   const {
     users,
     totalCount,
@@ -96,13 +104,24 @@ function UsersPageContent() {
     setPage(1);
   }, [selectedTenantId, search, roleFilter]);
 
+  // Reset the role filter when the tenant selection changes, since the set of
+  // valid role options differs between global and tenant-scoped modes.
+  useEffect(() => {
+    setRoleFilter('all');
+  }, [selectedTenantId]);
+
   const isAllTenants = selectedTenantId === ALL_TENANTS;
 
   const loadUsers = useMemo(
     () => () => {
       if (!isSystemAdmin) return;
       if (isAllTenants) {
-        fetchGlobalUsers({ page, pageSize: PAGE_SIZE, search: search || undefined });
+        fetchGlobalUsers({
+          page,
+          pageSize: PAGE_SIZE,
+          search: search || undefined,
+          role: roleFilter === 'all' ? undefined : roleFilter,
+        });
       } else {
         fetchTenantUsers({
           tenantId: selectedTenantId,
@@ -193,22 +212,20 @@ function UsersPageContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <DashboardPage>
+      <DashboardPageHeader
+        title="Users"
+        description="Manage users, assign roles, and configure system admin access."
+        icon={<UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
+        actions={
+          <Button onClick={() => setShowAddDialog(true)} className="gap-2 w-full sm:w-auto">
+            <UserPlus className="h-4 w-4" />
+            New User
+          </Button>
+        }
+      />
 
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage users, assign roles, and configure system admin access.
-          </p>
-        </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          New User
-        </Button>
-      </div>
-
+      <DashboardPageBody className="space-y-6">
       {/* ── Filters ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full sm:w-64">
@@ -235,22 +252,23 @@ function UsersPageContent() {
           />
         </div>
 
-        {/* Role filter only shown in tenant-scoped mode */}
-        {!isAllTenants && (
-          <div className="w-44">
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="All roles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All roles</SelectItem>
-                {TENANT_ROLES.map((role) => (
-                  <SelectItem key={role} value={role}>{roleLabel(role)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Role filter: in All Tenants mode a System Admin option is also available */}
+        <div className="w-44">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              {isAllTenants && (
+                <SelectItem value="SysAdmin">{roleLabel('SysAdmin')}</SelectItem>
+              )}
+              {TENANT_ROLES.map((role) => (
+                <SelectItem key={role} value={role}>{roleLabel(role)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <Button
           variant="outline"
@@ -432,6 +450,7 @@ function UsersPageContent() {
           Showing all platform users. Select a specific tenant to add or remove users.
         </p>
       )}
+      </DashboardPageBody>
 
       {/* ── Dialogs / panels ────────────────────────────────────── */}
       <AddUserDialog
@@ -458,7 +477,7 @@ function UsersPageContent() {
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />
-    </div>
+    </DashboardPage>
   );
 }
 

@@ -44,6 +44,66 @@ export const TENANT_ROLE_LABELS: Record<TenantRole, string> = {
   TenantParticipant: ROLE_LABELS.TenantParticipant,
 }
 
+export type RoleMetadata = {
+  scope: string
+  /** One-line summary for inline UI and native title attributes. */
+  summary: string
+  /** Fuller "what they can do" description for the role reference dialog. */
+  description: string
+  typicalUser: string
+}
+
+/**
+ * Product-facing details for each role. Used by role-assignment UIs so copy is
+ * not duplicated across Tenant Settings and System Admin.
+ */
+export const ROLE_METADATA: Record<Role, RoleMetadata> = {
+  TenantParticipant: {
+    scope: 'Per tenant',
+    summary:
+      'Engage with agents and complete HITL tasks. No configuration or admin access.',
+    description:
+      'Engage with agents — converse with them and complete Human-in-the-Loop (HITL) tasks assigned to them. No configuration access and no admin sidebar.',
+    typicalUser: 'Business users, end customers',
+  },
+  TenantParticipantAdmin: {
+    scope: 'Per tenant',
+    summary:
+      'Everything a Participant can do, plus full agent-level operations access.',
+    description:
+      'Everything a Participant can do, plus full access to agent-level operations: Agent Store, Knowledge Base, Data Explorer, Connections, Schedules, Performance, Activity Logs, and Secrets. Cannot manage tenant users.',
+    typicalUser: 'Agent operators, ops leads',
+  },
+  TenantUser: {
+    scope: 'Per tenant',
+    summary:
+      'Same agent-level access as Participant Admin, plus the Developer area (API keys).',
+    description:
+      'Same agent-level access as Participant Admin, plus access to the Developer area (API keys). Intended for developers building on the platform.',
+    typicalUser: 'Developers, integrators',
+  },
+  TenantAdmin: {
+    scope: 'Per tenant',
+    summary:
+      'Everything a Developer can do, plus user management and Tenant Admin settings.',
+    description:
+      'Everything a Developer can do, plus user management: invite/remove tenant users and configure Tenant Admin settings (Branding, OIDC Providers).',
+    typicalUser: 'Tenant owner, platform admin',
+  },
+  SysAdmin: {
+    scope: 'Platform-wide (global flag)',
+    summary:
+      'All capabilities across every tenant. Independent of tenant roles.',
+    description:
+      'All capabilities across every tenant: system-wide tenant and user management, and every agent-level and admin capability in any tenant. Independent of tenant roles — a SysAdmin is not automatically a participant in any tenant.',
+    typicalUser: 'Platform operators, infrastructure admins',
+  },
+}
+
 export function roleLabel(role: string): string {
   return (ROLE_LABELS as Record<string, string>)[role] ?? role
+}
+
+export function roleSummary(role: string): string {
+  return (ROLE_METADATA as Record<string, RoleMetadata>)[role]?.summary ?? ''
 }

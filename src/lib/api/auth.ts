@@ -55,6 +55,7 @@ export async function requireCapability(
 /**
  * Check if the current user is a system administrator (non-throwing).
  * Useful for conditional logic where you want to handle the result yourself.
+ * @public
  */
 export async function isSystemAdmin(session: Session | null): Promise<boolean> {
   if (!session) return false

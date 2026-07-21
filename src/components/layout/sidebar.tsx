@@ -180,6 +180,7 @@ const navigation: NavigationItem[] = [
     children: [
       { name: 'Tenants', href: '/system-admin/tenants' },
       { name: 'Users', href: '/system-admin/users' },
+      { name: 'Templates', href: '/system-admin/agent-templates' },
     ],
   },
 ];

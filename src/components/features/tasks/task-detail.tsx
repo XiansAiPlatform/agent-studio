@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { Task } from '@/lib/data/dummy-tasks';
+import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {

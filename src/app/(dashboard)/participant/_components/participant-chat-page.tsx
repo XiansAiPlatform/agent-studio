@@ -1,12 +1,16 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Bot, PanelLeft, Loader2, MessageSquare } from 'lucide-react'
+import { Bot, PanelLeft, Loader2, ListTodo } from 'lucide-react'
 import { useParticipantLayout } from '@/contexts/participant-layout-context'
 import { useTenant } from '@/hooks/use-tenant'
 import { useActivations } from '@/app/(dashboard)/conversations/hooks'
+import { useMyPendingTaskCount } from '@/app/(dashboard)/dashboard/hooks/use-my-pending-task-count'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 function getUserDisplayName(session: { user?: { name?: string | null; email?: string | null } } | null): string {
@@ -26,6 +30,7 @@ export function ParticipantChatPage() {
   const { onOpenMenu } = useParticipantLayout()
   const { currentTenantId } = useTenant()
   const { activations: allActivations, isLoading } = useActivations(currentTenantId)
+  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId))
   const activations = allActivations.filter((a) => a.status === 'active')
   const displayName = getUserDisplayName(session)
 
@@ -89,6 +94,22 @@ export function ParticipantChatPage() {
               Choose an agent below to start a conversation.
             </p>
           )}
+          <div className="mt-5 flex justify-center">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/tasks?status=pending">
+                <ListTodo className="mr-2 h-4 w-4" />
+                My pending tasks
+                {pendingTaskCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 h-5 min-w-5 px-1.5 text-xs tabular-nums"
+                  >
+                    {pendingTaskCount}
+                  </Badge>
+                )}
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (

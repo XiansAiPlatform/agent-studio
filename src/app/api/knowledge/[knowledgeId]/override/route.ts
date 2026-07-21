@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant';
+import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
 import { KnowledgeItem } from '@/lib/xians/knowledge';
 
@@ -13,7 +13,7 @@ function extractKnowledgeIdFromPath(pathname: string): string | null {
  * Create a knowledge override at tenant or activation level.
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
  */
-export const POST = withTenantFromSession(
+export const POST = withParticipantAdmin(
   async (request: NextRequest, { tenantId }: ApiContext) => {
     const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
     if (!knowledgeId) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Conversation, Message } from '@/lib/data/dummy-conversations';
+import { Conversation, Message } from '@/types/conversation';
 import { ActivationOption } from '../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
@@ -16,8 +16,8 @@ interface ConversationViewProps {
   conversation: Conversation;
   selectedTopicId: string;
   onTopicSelect: (topicId: string) => void;
-  onSendMessage: (content: string, topicId: string) => void;
-  onSendFile?: (file: import('@/components/features/conversations').FileUploadPayload, topicId: string) => void;
+  onSendMessage: (content: string, topicId: string, files?: import('@/components/features/conversations').FileUploadPayload[]) => void;
+  allowFileUpload?: boolean;
   isLoadingMessages: boolean;
   onLoadMoreMessages: () => void;
   isLoadingMoreMessages: boolean;
@@ -44,7 +44,7 @@ interface ConversationViewProps {
   onRetryHeartbeat?: () => void;
   onCreateTopic?: (topicName: string) => void;
   onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
-  chatInputRef?: React.RefObject<HTMLInputElement | null>;
+  chatInputRef?: React.RefObject<HTMLTextAreaElement | null>;
   /** Agent info from deployment - shown in empty state when no messages */
   agentInfo?: { summary: string | null; description: string | null; category: string | null; samplePrompts: string[] | null } | null;
   onMessageFeedbackSubmitted?: (
@@ -65,7 +65,7 @@ export function ConversationView({
   selectedTopicId,
   onTopicSelect,
   onSendMessage,
-  onSendFile,
+  allowFileUpload,
   isLoadingMessages,
   onLoadMoreMessages,
   isLoadingMoreMessages,
@@ -203,7 +203,7 @@ export function ConversationView({
               selectedTopic={selectedTopic}
               selectedTopicId={selectedTopicId}
               onSendMessage={onSendMessage}
-              onSendFile={onSendFile}
+              allowFileUpload={allowFileUpload}
               isLoadingMessages={isLoadingMessages}
               onLoadMoreMessages={onLoadMoreMessages}
               isLoadingMoreMessages={isLoadingMoreMessages}
@@ -221,7 +221,7 @@ export function ConversationView({
             selectedTopic={undefined}
             selectedTopicId={''}
             onSendMessage={onSendMessage}
-            onSendFile={onSendFile}
+            allowFileUpload={allowFileUpload}
             isLoadingMessages={isLoadingMessages}
             onLoadMoreMessages={onLoadMoreMessages}
             isLoadingMoreMessages={isLoadingMoreMessages}

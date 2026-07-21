@@ -17,7 +17,15 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { Loader2, UserCog } from 'lucide-react'
-import { TenantUser, UpdateUserRequest, TenantRole, TENANT_ROLES, TENANT_ROLE_LABELS } from '../types'
+import { RolesHelp } from '@/components/features/users/roles-help'
+import {
+  TenantUser,
+  UpdateUserRequest,
+  TenantRole,
+  TENANT_ROLES,
+  TENANT_ROLE_LABELS,
+  ROLE_METADATA,
+} from '../types'
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
@@ -107,7 +115,7 @@ export function EditUserDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex flex-col sm:max-w-md w-full">
+      <SheetContent side="right" className="flex flex-col sm:max-w-xl w-full">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center gap-3 pr-8">
@@ -151,20 +159,29 @@ export function EditUserDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Roles</Label>
+            <div className="flex items-center gap-1">
+              <Label>Roles</Label>
+              <RolesHelp />
+            </div>
             <div className="rounded-lg border divide-y">
               {TENANT_ROLES.map((role) => (
                 <label
                   key={role}
                   htmlFor={`edit-role-${role}`}
-                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                  className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
                 >
                   <Checkbox
                     id={`edit-role-${role}`}
                     checked={selectedRoles.includes(role)}
                     onCheckedChange={() => toggleRole(role)}
+                    className="mt-0.5"
                   />
-                  <span className="text-sm font-medium">{TENANT_ROLE_LABELS[role]}</span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium">{TENANT_ROLE_LABELS[role]}</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {ROLE_METADATA[role].summary}
+                    </p>
+                  </div>
                 </label>
               ))}
             </div>

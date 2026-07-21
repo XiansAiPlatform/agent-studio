@@ -29,6 +29,11 @@ import {
   ArrowDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page'
 import { useUsers } from './hooks/use-users'
 import { TenantUser, TenantRole, TENANT_ROLE_LABELS } from './types'
 import { AddUserDialog } from './components/add-user-dialog'
@@ -153,30 +158,20 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
-      {/* Header */}
-      <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto p-4 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 sm:gap-3">
-                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-                Users
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Manage participant users for this tenant
-              </p>
-            </div>
-            <Button onClick={() => setShowAddDialog(true)} className="gap-2 w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Add User
-            </Button>
-          </div>
-        </div>
-      </div>
+    <DashboardPage>
+      <DashboardPageHeader
+        title="Users"
+        description="Manage participant users for this tenant"
+        icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
+        actions={
+          <Button onClick={() => setShowAddDialog(true)} className="gap-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" />
+            Add User
+          </Button>
+        }
+      />
 
-      {/* Content */}
-      <div className="container mx-auto p-4 sm:p-6 space-y-4">
+      <DashboardPageBody>
         {/* Search + refresh */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
           <div className="relative flex-1 min-w-0 sm:max-w-sm">
@@ -453,7 +448,7 @@ export default function UsersPage() {
             </div>
           </div>
         )}
-      </div>
+      </DashboardPageBody>
 
       {/* Dialogs */}
       <AddUserDialog
@@ -477,6 +472,6 @@ export default function UsersPage() {
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />
-    </div>
+    </DashboardPage>
   )
 }

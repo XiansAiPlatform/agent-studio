@@ -30,7 +30,7 @@ export function AddFromStoreCard({
         </div>
         <div className="space-y-1">
           <h3 className={`font-medium text-foreground group-hover:text-primary transition-colors ${prominent ? 'text-base' : 'text-sm'}`}>
-            {prominent ? 'Browse Agent Templates' : 'Import from Store'}
+            {prominent ? 'Browse Agent Templates' : 'Import from Templates'}
           </h3>
           <p className={`text-muted-foreground ${prominent ? 'text-sm max-w-sm' : 'text-xs max-w-[200px]'}`}>
             {templatesLoaded 

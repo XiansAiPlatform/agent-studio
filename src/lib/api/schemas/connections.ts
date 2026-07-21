@@ -47,8 +47,6 @@ export const CreateConnectionSchema = z
   .object(baseConnectionFields)
   .strict()
 
-export type CreateConnectionInput = z.infer<typeof CreateConnectionSchema>
-
 export const InitiateConnectionSchema = z
   .object({
     ...baseConnectionFields,
@@ -56,13 +54,9 @@ export const InitiateConnectionSchema = z
   })
   .strict()
 
-export type InitiateConnectionInput = z.infer<typeof InitiateConnectionSchema>
-
 export const AuthorizeConnectionSchema = z
   .object({
     returnUrl: z.string().max(2048).optional(),
   })
   .strict()
   .partial()
-
-export type AuthorizeConnectionInput = z.infer<typeof AuthorizeConnectionSchema>

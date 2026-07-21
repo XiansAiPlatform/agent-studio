@@ -161,11 +161,11 @@ export function GenerateCertificateDialog({
               </div>
 
               <div className="flex gap-2">
-                <Button className="flex-1 gap-2" onClick={handleDownload}>
+                <Button variant="outline" className="flex-1 gap-2" onClick={handleDownload}>
                   <Download className="h-4 w-4" />
                   Download PFX
                 </Button>
-                <Button variant="outline" className="gap-2" onClick={handleCopy}>
+                <Button className="gap-2" onClick={handleCopy}>
                   {copied ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (

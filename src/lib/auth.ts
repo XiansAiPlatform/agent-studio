@@ -16,6 +16,7 @@ export async function getCurrentSession() {
 /**
  * Require authentication - redirects to login if not authenticated
  * Use this in Server Components that require authentication
+ * @public
  */
 export async function requireAuth() {
   const session = await getCurrentSession()
@@ -30,6 +31,7 @@ export async function requireAuth() {
 /**
  * Check if user is authenticated
  * Returns true if authenticated, false otherwise (no redirect)
+ * @public
  */
 export async function isAuthenticated() {
   const session = await getCurrentSession()

@@ -24,6 +24,7 @@ This avoids loading thousands of unrelated log entries up front and gives operat
   - Total log count for the stream
   - Relative time since last log
   - Workflow ID (monospace, truncated)
+  - **Error marker**: streams that contain any `Error`/`Critical` logs are flagged for attention with a red left border and an "N errors" badge, based on the stream's `errorCount` (independent of whether the *latest* log is an error).
 - Click any stream to drill into its logs.
 
 ### 2. Logs view (drilled-in)
@@ -163,7 +164,7 @@ Benefits:
 
 - Compact summary card per stream
 - Color-coded last log level
-- Highlights streams whose latest log is an Error (red border)
+- Highlights streams that contain any Error/Critical logs (red border + "N errors" badge), driven by the server-provided `errorCount`
 - Click to drill in to logs
 
 ### LogListItem

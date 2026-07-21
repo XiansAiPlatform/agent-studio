@@ -92,25 +92,26 @@ export function LogMessage({
     <div
       className={cn(
         'text-sm leading-relaxed text-foreground markdown-content',
-        // Wrap long unbroken tokens (URLs, hashes, JSON blobs without spaces)
-        // instead of overflowing the card horizontally.
-        'min-w-0 [overflow-wrap:anywhere] break-words',
+        // Constrain width in flex layouts and wrap long tokens (URLs, hashes,
+        // prompt lines, fenced/indented code) instead of overflowing the card.
+        'min-w-0 max-w-full [overflow-wrap:anywhere] break-words',
         '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
-        '[&_p]:my-1.5 [&_p]:leading-relaxed [&_p]:[overflow-wrap:anywhere]',
-        '[&_ul]:list-disc [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:space-y-1',
-        '[&_ol]:list-decimal [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:space-y-1',
-        '[&_li]:leading-relaxed [&_li]:[overflow-wrap:anywhere]',
+        '[&_p]:my-1.5 [&_p]:leading-relaxed [&_p]:max-w-full [&_p]:[overflow-wrap:anywhere] [&_p]:break-words',
+        '[&_ul]:list-disc [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:max-w-full',
+        '[&_ol]:list-decimal [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:space-y-1 [&_ol]:max-w-full',
+        '[&_li]:leading-relaxed [&_li]:[overflow-wrap:anywhere] [&_li]:break-words',
         '[&_strong]:font-semibold',
         '[&_em]:italic',
-        '[&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5',
-        '[&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1.5',
-        '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1',
-        '[&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/40 [&_blockquote]:pl-3 [&_blockquote]:my-2 [&_blockquote]:italic [&_blockquote]:text-muted-foreground',
+        '[&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1]:[overflow-wrap:anywhere]',
+        '[&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2]:[overflow-wrap:anywhere]',
+        '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:[overflow-wrap:anywhere]',
+        '[&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/40 [&_blockquote]:pl-3 [&_blockquote]:my-2 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:max-w-full [&_blockquote]:[overflow-wrap:anywhere]',
         '[&_hr]:my-3 [&_hr]:border-border',
-        '[&_a]:text-primary [&_a]:underline hover:[&_a]:opacity-80',
-        '[&_table]:my-2 [&_table]:w-full [&_table]:border-collapse',
-        '[&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold',
-        '[&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_td]:text-xs',
+        '[&_a]:text-primary [&_a]:underline hover:[&_a]:opacity-80 [&_a]:[overflow-wrap:anywhere]',
+        '[&_table]:my-2 [&_table]:w-full [&_table]:max-w-full [&_table]:table-fixed [&_table]:border-collapse',
+        '[&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_th]:[overflow-wrap:anywhere]',
+        '[&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_td]:text-xs [&_td]:[overflow-wrap:anywhere] [&_td]:break-words',
+        '[&_pre]:my-2 [&_pre]:max-w-full [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:[overflow-wrap:anywhere]',
         className
       )}
       title={title}
@@ -121,21 +122,40 @@ export function LogMessage({
           a: ({ node, ...props }) => (
             <a {...props} target="_blank" rel="noopener noreferrer" />
           ),
-          code: ({ node, ...props }) => {
-            const inline = !('inline' in props) || (props as any).inline !== false;
-            return inline ? (
+          code: ({ node, className: codeClassName, children, ...props }) => {
+            // Fenced / indented blocks pass a language-* className; inline code does not.
+            const isBlock =
+              typeof codeClassName === 'string' && codeClassName.length > 0;
+            if (isBlock) {
+              return (
+                <code
+                  {...props}
+                  className={cn(
+                    codeClassName,
+                    'block max-w-full px-3 py-2 rounded-md text-xs font-mono bg-muted text-foreground',
+                    // Prefer wrapping long prompt/log lines over horizontal scroll.
+                    'whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed'
+                  )}
+                >
+                  {children}
+                </code>
+              );
+            }
+            return (
               <code
                 {...props}
-                className="px-1 py-0.5 rounded text-[0.85em] font-mono bg-muted text-foreground [overflow-wrap:anywhere]"
-              />
-            ) : (
-              <code
-                {...props}
-                className="block px-3 py-2 rounded-md text-xs font-mono bg-muted text-foreground overflow-x-auto leading-relaxed"
-              />
+                className="px-1 py-0.5 rounded text-[0.85em] font-mono bg-muted text-foreground [overflow-wrap:anywhere] break-all"
+              >
+                {children}
+              </code>
             );
           },
-          pre: ({ node, ...props }) => <pre {...props} className="my-2" />,
+          pre: ({ node, ...props }) => (
+            <pre
+              {...props}
+              className="my-2 max-w-full overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+            />
+          ),
         }}
       >
         {message}

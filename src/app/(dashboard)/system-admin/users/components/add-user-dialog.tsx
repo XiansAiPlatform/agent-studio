@@ -24,10 +24,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Loader2, UserPlus, Plus, X, Building2 } from 'lucide-react'
+import { RolesHelp } from '@/components/features/users/roles-help'
+import { RoleSelectItem } from '@/components/features/users/role-select-item'
 import {
   TENANT_ROLES,
   TenantRole,
-  roleLabel,
+  ROLE_METADATA,
   NewUserFormData,
 } from '../types'
 import type { Tenant } from '@/app/(dashboard)/system-admin/tenants/types'
@@ -144,7 +146,7 @@ export function AddUserDialog({
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="right" className="flex flex-col sm:max-w-lg w-full">
+      <SheetContent side="right" className="flex flex-col sm:max-w-2xl w-full">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center gap-3 pr-8">
@@ -225,11 +227,11 @@ export function AddUserDialog({
               control={control}
               name="isSysAdmin"
               render={({ field }) => (
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium leading-none">System Admin</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Grant platform-wide administrator access
+                      {ROLE_METADATA.SysAdmin.summary}
                     </p>
                   </div>
                   <Switch
@@ -246,9 +248,12 @@ export function AddUserDialog({
           {/* ── Tenant memberships ── */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Tenant memberships
-              </p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Tenant memberships
+                </p>
+                <RolesHelp />
+              </div>
               <span className="text-xs text-muted-foreground">Required</span>
             </div>
 
@@ -256,7 +261,7 @@ export function AddUserDialog({
               <p className="text-xs text-destructive">{errors.memberships.message}</p>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {fields.map((field, index) => {
                 const rowErrors = errors.memberships?.[index]
                 // Tenants available for this row = all tenants minus those already
@@ -266,33 +271,45 @@ export function AddUserDialog({
                   (t) => t.tenantId === rowTenantId || !selectedTenantIds.has(t.tenantId)
                 )
                 return (
-                  <div key={field.id} className="flex gap-2 items-start">
-                    <div className="flex-1 space-y-1">
-                      <Controller
-                        control={control}
-                        name={`memberships.${index}.tenantId`}
-                        render={({ field: f }) => (
-                          <Select value={f.value} onValueChange={f.onChange}>
-                            <SelectTrigger className="h-9 text-sm">
-                              <Building2 className="h-3.5 w-3.5 mr-2 shrink-0 text-muted-foreground" />
-                              <SelectValue placeholder="Select a tenant…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {available.map((t) => (
-                                <SelectItem key={t.tenantId} value={t.tenantId}>
-                                  {t.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                  <div key={field.id} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-1">
+                        <Controller
+                          control={control}
+                          name={`memberships.${index}.tenantId`}
+                          render={({ field: f }) => (
+                            <Select value={f.value} onValueChange={f.onChange}>
+                              <SelectTrigger className="h-9 text-sm">
+                                <Building2 className="h-3.5 w-3.5 mr-2 shrink-0 text-muted-foreground" />
+                                <SelectValue placeholder="Select a tenant…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {available.map((t) => (
+                                  <SelectItem key={t.tenantId} value={t.tenantId}>
+                                    {t.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        {rowErrors?.tenantId && (
+                          <p className="text-xs text-destructive">{rowErrors.tenantId.message}</p>
                         )}
-                      />
-                      {rowErrors?.tenantId && (
-                        <p className="text-xs text-destructive">{rowErrors.tenantId.message}</p>
-                      )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        disabled={fields.length === 1}
+                        className="mt-1.5 shrink-0 rounded p-1 text-muted-foreground hover:text-destructive disabled:pointer-events-none disabled:opacity-30 focus:outline-none"
+                        aria-label="Remove tenant"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
 
-                    <div className="w-40 space-y-1">
+                    <div className="space-y-1">
                       <Controller
                         control={control}
                         name={`memberships.${index}.role`}
@@ -301,11 +318,9 @@ export function AddUserDialog({
                             <SelectTrigger className="h-9 text-sm">
                               <SelectValue placeholder="Role" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="w-[var(--radix-select-trigger-width)]">
                               {TENANT_ROLES.map((r) => (
-                                <SelectItem key={r} value={r}>
-                                  {roleLabel(r)}
-                                </SelectItem>
+                                <RoleSelectItem key={r} role={r} />
                               ))}
                             </SelectContent>
                           </Select>
@@ -315,16 +330,6 @@ export function AddUserDialog({
                         <p className="text-xs text-destructive">{rowErrors.role.message}</p>
                       )}
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      disabled={fields.length === 1}
-                      className="mt-2 shrink-0 rounded p-1 text-muted-foreground hover:text-destructive disabled:pointer-events-none disabled:opacity-30 focus:outline-none"
-                      aria-label="Remove tenant"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
                   </div>
                 )
               })}

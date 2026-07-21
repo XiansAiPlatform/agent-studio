@@ -17,6 +17,11 @@ import {
 import { cn } from '@/lib/utils'
 import { COLOR_THEMES, type ColorThemeId } from '@/lib/themes'
 import { useTenantStore } from '@/store/tenant-store'
+import {
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page'
 import { useBranding } from './hooks/use-branding'
 import { tenantLogoProxyUrl } from '@/lib/tenant/logo'
 
@@ -209,24 +214,14 @@ export default function BrandingPage() {
     logoSource === 'upload' ? pendingUpload !== null : logoUrl.trim() !== ''
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
-      {/* Header */}
-      <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto p-4 sm:p-6">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 sm:gap-3">
-              <Palette className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-              Branding
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Customize the theme and logo for this tenant
-            </p>
-          </div>
-        </div>
-      </div>
+    <DashboardPage width="narrow">
+      <DashboardPageHeader
+        title="Branding"
+        description="Customize the theme and logo for this tenant"
+        icon={<Palette className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
+      />
 
-      {/* Content */}
-      <div className="container mx-auto p-4 sm:p-6 space-y-6 max-w-3xl">
+      <DashboardPageBody className="space-y-6">
         {error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
             {error}
@@ -418,7 +413,7 @@ export default function BrandingPage() {
             </Button>
           </CardFooter>
         </Card>
-      </div>
-    </div>
+      </DashboardPageBody>
+    </DashboardPage>
   )
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Message } from '@/lib/data/dummy-conversations';
+import { Message } from '@/types/conversation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

@@ -58,6 +58,7 @@ export function useUsers() {
       if (params.search) query.set('search', params.search)
       if (params.isSysAdmin !== undefined) query.set('isSysAdmin', String(params.isSysAdmin))
       if (params.isEnabled !== undefined) query.set('isEnabled', String(params.isEnabled))
+      if (params.role) query.set('role', params.role)
 
       const res = await fetch(`${BASE_URL}?${query.toString()}`)
       if (!res.ok) await parseError(res, 'Failed to load users')
