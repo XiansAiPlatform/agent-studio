@@ -39,19 +39,33 @@ const membershipSchema = z.object({
   role: z.enum(TENANT_ROLES),
 })
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Max 100 characters'),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  isSysAdmin: z.boolean(),
-  isEnabled: z.boolean(),
-  memberships: z
-    .array(membershipSchema)
-    .min(1, 'Add at least one tenant membership')
-    .refine(
-      (items) => new Set(items.map((m) => m.tenantId)).size === items.length,
-      { message: 'Each tenant can only appear once' }
-    ),
-})
+const schema = z
+  .object({
+    name: z.string().min(1, 'Name is required').max(100, 'Max 100 characters'),
+    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+    isSysAdmin: z.boolean(),
+    isEnabled: z.boolean(),
+    memberships: z
+      .array(membershipSchema)
+      .refine(
+        (items) => new Set(items.map((m) => m.tenantId)).size === items.length,
+        { message: 'Each tenant can only appear once' }
+      ),
+  })
+  // System Admin access itself doesn't need a tenant role, but the backend
+  // can only create a user by placing them in at least one tenant — so a
+  // tenant is still needed even for a pure System Admin account.
+  .superRefine((values, ctx) => {
+    if (values.memberships.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['memberships'],
+        message: values.isSysAdmin
+          ? 'System Admin access doesn\'t require a tenant role, but the account still needs to belong to at least one tenant'
+          : 'Add at least one tenant membership',
+      })
+    }
+  })
 
 type FormValues = z.infer<typeof schema>
 
@@ -118,6 +132,7 @@ export function AddUserDialog({
   }, [open])
 
   const watchedMemberships = watch('memberships')
+  const watchedIsSysAdmin = watch('isSysAdmin')
   const selectedTenantIds = new Set(watchedMemberships.map((m) => m.tenantId).filter(Boolean))
 
   const handleClose = (next: boolean) => {
@@ -254,11 +269,20 @@ export function AddUserDialog({
                 </p>
                 <RolesHelp />
               </div>
-              <span className="text-xs text-muted-foreground">Required</span>
+              <span className="text-xs text-muted-foreground">
+                {watchedIsSysAdmin ? 'Optional for System Admin access' : 'Required'}
+              </span>
             </div>
 
             {typeof errors.memberships?.message === 'string' && (
               <p className="text-xs text-destructive">{errors.memberships.message}</p>
+            )}
+
+            {fields.length === 0 && (
+              <p className="text-xs text-muted-foreground rounded-lg border border-dashed p-3">
+                No tenant added. System Admin access doesn&apos;t need a tenant role, but a
+                tenant is still required to create the account.
+              </p>
             )}
 
             <div className="space-y-3">
@@ -301,7 +325,7 @@ export function AddUserDialog({
                       <button
                         type="button"
                         onClick={() => remove(index)}
-                        disabled={fields.length === 1}
+                        disabled={fields.length === 1 && !watchedIsSysAdmin}
                         className="mt-1.5 shrink-0 rounded p-1 text-muted-foreground hover:text-destructive disabled:pointer-events-none disabled:opacity-30 focus:outline-none"
                         aria-label="Remove tenant"
                       >
@@ -347,7 +371,7 @@ export function AddUserDialog({
                 className="gap-1.5 text-xs h-8"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add another tenant
+                {fields.length === 0 ? 'Add tenant' : 'Add another tenant'}
               </Button>
             )}
           </div>

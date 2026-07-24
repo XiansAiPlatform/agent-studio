@@ -25,11 +25,16 @@ This directory contains comprehensive documentation for the authentication syste
    - Azure Portal setup
    - Multi-tenant configuration options
 
-4. **[Multi-Provider Setup](./MULTI_PROVIDER_SSO_SETUP.md)**
+4. **[Azure AD B2C Custom-Domain Setup](./AZURE_B2C_SETUP.md)**
+   - Branded B2C login (e.g. Parkly `login-dev.parkly.no`)
+   - Custom-domain authority + user-flow / policy
+   - Web redirect URI and env vars (`AZURE_AD_B2C_*`)
+
+5. **[Multi-Provider Setup](./MULTI_PROVIDER_SSO_SETUP.md)**
    - Configure both Google and Microsoft
    - User identity management across providers
 
-5. **[Local Mode Auth Setup](./LOCAL_AUTH_SETUP.md)**
+6. **[Local Mode Auth Setup](./LOCAL_AUTH_SETUP.md)**
    - Simple email/password login for quick local deployments
    - Env-gated, multi-user, dev-only
 
@@ -95,6 +100,7 @@ This directory contains comprehensive documentation for the authentication syste
 |----------|--------|-------------|----------|
 | Google | ✅ Active | [Google SSO Setup](./GOOGLE_SSO_SETUP.md) | Google Workspace, Gmail users |
 | Microsoft | ✅ Active | [Microsoft SSO Setup](./MICROSOFT_SSO_SETUP.md) | Office 365, Microsoft Entra ID, Microsoft accounts |
+| Azure AD B2C | ✅ Active | [Azure AD B2C Setup](./AZURE_B2C_SETUP.md) | Custom-domain B2C (e.g. Parkly branded login) |
 
 ## 📋 Required Environment Variables
 
@@ -115,6 +121,14 @@ GOOGLE_CLIENT_SECRET=<your-client-secret>
 AZURE_AD_CLIENT_ID=<your-client-id>
 AZURE_AD_CLIENT_SECRET=<your-client-secret>
 AZURE_AD_TENANT_ID=common  # or 'organizations', or specific tenant ID
+```
+
+### Azure AD B2C Custom Domain (Optional)
+```env
+AZURE_AD_B2C_CLIENT_ID=<your-b2c-client-id>
+AZURE_AD_B2C_CLIENT_SECRET=<your-b2c-client-secret>
+AZURE_AD_B2C_AUTHORITY=https://login-dev.example.com/login-dev.example.com/B2C_1A_SIGNUP_SIGNIN
+AZURE_AD_B2C_DISPLAY_NAME=Parkly  # optional button label
 ```
 
 ## 🏗️ Architecture Overview

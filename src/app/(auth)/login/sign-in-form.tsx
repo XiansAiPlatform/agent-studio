@@ -258,6 +258,39 @@ export function SignInForm() {
           </Button>
         )}
 
+        {/* Azure AD B2C Provider (custom-domain / branded login, e.g. HappyInc) */}
+        {providers?.['azure-ad-b2c'] && (
+          <Button
+            className="w-full"
+            size="lg"
+            variant="outline"
+            onClick={() => handleSignIn('azure-ad-b2c')}
+            disabled={isLoading !== null || !isOnline}
+          >
+            {isLoading === 'azure-ad-b2c' ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <svg
+                className="mr-2 h-5 w-5"
+                viewBox="0 0 23 23"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M11.5 0L0 2.042v8.625c0 7.058 4.812 13.646 11.5 15.333 6.688-1.687 11.5-8.275 11.5-15.333V2.042L11.5 0z"
+                  fill="#00A4EF"
+                />
+                <path
+                  d="M11.5 1.5L1.5 3.375v7.292c0 6.208 4.229 12.02 10 13.833 5.771-1.812 10-7.625 10-13.833V3.375L11.5 1.5z"
+                  fill="#50E6FF"
+                />
+              </svg>
+            )}
+            {isLoading === 'azure-ad-b2c'
+              ? 'Signing in...'
+              : `Sign in with ${providers['azure-ad-b2c'].name}`}
+          </Button>
+        )}
+
         {/* Keycloak Provider */}
         {providers?.keycloak && (
           <Button 

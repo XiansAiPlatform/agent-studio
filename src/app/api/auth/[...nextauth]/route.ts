@@ -1,12 +1,154 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
+import type { JWT } from "next-auth/jwt"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
 import KeycloakProvider from "next-auth/providers/keycloak"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { VismaConnectProvider } from "@/lib/auth-providers/visma-connect"
+import { AzureADB2CProvider } from "@/lib/auth-providers/azure-ad-b2c"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
 import { describeXiansError, isServiceApiKeyError } from "@/lib/xians/errors"
+
+/** Default OpenID scopes when no resource scope is configured. */
+const DEFAULT_AZURE_SCOPES = "openid profile email offline_access"
+
+/** Refresh the access token this many seconds before it actually expires. */
+const ACCESS_TOKEN_REFRESH_BUFFER_SECONDS = 60
+
+/**
+ * Normalize OAuth scopes from env. Accepts space- or comma-separated lists
+ * (Parkly / React apps often use commas: "openid, profile, offline_access, …").
+ */
+function normalizeOAuthScopes(
+  raw: string | undefined,
+  fallback: string = DEFAULT_AZURE_SCOPES
+): string {
+  if (!raw?.trim()) return fallback
+  return raw
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" ")
+}
+
+/** Entra ID (azure-ad) scopes from AZURE_AD_SCOPES. */
+function getAzureAdScopes(): string {
+  return normalizeOAuthScopes(process.env.AZURE_AD_SCOPES)
+}
+
+/**
+ * B2C scopes. Prefer AZURE_AD_B2B_SCOPES (Parkly naming for the API resource
+ * scope), then AZURE_AD_B2C_SCOPES.
+ */
+function getAzureAdB2CScopes(): string {
+  return normalizeOAuthScopes(
+    process.env.AZURE_AD_B2B_SCOPES || process.env.AZURE_AD_B2C_SCOPES
+  )
+}
+
+type MicrosoftTokenEndpoint = {
+  tokenUrl: string
+  clientId: string
+  clientSecret?: string
+  scopes: string
+}
+
+function resolveMicrosoftTokenEndpoint(
+  provider: string | undefined
+): MicrosoftTokenEndpoint | null {
+  if (provider === "azure-ad") {
+    const clientId = process.env.AZURE_AD_CLIENT_ID
+    const clientSecret = process.env.AZURE_AD_CLIENT_SECRET
+    if (!clientId || !clientSecret) return null
+    const tenantId = process.env.AZURE_AD_TENANT_ID || "common"
+    return {
+      tokenUrl: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+      clientId,
+      clientSecret,
+      scopes: getAzureAdScopes(),
+    }
+  }
+
+  if (provider === "azure-ad-b2c") {
+    const clientId = process.env.AZURE_AD_B2C_CLIENT_ID
+    const authority = process.env.AZURE_AD_B2C_AUTHORITY?.replace(/\/$/, "")
+    if (!clientId || !authority) return null
+    const clientSecret = process.env.AZURE_AD_B2C_CLIENT_SECRET
+    return {
+      tokenUrl: `${authority}/oauth2/v2.0/token`,
+      clientId,
+      // B2C may be configured as a public client (no secret)
+      clientSecret:
+        typeof clientSecret === "string" && clientSecret.length > 0
+          ? clientSecret
+          : undefined,
+      scopes: getAzureAdB2CScopes(),
+    }
+  }
+
+  return null
+}
+
+/**
+ * Exchange a Microsoft (Entra ID or B2C) refresh_token for a fresh
+ * access_token audienced for the configured resource scope. Used so messaging
+ * can forward a valid user token to the backend.
+ */
+async function refreshMicrosoftAccessToken(token: JWT): Promise<JWT> {
+  const endpoint = resolveMicrosoftTokenEndpoint(token.provider)
+
+  if (!endpoint || !token.refreshToken) {
+    console.error(
+      "[Auth] Cannot refresh Microsoft access token: missing endpoint config or refresh token",
+      { provider: token.provider }
+    )
+    return { ...token, error: "RefreshAccessTokenError" }
+  }
+
+  try {
+    const body = new URLSearchParams({
+      client_id: endpoint.clientId,
+      grant_type: "refresh_token",
+      refresh_token: token.refreshToken,
+      scope: endpoint.scopes,
+    })
+    if (endpoint.clientSecret) {
+      body.set("client_secret", endpoint.clientSecret)
+    }
+
+    const response = await fetch(endpoint.tokenUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    })
+
+    const refreshed = await response.json()
+
+    if (!response.ok) {
+      console.error(
+        "[Auth] Microsoft access token refresh failed:",
+        refreshed?.error_description || refreshed?.error || response.statusText
+      )
+      return { ...token, error: "RefreshAccessTokenError" }
+    }
+
+    return {
+      ...token,
+      accessToken: refreshed.access_token as string,
+      // Azure may rotate the refresh token; fall back to the existing one.
+      refreshToken:
+        (refreshed.refresh_token as string | undefined) ?? token.refreshToken,
+      expiresAt:
+        Math.floor(Date.now() / 1000) +
+        (typeof refreshed.expires_in === "number" ? refreshed.expires_in : 3600),
+      error: undefined,
+    }
+  } catch (error) {
+    console.error("[Auth] Microsoft access token refresh threw:", error)
+    return { ...token, error: "RefreshAccessTokenError" }
+  }
+}
 
 /**
  * Note: Tenant validation is now handled client-side by TenantValidator component
@@ -35,7 +177,17 @@ function getEmailFromProfile(profile: any): string | null {
     return null
   }
 
+  // Azure AD B2C custom policies may emit email as a string, emails[], or
+  // nested under signInNames.emailAddress.
+  const emailsClaim = Array.isArray(profile.emails) ? profile.emails[0] : undefined
+  const signInEmail =
+    profile.signInNames && typeof profile.signInNames === "object"
+      ? profile.signInNames.emailAddress
+      : undefined
+
   const email = profile.email
+    ?? emailsClaim
+    ?? signInEmail
     ?? profile.preferred_username
     ?? profile.upn
     ?? profile.unique_name
@@ -65,7 +217,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   console.log('[Auth] Google SSO disabled - GOOGLE_CLIENT_ID and/or GOOGLE_CLIENT_SECRET not configured')
 }
 
-// Add Azure AD provider if credentials are available
+// Add Azure AD (Entra ID) provider if credentials are available
 if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
   providers.push(
     AzureADProvider({
@@ -74,7 +226,10 @@ if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
       tenantId: process.env.AZURE_AD_TENANT_ID,
       authorization: {
         params: {
-          scope: "openid profile email User.Read"
+          // Include offline_access for refresh tokens, plus a resource scope
+          // (via AZURE_AD_SCOPES) so the access_token is audienced for the
+          // backend API rather than Microsoft Graph.
+          scope: getAzureAdScopes(),
         }
       },
       profile(profile) {
@@ -94,6 +249,26 @@ if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
   )
 } else {
   console.log('[Auth] Microsoft SSO disabled - AZURE_AD_CLIENT_ID and/or AZURE_AD_CLIENT_SECRET not configured')
+}
+
+// Add Azure AD B2C provider (custom-domain authority + policy) if configured
+if (process.env.AZURE_AD_B2C_CLIENT_ID && process.env.AZURE_AD_B2C_AUTHORITY) {
+  providers.push(
+    AzureADB2CProvider({
+      clientId: process.env.AZURE_AD_B2C_CLIENT_ID,
+      clientSecret: process.env.AZURE_AD_B2C_CLIENT_SECRET,
+      authority: process.env.AZURE_AD_B2C_AUTHORITY,
+      // AZURE_AD_B2B_SCOPES (Parkly) takes precedence over AZURE_AD_B2C_SCOPES.
+      // Comma- or space-separated lists are accepted.
+      scopes: getAzureAdB2CScopes(),
+      displayName: process.env.AZURE_AD_B2C_DISPLAY_NAME,
+      httpOptions: {
+        timeout: 10000,
+      },
+    })
+  )
+} else {
+  console.log('[Auth] Azure AD B2C SSO disabled - AZURE_AD_B2C_CLIENT_ID and/or AZURE_AD_B2C_AUTHORITY not configured')
 }
 
 // Add Keycloak provider if credentials are available
@@ -223,6 +398,10 @@ export const authOptions: NextAuthOptions = {
         token.accessToken = account.access_token
         token.idToken = account.id_token
         token.provider = account.provider
+        token.refreshToken = account.refresh_token
+        token.expiresAt = account.expires_at
+        // Clear any previous refresh error on a fresh sign-in
+        delete token.error
       }
 
       // Add custom claims (only present on initial sign-in)
@@ -234,6 +413,17 @@ export const authOptions: NextAuthOptions = {
         token.hasTenantAccess = user.hasTenantAccess
         token.isSystemAdmin = user.isSystemAdmin
         token.tenantAccessCheckedAt = Date.now()
+      }
+
+      // Refresh the Microsoft (Entra ID or B2C) access token before it expires
+      // so messaging can forward a valid user token to the backend.
+      if (
+        (token.provider === "azure-ad" || token.provider === "azure-ad-b2c") &&
+        token.refreshToken &&
+        typeof token.expiresAt === "number" &&
+        Date.now() / 1000 >= token.expiresAt - ACCESS_TOKEN_REFRESH_BUFFER_SECONDS
+      ) {
+        token = await refreshMicrosoftAccessToken(token)
       }
 
       // Periodically re-validate tenant membership so that admin role / tenant
@@ -279,6 +469,8 @@ export const authOptions: NextAuthOptions = {
         session.user.hasTenantAccess = token.hasTenantAccess as boolean
         session.user.isSystemAdmin = token.isSystemAdmin as boolean
       }
+      // Surface refresh failures so the client can prompt re-auth
+      session.error = token.error
       
       return session
     },

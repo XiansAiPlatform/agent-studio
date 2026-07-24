@@ -24,8 +24,10 @@ declare module "next-auth" {
       /** Whether user is a system administrator */
       isSystemAdmin?: boolean
     } & DefaultSession["user"]
-    /** OAuth access token for API calls */
+    /** OAuth provider access token (e.g. Microsoft) for API calls */
     accessToken?: string
+    /** Set when the provider access token could not be refreshed */
+    error?: string
   }
 
   /**
@@ -46,12 +48,18 @@ declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     /** User's unique identifier */
     id: string
-    /** OAuth access token */
+    /** OAuth provider access token */
     accessToken?: string
     /** OAuth ID token */
     idToken?: string
+    /** OAuth refresh token (used to renew accessToken) */
+    refreshToken?: string
+    /** Epoch seconds when accessToken expires */
+    expiresAt?: number
     /** OAuth provider name */
     provider?: string
+    /** Set when access token refresh fails */
+    error?: string
     /** Whether user has tenant access */
     hasTenantAccess?: boolean
     /** Whether user is a system administrator */

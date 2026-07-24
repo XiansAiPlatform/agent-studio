@@ -6,6 +6,7 @@ Agent Studio supports the following authentication providers:
 
 1. **Google** (Google Workspace & Gmail)
 2. **Microsoft** (Office 365, Microsoft Entra ID, & Microsoft accounts)
+3. **Azure AD B2C** (custom-domain branded login, e.g. Parkly)
 
 ## Quick Setup
 
@@ -20,10 +21,20 @@ NEXTAUTH_SECRET=<generate with: openssl rand -base64 32>
 GOOGLE_CLIENT_ID=<from Google Cloud Console>
 GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
 
-# Microsoft OAuth (Optional - only if using Microsoft)
+# Microsoft OAuth (Optional - only if using Microsoft Entra ID)
 AZURE_AD_CLIENT_ID=<from Azure Portal>
 AZURE_AD_CLIENT_SECRET=<from Azure Portal>
 AZURE_AD_TENANT_ID=common  # See Microsoft Entra ID setup guide
+# Include offline_access + your backend resource scope (see MICROSOFT_SSO_SETUP.md)
+# AZURE_AD_SCOPES=openid profile email offline_access api://your-app-id/access_as_user
+
+# Azure AD B2C (Optional - custom-domain branded login)
+AZURE_AD_B2C_CLIENT_ID=<from B2C app registration>
+AZURE_AD_B2C_CLIENT_SECRET=<from B2C app registration>
+AZURE_AD_B2C_AUTHORITY=https://login-dev.example.com/login-dev.example.com/B2C_1A_SIGNUP_SIGNIN
+AZURE_AD_B2C_DISPLAY_NAME=Parkly
+# Resource scopes for the user access token (Parkly B2B). Comma- or space-separated.
+# AZURE_AD_B2B_SCOPES=openid, profile, offline_access, https://your-b2c-tenant.onmicrosoft.com/your-api/read
 ```
 
 ### Callback URLs
@@ -34,6 +45,7 @@ Configure these redirect URIs in your OAuth provider consoles:
 |----------|---------------------------|---------------------------|
 | Google | `http://localhost:3010/api/auth/callback/google` | `https://yourdomain.com/api/auth/callback/google` |
 | Microsoft | `http://localhost:3010/api/auth/callback/azure-ad` | `https://yourdomain.com/api/auth/callback/azure-ad` |
+| Azure AD B2C | `http://localhost:3010/api/auth/callback/azure-ad-b2c` | `https://yourdomain.com/api/auth/callback/azure-ad-b2c` |
 
 ## Setup Guides
 
@@ -41,6 +53,7 @@ Choose the provider(s) you want to set up:
 
 - **Google Only**: [GOOGLE_SSO_SETUP.md](./GOOGLE_SSO_SETUP.md)
 - **Microsoft Only**: [MICROSOFT_SSO_SETUP.md](./MICROSOFT_SSO_SETUP.md)
+- **Azure AD B2C (custom domain)**: [AZURE_B2C_SETUP.md](./AZURE_B2C_SETUP.md)
 - **Both Providers**: [MULTI_PROVIDER_SSO_SETUP.md](./MULTI_PROVIDER_SSO_SETUP.md)
 
 ## Provider Console Links
