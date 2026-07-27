@@ -16,6 +16,7 @@ This avoids loading thousands of unrelated log entries up front and gives operat
 ### 1. Streams view (default)
 
 - Paginated list of distinct workflow streams (20 per page).
+- **Group by**: a toggle at the top of the list nests the streams on the current page into a collapsible Agent → Agent activation → Workflow hierarchy (expanded by default, with "Expand all"/"Collapse all" shortcuts). Streams missing an activation or workflow type fall into a "No activation" / "Unknown workflow" placeholder group. This is a client-side display option applied to the current page only — it does not change pagination or fetch additional pages.
 - Each stream row shows:
   - Last log level badge (color-coded)
   - Last log message
@@ -31,7 +32,7 @@ This avoids loading thousands of unrelated log entries up front and gives operat
 
 - Activated when a `workflowId` is set in the URL.
 - Shows logs for the selected stream only (paginated 20 per page).
-- "Streams" back button returns to the streams list.
+- The page header itself becomes the drill-in header: a back button sits directly beside the title (agent + activation), with the workflow type and a click-to-copy workflow ID shown as the subtitle. There's no separate banner — the same title area that shows "Log Streams" in the streams view is swapped out (`streams-title.tsx` ↔ `stream-details-title.tsx`).
 - Each log entry shows:
   - Log level badge (Error, Warning, Information, Debug, Trace)
   - Message text
@@ -39,7 +40,7 @@ This avoids loading thousands of unrelated log entries up front and gives operat
   - Agent name and activation name
   - Participant ID (if present)
   - Workflow type
-  - Expandable details (exception, properties, workflow IDs)
+  - Expandable details (exception, properties). The workflow ID / run ID are intentionally omitted here since the workflow ID is already shown once in the header above the list.
 
 ### 3. Filtering
 
@@ -76,15 +77,22 @@ Additional filters:
 
 ```
 src/app/(dashboard)/settings/logs/
-├── page.tsx                          # Orchestrator: switches between streams & logs view
+├── page.tsx                          # Thin orchestrator: composes hooks + view components
 ├── types.ts                          # TypeScript definitions (LogEntry, LogStream, ...)
 ├── hooks/
 │   ├── use-logs.ts                   # Fetches paginated logs for a stream
-│   └── use-log-streams.ts            # Fetches paginated log streams
+│   ├── use-log-streams.ts            # Fetches paginated log streams
+│   ├── use-logs-url-state.ts         # URL-derived filters/pagination + mutation handlers
+│   ├── use-auto-refresh.ts           # "Live" auto-refresh ticker + auto-stop timer
+│   └── use-activations-list.ts       # Fetches the activation list for the filter slider
 └── components/
     ├── log-list-item.tsx             # Individual log entry
     ├── log-stream-list-item.tsx      # Individual stream row (clickable)
-    └── log-filter-slider.tsx         # Filter sidebar
+    ├── log-filter-slider.tsx         # Filter sidebar
+    ├── logs-page-header.tsx          # Shared header row: title area + auto-refresh/filter buttons
+    ├── streams-title.tsx             # Title area for the streams list view
+    ├── stream-details-title.tsx      # Title area for the drilled-in view (back button + copyable workflow ID)
+    └── active-filters-bar.tsx        # Removable chips summarizing active filters
 
 src/app/api/logs/
 ├── route.ts                          # GET /api/logs - proxy for logs (filtered by workflowId)
@@ -173,7 +181,6 @@ Benefits:
 - Color-coded log levels
 - Exception highlighting
 - JSON properties display
-- Workflow ID details
 
 ### LogFilterSlider
 

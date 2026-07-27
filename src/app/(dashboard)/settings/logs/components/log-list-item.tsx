@@ -39,7 +39,9 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
 
   const hasException = !!log.exception;
   const hasProperties = log.properties && Object.keys(log.properties).length > 0;
-  const hasMetadataDetails = hasException || hasProperties || !!log.workflowRunId;
+  // Workflow ID / Run ID are intentionally excluded here — the workflow ID is
+  // already shown in the stream drill-in header above the logs list.
+  const hasMetadataDetails = hasException || hasProperties;
 
   // A message is considered "long" when it has many characters or many lines.
   // When long and collapsed, we clip it visually with a max-height + fade and
@@ -297,20 +299,6 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
                 )}
               </div>
 
-              {/* Workflow IDs */}
-              <div className="space-y-1.5 text-muted-foreground">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2">
-                  <span className="font-medium text-foreground sm:min-w-[100px]">Workflow ID:</span>
-                  <span className="font-mono text-xs break-all">{log.workflowId}</span>
-                </div>
-                {log.workflowRunId && (
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2">
-                    <span className="font-medium text-foreground sm:min-w-[100px]">Run ID:</span>
-                    <span className="font-mono text-xs break-all">{log.workflowRunId}</span>
-                  </div>
-                )}
-              </div>
-
               {/* Custom Properties */}
               {hasProperties && (
                 <div className="rounded-lg bg-muted/30 p-3 border border-border/50">
@@ -322,7 +310,7 @@ export function LogListItem({ log, onClick }: LogListItemProps) {
               )}
 
               {/* Bottom collapse for long messages after scrolling through
-                  expanded details (exception / properties / ids). */}
+                  expanded details (exception / properties). */}
               {isMessageLong && (
                 <button
                   type="button"
