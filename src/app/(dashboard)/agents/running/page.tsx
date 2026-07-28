@@ -21,6 +21,7 @@ import { AgentFilters } from './components/agent-filters';
 import { AgentActionsSlider } from './components/agent-actions-slider';
 import { AgentDeleteDialog } from './components/agent-delete-dialog';
 import { AgentDeactivateDialog } from './components/agent-deactivate-dialog';
+import { AgentRestartDialog } from './components/agent-restart-dialog';
 import { ConfigurePanel } from './components/agent-slider-panels';
 import { EmptyState } from './components/empty-state';
 
@@ -43,6 +44,9 @@ function AgentsPageContent() {
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [agentToDeactivate, setAgentToDeactivate] = useState<Agent | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [showRestartDialog, setShowRestartDialog] = useState(false);
+  const [agentToRestart, setAgentToRestart] = useState<Agent | null>(null);
+  const [isRestarting, setIsRestarting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showMyAgentsOnly, setShowMyAgentsOnly] = useState(false);
   const [showInactiveSection, setShowInactiveSection] = useState(false);
@@ -156,6 +160,78 @@ function AgentsPageContent() {
       setIsDeactivating(false);
     }
   }, [currentTenantId, agentToDeactivate, closeSlider, refreshAgents]);
+
+  const handleRestartClick = useCallback((agent: Agent) => {
+    setAgentToRestart(agent);
+    setShowRestartDialog(true);
+  }, []);
+
+  const handleRestart = useCallback(async () => {
+    if (!currentTenantId || !agentToRestart) return;
+
+    setIsRestarting(true);
+    try {
+      const activationsResponse = await fetch('/api/agent-activations');
+      if (!activationsResponse.ok) {
+        throw new Error('Failed to load current agent configuration');
+      }
+
+      const activationsData = await activationsResponse.json();
+      const activations = Array.isArray(activationsData)
+        ? activationsData
+        : activationsData.data || activationsData.activations || [];
+      const currentActivation = activations.find(
+        (a: { id: string }) => a.id === agentToRestart.id
+      );
+      const workflowConfiguration = currentActivation?.workflowConfiguration ?? {
+        workflows: [],
+      };
+
+      const deactivateResponse = await fetch(
+        `/api/agent-activations/${agentToRestart.id}/deactivate`,
+        { method: 'POST' }
+      );
+      if (!deactivateResponse.ok) {
+        const errorData = await deactivateResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || errorData.error || 'Failed to deactivate agent'
+        );
+      }
+
+      const activateResponse = await fetch(
+        `/api/agent-activations/${agentToRestart.id}/activate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workflowConfiguration }),
+        }
+      );
+      if (!activateResponse.ok) {
+        const errorData = await activateResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            errorData.error ||
+            'Agent was deactivated but failed to reactivate. Activate it manually to continue.'
+        );
+      }
+
+      showSuccessToast(
+        'Agent Restarted',
+        `${agentToRestart.name} has been deactivated and reactivated`,
+        { icon: '🔄' }
+      );
+
+      setShowRestartDialog(false);
+      closeSlider();
+      await refreshAgents();
+      setAgentToRestart(null);
+    } catch (error) {
+      showErrorToast(error, 'Failed to restart agent');
+      await refreshAgents();
+    } finally {
+      setIsRestarting(false);
+    }
+  }, [currentTenantId, agentToRestart, closeSlider, refreshAgents]);
 
   const handleDeleteInstance = useCallback(async () => {
     if (!currentTenantId || !agentToDelete) return;
@@ -368,6 +444,7 @@ function AgentsPageContent() {
             onSliderTypeChange={setSliderType}
             onActivateClick={() => handleActivateClick(selectedAgent)}
             onDeactivateClick={() => handleDeactivateClick(selectedAgent)}
+            onRestartClick={() => handleRestartClick(selectedAgent)}
             onDeleteClick={() => handleDeleteClick(selectedAgent)}
           />
         )}
@@ -390,6 +467,15 @@ function AgentsPageContent() {
         isDeactivating={isDeactivating}
         onOpenChange={setShowDeactivateDialog}
         onConfirm={handleDeactivate}
+      />
+
+      {/* Restart Confirmation Dialog */}
+      <AgentRestartDialog
+        open={showRestartDialog}
+        agent={agentToRestart}
+        isRestarting={isRestarting}
+        onOpenChange={setShowRestartDialog}
+        onConfirm={handleRestart}
       />
 
       {/* Delete Confirmation Dialog */}

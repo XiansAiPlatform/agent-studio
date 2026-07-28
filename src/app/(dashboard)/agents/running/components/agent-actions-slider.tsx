@@ -19,6 +19,7 @@ import {
   TrendingUp,
   BookOpen,
   Power,
+  RefreshCw,
   Trash2,
   Info,
   CheckCircle,
@@ -35,6 +36,7 @@ interface AgentActionsSliderProps {
   onSliderTypeChange: (type: SliderType) => void;
   onActivateClick: () => void;
   onDeactivateClick: () => void;
+  onRestartClick: () => void;
   onDeleteClick: () => void;
 }
 
@@ -44,6 +46,7 @@ export function AgentActionsSlider({
   onSliderTypeChange,
   onActivateClick,
   onDeactivateClick,
+  onRestartClick,
   onDeleteClick,
 }: AgentActionsSliderProps) {
   const { isParticipantMode } = useParticipantLayout()
@@ -179,6 +182,17 @@ export function AgentActionsSlider({
                 <div>
                   <div className="font-medium text-sm text-muted-foreground group-hover:text-foreground transition-colors">Deactivate</div>
                   <p className="text-xs text-muted-foreground mt-0.5">Pause this agent instance</p>
+                </div>
+              </button>
+
+              <button
+                onClick={onRestartClick}
+                className="group flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer w-full text-left"
+              >
+                <RefreshCw className="h-5 w-5 text-muted-foreground group-hover:text-foreground mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-medium text-sm text-muted-foreground group-hover:text-foreground transition-colors">Restart</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Deactivate and reactivate with the same settings</p>
                 </div>
               </button>
 
