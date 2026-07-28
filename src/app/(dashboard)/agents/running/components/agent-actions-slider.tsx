@@ -26,6 +26,9 @@ import {
   AlertCircle,
   Database,
   Plug,
+  Star,
+  KeyRound,
+  CalendarClock,
 } from 'lucide-react';
 import { AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
 import { Agent, SliderType } from '../types';
@@ -166,6 +169,36 @@ export function AgentActionsSlider({
                 >
                   <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Performance</span>
+                </Link>
+              )}
+
+              {canAccessSettings && (
+                <Link
+                  href={`/settings/feedback?agentName=${encodeURIComponent(agent.template)}`}
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <Star className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">View Feedback</span>
+                </Link>
+              )}
+
+              {canAccessSettings && (
+                <Link
+                  href="/settings/secrets"
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <KeyRound className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Manage Secrets</span>
+                </Link>
+              )}
+
+              {canAccessSettings && (
+                <Link
+                  href={`/settings/schedules?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                  className="group flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <CalendarClock className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Manage Schedules</span>
                 </Link>
               )}
             </div>
