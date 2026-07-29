@@ -7,43 +7,57 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Loader2 } from 'lucide-react';
+import { Rocket, Loader2 } from 'lucide-react';
 import { Agent } from '../types';
 import {
   ActionProgressSteps,
   type ActionProgressStep,
 } from './action-progress-steps';
 
-export const RESTART_STEPS: ActionProgressStep[] = [
-  { id: 'load', label: 'Load current configuration' },
-  { id: 'deactivate', label: 'Deactivate agent' },
-  { id: 'activate', label: 'Reactivate agent' },
-];
+export function getRedeploySteps(isActive: boolean): ActionProgressStep[] {
+  const steps: ActionProgressStep[] = [
+    { id: 'load', label: 'Load current configuration' },
+  ];
 
-interface AgentRestartDialogProps {
+  if (isActive) {
+    steps.push({ id: 'deactivate', label: 'Deactivate agent' });
+  }
+
+  steps.push(
+    { id: 'delete', label: 'Undeploy current instance' },
+    { id: 'create', label: 'Create new instance' },
+    { id: 'activate', label: 'Activate new instance' }
+  );
+
+  return steps;
+}
+
+interface AgentRedeployDialogProps {
   open: boolean;
   agent: Agent | null;
-  isRestarting: boolean;
+  isRedeploying: boolean;
   currentStepIndex: number;
   hasFailed?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }
 
-export function AgentRestartDialog({
+export function AgentRedeployDialog({
   open,
   agent,
-  isRestarting,
+  isRedeploying,
   currentStepIndex,
   hasFailed = false,
   onOpenChange,
   onConfirm,
-}: AgentRestartDialogProps) {
+}: AgentRedeployDialogProps) {
+  const steps = getRedeploySteps(agent?.status === 'active');
+
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (isRestarting && !nextOpen) return;
+        if (isRedeploying && !nextOpen) return;
         onOpenChange(nextOpen);
       }}
     >
@@ -51,12 +65,13 @@ export function AgentRestartDialog({
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <RefreshCw className="h-6 w-6 text-primary" />
+              <Rocket className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <DialogTitle>Restart Agent Instance</DialogTitle>
+              <DialogTitle>Redeploy Agent Instance</DialogTitle>
               <DialogDescription className="mt-1">
-                Deactivate and reactivate with the same configuration
+                Deactivate, undeploy, and create a fresh instance with the same
+                name
               </DialogDescription>
             </div>
           </div>
@@ -65,7 +80,7 @@ export function AgentRestartDialog({
         <div className="py-4 space-y-4">
           <div className="rounded-lg border border-border bg-muted/40 p-4">
             <p className="text-sm text-foreground">
-              Are you sure you want to restart{' '}
+              Are you sure you want to redeploy{' '}
               <span className="font-semibold">{agent?.name}</span>?
             </p>
             {agent?.description && (
@@ -75,17 +90,18 @@ export function AgentRestartDialog({
             )}
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground">
-                This will briefly stop the agent, then start it again using its
-                current workflow configuration. Active tasks and conversations
-                may be interrupted.
+                This will stop and undeploy the current instance, then create
+                and activate a new one with the same name, template, and
+                workflow configuration. Runtime data tied to the old instance
+                may be lost.
               </p>
             </div>
           </div>
 
           <ActionProgressSteps
-            steps={RESTART_STEPS}
+            steps={steps}
             currentStepIndex={currentStepIndex}
-            isRunning={isRestarting}
+            isRunning={isRedeploying}
             hasFailed={hasFailed}
           />
         </div>
@@ -94,20 +110,20 @@ export function AgentRestartDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isRestarting}
+            disabled={isRedeploying}
           >
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={isRestarting}>
-            {isRestarting ? (
+          <Button onClick={onConfirm} disabled={isRedeploying}>
+            {isRedeploying ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Restarting...
+                Redeploying...
               </>
             ) : (
               <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Restart Agent
+                <Rocket className="mr-2 h-4 w-4" />
+                Redeploy Agent
               </>
             )}
           </Button>
