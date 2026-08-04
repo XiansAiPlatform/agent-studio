@@ -21,6 +21,8 @@ import { AgentFilters } from './components/agent-filters';
 import { AgentActionsSlider } from './components/agent-actions-slider';
 import { AgentDeleteDialog } from './components/agent-delete-dialog';
 import { AgentDeactivateDialog } from './components/agent-deactivate-dialog';
+import { AgentRestartDialog } from './components/agent-restart-dialog';
+import { AgentRedeployDialog } from './components/agent-redeploy-dialog';
 import { ConfigurePanel } from './components/agent-slider-panels';
 import { EmptyState } from './components/empty-state';
 
@@ -40,9 +42,23 @@ function AgentsPageContent() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteStepIndex, setDeleteStepIndex] = useState(-1);
+  const [deleteFailed, setDeleteFailed] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [agentToDeactivate, setAgentToDeactivate] = useState<Agent | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [deactivateStepIndex, setDeactivateStepIndex] = useState(-1);
+  const [deactivateFailed, setDeactivateFailed] = useState(false);
+  const [showRestartDialog, setShowRestartDialog] = useState(false);
+  const [agentToRestart, setAgentToRestart] = useState<Agent | null>(null);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [restartStepIndex, setRestartStepIndex] = useState(-1);
+  const [restartFailed, setRestartFailed] = useState(false);
+  const [showRedeployDialog, setShowRedeployDialog] = useState(false);
+  const [agentToRedeploy, setAgentToRedeploy] = useState<Agent | null>(null);
+  const [isRedeploying, setIsRedeploying] = useState(false);
+  const [redeployStepIndex, setRedeployStepIndex] = useState(-1);
+  const [redeployFailed, setRedeployFailed] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showMyAgentsOnly, setShowMyAgentsOnly] = useState(false);
   const [showInactiveSection, setShowInactiveSection] = useState(false);
@@ -117,11 +133,15 @@ function AgentsPageContent() {
 
   const handleDeleteClick = useCallback((agent: Agent) => {
     setAgentToDelete(agent);
+    setDeleteStepIndex(-1);
+    setDeleteFailed(false);
     setShowDeleteDialog(true);
   }, []);
 
   const handleDeactivateClick = useCallback((agent: Agent) => {
     setAgentToDeactivate(agent);
+    setDeactivateStepIndex(-1);
+    setDeactivateFailed(false);
     setShowDeactivateDialog(true);
   }, []);
 
@@ -129,6 +149,8 @@ function AgentsPageContent() {
     if (!currentTenantId || !agentToDeactivate) return;
 
     setIsDeactivating(true);
+    setDeactivateFailed(false);
+    setDeactivateStepIndex(0);
     try {
       const response = await fetch(
         `/api/agent-activations/${agentToDeactivate.id}/deactivate`,
@@ -140,6 +162,7 @@ function AgentsPageContent() {
         throw new Error(errorData.message || errorData.error || 'Failed to deactivate agent');
       }
 
+      setDeactivateStepIndex(1);
       showSuccessToast(
         `Agent Deactivated`,
         `${agentToDeactivate.name} has been deactivated and stopped running`,
@@ -150,17 +173,257 @@ function AgentsPageContent() {
       closeSlider();
       await refreshAgents();
       setAgentToDeactivate(null);
+      setDeactivateStepIndex(-1);
     } catch (error) {
+      setDeactivateFailed(true);
       showErrorToast(error, 'Failed to deactivate agent');
     } finally {
       setIsDeactivating(false);
     }
   }, [currentTenantId, agentToDeactivate, closeSlider, refreshAgents]);
 
+  const handleRestartClick = useCallback((agent: Agent) => {
+    setAgentToRestart(agent);
+    setRestartStepIndex(-1);
+    setRestartFailed(false);
+    setShowRestartDialog(true);
+  }, []);
+
+  const handleRestart = useCallback(async () => {
+    if (!currentTenantId || !agentToRestart) return;
+
+    setIsRestarting(true);
+    setRestartFailed(false);
+    setRestartStepIndex(0);
+    try {
+      const activationsResponse = await fetch('/api/agent-activations');
+      if (!activationsResponse.ok) {
+        throw new Error('Failed to load current agent configuration');
+      }
+
+      const activationsData = await activationsResponse.json();
+      const activations = Array.isArray(activationsData)
+        ? activationsData
+        : activationsData.data || activationsData.activations || [];
+      const currentActivation = activations.find(
+        (a: { id: string }) => a.id === agentToRestart.id
+      );
+      const workflowConfiguration = currentActivation?.workflowConfiguration ?? {
+        workflows: [],
+      };
+
+      setRestartStepIndex(1);
+      const deactivateResponse = await fetch(
+        `/api/agent-activations/${agentToRestart.id}/deactivate`,
+        { method: 'POST' }
+      );
+      if (!deactivateResponse.ok) {
+        const errorData = await deactivateResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || errorData.error || 'Failed to deactivate agent'
+        );
+      }
+
+      setRestartStepIndex(2);
+      const activateResponse = await fetch(
+        `/api/agent-activations/${agentToRestart.id}/activate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workflowConfiguration }),
+        }
+      );
+      if (!activateResponse.ok) {
+        const errorData = await activateResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            errorData.error ||
+            'Agent was deactivated but failed to reactivate. Activate it manually to continue.'
+        );
+      }
+
+      setRestartStepIndex(3);
+      showSuccessToast(
+        'Agent Restarted',
+        `${agentToRestart.name} has been deactivated and reactivated`,
+        { icon: '🔄' }
+      );
+
+      setShowRestartDialog(false);
+      closeSlider();
+      await refreshAgents();
+      setAgentToRestart(null);
+      setRestartStepIndex(-1);
+    } catch (error) {
+      setRestartFailed(true);
+      showErrorToast(error, 'Failed to restart agent');
+      await refreshAgents();
+    } finally {
+      setIsRestarting(false);
+    }
+  }, [currentTenantId, agentToRestart, closeSlider, refreshAgents]);
+
+  const handleRedeployClick = useCallback((agent: Agent) => {
+    setAgentToRedeploy(agent);
+    setRedeployStepIndex(-1);
+    setRedeployFailed(false);
+    setShowRedeployDialog(true);
+  }, []);
+
+  const handleRedeploy = useCallback(async () => {
+    if (!currentTenantId || !agentToRedeploy) return;
+
+    setIsRedeploying(true);
+    setRedeployFailed(false);
+    setRedeployStepIndex(0);
+    try {
+      const activationsResponse = await fetch('/api/agent-activations');
+      if (!activationsResponse.ok) {
+        throw new Error('Failed to load current agent configuration');
+      }
+
+      const activationsData = await activationsResponse.json();
+      const activations = Array.isArray(activationsData)
+        ? activationsData
+        : activationsData.data || activationsData.activations || [];
+      const currentActivation = activations.find(
+        (a: { id: string }) => a.id === agentToRedeploy.id
+      );
+
+      if (!currentActivation) {
+        throw new Error('Could not find the current agent activation');
+      }
+
+      const name = currentActivation.name || agentToRedeploy.name;
+      const agentName = currentActivation.agentName || agentToRedeploy.template;
+      const description = currentActivation.description || undefined;
+      const workflowConfiguration = currentActivation.workflowConfiguration ?? {
+        workflows: [],
+      };
+
+      let step = 1;
+      if (agentToRedeploy.status === 'active') {
+        setRedeployStepIndex(step);
+        const deactivateResponse = await fetch(
+          `/api/agent-activations/${agentToRedeploy.id}/deactivate`,
+          { method: 'POST' }
+        );
+        if (!deactivateResponse.ok) {
+          const errorData = await deactivateResponse.json().catch(() => ({}));
+          throw new Error(
+            errorData.message || errorData.error || 'Failed to deactivate agent'
+          );
+        }
+        step += 1;
+      }
+
+      setRedeployStepIndex(step);
+      const deleteResponse = await fetch(
+        `/api/agent-activations/${agentToRedeploy.id}`,
+        { method: 'DELETE' }
+      );
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || errorData.error || 'Failed to undeploy agent instance'
+        );
+      }
+      step += 1;
+
+      setRedeployStepIndex(step);
+      const createResponse = await fetch('/api/agent-activations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          agentName,
+          description,
+          workflowConfiguration:
+            workflowConfiguration.workflows?.length > 0
+              ? workflowConfiguration
+              : undefined,
+        }),
+      });
+
+      const createResult = await createResponse.json().catch(() => ({}));
+      if (!createResponse.ok) {
+        throw new Error(
+          createResult.message ||
+            createResult.error ||
+            'Agent was undeployed but failed to recreate. Create a new instance from the Agent Store.'
+        );
+      }
+
+      const newInstanceId = createResult.id || createResult.activationId;
+      if (!newInstanceId) {
+        throw new Error(
+          'Agent was recreated but no instance ID was returned. Check Agents to continue.'
+        );
+      }
+      step += 1;
+
+      setRedeployStepIndex(step);
+      const activateResponse = await fetch(
+        `/api/agent-activations/${newInstanceId}/activate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workflowConfiguration:
+              workflowConfiguration.workflows?.length > 0
+                ? workflowConfiguration
+                : undefined,
+          }),
+        }
+      );
+      if (!activateResponse.ok) {
+        const errorData = await activateResponse.json().catch(() => ({}));
+        setRedeployFailed(true);
+        showErrorToast(
+          new Error(
+            errorData.message ||
+              errorData.error ||
+              'Failed to activate redeployed instance'
+          ),
+          'Instance recreated but activation failed'
+        );
+        setShowRedeployDialog(false);
+        closeSlider();
+        setNewlyCreatedId(newInstanceId);
+        await refreshAgents();
+        setAgentToRedeploy(null);
+        setRedeployStepIndex(-1);
+        return;
+      }
+
+      setRedeployStepIndex(step + 1);
+      showSuccessToast(
+        'Agent Redeployed',
+        `${name} has been redeployed and is now active`,
+        { icon: '🚀' }
+      );
+
+      setShowRedeployDialog(false);
+      closeSlider();
+      setNewlyCreatedId(newInstanceId);
+      await refreshAgents();
+      setAgentToRedeploy(null);
+      setRedeployStepIndex(-1);
+    } catch (error) {
+      setRedeployFailed(true);
+      showErrorToast(error, 'Failed to redeploy agent');
+      await refreshAgents();
+    } finally {
+      setIsRedeploying(false);
+    }
+  }, [currentTenantId, agentToRedeploy, closeSlider, refreshAgents]);
+
   const handleDeleteInstance = useCallback(async () => {
     if (!currentTenantId || !agentToDelete) return;
 
     setIsDeleting(true);
+    setDeleteFailed(false);
+    setDeleteStepIndex(0);
     try {
       const response = await fetch(
         `/api/agent-activations/${agentToDelete.id}`,
@@ -169,18 +432,19 @@ function AgentsPageContent() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 409) {
-          throw new Error(errorData.message || 'Cannot delete an active agent. Please deactivate it first.');
+          throw new Error(errorData.message || 'Cannot undeploy an active agent. Please deactivate it first.');
         }
         throw {
           status: response.status,
-          message: errorData.message || errorData.error || 'Failed to delete agent instance',
+          message: errorData.message || errorData.error || 'Failed to undeploy agent instance',
           error: errorData.error,
           details: errorData.details,
         };
       }
 
+      setDeleteStepIndex(1);
       showSuccessToast(
-        `Agent Deleted Successfully`,
+        `Agent Undeployed Successfully`,
         `${agentToDelete.name} has been permanently removed from your workspace`,
         { icon: '🗑️' }
       );
@@ -189,8 +453,10 @@ function AgentsPageContent() {
       closeSlider();
       setAgents((prevAgents) => prevAgents.filter((a) => a.id !== agentToDelete.id));
       setAgentToDelete(null);
+      setDeleteStepIndex(-1);
     } catch (error) {
-      showErrorToast(error, 'Failed to delete agent instance');
+      setDeleteFailed(true);
+      showErrorToast(error, 'Failed to undeploy agent instance');
     } finally {
       setIsDeleting(false);
     }
@@ -368,6 +634,8 @@ function AgentsPageContent() {
             onSliderTypeChange={setSliderType}
             onActivateClick={() => handleActivateClick(selectedAgent)}
             onDeactivateClick={() => handleDeactivateClick(selectedAgent)}
+            onRestartClick={() => handleRestartClick(selectedAgent)}
+            onRedeployClick={() => handleRedeployClick(selectedAgent)}
             onDeleteClick={() => handleDeleteClick(selectedAgent)}
           />
         )}
@@ -388,8 +656,50 @@ function AgentsPageContent() {
         open={showDeactivateDialog}
         agent={agentToDeactivate}
         isDeactivating={isDeactivating}
-        onOpenChange={setShowDeactivateDialog}
+        currentStepIndex={deactivateStepIndex}
+        hasFailed={deactivateFailed}
+        onOpenChange={(open) => {
+          if (!open && !isDeactivating) {
+            setDeactivateStepIndex(-1);
+            setDeactivateFailed(false);
+          }
+          setShowDeactivateDialog(open);
+        }}
         onConfirm={handleDeactivate}
+      />
+
+      {/* Restart Confirmation Dialog */}
+      <AgentRestartDialog
+        open={showRestartDialog}
+        agent={agentToRestart}
+        isRestarting={isRestarting}
+        currentStepIndex={restartStepIndex}
+        hasFailed={restartFailed}
+        onOpenChange={(open) => {
+          if (!open && !isRestarting) {
+            setRestartStepIndex(-1);
+            setRestartFailed(false);
+          }
+          setShowRestartDialog(open);
+        }}
+        onConfirm={handleRestart}
+      />
+
+      {/* Redeploy Confirmation Dialog */}
+      <AgentRedeployDialog
+        open={showRedeployDialog}
+        agent={agentToRedeploy}
+        isRedeploying={isRedeploying}
+        currentStepIndex={redeployStepIndex}
+        hasFailed={redeployFailed}
+        onOpenChange={(open) => {
+          if (!open && !isRedeploying) {
+            setRedeployStepIndex(-1);
+            setRedeployFailed(false);
+          }
+          setShowRedeployDialog(open);
+        }}
+        onConfirm={handleRedeploy}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -397,7 +707,15 @@ function AgentsPageContent() {
         open={showDeleteDialog}
         agent={agentToDelete}
         isDeleting={isDeleting}
-        onOpenChange={setShowDeleteDialog}
+        currentStepIndex={deleteStepIndex}
+        hasFailed={deleteFailed}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteStepIndex(-1);
+            setDeleteFailed(false);
+          }
+          setShowDeleteDialog(open);
+        }}
         onConfirm={handleDeleteInstance}
       />
 
