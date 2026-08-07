@@ -1,12 +1,13 @@
-import { Check, Loader2, Circle, X } from 'lucide-react';
+import { Check, Loader2, Circle, X, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type ActionProgressStep = {
   id: string;
   label: string;
+  enabled?: boolean;
 };
 
-type StepStatus = 'pending' | 'active' | 'completed' | 'error';
+type StepStatus = 'skipped' | 'pending' | 'active' | 'completed' | 'error';
 
 interface ActionProgressStepsProps {
   steps: ActionProgressStep[];
@@ -17,11 +18,16 @@ interface ActionProgressStepsProps {
 }
 
 function getStepStatus(
+  step: ActionProgressStep,
   index: number,
   currentStepIndex: number,
   isRunning: boolean,
   hasFailed: boolean
 ): StepStatus {
+  if (step.enabled === false) {
+    return 'skipped';
+  }
+
   if (!isRunning && currentStepIndex < 0) {
     return 'pending';
   }
@@ -53,6 +59,7 @@ export function ActionProgressSteps({
       <ol className="space-y-2">
         {steps.map((step, index) => {
           const status = getStepStatus(
+            step,
             index,
             currentStepIndex,
             isRunning,
@@ -67,7 +74,8 @@ export function ActionProgressSteps({
                   status === 'completed' && 'bg-primary text-primary-foreground',
                   status === 'active' && 'bg-primary/15 text-primary',
                   status === 'error' && 'bg-destructive/15 text-destructive',
-                  status === 'pending' && 'bg-muted text-muted-foreground'
+                  status === 'pending' && 'bg-muted text-muted-foreground',
+                  status === 'skipped' && 'bg-muted/50 text-muted-foreground/50'
                 )}
               >
                 {status === 'completed' && <Check className="h-3 w-3" />}
@@ -76,6 +84,7 @@ export function ActionProgressSteps({
                 )}
                 {status === 'error' && <X className="h-3 w-3" />}
                 {status === 'pending' && <Circle className="h-2.5 w-2.5" />}
+                {status === 'skipped' && <Minus className="h-3 w-3" />}
               </span>
               <span
                 className={cn(
@@ -83,7 +92,8 @@ export function ActionProgressSteps({
                   status === 'active' && 'font-medium text-foreground',
                   status === 'completed' && 'text-muted-foreground',
                   status === 'error' && 'font-medium text-destructive',
-                  status === 'pending' && 'text-muted-foreground'
+                  status === 'pending' && 'text-muted-foreground',
+                  status === 'skipped' && 'text-muted-foreground/50'
                 )}
               >
                 {step.label}
