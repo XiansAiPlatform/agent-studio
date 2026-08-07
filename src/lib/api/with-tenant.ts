@@ -338,3 +338,57 @@ export function withSystemAdmin(
   }
 }
 
+/**
+ * Middleware wrapper for tenant-scoped operations that require system administrator
+ * access (e.g. OIDC provider configuration). Combines `withSystemAdmin` end-user
+ * enforcement with cookie-only tenant resolution from `withTenantFromSession`.
+ *
+ * SECURITY: Same cookie-only tenant resolution as withTenantAdmin. TenantAdmin
+ * and other participant roles are NOT allowed here.
+ */
+export function withSystemAdminTenant(handler: ApiHandler) {
+  return async (request: NextRequest) => {
+    try {
+      const identityError = await rejectClientTenantId(request)
+      if (identityError) return identityError
+
+      const session = await getServerSession(authOptions)
+
+      if (!session || !session.user?.id || !session.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const authError = await requireSystemAdmin(session)
+      if (authError) return authError
+
+      const tenantId = getTenantIdFromCookie(request)
+      if (!tenantId) {
+        return NextResponse.json(
+          { error: 'No tenant selected. Please select a tenant in the dashboard.' },
+          { status: 400 }
+        )
+      }
+
+      const tenantProvider = useTenantProvider()
+      const tenantContext = await tenantProvider.getTenantContext(
+        session.user.id,
+        tenantId,
+        session.accessToken,
+        session.user.email
+      )
+
+      if (!tenantContext) {
+        return NextResponse.json(
+          { error: 'Access denied to this tenant' },
+          { status: 403 }
+        )
+      }
+
+      return handler(request, { session, tenantContext, tenantId })
+    } catch (error) {
+      console.error('[withSystemAdminTenant] Error:', error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+  }
+}
+

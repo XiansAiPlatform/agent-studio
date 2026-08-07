@@ -34,6 +34,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { RequireCapability } from '@/components/auth/can'
+import { useAuth } from '@/hooks/use-auth'
+import { useCan } from '@/hooks/use-permissions'
 import {
   DashboardPage,
   DashboardPageBody,
@@ -65,7 +68,9 @@ function parseEditor(text: string): { config?: OidcConfig; error?: string } {
   return { config: parsed as OidcConfig }
 }
 
-export default function OidcPage() {
+function OidcPageContent() {
+  const { isLoading: isAuthLoading } = useAuth()
+  const isSystemAdmin = useCan('system:admin')
   const {
     config,
     isLoading,
@@ -82,8 +87,9 @@ export default function OidcPage() {
   const [loadingTemplate, setLoadingTemplate] = useState(false)
 
   useEffect(() => {
+    if (!isSystemAdmin) return
     fetchConfig()
-  }, [fetchConfig])
+  }, [isSystemAdmin, fetchConfig])
 
   // Hydrate the editor whenever the stored config changes (initial load / save).
   useEffect(() => {
@@ -151,11 +157,19 @@ export default function OidcPage() {
 
   const isDirty = draft !== (config ? formatJson(config) : '')
 
+  if (isAuthLoading || !isSystemAdmin) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <DashboardPage width="narrow">
       <DashboardPageHeader
         title="OIDC Providers"
-        description="Configure which external OIDC providers are accepted when authenticating User API requests for this tenant."
+        description="Configure which external OIDC providers are accepted when authenticating User API requests for this tenant. System administrators only."
         icon={<ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
       />
 
@@ -305,5 +319,20 @@ export default function OidcPage() {
         </Card>
       </DashboardPageBody>
     </DashboardPage>
+  )
+}
+
+export default function OidcPage() {
+  return (
+    <RequireCapability
+      permission="system:admin"
+      fallback={
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <OidcPageContent />
+    </RequireCapability>
   )
 }

@@ -63,6 +63,8 @@ export function ConnectionCard({
   const status = statusText[connection.status]
   const iconUrl = INTEGRATION_ICONS[connection.providerId] || '/default-icon.png'
   const displayName = INTEGRATION_NAMES[connection.providerId] || connection.providerId
+  const isWebhook =
+    connection.providerId === 'builtin_webhook' || connection.providerId === 'webhook'
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'unknown'
@@ -154,12 +156,16 @@ export function ConnectionCard({
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuItem onClick={() => onTest(connection.id)}>
-              Test
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onViewUsage(connection.id)}>
-              Usage
-            </DropdownMenuItem>
+            {!isWebhook && (
+              <>
+                <DropdownMenuItem onClick={() => onTest(connection.id)}>
+                  Test
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onViewUsage(connection.id)}>
+                  Usage
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuItem onClick={() => onEdit(connection)}>
               Edit
             </DropdownMenuItem>
