@@ -54,7 +54,7 @@ interface AgentDeleteDialogProps {
   currentStepIndex: number;
   hasFailed?: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (selectedDataIds: string[]) => void;
 }
 
 export function AgentDeleteDialog({
@@ -233,7 +233,7 @@ export function AgentDeleteDialog({
           </Button>
           <Button
             variant="destructive"
-            onClick={onConfirm}
+            onClick={() => onConfirm(Array.from(selectedData))}
             disabled={isDeleting || agent?.status === 'active'}
           >
             {isDeleting ? (

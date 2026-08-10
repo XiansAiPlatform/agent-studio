@@ -418,8 +418,10 @@ function AgentsPageContent() {
     }
   }, [currentTenantId, agentToRedeploy, closeSlider, refreshAgents]);
 
-  const handleDeleteInstance = useCallback(async () => {
+  const handleDeleteInstance = useCallback(async (selectedDataIds: string[]) => {
     if (!currentTenantId || !agentToDelete) return;
+
+    const deleteIntegrations = selectedDataIds.includes('integrations');
 
     setIsDeleting(true);
     setDeleteFailed(false);
@@ -442,13 +444,34 @@ function AgentsPageContent() {
         };
       }
 
-      setDeleteStepIndex(1);
+      // "App Integrations" is the only associated-data category with a real
+      // backend today; the rest are still placeholders (see checklist UI).
+      if (deleteIntegrations) {
+        setDeleteStepIndex(1);
+        try {
+          const integrationsResponse = await fetch(
+            `/api/webhooks/agents/${encodeURIComponent(agentToDelete.template)}/activation/${encodeURIComponent(agentToDelete.name)}`,
+            { method: 'DELETE' }
+          );
+          if (!integrationsResponse.ok) {
+            const errorData = await integrationsResponse.json().catch(() => ({}));
+            showErrorToast(
+              new Error(errorData.message || errorData.error || 'Failed to delete app integrations'),
+              'App integrations were not fully removed'
+            );
+          }
+        } catch (integrationsError) {
+          showErrorToast(integrationsError, 'App integrations were not fully removed');
+        }
+      }
+
+      setDeleteStepIndex(deleteIntegrations ? 2 : 1);
       showSuccessToast(
         `Agent Undeployed Successfully`,
         `${agentToDelete.name} has been permanently removed from your workspace`,
         { icon: '🗑️' }
       );
-      
+
       setShowDeleteDialog(false);
       closeSlider();
       setAgents((prevAgents) => prevAgents.filter((a) => a.id !== agentToDelete.id));
