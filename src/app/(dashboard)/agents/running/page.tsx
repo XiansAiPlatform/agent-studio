@@ -422,6 +422,7 @@ function AgentsPageContent() {
     if (!currentTenantId || !agentToDelete) return;
 
     const deleteIntegrations = selectedDataIds.includes('integrations');
+    const deleteMessages = selectedDataIds.includes('messages');
 
     setIsDeleting(true);
     setDeleteFailed(false);
@@ -444,8 +445,9 @@ function AgentsPageContent() {
         };
       }
 
-      // "App Integrations" is the only associated-data category with a real
-      // backend today; the rest are still placeholders (see checklist UI).
+      // "App Integrations" and "Messages" are the only associated-data
+      // categories with a real backend today; the rest are still
+      // placeholders (see checklist UI).
       if (deleteIntegrations) {
         setDeleteStepIndex(1);
         try {
@@ -465,7 +467,26 @@ function AgentsPageContent() {
         }
       }
 
-      setDeleteStepIndex(deleteIntegrations ? 2 : 1);
+      if (deleteMessages) {
+        setDeleteStepIndex(2);
+        try {
+          const messagesResponse = await fetch(
+            `/api/messaging/agents/${encodeURIComponent(agentToDelete.template)}/activation/${encodeURIComponent(agentToDelete.name)}`,
+            { method: 'DELETE' }
+          );
+          if (!messagesResponse.ok) {
+            const errorData = await messagesResponse.json().catch(() => ({}));
+            showErrorToast(
+              new Error(errorData.message || errorData.error || 'Failed to delete messages'),
+              'Messages were not fully removed'
+            );
+          }
+        } catch (messagesError) {
+          showErrorToast(messagesError, 'Messages were not fully removed');
+        }
+      }
+
+      setDeleteStepIndex(deleteMessages ? 3 : deleteIntegrations ? 2 : 1);
       showSuccessToast(
         `Agent Undeployed Successfully`,
         `${agentToDelete.name} has been permanently removed from your workspace`,
