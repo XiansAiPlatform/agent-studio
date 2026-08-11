@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withSystemAdminTenant, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * GET /api/settings/oidc
  * Returns the current tenant's OIDC token-acceptance configuration, or null when
- * none is configured. Tenant is resolved from the httpOnly cookie. TenantAdmin
- * (or system admin) only.
+ * none is configured. Tenant is resolved from the httpOnly cookie. System
+ * administrators only.
  *
  * The configuration governs which external OIDC providers are accepted when
  * authenticating UserApi requests for this tenant.
  */
-export const GET = withTenantAdmin(
+export const GET = withSystemAdminTenant(
   async (_request: NextRequest, { tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
@@ -34,14 +34,14 @@ export const GET = withTenantAdmin(
 /**
  * PUT /api/settings/oidc
  * Create or replace the current tenant's OIDC configuration.
- * TenantAdmin (or system admin) only; tenant resolved from the httpOnly cookie.
+ * System administrators only; tenant resolved from the httpOnly cookie.
  *
  * Body: a JSON object describing the OIDC rules. Any `tenantId` field is
  * stripped here because the backend authoritatively scopes the configuration to
  * the route tenant (and the cookie-only tenant guard rejects client-supplied
  * tenant identity).
  */
-export const PUT = withTenantAdmin(
+export const PUT = withSystemAdminTenant(
   async (request: NextRequest, { tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
@@ -84,9 +84,9 @@ export const PUT = withTenantAdmin(
 
 /**
  * DELETE /api/settings/oidc
- * Remove the current tenant's OIDC configuration.
+ * Remove the current tenant's OIDC configuration. System administrators only.
  */
-export const DELETE = withTenantAdmin(
+export const DELETE = withSystemAdminTenant(
   async (_request: NextRequest, { tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 

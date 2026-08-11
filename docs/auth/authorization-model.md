@@ -114,7 +114,8 @@ check. They form a strict ladder from least to most privileged.
 |---------|--------|---------|
 | `withTenantFromSession` | Any approved tenant member (**including `TenantParticipant`**) | Participant-facing routes that operate only on the caller's own data |
 | `withParticipantAdmin` | `settings:view` (TenantUser / ParticipantAdmin / TenantAdmin / SysAdmin) | Agent Settings **and** tenant-wide workspace management (knowledge, schedules, webhooks, activation mutations, task review, stats) |
-| `withTenantAdmin` | `tenant:manage-users` (TenantAdmin / SysAdmin) | Tenant user management, branding, OIDC |
+| `withTenantAdmin` | `tenant:manage-users` (TenantAdmin / SysAdmin) | Tenant user management, branding |
+| `withSystemAdminTenant` | `system:admin` (SysAdmin) + tenant cookie context | Tenant-scoped system-admin ops (OIDC providers) |
 | `withSystemAdmin` | `system:admin` (SysAdmin), verified by a fresh backend lookup | Everything under `/api/system-admin/*` |
 
 ### `withTenantFromSession` is member-level — guard the data, not just the door
