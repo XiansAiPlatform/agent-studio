@@ -43,7 +43,8 @@ interface EditUserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (userId: string, data: UpdateUserRequest) => Promise<void>
-  isSelf?: boolean
+  /** When true, the Approved toggle is locked (e.g. non–system-admin editing themselves). */
+  lockApproval?: boolean
 }
 
 export function EditUserDialog({
@@ -51,7 +52,7 @@ export function EditUserDialog({
   open,
   onOpenChange,
   onSubmit,
-  isSelf = false,
+  lockApproval = false,
 }: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -194,7 +195,7 @@ export function EditUserDialog({
             <div>
               <p className="text-sm font-medium">Approved</p>
               <p className="text-xs text-muted-foreground">
-                {isSelf
+                {lockApproval
                   ? "You can't change your own approval status"
                   : 'Unapproved users cannot access this tenant'}
               </p>
@@ -202,7 +203,7 @@ export function EditUserDialog({
             <Switch
               checked={isApprovedValue}
               onCheckedChange={(val) => setValue('isApproved', val)}
-              disabled={isSelf}
+              disabled={lockApproval}
             />
           </div>
         </form>

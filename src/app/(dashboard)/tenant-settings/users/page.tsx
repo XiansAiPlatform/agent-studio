@@ -47,6 +47,7 @@ const PAGE_SIZE = 20
 export default function UsersPage() {
   const { data: session } = useSession()
   const currentUserEmail = session?.user?.email
+  const isSystemAdmin = session?.user?.isSystemAdmin === true
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -121,9 +122,16 @@ export default function UsersPage() {
     }
   }
 
+  const isOwnUser = (user: TenantUser) =>
+    !!currentUserEmail && user.email === currentUserEmail
+
+  /** Regular users cannot change their own approval; system admins can. */
+  const cannotChangeOwnApproval = (user: TenantUser) =>
+    isOwnUser(user) && !isSystemAdmin
+
   // ── Toggle approved ───────────────────────────────────────────────────────
   const handleToggleApproved = async (user: TenantUser) => {
-    if (user.email === currentUserEmail) {
+    if (cannotChangeOwnApproval(user)) {
       toast.error("You can't change your own approval status")
       return
     }
@@ -286,8 +294,12 @@ export default function UsersPage() {
                       <Switch
                         checked={user.isApproved}
                         onCheckedChange={() => handleToggleApproved(user)}
-                        disabled={user.email === currentUserEmail}
-                        title={user.email === currentUserEmail ? "You can't change your own approval status" : undefined}
+                        disabled={cannotChangeOwnApproval(user)}
+                        title={
+                          cannotChangeOwnApproval(user)
+                            ? "You can't change your own approval status"
+                            : undefined
+                        }
                         aria-label={`Toggle approved for ${user.name}`}
                       />
                     )}
@@ -382,8 +394,12 @@ export default function UsersPage() {
                         <Switch
                           checked={user.isApproved}
                           onCheckedChange={() => handleToggleApproved(user)}
-                          disabled={user.email === currentUserEmail}
-                          title={user.email === currentUserEmail ? "You can't change your own approval status" : undefined}
+                          disabled={cannotChangeOwnApproval(user)}
+                          title={
+                            cannotChangeOwnApproval(user)
+                              ? "You can't change your own approval status"
+                              : undefined
+                          }
                           aria-label={`Toggle approved for ${user.name}`}
                         />
                       )}
@@ -462,7 +478,7 @@ export default function UsersPage() {
         open={editTarget !== null}
         onOpenChange={(open) => { if (!open) setEditTarget(null) }}
         onSubmit={handleEdit}
-        isSelf={editTarget?.email === currentUserEmail}
+        lockApproval={editTarget != null && cannotChangeOwnApproval(editTarget)}
       />
 
       <DeleteUserDialog

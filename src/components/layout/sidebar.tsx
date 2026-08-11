@@ -49,6 +49,8 @@ type NavigationChild = {
   href: string;
   triggersPanel?: boolean;
   panelConfig?: PanelConfig;
+  /** When set, the child is only shown if the user has this capability. */
+  capability?: Capability;
 };
 
 type NavigationItem = {
@@ -160,7 +162,11 @@ const navigation: NavigationItem[] = [
     children: [
       { name: 'Users', href: '/tenant-settings/users' },
       { name: 'Branding', href: '/tenant-settings/branding' },
-      { name: 'OIDC Providers', href: '/tenant-settings/oidc' },
+      {
+        name: 'OIDC Providers',
+        href: '/tenant-settings/oidc',
+        capability: 'system:admin',
+      },
     ],
   },
   {
@@ -194,6 +200,7 @@ function NavItem({
   isPanelOpen,
   activePanelMode,
   onNavigate,
+  can,
 }: {
   item: NavigationItem;
   collapsed: boolean;
@@ -203,16 +210,18 @@ function NavItem({
   isPanelOpen?: boolean;
   activePanelMode?: string | null;
   onNavigate?: () => void;
+  can: (capability: Capability) => boolean;
 }) {
   const [expanded, setExpanded] = useState(active);
   const Icon = item.icon;
 
-  const hasChildren = item.children;
+  const visibleChildren = item.children?.filter((child) =>
+    child.capability ? can(child.capability) : true
+  );
+  const hasChildren = visibleChildren && visibleChildren.length > 0;
   const triggersPanelItem = item.triggersPanel === true;
 
-  // Check if any child is active
   const isChildActive = (child: { href: string }) => pathname === child.href;
-  const hasActiveChild = item.children?.some(isChildActive) || false;
 
   // Automatically expand when active (including when a child is active)
   useEffect(() => {
@@ -296,9 +305,9 @@ function NavItem({
       </Tooltip>
 
       {/* Regular children for other items */}
-      {!collapsed && expanded && item.children && (
+      {!collapsed && expanded && hasChildren && (
         <div className="ml-8 mt-1 space-y-1">
-          {item.children.map((child) => {
+          {visibleChildren!.map((child) => {
             const isActive = isChildActive(child) || (activePanelMode === child.name);
             const childTriggersPanel = child.triggersPanel === true;
             return (
@@ -446,13 +455,16 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
         )}
       >
         {visibleNavigation.map((item) => {
+          const visibleChildren = item.children?.filter((child) =>
+            child.capability ? can(child.capability) : true
+          );
           const isExactMatch = pathname === item.href;
-          const hasActiveChild = item.children?.some(child => pathname === child.href) || false;
+          const hasActiveChild = visibleChildren?.some(child => pathname === child.href) || false;
           const isActive = isExactMatch || hasActiveChild ||
             (pathname.startsWith(item.href) && item.href !== '/');
 
           const childTriggeredPanel = Boolean(
-            activePanelMode && item.children?.some(child => child.name === activePanelMode)
+            activePanelMode && visibleChildren?.some(child => child.name === activePanelMode)
           );
           const finalActive = activePanelMode
             ? (item.name === activePanelMode || childTriggeredPanel)
@@ -469,6 +481,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
               isPanelOpen={activePanelMode === item.name}
               activePanelMode={activePanelMode}
               onNavigate={mobile ? onNavigate : undefined}
+              can={can}
             />
           );
         })}

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withSystemAdminTenant, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
 /**
  * GET /api/settings/oidc/template
  * Returns a sample OIDC configuration (with the current tenant's id filled in)
- * that admins can use as a starting point. TenantAdmin (or system admin) only.
+ * that system admins can use as a starting point. System administrators only.
  */
-export const GET = withTenantAdmin(
+export const GET = withSystemAdminTenant(
   async (_request: NextRequest, { tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
