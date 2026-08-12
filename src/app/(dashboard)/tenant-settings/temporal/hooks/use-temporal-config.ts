@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react'
-import { TemporalConfig } from '../types'
+import { TemporalConfig, TemporalConfigStatus } from '../types'
 
 interface TemporalConfigState {
-  /** The stored override, or null when the tenant uses the default Temporal server. */
-  config: TemporalConfig | null
+  status: TemporalConfigStatus
   isLoading: boolean
   error: string | null
 }
@@ -15,7 +14,7 @@ async function parseError(res: Response, fallback: string): Promise<string> {
 
 export function useTemporalConfig() {
   const [state, setState] = useState<TemporalConfigState>({
-    config: null,
+    status: null,
     isLoading: false,
     error: null,
   })
@@ -28,8 +27,8 @@ export function useTemporalConfig() {
       if (!res.ok) {
         throw new Error(await parseError(res, 'Failed to load Temporal configuration'))
       }
-      const body: { config: TemporalConfig | null } = await res.json()
-      setState({ config: body.config ?? null, isLoading: false, error: null })
+      const status: TemporalConfigStatus = await res.json()
+      setState({ status, isLoading: false, error: null })
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -50,8 +49,8 @@ export function useTemporalConfig() {
       if (!res.ok) {
         throw new Error(await parseError(res, 'Failed to save Temporal configuration'))
       }
-      const body: { config: TemporalConfig | null } = await res.json()
-      setState((prev) => ({ ...prev, config: body.config ?? config, error: null }))
+      const status: TemporalConfigStatus = await res.json()
+      setState((prev) => ({ ...prev, status, error: null }))
     } finally {
       setIsMutating(false)
     }
@@ -64,7 +63,7 @@ export function useTemporalConfig() {
       if (!res.ok && res.status !== 204) {
         throw new Error(await parseError(res, 'Failed to revert to the default Temporal configuration'))
       }
-      setState((prev) => ({ ...prev, config: null, error: null }))
+      setState((prev) => ({ ...prev, status: null, error: null }))
     } finally {
       setIsMutating(false)
     }

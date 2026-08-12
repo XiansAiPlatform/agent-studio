@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Workflow, Loader2, RotateCcw } from 'lucide-react'
+import { Workflow, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Card,
   CardHeader,
@@ -36,13 +37,13 @@ import { TemporalConfig } from './types'
 const EMPTY_FORM: TemporalConfig = {
   serverUrl: '',
   namespace: '',
-  certificateBase64: '',
-  privateKeyBase64: '',
+  certificate: '',
+  privateKey: '',
 }
 
 export default function TemporalSettingsPage() {
   const {
-    config,
+    status,
     isLoading,
     error,
     isMutating,
@@ -53,6 +54,10 @@ export default function TemporalSettingsPage() {
 
   const [form, setForm] = useState<TemporalConfig>(EMPTY_FORM)
   const [revertOpen, setRevertOpen] = useState(false)
+  // Whether the dedicated-connection form is shown. Mirrors hasOverride once
+  // status loads, but can be flipped on locally (before saving) to let an
+  // admin start configuring an override without one existing yet.
+  const [useCustom, setUseCustom] = useState(false)
 
   useEffect(() => {
     fetchConfig()
@@ -60,21 +65,19 @@ export default function TemporalSettingsPage() {
 
   useEffect(() => {
     setForm(
-      config ?? {
-        serverUrl: '',
-        namespace: '',
-        certificateBase64: '',
-        privateKeyBase64: '',
-      }
+      status
+        ? { serverUrl: status.serverUrl, namespace: status.namespace }
+        : { serverUrl: '', namespace: '', certificate: '', privateKey: '' }
     )
-  }, [config])
+    setUseCustom(status != null)
+  }, [status])
 
-  const hasOverride = config !== null
+  const hasOverride = status != null
 
   const canSave =
     form.serverUrl.trim() !== '' &&
     form.namespace.trim() !== '' &&
-    Boolean(form.certificateBase64?.trim()) === Boolean(form.privateKeyBase64?.trim())
+    Boolean(form.certificate?.trim()) === Boolean(form.privateKey?.trim())
 
   const handleSave = async () => {
     if (!canSave) {
@@ -87,8 +90,8 @@ export default function TemporalSettingsPage() {
       await saveConfig({
         serverUrl: form.serverUrl.trim(),
         namespace: form.namespace.trim(),
-        certificateBase64: form.certificateBase64?.trim() || undefined,
-        privateKeyBase64: form.privateKeyBase64?.trim() || undefined,
+        certificate: form.certificate?.trim() || undefined,
+        privateKey: form.privateKey?.trim() || undefined,
       })
       toast.success('Temporal configuration saved')
     } catch (err) {
@@ -109,10 +112,28 @@ export default function TemporalSettingsPage() {
     }
   }
 
+  const handleToggleCustom = (checked: boolean) => {
+    if (checked) {
+      // No API call yet — just reveals the form so the admin can fill it in and Save.
+      setUseCustom(true)
+      return
+    }
+
+    if (hasOverride) {
+      // An override already exists: confirm before reverting. The switch stays "on"
+      // until the revert actually succeeds and status refreshes.
+      setRevertOpen(true)
+      return
+    }
+
+    // Nothing saved yet — just hide the form again.
+    setUseCustom(false)
+  }
+
   return (
     <DashboardPage width="narrow">
       <DashboardPageHeader
-        title="Temporal"
+        title="Temporal Connectivity"
         description="Give this tenant its own Temporal server connection, or leave it unset to use the default."
         icon={<Workflow className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
       />
@@ -130,88 +151,102 @@ export default function TemporalSettingsPage() {
             <CardDescription>
               {hasOverride
                 ? 'This tenant connects to a dedicated Temporal server.'
-                : 'This tenant is currently using the default/shared Temporal server. Fill in the fields below to override it.'}
+                : 'This tenant is currently using the default/shared Temporal server.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isLoading && !config ? (
+            {isLoading && !status ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading…
               </div>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="temporal-server-url">Server URL</Label>
-                  <Input
-                    id="temporal-server-url"
-                    placeholder="your-namespace.tmprl.cloud:7233"
-                    value={form.serverUrl}
-                    onChange={(e) => setForm((f) => ({ ...f, serverUrl: e.target.value }))}
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="temporal-use-custom">Use a dedicated Temporal connection</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {useCustom
+                        ? 'Configured below — this tenant does not use the default Temporal server.'
+                        : 'Off — this tenant uses the platform’s default Temporal server.'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="temporal-use-custom"
+                    checked={useCustom}
+                    onCheckedChange={handleToggleCustom}
+                    disabled={isMutating}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="temporal-namespace">Namespace</Label>
-                  <Input
-                    id="temporal-namespace"
-                    placeholder="your-namespace"
-                    value={form.namespace}
-                    onChange={(e) => setForm((f) => ({ ...f, namespace: e.target.value }))}
-                  />
-                </div>
+                {useCustom && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="temporal-server-url">Server URL</Label>
+                      <Input
+                        id="temporal-server-url"
+                        placeholder="your-namespace.tmprl.cloud:7233"
+                        value={form.serverUrl}
+                        onChange={(e) => setForm((f) => ({ ...f, serverUrl: e.target.value }))}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="temporal-certificate">
-                    Client certificate (base64) — optional, required for Temporal Cloud
-                  </Label>
-                  <Textarea
-                    id="temporal-certificate"
-                    placeholder={
-                      hasOverride
-                        ? 'Leave unchanged to keep the existing certificate, or paste a new one to replace it'
-                        : 'Paste base64-encoded certificate'
-                    }
-                    className="font-mono text-xs min-h-24"
-                    value={form.certificateBase64 ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, certificateBase64: e.target.value }))}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="temporal-namespace">Namespace</Label>
+                      <Input
+                        id="temporal-namespace"
+                        placeholder="your-namespace"
+                        value={form.namespace}
+                        onChange={(e) => setForm((f) => ({ ...f, namespace: e.target.value }))}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="temporal-private-key">
-                    Client private key (base64) — optional, required for Temporal Cloud
-                  </Label>
-                  <Textarea
-                    id="temporal-private-key"
-                    placeholder={
-                      hasOverride
-                        ? 'Leave unchanged to keep the existing private key, or paste a new one to replace it'
-                        : 'Paste base64-encoded private key'
-                    }
-                    className="font-mono text-xs min-h-24"
-                    value={form.privateKeyBase64 ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, privateKeyBase64: e.target.value }))}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="temporal-certificate">
+                        Client certificate (base64) — optional, required for Temporal Cloud
+                      </Label>
+                      <Textarea
+                        id="temporal-certificate"
+                        placeholder={
+                          hasOverride
+                            ? 'Leave unchanged to keep the existing certificate, or paste a new one to replace it'
+                            : 'Paste base64-encoded certificate'
+                        }
+                        className="font-mono text-xs min-h-24"
+                        value={form.certificate ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, certificate: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="temporal-private-key">
+                        Client private key (base64) — optional, required for Temporal Cloud
+                      </Label>
+                      <Textarea
+                        id="temporal-private-key"
+                        placeholder={
+                          hasOverride
+                            ? 'Leave unchanged to keep the existing private key, or paste a new one to replace it'
+                            : 'Paste base64-encoded private key'
+                        }
+                        className="font-mono text-xs min-h-24"
+                        value={form.privateKey ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, privateKey: e.target.value }))}
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </CardContent>
-          <CardFooter className="gap-2 border-t">
-            <Button onClick={handleSave} disabled={!canSave || isMutating} className="gap-2">
-              {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setRevertOpen(true)}
-              disabled={isMutating || !hasOverride}
-              className="gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Revert to default
-            </Button>
-          </CardFooter>
+          {useCustom && (
+            <CardFooter className="gap-2 border-t">
+              <Button onClick={handleSave} disabled={!canSave || isMutating} className="gap-2">
+                {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
+                Save
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       </DashboardPageBody>
 

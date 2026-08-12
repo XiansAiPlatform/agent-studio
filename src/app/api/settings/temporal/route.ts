@@ -1,34 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withSystemAdminTenant, ApiContext } from '@/lib/api/with-tenant'
-import { createXiansClient, XiansApiError } from '@/lib/xians/client'
+import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
-import { TemporalConfig } from '@/app/(dashboard)/tenant-settings/temporal/types'
+import { TemporalConfig, TemporalConfigStatus } from '@/app/(dashboard)/tenant-settings/temporal/types'
 
-const METADATA_KEY = 'temporal_config'
-
-interface TenantMetadataEntry {
-  key: string
-  value: string
-  type: 'PlainText' | 'Secret'
-}
-
-
+/**
+ * GET /api/settings/temporal
+ * Returns whether the current tenant has a dedicated Temporal connection, and
+ * its fields when it does. System administrators only.
+ */
 export const GET = withSystemAdminTenant(
   async (_request: NextRequest, { tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
     try {
       const client = createXiansClient()
-      const entry = await client.get<TenantMetadataEntry>(
-        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/metadata/${METADATA_KEY}`,
+      const status = await client.get<TemporalConfigStatus>(
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/temporal-config`,
         { headers: { 'X-Tenant-Id': tenantId } }
       )
-      const config: TemporalConfig = JSON.parse(entry.value)
-      return NextResponse.json({ config })
+      return NextResponse.json(status)
     } catch (error) {
-      if (error instanceof XiansApiError && error.status === 404) {
-        return NextResponse.json({ config: null })
-      }
       return handleApiError(error, 'settings/temporal GET', {
         fallbackMessage: 'Failed to load Temporal configuration',
       })
@@ -38,7 +30,7 @@ export const GET = withSystemAdminTenant(
 
 /**
  * PUT /api/settings/temporal
- * Create or replace the current tenant's Temporal override.
+ * Create or replace the current tenant's Temporal connection override.
  * System administrators only; tenant resolved from the httpOnly cookie.
  */
 export const PUT = withSystemAdminTenant(
@@ -59,7 +51,7 @@ export const PUT = withSystemAdminTenant(
       )
     }
 
-    const { serverUrl, namespace, certificateBase64, privateKeyBase64 } = body as Partial<TemporalConfig>
+    const { serverUrl, namespace, certificate, privateKey } = body as Partial<TemporalConfig>
 
     if (typeof serverUrl !== 'string' || !serverUrl.trim() || typeof namespace !== 'string' || !namespace.trim()) {
       return NextResponse.json(
@@ -68,28 +60,33 @@ export const PUT = withSystemAdminTenant(
       )
     }
 
-    if (Boolean(certificateBase64) !== Boolean(privateKeyBase64)) {
+    if (Boolean(certificate) !== Boolean(privateKey)) {
       return NextResponse.json(
-        { error: 'certificateBase64 and privateKeyBase64 must be provided together' },
+        { error: 'certificate and privateKey must be provided together' },
         { status: 400 }
       )
     }
 
-    const config: TemporalConfig = {
-      serverUrl: serverUrl.trim(),
-      namespace: namespace.trim(),
-      ...(certificateBase64 ? { certificateBase64 } : {}),
-      ...(privateKeyBase64 ? { privateKeyBase64 } : {}),
-    }
-
     try {
       const client = createXiansClient()
-      await client.put<TenantMetadataEntry>(
-        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/metadata/${METADATA_KEY}`,
-        { value: JSON.stringify(config), type: 'Secret' },
+      await client.put(
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/temporal-config`,
+        {
+          // tenantId is a required field on the backend's request DTO, though the handler
+          // itself ignores it and always scopes the write to the route tenant.
+          tenantId,
+          serverUrl: serverUrl.trim(),
+          namespace: namespace.trim(),
+          certificate: certificate || undefined,
+          privateKey: privateKey || undefined,
+        },
         { headers: { 'X-Tenant-Id': tenantId } }
       )
-      return NextResponse.json({ config })
+      const status = await client.get<TemporalConfigStatus>(
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/temporal-config`,
+        { headers: { 'X-Tenant-Id': tenantId } }
+      )
+      return NextResponse.json(status)
     } catch (error) {
       return handleApiError(error, 'settings/temporal PUT', {
         fallbackMessage: 'Failed to save Temporal configuration',
@@ -100,8 +97,9 @@ export const PUT = withSystemAdminTenant(
 
 /**
  * DELETE /api/settings/temporal
- * Remove the current tenant's Temporal override, reverting to the default
- * Temporal server. System administrators only.
+ * Reverts the current tenant to the default Temporal server. The backend
+ * keeps the row (flagged as reverted) rather than deleting it, via
+ * POST /temporal-config/revert. System administrators only.
  */
 export const DELETE = withSystemAdminTenant(
   async (_request: NextRequest, { tenantContext }: ApiContext) => {
@@ -109,15 +107,15 @@ export const DELETE = withSystemAdminTenant(
 
     try {
       const client = createXiansClient()
-      await client.delete(
-        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/metadata/${METADATA_KEY}`,
+      await client.post(
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/temporal-config/revert`,
+        // The backend's revert handler binds this body's type but ignores its contents;
+        // tenantId/serverUrl/namespace are only present to satisfy required-field deserialization.
+        { tenantId, serverUrl: '', namespace: '' },
         { headers: { 'X-Tenant-Id': tenantId } }
       )
       return new NextResponse(null, { status: 204 })
     } catch (error) {
-      if (error instanceof XiansApiError && error.status === 404) {
-        return new NextResponse(null, { status: 204 })
-      }
       return handleApiError(error, 'settings/temporal DELETE', {
         fallbackMessage: 'Failed to revert to the default Temporal configuration',
       })
