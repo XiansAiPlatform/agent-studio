@@ -63,8 +63,8 @@ export function MessagesArea({
   const logoSrc = logo?.imgBase64 ? `data:image/png;base64,${logo.imgBase64}` : logo?.url;
 
   return (
-    <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 min-h-0 flex flex-col">
-      <div className="flex flex-col flex-1 min-h-0 gap-5 max-w-5xl mx-auto w-full">
+    <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6 min-h-0 flex flex-col">
+      <div className="flex flex-col flex-1 min-h-0 gap-5 max-w-5xl mx-auto w-full min-w-0">
         {isLoadingMessages ? (
           <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
             <div className="chat-icon-container h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center shadow-2xl mb-4 border border-primary/30">

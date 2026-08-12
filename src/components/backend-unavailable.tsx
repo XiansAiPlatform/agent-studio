@@ -1,6 +1,7 @@
 'use client'
 
-import { AlertTriangle, RefreshCw, KeyRound } from 'lucide-react'
+import { AlertTriangle, RefreshCw, KeyRound, LogOut } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -51,7 +52,7 @@ const VARIANT_CONTENT: Record<
       'Verify the XIANS_APIKEY matches a valid backend API key',
       'Confirm the API key has not been revoked or rotated',
       'Check that XIANS_SERVER_URL points to the correct backend',
-      'Review the backend server logs for authentication failures',
+      'Sign out and sign in again if you are switching auth providers or accounts',
     ],
     devHint: [
       'Make sure your .env.local file has a valid XIANS_APIKEY',
@@ -134,6 +135,14 @@ export function BackendUnavailable({
           </Button>
           <Button 
             variant="outline" 
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="w-full"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+          <Button 
+            variant="ghost" 
             onClick={() => window.location.href = '/'}
             className="w-full"
           >
