@@ -1,21 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Workflow, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from '@/components/ui/card'
+  DashboardPage,
+  DashboardPageBody,
+  DashboardPageHeader,
+} from '@/components/layout/dashboard-page'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,11 +15,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import {
-  DashboardPage,
-  DashboardPageBody,
-  DashboardPageHeader,
-} from '@/components/layout/dashboard-page'
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { Loader2, Workflow } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useTemporalConfig } from './hooks/use-temporal-config'
 import { TemporalConfig } from './types'
 
@@ -203,7 +203,7 @@ export default function TemporalSettingsPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="temporal-certificate">
-                        Client certificate (base64) — optional, required for Temporal Cloud
+                        Client certificate (base64) — optional
                       </Label>
                       <Textarea
                         id="temporal-certificate"
@@ -220,7 +220,7 @@ export default function TemporalSettingsPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="temporal-private-key">
-                        Client private key (base64) — optional, required for Temporal Cloud
+                        Client private key (base64) — optional
                       </Label>
                       <Textarea
                         id="temporal-private-key"
