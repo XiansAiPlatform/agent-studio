@@ -202,6 +202,23 @@ export function useMessageListener(
         }
       });
 
+      // Handle 'File' event type (agent/user file attachments). Without this,
+      // SendFileAsync replies stay invisible until the user refreshes history.
+      eventSource.addEventListener('File', (event) => {
+        try {
+          const message = JSON.parse(event.data) as XiansMessage;
+
+          if (onMessageRef.current) {
+            onMessageRef.current(message);
+          }
+        } catch (err) {
+          console.error('[SSE] Error parsing File message:', err);
+          const parseError = err instanceof Error ? err : new Error('Failed to parse File message');
+          setError(parseError);
+          onErrorRef.current?.(parseError);
+        }
+      });
+
       // Handle heartbeat events (keep-alive)
       eventSource.addEventListener('heartbeat', (event) => {
         try {

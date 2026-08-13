@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Conversation, Topic, Message } from '@/types/conversation';
 import { XiansMessage } from '@/lib/xians/types';
 import { toast } from 'sonner';
-import { mapXiansMessageToMessage } from '../utils';
+import { mapXiansMessageToMessage, getBackgroundTopicToastDescription } from '../utils';
 
 interface UseConversationStateParams {
   tenantId: string;
@@ -113,9 +113,10 @@ export function useConversationState({
       };
     });
 
-    // Handle unread counts and notifications - only for Chat messages
-    const isChatMessage = (xiansMessage.messageType ?? 'Chat').toLowerCase() === 'chat';
-    if (isChatMessage && topicId !== selectedTopicId) {
+    // Unread + toast for Chat and File. Reasoning/tool steps stay silent.
+    const messageType = (xiansMessage.messageType ?? 'Chat').toLowerCase();
+    const notifiesUnread = messageType === 'chat' || messageType === 'file';
+    if (notifiesUnread && topicId !== selectedTopicId) {
       setUnreadCounts((prev) => ({
         ...prev,
         [topicId]: (prev[topicId] || 0) + 1,
@@ -123,7 +124,7 @@ export function useConversationState({
 
       const topicName = topicId === 'general-discussions' ? 'General Discussions' : topicId;
       toast.info(`New message in ${topicName}`, {
-        description: message.content.substring(0, 100) + (message.content.length > 100 ? '...' : ''),
+        description: getBackgroundTopicToastDescription(message),
         duration: 3000,
       });
     }

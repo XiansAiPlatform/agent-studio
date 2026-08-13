@@ -44,9 +44,21 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
   const isSystem = message.role === 'system';
   const [isDraftExpanded, setIsDraftExpanded] = useState(false);
   const router = useRouter();
+  const hasCaption = message.content.trim().length > 0;
+  const hasFileAttachments =
+    !!message.attachments?.some((attachment) => attachment.type === 'file');
+  // Agent File messages with no caption still get a short reply so the bubble
+  // is conversational; download stays on a separate icon.
+  const displayContent =
+    hasCaption
+      ? message.content
+      : !isUser && hasFileAttachments
+        ? 'Your file is ready.'
+        : '';
+  const hasContent = displayContent.trim().length > 0;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
+    navigator.clipboard.writeText(displayContent || message.content);
   };
 
   const handleCopyDraft = () => {
@@ -141,6 +153,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
               : 'message-bubble--agent bg-muted/50 text-foreground'
           )}
         >
+          {hasContent && (
           <div className="text-sm leading-relaxed markdown-content min-w-0 max-w-full [overflow-wrap:anywhere] break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -337,18 +350,66 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                 ),
               }}
             >
-            {message.content}
+            {displayContent}
             </ReactMarkdown>
           </div>
+          )}
 
-          {/* Attachments - Only show if no content draft is present */}
+          {/* Attachments — file rows are a reference + download icon; task chips stay cards */}
           {message.attachments && message.attachments.length > 0 && !message.contentDraft && (
-            <div className="mt-3 space-y-2">
+            <div className={cn(hasContent && 'mt-3', 'space-y-2')}>
               {message.attachments.map((attachment) => {
                 const isFileAttachment = attachment.type === 'file';
                 const isDownloadable = isFileAttachment && !!attachment.url;
-                const content = (
-                  <>
+                const chipClassName = cn(
+                  'flex items-center gap-2 p-2 rounded border',
+                  isUser
+                    ? 'border-primary-foreground/20'
+                    : 'border-border bg-muted/30'
+                );
+
+                if (isFileAttachment) {
+                  return (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      <p className="flex-1 min-w-0 text-xs font-medium truncate">
+                        {attachment.name}
+                      </p>
+                      {isDownloadable && (
+                        <a
+                          href={attachment.url}
+                          download={attachment.name}
+                          aria-label={`Download ${attachment.name}`}
+                          title={`Download ${attachment.name}`}
+                          className={cn(
+                            'flex-shrink-0 rounded p-1 transition-colors',
+                            isUser
+                              ? 'hover:bg-primary-foreground/15'
+                              : 'hover:bg-accent'
+                          )}
+                        >
+                          <Download className="h-4 w-4 opacity-80" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={attachment.id}
+                    href={`/tasks?task=${attachment.id}`}
+                    className={cn(
+                      chipClassName,
+                      'transition-colors',
+                      isUser
+                        ? 'hover:bg-primary-foreground/10'
+                        : 'hover:bg-accent'
+                    )}
+                  >
                     <FileText className="h-4 w-4 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">
@@ -358,54 +419,6 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                         {attachment.type}
                       </p>
                     </div>
-                    {isDownloadable && (
-                      <Download className="h-4 w-4 flex-shrink-0 opacity-70" />
-                    )}
-                  </>
-                );
-                if (isDownloadable) {
-                  return (
-                    <a
-                      key={attachment.id}
-                      href={attachment.url}
-                      download={attachment.name}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        'flex items-center gap-2 p-2 rounded border transition-colors',
-                        isUser
-                          ? 'border-primary-foreground/20 hover:bg-primary-foreground/10'
-                          : 'border-border bg-muted/30 hover:bg-accent'
-                      )}
-                    >
-                      {content}
-                    </a>
-                  );
-                }
-                return isFileAttachment ? (
-                  <div
-                    key={attachment.id}
-                    className={cn(
-                      'flex items-center gap-2 p-2 rounded border',
-                      isUser
-                        ? 'border-primary-foreground/20'
-                        : 'border-border bg-muted/30'
-                    )}
-                  >
-                    {content}
-                  </div>
-                ) : (
-                  <Link
-                    key={attachment.id}
-                    href={`/tasks?task=${attachment.id}`}
-                    className={cn(
-                      'flex items-center gap-2 p-2 rounded border transition-colors',
-                      isUser
-                        ? 'border-primary-foreground/20 hover:bg-primary-foreground/10'
-                        : 'border-border hover:bg-accent'
-                    )}
-                  >
-                    {content}
                   </Link>
                 );
               })}
