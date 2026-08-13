@@ -47,9 +47,11 @@ export default function TemporalSettingsPage() {
     isLoading,
     error,
     isMutating,
+    isTesting,
     fetchConfig,
     saveConfig,
     deleteConfig,
+    testConnection,
   } = useTemporalConfig()
 
   const [form, setForm] = useState<TemporalConfig>(EMPTY_FORM)
@@ -96,6 +98,26 @@ export default function TemporalSettingsPage() {
       toast.success('Temporal configuration saved')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save Temporal configuration')
+    }
+  }
+
+  const handleTestConnection = async () => {
+    if (!canSave) {
+      toast.error(
+        'Server URL and namespace are required, and certificate/private key must be provided together.'
+      )
+      return
+    }
+    try {
+      await testConnection({
+        serverUrl: form.serverUrl.trim(),
+        namespace: form.namespace.trim(),
+        certificate: form.certificate?.trim() || undefined,
+        privateKey: form.privateKey?.trim() || undefined,
+      })
+      toast.success('Connected successfully')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not connect to Temporal')
     }
   }
 
@@ -241,9 +263,18 @@ export default function TemporalSettingsPage() {
           </CardContent>
           {useCustom && (
             <CardFooter className="gap-2 border-t">
-              <Button onClick={handleSave} disabled={!canSave || isMutating} className="gap-2">
+              <Button onClick={handleSave} disabled={!canSave || isMutating || isTesting} className="gap-2">
                 {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={!canSave || isMutating || isTesting}
+                className="gap-2"
+              >
+                {isTesting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Test connection
               </Button>
             </CardFooter>
           )}

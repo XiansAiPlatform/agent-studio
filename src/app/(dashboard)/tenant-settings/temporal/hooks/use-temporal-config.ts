@@ -19,6 +19,7 @@ export function useTemporalConfig() {
     error: null,
   })
   const [isMutating, setIsMutating] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
 
   const fetchConfig = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }))
@@ -69,11 +70,29 @@ export function useTemporalConfig() {
     }
   }, [])
 
+  const testConnection = useCallback(async (config: TemporalConfig): Promise<void> => {
+    setIsTesting(true)
+    try {
+      const res = await fetch('/api/settings/temporal/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      })
+      if (!res.ok) {
+        throw new Error(await parseError(res, 'Could not connect to Temporal'))
+      }
+    } finally {
+      setIsTesting(false)
+    }
+  }, [])
+
   return {
     ...state,
     isMutating,
+    isTesting,
     fetchConfig,
     saveConfig,
     deleteConfig,
+    testConnection,
   }
 }
