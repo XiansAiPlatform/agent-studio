@@ -3,6 +3,7 @@ import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { TENANT_ROLES } from '@/app/(dashboard)/system-admin/users/types'
+import { normalizeTenantUser } from '@/app/(dashboard)/tenant-settings/users/types'
 
 /**
  * GET /api/settings/users
@@ -33,16 +34,9 @@ export const GET = withTenantAdmin(
         { headers: { 'X-Tenant-Id': tenantId } }
       )
 
-      // Normalize each user so `roles` is always a string array regardless of
-      // whether the backend returns `roles` (array) or `role` (singular string).
-      const users = (data.users ?? []).map((u: any) => ({
-        ...u,
-        roles: Array.isArray(u.roles)
-          ? u.roles
-          : u.role != null
-            ? [u.role]
-            : [],
-      }))
+      // Normalize each user so roles and identity/lockout metadata are always
+      // present in camelCase regardless of upstream naming.
+      const users = (data.users ?? []).map((u) => normalizeTenantUser(u))
 
       return NextResponse.json({ ...data, users })
     } catch (error) {

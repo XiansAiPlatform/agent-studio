@@ -24,8 +24,8 @@ const schema = z.object({
     .min(1, 'Tenant ID is required')
     .max(50, 'Tenant ID must be 50 characters or fewer')
     .regex(
-      /^[a-zA-Z0-9._@-]+$/,
-      'Only letters, numbers and . _ @ - are allowed'
+      /^[a-z0-9._@-]+$/,
+      'Only lowercase letters, numbers and . _ @ - are allowed'
     ),
   name: z
     .string()
@@ -87,6 +87,8 @@ export function AddTenantDialog({
     },
   })
 
+  const tenantIdField = register('tenantId')
+
   const handleClose = (next: boolean) => {
     if (!next) reset()
     onOpenChange(next)
@@ -137,10 +139,16 @@ export function AddTenantDialog({
               id="add-tenant-id"
               placeholder="acme-corp"
               autoComplete="off"
-              {...register('tenantId')}
+              autoCapitalize="none"
+              spellCheck={false}
+              {...tenantIdField}
+              onChange={(event) => {
+                event.target.value = event.target.value.toLowerCase()
+                void tenantIdField.onChange(event)
+              }}
             />
             <p className="text-xs text-muted-foreground">
-              Unique identifier used across the platform. Cannot be changed later.
+              Unique lowercase identifier used across the platform. Cannot be changed later.
             </p>
             {errors.tenantId && (
               <p className="text-xs text-destructive">{errors.tenantId.message}</p>

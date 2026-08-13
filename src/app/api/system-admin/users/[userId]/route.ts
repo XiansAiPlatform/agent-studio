@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withSystemAdmin } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { normalizeGlobalUserDetail } from '@/app/(dashboard)/system-admin/users/types'
 
 /**
  * System Admin → single user operations.
@@ -41,7 +42,7 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
   try {
     const client = createXiansClient()
     const data = await client.get(`/api/v1/admin/users/${encodeURIComponent(userId)}`)
-    return NextResponse.json(data)
+    return NextResponse.json(normalizeGlobalUserDetail(data))
   } catch (error) {
     return handleApiError(error, 'system-admin/users/[userId] GET', {
       fallbackMessage: 'Failed to fetch user',
@@ -87,7 +88,7 @@ export const PATCH = withSystemAdmin(async (request: NextRequest) => {
       `/api/v1/admin/users/${encodeURIComponent(userId)}`,
       globalBody
     )
-    return NextResponse.json(data)
+    return NextResponse.json(normalizeGlobalUserDetail(data))
   } catch (error) {
     return handleApiError(error, 'system-admin/users/[userId] PATCH', {
       fallbackMessage: 'Failed to update user',

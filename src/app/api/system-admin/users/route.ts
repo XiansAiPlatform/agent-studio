@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withSystemAdmin } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
-import { TENANT_ROLES } from '@/app/(dashboard)/system-admin/users/types'
+import { TENANT_ROLES, normalizeGlobalUser, normalizeAdminTenantUser } from '@/app/(dashboard)/system-admin/users/types'
 
 /**
  * System Admin → Users API.
@@ -48,8 +48,13 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
 
     try {
       const client = createXiansClient()
-      const data = await client.get(`/api/v1/admin/users?${upstreamQuery.toString()}`)
-      return NextResponse.json(data)
+      const data = await client.get<{ users?: unknown[]; totalCount?: number; page?: number; pageSize?: number }>(
+        `/api/v1/admin/users?${upstreamQuery.toString()}`
+      )
+      return NextResponse.json({
+        ...data,
+        users: (data.users ?? []).map(normalizeGlobalUser),
+      })
     } catch (error) {
       return handleApiError(error, 'system-admin/users GET (global)', {
         fallbackMessage: 'Failed to list users',
@@ -68,10 +73,13 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
 
   try {
     const client = createXiansClient()
-    const data = await client.get(
+    const data = await client.get<{ users?: unknown[]; totalCount?: number; page?: number; pageSize?: number }>(
       `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users?${upstreamQuery.toString()}`
     )
-    return NextResponse.json(data)
+    return NextResponse.json({
+      ...data,
+      users: (data.users ?? []).map(normalizeAdminTenantUser),
+    })
   } catch (error) {
     return handleApiError(error, 'system-admin/users GET (tenant)', {
       fallbackMessage: 'Failed to list users',

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withSystemAdmin } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { normalizeGlobalUserDetail } from '@/app/(dashboard)/system-admin/users/types'
 
 /**
  * PUT /api/system-admin/users/[userId]/sysadmin
@@ -38,7 +39,7 @@ export const PUT = withSystemAdmin(async (request: NextRequest) => {
       `/api/v1/admin/users/${encodeURIComponent(userId)}/sysadmin`,
       { isSysAdmin: body.isSysAdmin }
     )
-    return NextResponse.json(data)
+    return NextResponse.json(normalizeGlobalUserDetail(data))
   } catch (error) {
     return handleApiError(error, 'system-admin/users/[userId]/sysadmin PUT', {
       fallbackMessage: 'Failed to update System Admin status',

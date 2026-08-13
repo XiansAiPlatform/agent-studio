@@ -317,6 +317,7 @@ function UsersPageContent() {
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-3 font-medium">User</th>
+                  <th className="px-4 py-3 font-medium">User ID</th>
                   {isAllTenants
                     ? <th className="px-4 py-3 font-medium">Tenants</th>
                     : <th className="px-4 py-3 font-medium">Role</th>}
@@ -357,6 +358,15 @@ function UsersPageContent() {
                         </div>
                       </td>
 
+                      <td className="px-4 py-3">
+                        <span
+                          className="block max-w-[220px] truncate font-mono text-xs text-muted-foreground"
+                          title={u.userId}
+                        >
+                          {u.userId || '—'}
+                        </span>
+                      </td>
+
                       {/* Tenants / Role */}
                       {isAllTenants ? (
                         <td className="px-4 py-3">
@@ -382,9 +392,14 @@ function UsersPageContent() {
 
                       {/* Status */}
                       <td className="px-4 py-3">
-                        <Badge variant={u.isEnabled ? 'default' : 'secondary'}>
-                          {u.isEnabled ? 'Enabled' : 'Disabled'}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge variant={u.isEnabled ? 'default' : 'secondary'}>
+                            {u.isEnabled ? 'Enabled' : 'Disabled'}
+                          </Badge>
+                          {u.isLockedOut && (
+                            <Badge variant="destructive">Locked out</Badge>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
