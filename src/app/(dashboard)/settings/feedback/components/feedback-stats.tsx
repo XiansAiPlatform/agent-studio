@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, MessageSquare, TrendingUp } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import {
   Bar,
   BarChart,
@@ -68,21 +69,9 @@ export function FeedbackStats({ stats, loading, error }: FeedbackStatsProps) {
     );
   }
 
-  if (loading && !stats) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <Card key={i} className="py-4">
-            <CardContent className="px-4">
-              <div className="h-14 animate-pulse rounded-lg bg-muted/50" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
+  if (!stats) {
+    return <PageLoader label="Loading feedback..." />;
   }
-
-  if (!stats) return null;
 
   const ratingData = stats.ratingCounts.map((r) => ({
     rating: `${r.rating}★`,

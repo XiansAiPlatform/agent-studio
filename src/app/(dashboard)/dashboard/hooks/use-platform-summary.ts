@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { showToast } from '@/lib/toast'
+import { useResolvedLoading } from '@/hooks/use-resolved-loading'
 
 export type PlatformSummary = {
   tenantCount: number
@@ -21,18 +22,17 @@ const DEFAULT_SUMMARY: PlatformSummary = {
  */
 export function usePlatformSummary(enabled = true) {
   const [summary, setSummary] = useState<PlatformSummary | null>(null)
-  const [isLoading, setIsLoading] = useState(enabled)
+  const fetchKey = enabled ? 'platform-summary' : null
+  const { isLoading, resolve } = useResolvedLoading(fetchKey, false)
 
   useEffect(() => {
     if (!enabled) {
-      setIsLoading(false)
       return
     }
 
     const abortController = new AbortController()
 
     async function fetchSummary() {
-      setIsLoading(true)
       try {
         const response = await fetch('/api/system-admin/summary', {
           signal: abortController.signal,
@@ -40,6 +40,7 @@ export function usePlatformSummary(enabled = true) {
         if (!response.ok) throw new Error('Failed to fetch platform summary')
         const data: PlatformSummary = await response.json()
         setSummary(data)
+        resolve('platform-summary')
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return
         showToast.error({
@@ -48,8 +49,7 @@ export function usePlatformSummary(enabled = true) {
             error instanceof Error ? error.message : 'Could not load platform counts',
         })
         setSummary(DEFAULT_SUMMARY)
-      } finally {
-        setIsLoading(false)
+        resolve('platform-summary')
       }
     }
 

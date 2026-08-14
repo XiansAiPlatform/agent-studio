@@ -22,6 +22,7 @@ import {
   AlertCircle,
   Trash2,
 } from 'lucide-react'
+import { PageLoader } from '@/components/ui/page-loader'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 import { Schedule, SCHEDULE_STATUS_OPTIONS } from './types'
 import { useSchedules } from './hooks/use-schedules'
@@ -228,12 +229,7 @@ function SchedulesContent() {
               </CardContent>
             </Card>
           ) : isLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Loading schedules...</p>
-              </div>
-            </div>
+            <PageLoader label="Loading schedules..." className="py-24" />
           ) : filteredSchedules.length === 0 ? (
             <Card>
               <CardContent className="py-16">
@@ -346,7 +342,7 @@ function PageHeader({
 export default function SchedulesPage() {
   return (
     <Suspense
-      fallback={<div className="container mx-auto p-6">Loading...</div>}
+      fallback={<PageLoader label="Loading schedules..." />}
     >
       <SchedulesContent />
     </Suspense>

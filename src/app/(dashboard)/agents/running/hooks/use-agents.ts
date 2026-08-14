@@ -5,14 +5,21 @@ import { showErrorToast } from '@/lib/utils/error-handler';
 
 export function useAgents(currentTenantId: string | null) {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const fetchKey = currentTenantId;
+  // True while tenant is missing or this tenant's fetch has not resolved yet.
+  // Derived so an aborted request cannot flip loading off while a newer fetch is in flight.
+  const isLoading = fetchKey === null || resolvedKey !== fetchKey;
 
   const fetchActivations = async () => {
     if (!currentTenantId) {
       console.log('[useAgents] No current tenant ID');
       return;
     }
+
+    const key = currentTenantId;
 
     // Cancel any pending request
     if (abortControllerRef.current) {
@@ -22,7 +29,6 @@ export function useAgents(currentTenantId: string | null) {
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
 
-    setIsLoading(true);
     try {
       const response = await fetch(`/api/agent-activations`, {
         signal: abortControllerRef.current.signal,
@@ -79,8 +85,9 @@ export function useAgents(currentTenantId: string | null) {
       });
 
       setAgents(mappedAgents);
+      setResolvedKey(key);
     } catch (error) {
-      // Ignore abort errors
+      // Ignore abort errors — do not resolve the key so loading stays true
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('[useAgents] Request aborted');
         return;
@@ -89,8 +96,7 @@ export function useAgents(currentTenantId: string | null) {
       console.error('[useAgents] Error fetching activations:', error);
       showErrorToast(error, 'Failed to load agent activations');
       setAgents([]);
-    } finally {
-      setIsLoading(false);
+      setResolvedKey(key);
     }
   };
 

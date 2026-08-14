@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MetricsCategoriesResponse } from '../types';
+import { useResolvedLoading } from '@/hooks/use-resolved-loading';
 
 export function useMetricsCategories(
   startDate: string,
@@ -11,18 +12,22 @@ export function useMetricsCategories(
   shouldFetch: boolean = true
 ) {
   const [data, setData] = useState<MetricsCategoriesResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchKey =
+    shouldFetch && startDate && endDate
+      ? `${startDate}:${endDate}:${agentName ?? ''}:${activationName ?? ''}`
+      : null;
+  const { isLoading, resolve } = useResolvedLoading(fetchKey, false);
 
   useEffect(() => {
     if (!shouldFetch || !startDate || !endDate) {
       setData(null);
-      setIsLoading(false);
       return;
     }
 
+    const key = `${startDate}:${endDate}:${agentName ?? ''}:${activationName ?? ''}`;
+
     const fetchCategories = async () => {
-      setIsLoading(true);
       setError(null);
 
       try {
@@ -56,12 +61,12 @@ export function useMetricsCategories(
 
         const result = await response.json();
         setData(result);
+        resolve(key);
       } catch (err) {
         console.error('[useMetricsCategories] Error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
         setData(null);
-      } finally {
-        setIsLoading(false);
+        resolve(key);
       }
     };
 
