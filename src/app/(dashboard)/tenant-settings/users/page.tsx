@@ -36,6 +36,7 @@ import {
 } from '@/components/layout/dashboard-page'
 import { useUsers } from './hooks/use-users'
 import { TenantUser, TenantRole, TENANT_ROLE_LABELS } from './types'
+import type { AddTenantUserRequest } from './types'
 import { AddUserDialog } from './components/add-user-dialog'
 import { EditUserDialog } from './components/edit-user-dialog'
 import { DeleteUserDialog } from './components/delete-user-dialog'
@@ -60,8 +61,17 @@ export default function UsersPage() {
   const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
-  const { users, totalCount, isLoading, error, fetchUsers, createUser, updateUser, deleteUser } =
-    useUsers({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
+  const {
+    users,
+    totalCount,
+    isLoading,
+    error,
+    fetchUsers,
+    createUser,
+    addExistingUserToTenant,
+    updateUser,
+    deleteUser,
+  } = useUsers({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
 
   // Debounce search input
   useEffect(() => {
@@ -91,15 +101,18 @@ export default function UsersPage() {
   }, [fetchUsers, page, debouncedSearch])
 
   // ── Add ──────────────────────────────────────────────────────────────────
-  const handleAdd = async (data: { email: string; name: string; roles: TenantRole[] }) => {
-    try {
+  // Failures are deliberately not caught here: the dialog renders them next to
+  // the form, because a conflict on the email address needs a follow-up action
+  // (supplying a user id) that a toast cannot carry.
+  const handleAdd = async (data: AddTenantUserRequest) => {
+    if ('userId' in data) {
+      await addExistingUserToTenant(data)
+      toast.success('Existing user added to this tenant')
+    } else {
       await createUser(data)
       toast.success(`User "${data.name}" added successfully`)
-      fetchUsers(page, debouncedSearch)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add user')
-      throw err
     }
+    fetchUsers(page, debouncedSearch)
   }
 
   // ── Edit ─────────────────────────────────────────────────────────────────

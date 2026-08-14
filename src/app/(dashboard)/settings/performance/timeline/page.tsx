@@ -1,17 +1,16 @@
 'use client';
 
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
-import { ArrowLeft, BarChart3, TrendingUp, Activity, Zap, MinusSquare, PlusSquare, Target } from 'lucide-react';
+import { ArrowLeft, BarChart3, TrendingUp, Activity, Zap, Target } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { useMetricsTimeseries } from '../hooks/use-metrics-timeseries';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { formatMetricValue, getUnitDisplay } from '../utils/format-helpers';
 import {

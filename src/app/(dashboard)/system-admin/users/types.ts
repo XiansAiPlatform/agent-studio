@@ -179,11 +179,36 @@ export function normalizeGlobalUserDetail(raw: unknown): GlobalUserDetail {
 
 // ── Mutation request types ────────────────────────────────────────────────────
 
+/**
+ * Create a brand-new account and add it to the tenant.
+ *
+ * The backend rejects this with 409 if any account already holds `email`; in
+ * that case the account has to be added by id via AddExistingUserRequest.
+ */
 export interface CreateUserRequest {
   email: string
   name: string
   role: TenantRole
 }
+
+/**
+ * Add an account that already exists to a tenant.
+ *
+ * `userId` must be a user id — an email address is rejected with 400 because a
+ * single address can belong to accounts from more than one identity provider.
+ */
+export interface AddExistingUserRequest {
+  userId: string
+  role: TenantRole
+}
+
+/**
+ * Body of POST /api/v1/admin/tenants/{tenantId}/users. `role` is always
+ * required; the remaining fields pick one of the two modes above. `userId` and
+ * `email`/`name` are mutually exclusive — when `userId` is present the backend
+ * ignores `email` and `name`.
+ */
+export type AddTenantUserRequest = AddExistingUserRequest | CreateUserRequest
 
 /** A single tenant + role pair for new-user creation. */
 export interface TenantMembershipInput {

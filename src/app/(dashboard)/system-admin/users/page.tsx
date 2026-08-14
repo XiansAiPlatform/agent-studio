@@ -82,6 +82,7 @@ function UsersPageContent() {
     fetchGlobalUsers,
     fetchTenantUsers,
     createUser,
+    addExistingUserToTenant,
     setSysAdmin,
     setUserEnabled,
     deleteUser,
@@ -163,16 +164,41 @@ function UsersPageContent() {
         role: first.role,
       })
 
-      // Add to any additional tenants (best-effort, report failures without rolling back).
+      // Everything below addresses the account by id, so stop here if the
+      // create response did not carry one.
+      if (!created.userId) {
+        throw new Error(
+          'User was created but the server did not return a user id, so the remaining tenants and account settings were not applied.'
+        )
+      }
+
+      // Add the account just created to any additional tenants. These are
+      // by-id calls: the address cannot be reused to name it, and passing the
+      // address again would be rejected as an already-taken email.
+      // Best-effort — failures are reported without rolling back.
       if (rest.length > 0) {
         const results = await Promise.allSettled(
           rest.map((m) =>
-            createUser(m.tenantId, { name: data.name, email: data.email, role: m.role })
+            addExistingUserToTenant(m.tenantId, { userId: created.userId, role: m.role })
           )
         )
-        const failed = results.filter((r) => r.status === 'rejected').length
-        if (failed > 0) {
-          toast.warning(`User created but failed to add to ${failed} additional tenant(s)`)
+        const failures = results.filter(
+          (r): r is PromiseRejectedResult => r.status === 'rejected'
+        )
+        if (failures.length > 0) {
+          // Surface the server's messages: they say what the operator must do
+          // (enable the account first, and so on).
+          const reasons = [
+            ...new Set(
+              failures.map((r) =>
+                r.reason instanceof Error ? r.reason.message : String(r.reason)
+              )
+            ),
+          ]
+          toast.warning(
+            `User created but failed to add to ${failures.length} additional tenant(s)`,
+            { description: reasons.join(' ') }
+          )
         }
       }
 
