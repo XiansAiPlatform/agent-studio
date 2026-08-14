@@ -56,7 +56,7 @@ const PAGE_SIZE = 20;
 const ALL_TENANTS = '__all__';
 
 function UsersPageContent() {
-  const { isLoading: isAuthLoading } = useAuth();
+  const { user: currentUser, isLoading: isAuthLoading } = useAuth();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string>(ALL_TENANTS);
   const [searchInput, setSearchInput] = useState('');
@@ -66,7 +66,7 @@ function UsersPageContent() {
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [detailTarget, setDetailTarget] = useState<GlobalUser | TenantUser | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<TenantUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GlobalUser | TenantUser | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // The tenant selector needs the full tenant list, not a single page — the
@@ -188,16 +188,22 @@ function UsersPageContent() {
     }
   }
 
+  const isCurrentUser = (u: GlobalUser | TenantUser) =>
+    (!!currentUser?.id && u.userId === currentUser.id) ||
+    (!!currentUser?.email &&
+      u.email.toLowerCase() === currentUser.email.toLowerCase())
+
   const handleDeleteConfirm = async () => {
-    if (isAllTenants || !deleteTarget) return;
+    if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      await deleteUser(selectedTenantId, deleteTarget.userId);
-      toast.success(`${deleteTarget.name} removed`);
+      await deleteUser(deleteTarget.userId);
+      toast.success(`${deleteTarget.name} deleted`);
+      if (detailTarget?.userId === deleteTarget.userId) setDetailTarget(null);
       setDeleteTarget(null);
       loadUsers();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to remove user');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete user');
     } finally {
       setIsDeleting(false);
     }
@@ -416,12 +422,13 @@ function UsersPageContent() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => setDeleteTarget(u as TenantUser)}
-                              disabled={isAllTenants}
+                              onClick={() => setDeleteTarget(u)}
+                              disabled={isCurrentUser(u)}
+                              title={isCurrentUser(u) ? 'You cannot delete your own account' : undefined}
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Remove from Tenant
+                              Delete user
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -462,7 +469,7 @@ function UsersPageContent() {
 
       {isAllTenants && (
         <p className="text-xs text-muted-foreground text-center">
-          Showing all platform users. Select a specific tenant to add or remove users.
+          Showing all platform users. Select a specific tenant to add users.
         </p>
       )}
       </DashboardPageBody>
@@ -486,7 +493,6 @@ function UsersPageContent() {
 
       <DeleteUserDialog
         user={deleteTarget}
-        tenantName={tenantName}
         open={deleteTarget !== null}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
         onConfirm={handleDeleteConfirm}
