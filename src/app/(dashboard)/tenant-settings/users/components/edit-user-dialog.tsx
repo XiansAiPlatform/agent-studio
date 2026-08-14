@@ -16,8 +16,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, UserCog } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Loader2, UserCog, ShieldCheck } from 'lucide-react'
 import { RolesHelp } from '@/components/features/users/roles-help'
+import { UserIdentityDetails } from '@/components/features/users/user-identity-details'
 import {
   TenantUser,
   UpdateUserRequest,
@@ -43,7 +45,8 @@ interface EditUserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (userId: string, data: UpdateUserRequest) => Promise<void>
-  isSelf?: boolean
+  /** When true, the Approved toggle is locked (e.g. non–system-admin editing themselves). */
+  lockApproval?: boolean
 }
 
 export function EditUserDialog({
@@ -51,9 +54,10 @@ export function EditUserDialog({
   open,
   onOpenChange,
   onSubmit,
-  isSelf = false,
+  lockApproval = false,
 }: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [detail, setDetail] = useState<TenantUser | null>(user)
 
   const {
     register,
@@ -72,19 +76,44 @@ export function EditUserDialog({
     },
   })
 
+  const applyUserToForm = (next: TenantUser) => {
+    const validRoles = next.roles.filter((r): r is TenantRole =>
+      TENANT_ROLES.includes(r as TenantRole)
+    )
+    reset({
+      name: next.name,
+      email: next.email,
+      roles: validRoles.length > 0 ? validRoles : ['TenantParticipant'],
+      isApproved: next.isApproved,
+    })
+  }
+
   useEffect(() => {
-    if (user) {
-      const validRoles = user.roles.filter((r): r is TenantRole =>
-        TENANT_ROLES.includes(r as TenantRole)
-      )
-      reset({
-        name: user.name,
-        email: user.email,
-        roles: validRoles.length > 0 ? validRoles : ['TenantParticipant'],
-        isApproved: user.isApproved,
-      })
+    if (!open || !user) {
+      setDetail(null)
+      return
     }
-  }, [user, reset])
+
+    setDetail(user)
+    applyUserToForm(user)
+
+    let cancelled = false
+    fetch(`/api/settings/users/${encodeURIComponent(user.userId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: TenantUser | null) => {
+        if (cancelled || !data) return
+        setDetail(data)
+        applyUserToForm(data)
+      })
+      .catch(() => {
+        // Keep the list-row data if the detail fetch fails.
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset/apply on open + user identity
+  }, [open, user])
 
   const selectedRoles = watch('roles') as TenantRole[]
   const isApprovedValue = watch('isApproved')
@@ -113,6 +142,8 @@ export function EditUserDialog({
     }
   }
 
+  const displayUser = detail ?? user
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex flex-col sm:max-w-xl w-full">
@@ -122,11 +153,26 @@ export function EditUserDialog({
             <div className="p-2 rounded-lg bg-primary/10">
               <UserCog className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <SheetTitle className="text-base font-semibold">Edit User</SheetTitle>
-              <SheetDescription className="text-sm mt-0.5">
-                {user?.name ?? 'Update user details'}
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="text-base font-semibold truncate">
+                Edit User
+              </SheetTitle>
+              <SheetDescription className="text-sm mt-0.5 truncate">
+                {displayUser?.name ?? 'Update user details'}
               </SheetDescription>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {displayUser?.isSysAdmin && (
+                <Badge variant="default" className="gap-1 text-xs">
+                  <ShieldCheck className="h-3 w-3" />
+                  Sys Admin
+                </Badge>
+              )}
+              {displayUser?.isLockedOut && (
+                <Badge variant="destructive" className="text-xs">
+                  Locked out
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -194,7 +240,7 @@ export function EditUserDialog({
             <div>
               <p className="text-sm font-medium">Approved</p>
               <p className="text-xs text-muted-foreground">
-                {isSelf
+                {lockApproval
                   ? "You can't change your own approval status"
                   : 'Unapproved users cannot access this tenant'}
               </p>
@@ -202,9 +248,11 @@ export function EditUserDialog({
             <Switch
               checked={isApprovedValue}
               onCheckedChange={(val) => setValue('isApproved', val)}
-              disabled={isSelf}
+              disabled={lockApproval}
             />
           </div>
+
+          {displayUser && <UserIdentityDetails user={displayUser} />}
         </form>
 
         {/* Footer */}

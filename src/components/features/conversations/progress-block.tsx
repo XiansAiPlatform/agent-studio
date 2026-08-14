@@ -53,7 +53,7 @@ const markdownComponents = {
 function LogContent({ content, className, mono = false }: { content: string; className?: string; mono?: boolean }) {
   const decoded = decodeUnicodeEscapes(content);
   return (
-    <div className={cn('text-[11px] text-muted-foreground/80 leading-relaxed [&>*]:my-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0', mono && 'font-mono', className)}>
+    <div className={cn('text-[11px] text-muted-foreground/80 leading-relaxed min-w-0 max-w-full [overflow-wrap:anywhere] break-words [&>*]:my-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0', mono && 'font-mono', className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
         {decoded}
       </ReactMarkdown>
@@ -65,7 +65,7 @@ function ToolStep({ message }: { message: Message }) {
   return (
     <div className="flex gap-2 py-1">
       <Wrench className="h-3 w-3 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0 overflow-x-auto">
+      <div className="flex-1 min-w-0 overflow-x-hidden">
         <LogContent content={message.content} mono />
       </div>
     </div>

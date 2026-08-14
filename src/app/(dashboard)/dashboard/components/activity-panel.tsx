@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { LogLevelBadge } from '@/components/features/logs'
 import type { LogEntry } from '@/app/(dashboard)/settings/logs/types'
 import { formatDistanceToNow } from 'date-fns'
+import { PageLoader } from '@/components/ui/page-loader'
 import { PANEL_STYLE } from './panel-style'
 
 interface ActivityPanelProps {
@@ -31,17 +32,7 @@ export function ActivityPanel({ logs, isLoading }: ActivityPanelProps) {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3 py-2 animate-pulse">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex gap-2.5">
-              <div className="h-5 w-12 rounded bg-muted/50 shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-4 w-full rounded bg-muted/50" />
-                <div className="h-3 w-1/3 rounded bg-muted/40" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <PageLoader label="Loading activity..." className="py-10" />
       ) : logs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 space-y-3">
           <Zap className="h-6 w-6 text-muted-foreground/50" />

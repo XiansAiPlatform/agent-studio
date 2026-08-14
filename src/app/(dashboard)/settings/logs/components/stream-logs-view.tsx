@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useLogs } from '../hooks/use-logs';
 import { LogFilters } from '../types';
 import { LogListItem } from './log-list-item';
@@ -50,10 +51,7 @@ export function StreamLogsView({
     return (
       <Card className="border-border/50">
         <CardContent className="!px-0 !py-0">
-          <div className="flex flex-col items-center justify-center py-16 space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading logs...</p>
-          </div>
+          <PageLoader label="Loading logs..." className="py-16" />
         </CardContent>
       </Card>
     );

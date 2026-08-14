@@ -86,7 +86,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
   return (
     <div
       className={cn(
-        'flex gap-3.5 group',
+        'flex gap-3.5 group w-full min-w-0',
         isUser ? 'flex-row-reverse' : 'flex-row'
       )}
     >
@@ -109,7 +109,9 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
       {/* Message Content */}
       <div
         className={cn(
-          'flex flex-col gap-1 max-w-[70%]',
+          // min-w-0 lets max-w constrain flex children whose content has a large
+          // intrinsic width (JSON, URLs, fenced/indented code).
+          'flex flex-col gap-1 max-w-[70%] min-w-0',
           isUser ? 'items-end' : 'items-start'
         )}
       >
@@ -133,13 +135,13 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
         {/* Message Bubble */}
         <div
           className={cn(
-            'message-bubble rounded-2xl px-4 py-2.5 transition-all duration-200',
+            'message-bubble rounded-2xl px-4 py-2.5 transition-all duration-200 min-w-0 max-w-full',
             isUser
               ? 'message-bubble--user bg-primary text-primary-foreground font-medium'
               : 'message-bubble--agent bg-muted/50 text-foreground'
           )}
         >
-          <div className="text-sm leading-relaxed markdown-content [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+          <div className="text-sm leading-relaxed markdown-content min-w-0 max-w-full [overflow-wrap:anywhere] break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkBreaks]}
               components={{
@@ -148,7 +150,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <a
                     {...props}
                     className={cn(
-                      'underline hover:opacity-80 transition-opacity',
+                      'underline hover:opacity-80 transition-opacity [overflow-wrap:anywhere] break-words',
                       isUser ? 'text-primary-foreground' : 'text-primary'
                     )}
                     target="_blank"
@@ -156,40 +158,51 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   />
                 ),
                 // Customize code block styling
-                code: ({ node, ...props }) => {
-                  const inline = !('inline' in props) || (props as any).inline !== false;
-                  return inline ? (
+                code: ({ node, className, children, ...props }) => {
+                  // Fenced / indented blocks pass a language-* className; inline code does not.
+                  const isBlock =
+                    typeof className === 'string' && className.length > 0;
+                  return isBlock ? (
                     <code
                       {...props}
                       className={cn(
-                        'px-1.5 py-0.5 rounded text-xs font-mono',
+                        className,
+                        'block max-w-full px-4 py-3 rounded-md text-xs font-mono leading-relaxed',
+                        'whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
                         isUser
                           ? 'bg-primary-foreground/20'
                           : 'bg-muted-foreground/20'
                       )}
-                    />
+                    >
+                      {children}
+                    </code>
                   ) : (
                     <code
                       {...props}
                       className={cn(
-                        'block px-4 py-3 rounded-md text-xs font-mono overflow-x-auto leading-relaxed',
+                        'px-1.5 py-0.5 rounded text-xs font-mono [overflow-wrap:anywhere] break-all',
                         isUser
                           ? 'bg-primary-foreground/20'
                           : 'bg-muted-foreground/20'
                       )}
-                    />
+                    >
+                      {children}
+                    </code>
                   );
                 },
                 // Customize pre block styling (wraps code blocks)
                 pre: ({ node, ...props }) => (
-                  <pre {...props} className="my-3" />
+                  <pre
+                    {...props}
+                    className="my-3 max-w-full overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                  />
                 ),
                 // Ensure proper text color and spacing
                 p: ({ node, ...props }) => (
                   <p
                     {...props}
                     className={cn(
-                      'my-2 leading-relaxed',
+                      'my-2 leading-relaxed max-w-full [overflow-wrap:anywhere] break-words',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -198,7 +211,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <ul
                     {...props}
                     className={cn(
-                      'list-disc my-3 space-y-1.5 pl-6 marker:text-current',
+                      'list-disc my-3 space-y-1.5 pl-6 marker:text-current max-w-full',
                       '[&>li]:pl-1.5',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
@@ -208,7 +221,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <ol
                     {...props}
                     className={cn(
-                      'list-decimal my-3 space-y-1.5 pl-6 marker:text-current',
+                      'list-decimal my-3 space-y-1.5 pl-6 marker:text-current max-w-full',
                       '[&>li]:pl-1.5',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
@@ -218,7 +231,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <li
                     {...props}
                     className={cn(
-                      'leading-relaxed',
+                      'leading-relaxed [overflow-wrap:anywhere] break-words',
                       '[&>ul]:mt-1.5 [&>ol]:mt-1.5',
                       '[&>ul]:mb-0 [&>ol]:mb-0',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
@@ -244,7 +257,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <h1
                     {...props}
                     className={cn(
-                      'text-lg font-bold mt-4 mb-2 leading-tight',
+                      'text-lg font-bold mt-4 mb-2 leading-tight [overflow-wrap:anywhere]',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -253,7 +266,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <h2
                     {...props}
                     className={cn(
-                      'text-base font-bold mt-4 mb-2 leading-tight',
+                      'text-base font-bold mt-4 mb-2 leading-tight [overflow-wrap:anywhere]',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -262,7 +275,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <h3
                     {...props}
                     className={cn(
-                      'text-sm font-bold mt-3 mb-1.5 leading-tight',
+                      'text-sm font-bold mt-3 mb-1.5 leading-tight [overflow-wrap:anywhere]',
                       isUser ? 'text-primary-foreground' : 'text-foreground'
                     )}
                   />
@@ -271,7 +284,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <blockquote
                     {...props}
                     className={cn(
-                      'border-l-3 pl-4 my-3 italic leading-relaxed',
+                      'border-l-3 pl-4 my-3 italic leading-relaxed max-w-full [overflow-wrap:anywhere]',
                       isUser
                         ? 'border-primary-foreground/40 text-primary-foreground/90'
                         : 'border-muted-foreground/40 text-muted-foreground'
@@ -290,7 +303,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   />
                 ),
                 table: ({ node, ...props }) => (
-                  <div className="overflow-x-auto my-3">
+                  <div className="overflow-x-auto my-3 max-w-full">
                     <table
                       {...props}
                       className={cn(
@@ -304,7 +317,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <th
                     {...props}
                     className={cn(
-                      'border px-3 py-2 text-left font-semibold text-sm',
+                      'border px-3 py-2 text-left font-semibold text-sm [overflow-wrap:anywhere]',
                       isUser
                         ? 'border-primary-foreground/30 bg-primary-foreground/10'
                         : 'border-border bg-muted/50'
@@ -315,7 +328,7 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                   <td
                     {...props}
                     className={cn(
-                      'border px-3 py-2 text-sm',
+                      'border px-3 py-2 text-sm [overflow-wrap:anywhere] break-words',
                       isUser
                         ? 'border-primary-foreground/30'
                         : 'border-border'
@@ -479,47 +492,59 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                 )}
 
                 {/* Draft Body */}
-                <div className="px-4 py-3 max-h-96 overflow-y-auto">
-                  <div className="text-sm leading-relaxed markdown-content [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <div className="px-4 py-3 max-h-96 overflow-y-auto overflow-x-hidden min-w-0">
+                  <div className="text-sm leading-relaxed markdown-content min-w-0 max-w-full [overflow-wrap:anywhere] break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkBreaks]}
                       components={{
                         a: ({ node, ...props }) => (
                           <a
                             {...props}
-                            className="text-primary underline hover:opacity-80 transition-opacity"
+                            className="text-primary underline hover:opacity-80 transition-opacity [overflow-wrap:anywhere] break-words"
                             target="_blank"
                             rel="noopener noreferrer"
                           />
                         ),
-                        code: ({ node, ...props }) => {
-                          const inline = !('inline' in props) || (props as any).inline !== false;
-                          return inline ? (
+                        code: ({ node, className, children, ...props }) => {
+                          const isBlock =
+                            typeof className === 'string' && className.length > 0;
+                          return isBlock ? (
                             <code
                               {...props}
-                              className="px-1.5 py-0.5 rounded text-xs font-mono bg-muted-foreground/20"
-                            />
+                              className={cn(
+                                className,
+                                'block max-w-full px-4 py-3 rounded-md text-xs font-mono leading-relaxed bg-muted-foreground/20',
+                                'whitespace-pre-wrap break-words [overflow-wrap:anywhere]'
+                              )}
+                            >
+                              {children}
+                            </code>
                           ) : (
                             <code
                               {...props}
-                              className="block px-4 py-3 rounded-md text-xs font-mono overflow-x-auto leading-relaxed bg-muted-foreground/20"
-                            />
+                              className="px-1.5 py-0.5 rounded text-xs font-mono bg-muted-foreground/20 [overflow-wrap:anywhere] break-all"
+                            >
+                              {children}
+                            </code>
                           );
                         },
                         pre: ({ node, ...props }) => (
-                          <pre {...props} className="my-3" />
+                          <pre
+                            {...props}
+                            className="my-3 max-w-full overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                          />
                         ),
                         p: ({ node, ...props }) => (
-                          <p {...props} className="my-2 leading-relaxed text-foreground" />
+                          <p {...props} className="my-2 leading-relaxed text-foreground max-w-full [overflow-wrap:anywhere] break-words" />
                         ),
                         ul: ({ node, ...props }) => (
-                          <ul {...props} className="list-disc my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground" />
+                          <ul {...props} className="list-disc my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground max-w-full" />
                         ),
                         ol: ({ node, ...props }) => (
-                          <ol {...props} className="list-decimal my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground" />
+                          <ol {...props} className="list-decimal my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground max-w-full" />
                         ),
                         li: ({ node, ...props }) => (
-                          <li {...props} className="leading-relaxed [&>ul]:mt-1.5 [&>ol]:mt-1.5 [&>ul]:mb-0 [&>ol]:mb-0 text-foreground" />
+                          <li {...props} className="leading-relaxed [overflow-wrap:anywhere] break-words [&>ul]:mt-1.5 [&>ol]:mt-1.5 [&>ul]:mb-0 [&>ol]:mb-0 text-foreground" />
                         ),
                         strong: ({ node, ...props }) => (
                           <strong {...props} className="font-bold text-foreground" />
@@ -528,36 +553,36 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
                           <em {...props} className="italic text-foreground" />
                         ),
                         h1: ({ node, ...props }) => (
-                          <h1 {...props} className="text-lg font-bold mt-4 mb-2 leading-tight text-foreground" />
+                          <h1 {...props} className="text-lg font-bold mt-4 mb-2 leading-tight text-foreground [overflow-wrap:anywhere]" />
                         ),
                         h2: ({ node, ...props }) => (
-                          <h2 {...props} className="text-base font-bold mt-4 mb-2 leading-tight text-foreground" />
+                          <h2 {...props} className="text-base font-bold mt-4 mb-2 leading-tight text-foreground [overflow-wrap:anywhere]" />
                         ),
                         h3: ({ node, ...props }) => (
-                          <h3 {...props} className="text-sm font-bold mt-3 mb-1.5 leading-tight text-foreground" />
+                          <h3 {...props} className="text-sm font-bold mt-3 mb-1.5 leading-tight text-foreground [overflow-wrap:anywhere]" />
                         ),
                         blockquote: ({ node, ...props }) => (
                           <blockquote
                             {...props}
-                            className="border-l-3 border-muted-foreground/40 pl-4 my-3 italic leading-relaxed text-muted-foreground"
+                            className="border-l-3 border-muted-foreground/40 pl-4 my-3 italic leading-relaxed text-muted-foreground max-w-full [overflow-wrap:anywhere]"
                           />
                         ),
                         hr: ({ node, ...props }) => (
                           <hr {...props} className="my-4 border-muted-foreground/30" />
                         ),
                         table: ({ node, ...props }) => (
-                          <div className="overflow-x-auto my-3">
+                          <div className="overflow-x-auto my-3 max-w-full">
                             <table {...props} className="min-w-full border-collapse text-foreground" />
                           </div>
                         ),
                         th: ({ node, ...props }) => (
                           <th
                             {...props}
-                            className="border border-border px-3 py-2 text-left font-semibold text-sm bg-muted/50"
+                            className="border border-border px-3 py-2 text-left font-semibold text-sm bg-muted/50 [overflow-wrap:anywhere]"
                           />
                         ),
                         td: ({ node, ...props }) => (
-                          <td {...props} className="border border-border px-3 py-2 text-sm" />
+                          <td {...props} className="border border-border px-3 py-2 text-sm [overflow-wrap:anywhere] break-words" />
                         ),
                       }}
                     >

@@ -9,11 +9,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Power, Loader2 } from 'lucide-react';
 import { Agent } from '../types';
+import {
+  ActionProgressSteps,
+  type ActionProgressStep,
+} from './action-progress-steps';
+
+export const DEACTIVATE_STEPS: ActionProgressStep[] = [
+  { id: 'deactivate', label: 'Deactivate agent' },
+];
 
 interface AgentDeactivateDialogProps {
   open: boolean;
   agent: Agent | null;
   isDeactivating: boolean;
+  currentStepIndex: number;
+  hasFailed?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }
@@ -22,11 +32,19 @@ export function AgentDeactivateDialog({
   open,
   agent,
   isDeactivating,
+  currentStepIndex,
+  hasFailed = false,
   onOpenChange,
   onConfirm,
 }: AgentDeactivateDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (isDeactivating && !nextOpen) return;
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <div className="flex items-center gap-3">
@@ -41,8 +59,8 @@ export function AgentDeactivateDialog({
             </div>
           </div>
         </DialogHeader>
-        
-        <div className="py-4">
+
+        <div className="py-4 space-y-4">
           <div className="rounded-lg border border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/30 p-4">
             <p className="text-sm text-foreground">
               Are you sure you want to deactivate{' '}
@@ -58,10 +76,18 @@ export function AgentDeactivateDialog({
             )}
             <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-900">
               <p className="text-xs text-muted-foreground">
-                This will stop the agent from processing new tasks and conversations. You can reactivate it later.
+                This will stop the agent from processing new tasks and
+                conversations. You can reactivate it later.
               </p>
             </div>
           </div>
+
+          <ActionProgressSteps
+            steps={DEACTIVATE_STEPS}
+            currentStepIndex={currentStepIndex}
+            isRunning={isDeactivating}
+            hasFailed={hasFailed}
+          />
         </div>
 
         <DialogFooter>

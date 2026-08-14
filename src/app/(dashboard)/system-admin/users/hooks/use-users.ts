@@ -290,16 +290,20 @@ export function useUsers() {
     []
   )
 
+  /**
+   * Permanently delete a user account via DELETE /api/v1/admin/users/{userId}.
+   * No tenant context required.
+   */
   const deleteUser = useCallback(
-    async (tenantId: string, userId: string): Promise<void> => {
+    async (userId: string): Promise<void> => {
       setIsMutating(true)
       try {
         const res = await fetch(
-          `${BASE_URL}/${encodeURIComponent(userId)}?tenantId=${encodeURIComponent(tenantId)}`,
+          `${BASE_URL}/${encodeURIComponent(userId)}`,
           { method: 'DELETE' }
         )
         if (!res.ok && res.status !== 204) {
-          await parseError(res, 'Failed to remove user')
+          await parseError(res, 'Failed to delete user')
         }
       } finally {
         setIsMutating(false)

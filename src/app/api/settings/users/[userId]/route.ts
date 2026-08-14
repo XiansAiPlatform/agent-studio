@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient, XiansApiError } from '@/lib/xians/client'
+import { handleApiError } from '@/lib/api/error-handler'
 import { TENANT_ROLES } from '@/app/(dashboard)/system-admin/users/types'
+import { normalizeTenantUser } from '@/app/(dashboard)/tenant-settings/users/types'
 
 /**
  * Extract userId from the URL path:  /api/settings/users/{userId}
@@ -10,6 +12,58 @@ function extractUserId(pathname: string): string | null {
   const match = pathname.match(/\/api\/settings\/users\/([^/]+)$/)
   return match ? decodeURIComponent(match[1]) : null
 }
+
+/**
+ * GET /api/settings/users/[userId]
+ * Full tenant-scoped user record, including identity and lockout metadata.
+ */
+export const GET = withTenantAdmin(
+  async (request: NextRequest, { tenantContext }: ApiContext) => {
+    const tenantId = tenantContext.tenant.id
+    const userId = extractUserId(request.nextUrl.pathname)
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
+    try {
+      const client = createXiansClient()
+      const data = await client.get<Record<string, unknown>>(
+        `/api/v1/admin/users/${encodeURIComponent(userId)}`
+      )
+
+      const memberships = Array.isArray(data.memberships) ? data.memberships : []
+      const tenantRoles = Array.isArray(data.tenant_roles)
+        ? data.tenant_roles
+        : Array.isArray(data.tenantRoles)
+          ? data.tenantRoles
+          : []
+      const membership = [...memberships, ...tenantRoles].find((m) => {
+        if (typeof m !== 'object' || m == null) return false
+        const row = m as Record<string, unknown>
+        return row.tenantId === tenantId || row.tenant === tenantId
+      }) as
+        | { tenantId?: string; tenant?: string; roles?: string[]; isApproved?: boolean; is_approved?: boolean }
+        | undefined
+
+      if ((memberships.length > 0 || tenantRoles.length > 0) && !membership) {
+        return NextResponse.json({ error: 'User not found in this tenant' }, { status: 404 })
+      }
+
+      return NextResponse.json(
+        normalizeTenantUser({
+          ...data,
+          roles: membership?.roles ?? data.roles,
+          isApproved: membership?.isApproved ?? membership?.is_approved ?? data.isApproved,
+        })
+      )
+    } catch (error) {
+      return handleApiError(error, 'settings/users/[userId] GET', {
+        fallbackMessage: 'Failed to load user',
+      })
+    }
+  }
+)
 
 /**
  * PATCH /api/settings/users/[userId]

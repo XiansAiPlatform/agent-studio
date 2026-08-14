@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTenant } from '@/hooks/use-tenant'
+import { useResolvedLoading } from '@/hooks/use-resolved-loading'
 import { Schedule, ScheduleDeleteResult, ScheduleRun } from '../types'
 
 interface UseSchedulesOptions {
@@ -115,7 +116,6 @@ async function deleteAllSchedulesRequest(
 export function useSchedules(options: UseSchedulesOptions) {
   const { currentTenantId } = useTenant()
   const [schedules, setSchedules] = useState<Schedule[] | undefined>(undefined)
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -130,6 +130,11 @@ export function useSchedules(options: UseSchedulesOptions) {
     [currentTenantId, options.agentName, options.status, options.searchTerm]
   )
 
+  const { isLoading, resolve } = useResolvedLoading(
+    options.agentName ? optionsKey : null,
+    false
+  )
+
   const load = useCallback(async () => {
     if (!options.agentName) {
       setSchedules(undefined)
@@ -139,19 +144,18 @@ export function useSchedules(options: UseSchedulesOptions) {
     abortRef.current?.abort()
     abortRef.current = new AbortController()
 
-    setIsLoading(true)
     setError(null)
     try {
       const data = await fetchSchedules(options)
       setSchedules(data)
+      resolve(optionsKey)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
       setError(err instanceof Error ? err : new Error('Failed to fetch schedules'))
-    } finally {
-      setIsLoading(false)
+      resolve(optionsKey)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [optionsKey])
+  }, [optionsKey, resolve])
 
   useEffect(() => {
     load()

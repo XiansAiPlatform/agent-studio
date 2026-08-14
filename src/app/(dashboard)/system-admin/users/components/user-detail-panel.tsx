@@ -50,6 +50,7 @@ import {
 } from '../types'
 import { RolesHelp } from '@/components/features/users/roles-help'
 import { RoleSelectItem } from '@/components/features/users/role-select-item'
+import { UserIdentityDetails } from '@/components/features/users/user-identity-details'
 import { useUsers } from '../hooks/use-users'
 import type { Tenant, ListTenantsResponse } from '@/app/(dashboard)/system-admin/tenants/types'
 
@@ -359,6 +360,11 @@ export function UserDetailPanel({
               <Badge variant={isEnabled ? 'outline' : 'secondary'} className="text-xs">
                 {isEnabled ? 'Enabled' : 'Disabled'}
               </Badge>
+              {(detail?.isLockedOut ?? ('isLockedOut' in user && user.isLockedOut)) && (
+                <Badge variant="destructive" className="text-xs">
+                  Locked out
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -414,6 +420,12 @@ export function UserDetailPanel({
                   Save Changes
                 </Button>
               </form>
+            </div>
+
+            <Separator />
+
+            <div className="px-6 py-5">
+              <UserIdentityDetails user={detail ?? user} />
             </div>
 
             <Separator />

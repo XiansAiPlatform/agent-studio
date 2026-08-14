@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { FeedbackFilterBar } from './components/feedback-filter-bar';
@@ -57,6 +58,8 @@ function FeedbackContent() {
 
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const hasFetchedAgentsRef = useRef(false);
+  const statsRequestIdRef = useRef(0);
+  const listRequestIdRef = useRef(0);
 
   const shouldFetch = Boolean(currentTenantId) && Boolean(user);
 
@@ -149,6 +152,7 @@ function FeedbackContent() {
   // Fetch stats whenever filters change (not affected by pagination/drill-down).
   useEffect(() => {
     if (!shouldFetch) return;
+    const requestId = ++statsRequestIdRef.current;
     const controller = new AbortController();
 
     (async () => {
@@ -164,12 +168,16 @@ function FeedbackContent() {
           throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
         }
         const json = (await res.json()) as FeedbackStatsResponse;
+        if (requestId !== statsRequestIdRef.current) return;
         setStats(json);
       } catch (e) {
         if (e instanceof Error && e.name === 'AbortError') return;
+        if (requestId !== statsRequestIdRef.current) return;
         setStatsError(e instanceof Error ? e.message : 'Failed to load statistics');
       } finally {
-        setStatsLoading(false);
+        if (requestId === statsRequestIdRef.current) {
+          setStatsLoading(false);
+        }
       }
     })();
 
@@ -179,6 +187,7 @@ function FeedbackContent() {
   // Fetch the feedback list whenever filters or page change.
   useEffect(() => {
     if (!shouldFetch) return;
+    const requestId = ++listRequestIdRef.current;
     const controller = new AbortController();
 
     (async () => {
@@ -196,12 +205,16 @@ function FeedbackContent() {
           throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
         }
         const json = (await res.json()) as FeedbackListResponse;
+        if (requestId !== listRequestIdRef.current) return;
         setList(json);
       } catch (e) {
         if (e instanceof Error && e.name === 'AbortError') return;
+        if (requestId !== listRequestIdRef.current) return;
         setListError(e instanceof Error ? e.message : 'Failed to load feedback');
       } finally {
-        setListLoading(false);
+        if (requestId === listRequestIdRef.current) {
+          setListLoading(false);
+        }
       }
     })();
 
@@ -231,15 +244,21 @@ function FeedbackContent() {
             onClearAll={handleClearAll}
           />
 
-          <FeedbackStats stats={stats} loading={statsLoading} error={statsError} />
+          {!list && !stats && !listError && !statsError ? (
+            <PageLoader label="Loading feedback..." />
+          ) : (
+            <>
+              <FeedbackStats stats={stats} loading={statsLoading} error={statsError} />
 
-          <FeedbackList
-            data={list}
-            loading={listLoading}
-            error={listError}
-            onSelect={handleSelect}
-            onPageChange={handlePageChange}
-          />
+              <FeedbackList
+                data={list}
+                loading={listLoading}
+                error={listError}
+                onSelect={handleSelect}
+                onPageChange={handlePageChange}
+              />
+            </>
+          )}
         </>
       )}
     </div>
@@ -248,9 +267,7 @@ function FeedbackContent() {
 
 export default function FeedbackPage() {
   return (
-    <Suspense
-      fallback={<div className="container mx-auto max-w-7xl p-6">Loading…</div>}
-    >
+    <Suspense fallback={<PageLoader label="Loading feedback..." />}>
       <FeedbackContent />
     </Suspense>
   );

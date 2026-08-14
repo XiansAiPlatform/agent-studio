@@ -87,7 +87,7 @@ export const ROLE_METADATA: Record<Role, RoleMetadata> = {
     summary:
       'Everything a Developer can do, plus user management and Tenant Admin settings.',
     description:
-      'Everything a Developer can do, plus user management: invite/remove tenant users and configure Tenant Admin settings (Branding, OIDC Providers).',
+      'Everything a Developer can do, plus user management: invite/remove tenant users and configure Tenant Admin settings (Branding).',
     typicalUser: 'Tenant owner, platform admin',
   },
   SysAdmin: {
@@ -95,7 +95,7 @@ export const ROLE_METADATA: Record<Role, RoleMetadata> = {
     summary:
       'All capabilities across every tenant. Independent of tenant roles.',
     description:
-      'All capabilities across every tenant: system-wide tenant and user management, and every agent-level and admin capability in any tenant. Independent of tenant roles — a SysAdmin is not automatically a participant in any tenant.',
+      'All capabilities across every tenant: system-wide tenant and user management, OIDC provider configuration, and every agent-level and admin capability in any tenant. Independent of tenant roles — a SysAdmin is not automatically a participant in any tenant.',
     typicalUser: 'Platform operators, infrastructure admins',
   },
 }

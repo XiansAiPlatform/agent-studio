@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Building2, Users, Bot } from 'lucide-react'
 import { usePlatformSummary } from '../hooks/use-platform-summary'
+import { PageLoader } from '@/components/ui/page-loader'
 import { cn } from '@/lib/utils'
 
 /**
@@ -41,11 +42,7 @@ export function PlatformStrip() {
         </p>
 
         {isLoading ? (
-          <div className="flex flex-1 gap-6 sm:gap-8 animate-pulse">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-5 w-20 rounded bg-muted/50" />
-            ))}
-          </div>
+          <PageLoader label="Loading platform..." className="flex-1 py-0" />
         ) : (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 sm:gap-x-8">
             {items.map(({ href, label, icon: Icon, value }) => (

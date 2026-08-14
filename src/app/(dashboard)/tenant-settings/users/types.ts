@@ -9,14 +9,42 @@ export {
 export type { TenantRole } from '@/lib/auth/roles'
 
 import type { TenantRole } from '@/lib/auth/roles'
+import {
+  pickBoolean,
+  pickString,
+  pickUserIdentity,
+  type UserIdentityFields,
+} from '@/lib/users/identity'
 
-export interface TenantUser {
-  userId: string
+export interface TenantUser extends UserIdentityFields {
   email: string
   name: string
   /** All roles this user holds within the tenant. */
   roles: TenantRole[]
   isApproved: boolean
+  isSysAdmin?: boolean
+}
+
+/**
+ * Normalize a tenant-user payload from the Xians API.
+ * Accepts both camelCase (typical JSON) and snake_case (Mongo-shaped) fields.
+ */
+export function normalizeTenantUser(raw: unknown): TenantUser {
+  const u = (raw ?? {}) as Record<string, unknown>
+  const roles = Array.isArray(u.roles)
+    ? u.roles
+    : u.role != null
+      ? [u.role]
+      : []
+
+  return {
+    ...pickUserIdentity(u),
+    email: pickString(u, 'email', 'email') ?? '',
+    name: pickString(u, 'name', 'name') ?? '',
+    roles: roles as TenantRole[],
+    isApproved: pickBoolean(u, 'isApproved', 'is_approved') ?? false,
+    isSysAdmin: pickBoolean(u, 'isSysAdmin', 'is_sys_admin') ?? false,
+  }
 }
 
 export interface ListUsersResponse {

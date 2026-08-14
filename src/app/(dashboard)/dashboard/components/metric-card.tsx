@@ -51,13 +51,3 @@ export function MetricCard({ value, label, description, href, caption }: MetricC
 
   return <div className="min-w-0">{content}</div>
 }
-
-export function MetricCardSkeleton() {
-  return (
-    <div className="space-y-2 min-w-0 animate-pulse">
-      <div className="h-10 w-16 rounded bg-muted/60" />
-      <div className="h-4 w-24 rounded bg-muted/50" />
-      <div className="h-3 w-20 rounded bg-muted/40" />
-    </div>
-  )
-}

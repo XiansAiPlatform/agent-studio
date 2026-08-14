@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { XiansTenantStats } from '@/lib/xians/types';
 import { showToast } from '@/lib/toast';
+import { useResolvedLoading } from '@/hooks/use-resolved-loading';
 
 export type TimePeriod = '7d' | '30d' | '90d';
 
@@ -35,7 +36,8 @@ function getDateRange(period: TimePeriod) {
  */
 export function useTenantStats(timePeriod: TimePeriod, enabled = true) {
   const [stats, setStats] = useState<XiansTenantStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const fetchKey = enabled ? timePeriod : null;
+  const { isLoading, resolve } = useResolvedLoading(fetchKey, false);
 
   useEffect(() => {
     if (!enabled) return;
@@ -43,7 +45,6 @@ export function useTenantStats(timePeriod: TimePeriod, enabled = true) {
     const abortController = new AbortController();
 
     async function fetchStats() {
-      setIsLoading(true);
       try {
         const { startDate, endDate } = getDateRange(timePeriod);
         const params = new URLSearchParams({ startDate, endDate });
@@ -54,6 +55,7 @@ export function useTenantStats(timePeriod: TimePeriod, enabled = true) {
         if (!response.ok) throw new Error('Failed to fetch tenant stats');
         const data = await response.json();
         setStats(data);
+        resolve(timePeriod);
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return;
 
@@ -62,8 +64,7 @@ export function useTenantStats(timePeriod: TimePeriod, enabled = true) {
           description: error instanceof Error ? error.message : 'An error occurred while loading dashboard statistics',
         });
         setStats(DEFAULT_STATS);
-      } finally {
-        setIsLoading(false);
+        resolve(timePeriod);
       }
     }
 
