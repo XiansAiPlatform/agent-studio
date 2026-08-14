@@ -3,6 +3,7 @@ import { withSystemAdmin } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { TENANT_ROLES, normalizeGlobalUser, normalizeAdminTenantUser } from '@/app/(dashboard)/system-admin/users/types'
+import type { AddTenantUserRequest, TenantRole } from '@/app/(dashboard)/system-admin/users/types'
 
 /**
  * System Admin → Users API.
@@ -89,7 +90,19 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
 
 /**
  * POST /api/system-admin/users?tenantId=
- * Create a new user in the specified tenant. tenantId is required.
+ *
+ * Adds a user to the specified tenant. tenantId is required. There are two
+ * modes, matching POST /api/v1/admin/tenants/{tenantId}/users:
+ *
+ * 1. Existing account — send `userId` and `role`. `email` and `name` are
+ *    ignored. The upstream answers 404 for an unknown id and 409 for a
+ *    disabled account.
+ * 2. New account — send `email`, `name` and `role` and omit `userId`. The
+ *    upstream answers 409 if any account already holds that address, and the
+ *    message names the user id to use with mode 1 instead.
+ *
+ * An email address is not an identifier here: two identity providers can each
+ * hold an account for the same address, so `userId` must be a user id.
  */
 export const POST = withSystemAdmin(async (request: NextRequest) => {
   const tenantId = getTenantId(request)
@@ -97,18 +110,19 @@ export const POST = withSystemAdmin(async (request: NextRequest) => {
     return NextResponse.json({ error: 'tenantId is required' }, { status: 400 })
   }
 
-  let body: { email?: string; name?: string; role?: string }
+  let body: { userId?: string; email?: string; name?: string; role?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  if (!body.email || !body.name || !body.role) {
-    return NextResponse.json(
-      { error: 'email, name and role are required' },
-      { status: 400 }
-    )
+  const userId = body.userId?.trim()
+  const email = body.email?.trim()
+  const name = body.name?.trim()
+
+  if (!body.role) {
+    return NextResponse.json({ error: 'role is required' }, { status: 400 })
   }
 
   if (!TENANT_ROLES.includes(body.role as (typeof TENANT_ROLES)[number])) {
@@ -118,16 +132,49 @@ export const POST = withSystemAdmin(async (request: NextRequest) => {
     )
   }
 
+  if (!userId && !email && !name) {
+    return NextResponse.json(
+      { error: 'Provide either userId (existing account) or email and name (new account)' },
+      { status: 400 }
+    )
+  }
+
+  const role = body.role as TenantRole
+
+  // Only the fields that identify the chosen mode are forwarded, since the
+  // upstream ignores email and name whenever userId is present.
+  let payload: AddTenantUserRequest
+  if (userId) {
+    if (userId.includes('@')) {
+      return NextResponse.json(
+        { error: 'userId must be a user id, not an email address.' },
+        { status: 400 }
+      )
+    }
+    payload = { userId, role }
+  } else {
+    if (!email || !name) {
+      return NextResponse.json(
+        { error: 'email and name are required when creating a new account' },
+        { status: 400 }
+      )
+    }
+    payload = { email, name, role }
+  }
+
   try {
     const client = createXiansClient()
     const data = await client.post(
       `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users`,
-      { email: body.email, name: body.name, role: body.role }
+      payload
     )
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
+    // handleApiError forwards upstream 4xx messages verbatim; the 400/404/409
+    // bodies on this endpoint tell the operator what to do next (supply a user
+    // id, enable the account first), so they must not be replaced.
     return handleApiError(error, 'system-admin/users POST', {
-      fallbackMessage: 'Failed to create user',
+      fallbackMessage: userId ? 'Failed to add user to tenant' : 'Failed to create user',
     })
   }
 })

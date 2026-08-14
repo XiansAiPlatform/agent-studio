@@ -54,12 +54,34 @@ export interface ListUsersResponse {
   pageSize: number
 }
 
+/**
+ * Create a brand-new account and add it to the tenant.
+ *
+ * Rejected with 409 if any account already holds `email`, in which case that
+ * account has to be named by id via AddExistingUserRequest.
+ */
 export interface CreateUserRequest {
   email: string
   name: string
   /** At least one role must be supplied. */
   roles: TenantRole[]
 }
+
+/**
+ * Add an account that already exists to the tenant.
+ *
+ * `userId` must be a user id, never an email address: the same address can
+ * belong to accounts from more than one identity provider, so an address does
+ * not identify a single account.
+ */
+export interface AddExistingUserRequest {
+  userId: string
+  /** At least one role must be supplied. */
+  roles: TenantRole[]
+}
+
+/** The two ways to add a user to a tenant. */
+export type AddTenantUserRequest = CreateUserRequest | AddExistingUserRequest
 
 export interface UpdateUserRequest {
   name?: string

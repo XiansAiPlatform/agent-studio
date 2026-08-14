@@ -8,6 +8,7 @@ import {
   GlobalUser,
   GlobalUserDetail,
   CreateUserRequest,
+  AddExistingUserRequest,
   UpdateGlobalUserRequest,
   Role,
 } from '../types'
@@ -132,6 +133,12 @@ export function useUsers() {
 
   // ── Mutations ────────────────────────────────────────────────────────────
 
+  /**
+   * Create a brand-new account and add it to the tenant.
+   *
+   * Fails with 409 if any account already holds this email address — use
+   * `addExistingUserToTenant` with that account's user id instead.
+   */
   const createUser = useCallback(
     async (tenantId: string, data: CreateUserRequest): Promise<TenantUser> => {
       setIsMutating(true)
@@ -142,6 +149,30 @@ export function useUsers() {
           body: JSON.stringify(data),
         })
         if (!res.ok) await parseError(res, 'Failed to create user')
+        return await res.json()
+      } finally {
+        setIsMutating(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Add an account that already exists to a tenant, identified by user id.
+   *
+   * An email address cannot be used here: the same address may belong to
+   * accounts from different identity providers, so the backend requires the id.
+   */
+  const addExistingUserToTenant = useCallback(
+    async (tenantId: string, data: AddExistingUserRequest): Promise<TenantUser> => {
+      setIsMutating(true)
+      try {
+        const res = await fetch(`${BASE_URL}?tenantId=${encodeURIComponent(tenantId)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+        if (!res.ok) await parseError(res, 'Failed to add user to tenant')
         return await res.json()
       } finally {
         setIsMutating(false)
@@ -322,6 +353,7 @@ export function useUsers() {
     fetchUser,
     // Mutations
     createUser,
+    addExistingUserToTenant,
     updateUser,
     setSysAdmin,
     addRole,
