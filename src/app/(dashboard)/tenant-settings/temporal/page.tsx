@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -28,7 +29,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Workflow } from 'lucide-react'
+import { Info, Loader2, Workflow } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useTemporalConfig } from './hooks/use-temporal-config'
@@ -167,6 +168,15 @@ export default function TemporalSettingsPage() {
           </div>
         )}
 
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Changes here only apply to new agent connections. Worker instances that are already
+            running keep using the Temporal server they connected to at startup — restart them to
+            pick up a saved or reverted configuration.
+          </AlertDescription>
+        </Alert>
+
         <Card>
           <CardHeader>
             <CardTitle>Temporal connection</CardTitle>
@@ -286,8 +296,9 @@ export default function TemporalSettingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Revert to the default Temporal server?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the tenant&apos;s dedicated Temporal connection. Workflows for this
-              tenant will start connecting to the platform&apos;s default Temporal server instead.
+              This removes the tenant&apos;s dedicated Temporal connection. New workflows for this
+              tenant will start connecting to the platform&apos;s default Temporal server instead —
+              already-running worker instances won&apos;t switch over until they&apos;re restarted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
