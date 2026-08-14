@@ -25,10 +25,6 @@ export interface Message {
     submittedBy?: string;
     submittedAt?: string;
   };
-  /**
-   * File messages (inbound and outbound, messageType File on the wire) use attachments
-   * on a normal chat bubble. Studio does not set messageType: 'file'.
-   */
   attachments?: {
     type: 'task' | 'file' | 'link';
     id: string;
