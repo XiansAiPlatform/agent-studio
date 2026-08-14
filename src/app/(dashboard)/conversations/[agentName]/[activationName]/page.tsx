@@ -3,7 +3,8 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Loader2, Bot } from 'lucide-react';
+import { Bot } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
@@ -69,6 +70,7 @@ function ConversationContent() {
     totalPages,
     hasMore,
     noConversationalCapability,
+    fetchError,
     addTopic,
     refetch: refetchTopics,
   } = useTopics({
@@ -713,16 +715,11 @@ function ConversationContent() {
     [selectedTopicId, applyMessageFeedback]
   );
 
-  // Loading state
-  if (isLoadingTopics) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">
-          Loading conversation...
-        </p>
-      </div>
-    );
+  // Keep showing progress until conversation is ready. Do not treat a null
+  // conversation as "no topics" — that state exists for the whole fetch window
+  // and for one frame after topics arrive (conversation is set in an effect).
+  if (isLoadingTopics || !currentTenantId || (!conversation && !fetchError && !noConversationalCapability)) {
+    return <PageLoader label="Loading conversation..." className="h-full" />;
   }
 
   // Agent has no conversational capability (workflow not registered for messaging)
@@ -820,11 +817,7 @@ function ConversationContent() {
 export default function ConversationPage() {
   return (
     <div className="h-full overflow-hidden">
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }>
+      <Suspense fallback={<PageLoader label="Loading conversation..." className="h-full" />}>
         <ConversationContent />
       </Suspense>
     </div>

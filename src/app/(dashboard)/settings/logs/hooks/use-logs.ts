@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { LogsResponse, LogFilters } from '../types';
 import { showErrorToast } from '@/lib/utils/error-handler';
+import { useResolvedLoading } from '@/hooks/use-resolved-loading';
 
 interface UseLogsResult {
   logs: LogsResponse['logs'];
@@ -26,7 +27,6 @@ export function useLogs(
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalPages, setTotalPages] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   // Use ref to store current filters without causing re-renders
@@ -46,14 +46,15 @@ export function useLogs(
     filters.page,
   ]);
 
+  const fetchKey = enabled ? filtersKey : null;
+  const { isLoading, resolve } = useResolvedLoading(fetchKey, false);
+
   const fetchLogs = useCallback(async (signal?: AbortSignal) => {
     if (!enabled) {
       setLogs([]);
-      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
     setError(null);
 
     try {
@@ -115,8 +116,9 @@ export function useLogs(
       setPage(data.page);
       setPageSize(data.pageSize);
       setTotalPages(data.totalPages);
+      resolve(filtersKey);
     } catch (err) {
-      // Ignore abort errors
+      // Ignore abort errors — do not resolve so loading stays true
       if (err instanceof Error && err.name === 'AbortError') {
         console.log('[useLogs] Request aborted');
         return;
@@ -130,10 +132,9 @@ export function useLogs(
         showErrorToast(error, 'Failed to load logs');
       }
       setLogs([]);
-    } finally {
-      setIsLoading(false);
+      resolve(filtersKey);
     }
-  }, [enabled, filtersKey]);
+  }, [enabled, filtersKey, resolve]);
 
   useEffect(() => {
     const abortController = new AbortController();

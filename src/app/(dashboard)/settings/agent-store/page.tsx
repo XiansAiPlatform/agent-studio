@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Bot } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useCan } from '@/hooks/use-permissions';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
@@ -514,12 +515,7 @@ export default function AgentTemplatesPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading agents...</p>
-          </div>
-        </div>
+        <PageLoader label="Loading agents..." />
       )}
 
       {/* Error State */}

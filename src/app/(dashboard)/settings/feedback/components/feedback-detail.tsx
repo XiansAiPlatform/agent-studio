@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Bot, User as UserIcon, MessageSquareText } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { MessageItem } from '@/components/features/conversations/message-item';
 import { mapXiansMessageToMessage } from '@/app/(dashboard)/conversations/utils';
 import { getReasonLabel } from '@/components/features/conversations/message-feedback';
@@ -87,9 +88,8 @@ export function FeedbackDetail({ feedbackId, onBack }: FeedbackDetailProps) {
 
       {loading && !data && (
         <Card>
-          <CardContent className="space-y-3 py-6">
-            <div className="h-16 animate-pulse rounded-lg bg-muted/40" />
-            <div className="h-40 animate-pulse rounded-lg bg-muted/40" />
+          <CardContent>
+            <PageLoader label="Loading feedback..." />
           </CardContent>
         </Card>
       )}

@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, BarChart3 } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useMetricsCategories } from './hooks/use-metrics-categories';
 import { useActivations } from './hooks/use-activations';
 import { DateRangePicker } from './components/date-range-picker';
@@ -197,10 +198,7 @@ function PerformanceContent() {
       {isLoading && (
         <Card className="border-border/50">
           <CardContent className="!px-0 !py-0">
-            <div className="flex flex-col items-center justify-center py-16 space-y-3">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Loading performance metrics...</p>
-            </div>
+            <PageLoader label="Loading performance metrics..." className="py-16" />
           </CardContent>
         </Card>
       )}
@@ -271,13 +269,7 @@ function PerformanceContent() {
 
 export default function PerformancePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto p-6">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoader label="Loading performance metrics..." />}>
       <PerformanceContent />
     </Suspense>
   );

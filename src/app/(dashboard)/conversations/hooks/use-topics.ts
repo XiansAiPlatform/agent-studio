@@ -28,16 +28,28 @@ export function useTopics({
   pageSize = 20,
 }: UseTopicsParams) {
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [noConversationalCapability, setNoConversationalCapability] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const fetchKey =
+    tenantId && agentName && activationName
+      ? `${tenantId}:${agentName}:${activationName}:${page}:${pageSize}`
+      : null;
+
+  // True while params are missing or this activation's fetch has not resolved yet.
+  // Derived so an aborted request cannot flip loading off while a newer fetch is in flight.
+  const isLoading = fetchKey === null || resolvedKey !== fetchKey;
+
   const fetchTopics = useCallback(async () => {
     if (!tenantId || !agentName || !activationName) {
       return;
     }
+
+    const key = `${tenantId}:${agentName}:${activationName}:${page}:${pageSize}`;
 
     // Cancel any pending request
     if (abortControllerRef.current) {
@@ -47,8 +59,8 @@ export function useTopics({
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
 
-    setIsLoading(true);
     setNoConversationalCapability(false);
+    setFetchError(false);
     try {
       const queryParams = new URLSearchParams({
         agentName,
@@ -128,8 +140,9 @@ export function useTopics({
       }
       
       setTopics(allTopics);
+      setResolvedKey(key);
     } catch (error) {
-      // Ignore abort errors
+      // Ignore abort errors — do not resolve the key so loading stays true
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('[useTopics] Request aborted');
         return;
@@ -144,9 +157,9 @@ export function useTopics({
         console.error('[useTopics] Error fetching topics:', error);
         showErrorToast(error, 'Failed to load conversation topics');
         setTopics([]);
+        setFetchError(true);
       }
-    } finally {
-      setIsLoading(false);
+      setResolvedKey(key);
     }
   }, [tenantId, agentName, activationName, page, pageSize]);
 
@@ -192,6 +205,7 @@ export function useTopics({
     totalPages,
     hasMore,
     noConversationalCapability,
+    fetchError,
     refetch: fetchTopics,
     addTopic,
   };
