@@ -63,6 +63,19 @@ function extractFileAttachments(
   data: unknown,
   messageId: string
 ): NonNullable<Message['attachments']> | undefined {
+  if (typeof data === 'string') {
+    const trimmed = data.trim();
+    if (
+      (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+      (trimmed.startsWith('[') && trimmed.endsWith(']'))
+    ) {
+      try {
+        data = JSON.parse(trimmed);
+      } catch {
+        return undefined;
+      }
+    }
+  }
   if (!data || typeof data !== 'object') return undefined;
   const record = data as Record<string, unknown>;
 
@@ -100,6 +113,8 @@ function extractFileAttachments(
 /**
  * Map Xians API message to our Message format.
  * Handles messageType (Reasoning, Tool, File, Chat) and content from text or data.
+ * File is direction-agnostic: Incoming → user chip, Outgoing → agent chip. Both use
+ * attachments (not messageType: 'file') so the normal chat bubble renderer applies.
  */
 export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
   const role = xiansMsg.direction === 'Incoming' ? ('user' as const) : ('agent' as const);
@@ -111,8 +126,8 @@ export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
         ? ('tool' as const)
         : undefined;
 
-  // File messages carry base64 payloads in `data`; never run the generic
-  // content fallback (which would stringify the base64 into the bubble).
+  // File messages carry fileId refs in `data`; never run the generic content
+  // fallback (which would stringify refs into the bubble).
   const isFile = rawType === 'file';
   const attachments = isFile
     ? extractFileAttachments(xiansMsg.data, xiansMsg.id)
@@ -147,4 +162,25 @@ export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
     ...(feedback && { feedback }),
     ...(attachments && { attachments }),
   };
+}
+
+/**
+ * Toast body for a background-topic SSE message.
+ * File messages with no caption fall back to the attachment name(s) instead of an empty string.
+ */
+export function getBackgroundTopicToastDescription(message: Message): string {
+  const caption = message.content.trim();
+  if (caption) {
+    return caption.length > 100 ? `${caption.substring(0, 100)}...` : caption;
+  }
+
+  const files = message.attachments?.filter((a) => a.type === 'file') ?? [];
+  if (files.length === 1) {
+    return `Sent a file: ${files[0].name}`;
+  }
+  if (files.length > 1) {
+    return `${files.length} files`;
+  }
+
+  return '';
 }

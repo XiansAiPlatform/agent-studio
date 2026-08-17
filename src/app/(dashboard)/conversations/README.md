@@ -185,8 +185,9 @@ Manages conversation state including SSE message handling and unread counts.
    - Wait for SSE confirmation
 
 6. **Incoming messages (SSE)**
-   - If current topic: append to messages
-   - If different topic: increment unread count + show toast
+   - If current topic: append to messages (Chat, File, reasoning, tool)
+   - If different topic: increment unread count + show toast for **Chat and File**
+   - Reasoning/tool steps do not increment unread or toast
 
 ## URL State Management
 
@@ -244,7 +245,7 @@ The conversation page uses Server-Sent Events for real-time updates:
 - [ ] Message search
 - [ ] Message deletion
 - [ ] Message threading/replies
-- [ ] File attachments
+- [x] File attachments (inbound and outbound `type: File` as download chips)
 - [ ] Rich text formatting
 - [ ] Message read receipts
 - [ ] Desktop notifications
