@@ -52,6 +52,7 @@ export function UserMenu() {
   const user = {
     name: session?.user?.name || 'User',
     email: session?.user?.email || '',
+    id: session?.user?.id || '',
     avatar: session?.user?.image || '',
     initials: session?.user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U',
   }
@@ -156,7 +157,7 @@ export function UserMenu() {
         align="end"
         sideOffset={8}
         collisionPadding={12}
-        className="w-[min(16rem,calc(100vw-1rem))]"
+        className="w-[min(22rem,calc(100vw-1rem))]"
       >
         {/* Mobile: drill-down panels */}
         {isMobile && panel === 'tenants' && currentTenant && (
@@ -202,7 +203,10 @@ export function UserMenu() {
               </Avatar>
               <div className="flex flex-col flex-1 min-w-0 gap-1">
                 <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                <p className="text-xs text-muted-foreground truncate" title={user.email}>{user.email}</p>
+                {user.id && (
+                  <p className="text-xs text-muted-foreground truncate" title={user.id}>{user.id}</p>
+                )}
                 {session?.user?.isSystemAdmin && (
                   <Badge variant="secondary" className="w-fit text-[10px] px-1.5 py-0 h-4 gap-1">
                     <ShieldCheck className="h-3 w-3" />
