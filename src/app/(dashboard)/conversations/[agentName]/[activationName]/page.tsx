@@ -12,12 +12,24 @@ import { toast } from 'sonner';
 import { Message, Topic } from '@/types/conversation';
 import { useActivations, useTopics, useConversationState, useAgentHeartbeat } from '../../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
-import { getTopicParam, mapXiansMessageToMessage, sanitizeTopicDisplayName } from '../../utils';
+import {
+  getTopicParam,
+  mapXiansMessageToMessage,
+  mergeMessagesById,
+  sanitizeTopicDisplayName,
+} from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
 import type { FileUploadPayload } from '@/components/features/conversations';
 import type { XiansMessage } from '@/lib/xians/types';
 import { ConversationView } from '../../_components';
 import { ParticipantMenuBar } from './_components';
+
+/** Page size for the paginated message history (initial load and "load more"). */
+const MESSAGE_PAGE_SIZE = 10;
+/** A backfill after an outage reaches back further than one page. */
+const MESSAGE_SYNC_SIZE = 30;
+/** How often to poll history while the live stream is down. */
+const OFFLINE_POLL_INTERVAL_MS = 10000;
 
 /**
  * Conversation Page
@@ -86,6 +98,7 @@ function ConversationContent() {
     unreadCounts,
     handleIncomingMessage,
     updateTopicMessages,
+    mergeTopicMessages,
     addMessageToTopic,
     applyMessageFeedback,
   } = useConversationState({
@@ -131,19 +144,129 @@ function ConversationContent() {
     return () => { cancelled = true; };
   }, [agentName, currentTenantId, session?.user?.email]);
 
+  // Pull the latest history for a topic and merge it into what's on screen.
+  // The SSE stream replays nothing, so any reply published while it was down is
+  // only recoverable from history.
+  const syncingTopicsRef = useRef<Set<string>>(new Set());
+  const syncTopicMessages = useCallback(async (topicId: string) => {
+    if (!currentTenantId || !agentName || !activationName || !topicId) {
+      return;
+    }
+
+    // Reconnect backfill, topic switch and the offline poll can all fire at once;
+    // one request per topic at a time is enough.
+    if (syncingTopicsRef.current.has(topicId)) {
+      return;
+    }
+    syncingTopicsRef.current.add(topicId);
+
+    try {
+      const queryParams = new URLSearchParams({
+        agentName,
+        activationName,
+        topic: getTopicParam(topicId),
+        page: '1',
+        pageSize: String(MESSAGE_SYNC_SIZE),
+        chatOnly: 'false',
+        sortOrder: 'desc',
+      });
+
+      const response = await fetch(`/api/messaging/history?${queryParams.toString()}`);
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        return;
+      }
+
+      const latest: Message[] = data
+        .map((row: XiansMessage) => mapXiansMessageToMessage(row))
+        .reverse();
+
+      setMessageStates(prev => {
+        const state = prev[topicId];
+        if (!state) return prev;
+
+        const messages = mergeMessagesById(state.messages, latest);
+        const unchanged =
+          messages.length === state.messages.length &&
+          messages.every((m, i) => m === state.messages[i]);
+        if (unchanged) return prev;
+
+        return {
+          ...prev,
+          [topicId]: {
+            ...state,
+            messages,
+            // A sync spans several pages, so leaving the cursor behind would make
+            // "load more" refetch rows that are already on screen.
+            page: Math.max(state.page, Math.ceil(latest.length / MESSAGE_PAGE_SIZE)),
+          },
+        };
+      });
+
+      mergeTopicMessages(topicId, latest);
+    } catch (error) {
+      console.warn('[ConversationPage] Failed to sync messages:', error);
+    } finally {
+      syncingTopicsRef.current.delete(topicId);
+    }
+  }, [currentTenantId, agentName, activationName, mergeTopicMessages]);
+
+  // Keep the topic in a ref so the reconnect handler stays stable — passing an
+  // unstable callback into the listener is fine (it stores it in a ref), but the
+  // polling fallback below re-subscribes on every change.
+  const selectedTopicIdRef = useRef(selectedTopicId);
+  useEffect(() => {
+    selectedTopicIdRef.current = selectedTopicId;
+  }, [selectedTopicId]);
+
+  // Messages are fetched once per topic and then cached, so a topic that received
+  // messages while the stream was down would stay stale on re-entry.
+  const messageStatesRef = useRef(messageStates);
+  useEffect(() => {
+    messageStatesRef.current = messageStates;
+  }, [messageStates]);
+
+  useEffect(() => {
+    // Topics without cached state are handled by the initial fetch below.
+    if (selectedTopicId && messageStatesRef.current[selectedTopicId]) {
+      syncTopicMessages(selectedTopicId);
+    }
+  }, [selectedTopicId, syncTopicMessages]);
+
+  // SSE reconnect handler - backfill whatever the dropped stream missed
+  const handleSSEReconnect = useCallback(() => {
+    const topicId = selectedTopicIdRef.current;
+    console.log('[SSE] Reconnected, backfilling missed messages for topic:', topicId);
+    if (topicId) {
+      syncTopicMessages(topicId);
+    }
+  }, [syncTopicMessages]);
+
+  // Warn once per outage - the listener retries on its own, so a toast per
+  // failed attempt would just stack up.
+  const hasWarnedAboutSSERef = useRef(false);
+
   // SSE error handler
   const handleSSEError = useCallback((error: Error) => {
-    console.error('[SSE] Connection error:', error.message);
-    if (error.message.includes('Failed to establish SSE connection')) {
-      toast.error('Real-time connection failed', {
-        description: 'Messages may not update automatically. Try refreshing the page.',
-        duration: 5000,
-      });
+    console.warn('[SSE] Connection error:', error.message);
+    const isConnectionError = error.message.includes('SSE connection');
+    if (!isConnectionError || hasWarnedAboutSSERef.current) {
+      return;
     }
+    hasWarnedAboutSSERef.current = true;
+    toast.error('Real-time connection lost', {
+      description: 'Reconnecting… replies will keep arriving, just a little slower.',
+      duration: 5000,
+    });
   }, []);
 
   // SSE connect handler
   const handleSSEConnect = useCallback(() => {
+    hasWarnedAboutSSERef.current = false;
     console.log('[SSE] Real-time connection established');
   }, []);
 
@@ -159,7 +282,13 @@ function ConversationContent() {
   const isActivationActive = selectedActivation?.status === 'active';
 
   // Set up SSE connection - only for active activations
-  const { isConnected, error: sseError, maxReconnectAttemptsReached } = useMessageListener({
+  const {
+    isConnected,
+    error: sseError,
+    maxReconnectAttemptsReached,
+    hasEverConnected,
+    ensureConnected: ensureMessageStreamConnected,
+  } = useMessageListener({
     tenantId: currentTenantId,
     agentName,
     activationName,
@@ -168,7 +297,24 @@ function ConversationContent() {
     onError: handleSSEError,
     onConnect: handleSSEConnect,
     onDisconnect: handleSSEDisconnect,
+    onReconnect: handleSSEReconnect,
   });
+
+  // While the stream is down, poll history so replies still show up instead of
+  // silently waiting for a connection that may never come back.
+  useEffect(() => {
+    if (isConnected || !selectedTopicId || !isActivationActive) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        syncTopicMessages(selectedTopicId);
+      }
+    }, OFFLINE_POLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [isConnected, selectedTopicId, isActivationActive, syncTopicMessages]);
 
   // Check agent worker liveness when activation is opened (for Live tag vs warning)
   const {
@@ -184,9 +330,11 @@ function ConversationContent() {
     enabled: !!(currentTenantId && agentName && activationName),
   });
 
-  // Redirect to server unavailable page if max reconnection attempts reached
+  // Redirect to the server unavailable page only when the stream never came up.
+  // Once it has worked, a drop is handled by the background retries plus polling,
+  // so throwing the user out of a live conversation would do more harm than good.
   useEffect(() => {
-    if (maxReconnectAttemptsReached) {
+    if (maxReconnectAttemptsReached && !hasEverConnected) {
       const currentUrl = `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${searchParams.toString()}`;
       const errorMessage = sseError?.message || 'Failed to establish connection to the real-time messaging server after multiple attempts';
       const urlParams = new URLSearchParams({
@@ -195,7 +343,7 @@ function ConversationContent() {
       });
       router.push(`/server-unavailable?${urlParams.toString()}`);
     }
-  }, [maxReconnectAttemptsReached, sseError, searchParams, router, agentName, activationName]);
+  }, [maxReconnectAttemptsReached, hasEverConnected, sseError, searchParams, router, agentName, activationName]);
 
   // Handle activation change (navigate to different agent/activation)
   const handleActivationChange = useCallback((newActivationName: string, newAgentName: string) => {
@@ -437,7 +585,7 @@ function ConversationContent() {
           activationName,
           topic: topicParamValue,
           page: '1',
-          pageSize: '10',
+          pageSize: String(MESSAGE_PAGE_SIZE),
           chatOnly: 'false',
           sortOrder: 'desc',
         });
@@ -467,7 +615,7 @@ function ConversationContent() {
             messages,
             isLoading: false,
             isLoadingMore: false,
-            hasMore: data.length === 10,
+            hasMore: data.length === MESSAGE_PAGE_SIZE,
             page: 1,
           },
         }));
@@ -520,6 +668,11 @@ function ConversationContent() {
     }
 
     notifyHeartbeatActivity();
+
+    // The reply comes back over SSE, so make sure the stream is alive before the
+    // agent answers rather than waiting out the current backoff. A handshake
+    // already in flight is left alone.
+    ensureMessageStreamConnected();
 
     try {
       const topicParamValue = topicId === 'general-discussions' ? undefined : topicId;
@@ -607,7 +760,14 @@ function ConversationContent() {
       console.error('[ConversationPage] Error sending message:', error);
       showErrorToast(error, hasFiles ? 'Failed to upload files' : 'Failed to send message');
     }
-  }, [currentTenantId, agentName, activationName, addMessageToTopic, notifyHeartbeatActivity]);
+  }, [
+    currentTenantId,
+    agentName,
+    activationName,
+    addMessageToTopic,
+    notifyHeartbeatActivity,
+    ensureMessageStreamConnected,
+  ]);
 
   // Handle loading more messages
   const handleLoadMoreMessages = useCallback(async () => {
@@ -637,7 +797,7 @@ function ConversationContent() {
         activationName,
         topic: topicParamValue,
         page: nextPage.toString(),
-        pageSize: '10',
+        pageSize: String(MESSAGE_PAGE_SIZE),
         chatOnly: 'false',
         sortOrder: 'desc',
       });
@@ -673,12 +833,15 @@ function ConversationContent() {
           messages: updatedMessages,
           isLoading: false,
           isLoadingMore: false,
-          hasMore: data.length === 10,
+          hasMore: data.length === MESSAGE_PAGE_SIZE,
           page: nextPage,
         },
       }));
 
-      updateTopicMessages(selectedTopicId, updatedMessages);
+      // Merge rather than replace: live SSE messages only ever land in the
+      // conversation, so overwriting it here would drop everything received
+      // since the last history fetch.
+      mergeTopicMessages(selectedTopicId, updatedMessages);
 
       console.log(`[ConversationPage] Loaded ${uniqueNewMessages.length} more messages for topic:`, selectedTopicId);
     } catch (error) {
@@ -692,7 +855,7 @@ function ConversationContent() {
         },
       }));
     }
-  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, messageStates, updateTopicMessages]);
+  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, messageStates, mergeTopicMessages]);
 
   const handleMessageFeedbackSubmitted = useCallback(
     (messageId: string, feedback: NonNullable<Message['feedback']>) => {
