@@ -2,7 +2,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { Conversation, Topic, Message } from '@/types/conversation';
 import { XiansMessage } from '@/lib/xians/types';
 import { toast } from 'sonner';
-import { mapXiansMessageToMessage, getBackgroundTopicToastDescription } from '../utils';
+import {
+  mapXiansMessageToMessage,
+  getBackgroundTopicToastDescription,
+  mergeMessagesById,
+} from '../utils';
 
 interface UseConversationStateParams {
   tenantId: string;
@@ -97,6 +101,10 @@ export function useConversationState({
 
       const updatedTopics = prev.topics.map((topic) => {
         if (topic.id === topicId) {
+          // A backfill after an SSE drop can race the live event for the same message.
+          if (topic.messages.some((m) => m.id === message.id)) {
+            return topic;
+          }
           return {
             ...topic,
             messages: [...topic.messages, message],
@@ -139,6 +147,40 @@ export function useConversationState({
           return { ...topic, messages };
         }
         return topic;
+      });
+
+      return {
+        ...prev,
+        topics: updatedTopics,
+      };
+    });
+  }, []);
+
+  /**
+   * Merge fetched history into a topic without dropping messages that only exist
+   * locally (optimistic sends, live SSE events). Used to recover messages that
+   * were published while the stream was down.
+   */
+  const mergeTopicMessages = useCallback((topicId: string, incoming: Message[]) => {
+    setConversation((prev) => {
+      if (!prev) return null;
+
+      const updatedTopics = prev.topics.map((topic) => {
+        if (topic.id !== topicId) return topic;
+
+        // Compare identity, not length: the merge both drops optimistic rows and
+        // adds server rows, so a length check misses a one-for-one swap.
+        const messages = mergeMessagesById(topic.messages, incoming);
+        const unchanged =
+          messages.length === topic.messages.length &&
+          messages.every((m, i) => m === topic.messages[i]);
+        if (unchanged) return topic;
+
+        return {
+          ...topic,
+          messages,
+          lastMessageAt: messages[messages.length - 1]?.timestamp ?? topic.lastMessageAt,
+        };
       });
 
       return {
@@ -199,6 +241,7 @@ export function useConversationState({
     unreadCounts,
     handleIncomingMessage,
     updateTopicMessages,
+    mergeTopicMessages,
     addMessageToTopic,
     applyMessageFeedback,
   };

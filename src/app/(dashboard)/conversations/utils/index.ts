@@ -165,6 +165,48 @@ export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
 }
 
 /**
+ * Merge freshly fetched history into the messages already on screen, keeping
+ * chronological order. Used to backfill replies that arrived while the SSE
+ * stream was down.
+ *
+ * Server rows win over anything already held under the same id, and an
+ * optimistic `temp-` row is dropped once the server echoes back the same
+ * user message.
+ */
+export function mergeMessagesById(existing: Message[], incoming: Message[]): Message[] {
+  if (incoming.length === 0) return existing;
+
+  const incomingIds = new Set(incoming.map((m) => m.id));
+  const existingIds = new Set(existing.map((m) => m.id));
+
+  // Only a server row we haven't seen before can stand in for an optimistic row,
+  // and it can stand in for exactly one - sending the same text twice must not
+  // collapse into a single bubble.
+  const unmatchedUserContent = new Map<string, number>();
+  for (const m of incoming) {
+    if (m.role !== 'user' || existingIds.has(m.id)) continue;
+    const key = m.content.trim();
+    unmatchedUserContent.set(key, (unmatchedUserContent.get(key) ?? 0) + 1);
+  }
+
+  const kept = existing.filter((m) => {
+    if (incomingIds.has(m.id)) return false;
+    if (!m.id.startsWith('temp-')) return true;
+
+    const key = m.content.trim();
+    const remaining = unmatchedUserContent.get(key) ?? 0;
+    if (remaining === 0) return true;
+
+    unmatchedUserContent.set(key, remaining - 1);
+    return false;
+  });
+
+  return [...kept, ...incoming].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+}
+
+/**
  * Toast body for a background-topic SSE message.
  * File messages with no caption fall back to the attachment name(s) instead of an empty string.
  */

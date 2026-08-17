@@ -49,15 +49,27 @@ export async function GET(request: NextRequest) {
 
       const xiansUrl = `${xiansBaseUrl}/api/v1/admin/tenants/${tenantId}/messaging/listen?${queryParams.toString()}`
 
-      const xiansResponse = await fetch(xiansUrl, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${xiansApiKey}`,
-          Accept: 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      })
+      let xiansResponse: Response
+      try {
+        // Forwarding the abort signal tears down the upstream stream when the
+        // browser closes the EventSource, instead of leaking one connection per
+        // reconnect.
+        xiansResponse = await fetch(xiansUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${xiansApiKey}`,
+            Accept: 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+          signal: req.signal,
+        })
+      } catch (error) {
+        if (req.signal.aborted) {
+          return new Response(null, { status: 499 })
+        }
+        throw error
+      }
 
       if (!xiansResponse.ok) {
         return new Response(
