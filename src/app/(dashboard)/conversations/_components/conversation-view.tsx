@@ -25,8 +25,10 @@ interface ConversationViewProps {
   unreadCounts: Record<string, number>;
   activations: ActivationOption[];
   selectedActivationName: string | null;
-  onActivationChange: (activationName: string, agentName: string) => void;
+  onActivationChange: (activationName: string, agentName: string, workflowName: string) => void;
   isLoadingActivations: boolean;
+  /** Reloads only the topic list and discussion area; agent/workflow pickers stay mounted. */
+  isLoadingTopics?: boolean;
   agentName?: string;
   currentPage: number;
   totalPages: number;
@@ -51,6 +53,7 @@ interface ConversationViewProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  selectedWorkflow?: string;
 }
 
 /**
@@ -75,6 +78,7 @@ export function ConversationView({
   selectedActivationName,
   onActivationChange,
   isLoadingActivations,
+  isLoadingTopics = false,
   agentName,
   currentPage,
   totalPages,
@@ -91,6 +95,7 @@ export function ConversationView({
   chatInputRef,
   agentInfo,
   onMessageFeedbackSubmitted,
+  selectedWorkflow,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
   const isMobile = useIsMobile();
@@ -140,10 +145,12 @@ export function ConversationView({
           selectedActivationName={selectedActivationName}
           onActivationChange={onActivationChange}
           isLoadingActivations={isLoadingActivations}
+          isLoadingTopics={isLoadingTopics}
           currentPage={currentPage}
           totalPages={totalPages}
           hasMore={hasMore}
           onPageChange={onPageChange}
+          selectedWorkflow={selectedWorkflow}
         />
       )}
 
@@ -167,10 +174,12 @@ export function ConversationView({
               selectedActivationName={selectedActivationName}
               onActivationChange={onActivationChange}
               isLoadingActivations={isLoadingActivations}
+              isLoadingTopics={isLoadingTopics}
               currentPage={currentPage}
               totalPages={totalPages}
               hasMore={hasMore}
               onPageChange={onPageChange}
+              selectedWorkflow={selectedWorkflow}
             />
           </SheetContent>
         </Sheet>
@@ -184,6 +193,7 @@ export function ConversationView({
             <ConversationHeader
               activationName={selectedActivationName || 'No Activation'}
               topic={selectedTopic}
+              workflowName={selectedWorkflow}
               isConnected={isConnected}
               isAgentActive={isAgentActive}
               workerAvailable={workerAvailable}
@@ -204,7 +214,7 @@ export function ConversationView({
               selectedTopicId={selectedTopicId}
               onSendMessage={onSendMessage}
               allowFileUpload={allowFileUpload}
-              isLoadingMessages={isLoadingMessages}
+              isLoadingMessages={isLoadingMessages || isLoadingTopics}
               onLoadMoreMessages={onLoadMoreMessages}
               isLoadingMoreMessages={isLoadingMoreMessages}
               hasMoreMessages={hasMoreMessages}
@@ -222,7 +232,7 @@ export function ConversationView({
             selectedTopicId={''}
             onSendMessage={onSendMessage}
             allowFileUpload={allowFileUpload}
-            isLoadingMessages={isLoadingMessages}
+            isLoadingMessages={isLoadingMessages || isLoadingTopics}
             onLoadMoreMessages={onLoadMoreMessages}
             isLoadingMoreMessages={isLoadingMoreMessages}
             hasMoreMessages={hasMoreMessages}

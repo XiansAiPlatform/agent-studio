@@ -12,6 +12,7 @@ interface UseConversationStateParams {
   tenantId: string;
   agentName: string;
   activationName: string;
+  workflowType: string;
   topics: Topic[];
   selectedTopicId: string;
 }
@@ -20,6 +21,7 @@ export function useConversationState({
   tenantId,
   agentName,
   activationName,
+  workflowType,
   topics,
   selectedTopicId,
 }: UseConversationStateParams) {
@@ -31,7 +33,7 @@ export function useConversationState({
   // When just adding a topic (same activation), the merge effect preserves loaded messages.
   useEffect(() => {
     if (topics.length > 0) {
-      const currentId = `${agentName}-${activationName}`;
+      const currentId = `${agentName}-${activationName}-${workflowType}`;
       setConversation((prev) => {
         const isInitializing = !prev;
         const isActivationChange = prev && prev.id !== currentId;
@@ -58,7 +60,7 @@ export function useConversationState({
         return prev;
       });
     }
-  }, [topics, agentName, activationName, tenantId]);
+  }, [topics, agentName, activationName, workflowType, tenantId]);
 
   // Update conversation topics when they change.
   // Preserve messages for existing topics - useTopics only has metadata (messages: []),

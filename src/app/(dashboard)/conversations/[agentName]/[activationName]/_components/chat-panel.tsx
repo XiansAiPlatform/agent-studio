@@ -1,4 +1,4 @@
-import { Bot } from 'lucide-react';
+import { Bot, Loader2 } from 'lucide-react';
 import { ChatInterface, FileUploadPayload } from '@/components/features/conversations';
 import { Conversation, Topic, Message } from '@/types/conversation';
 
@@ -44,6 +44,19 @@ export function ChatPanel({
   agentInfo,
   onMessageFeedbackSubmitted,
 }: ChatPanelProps) {
+  if (isLoadingMessages && (!selectedTopicId || !selectedTopic)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">
+        <div className="chat-icon-container h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center mb-4 shadow-2xl border border-primary/30">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+        <p className="text-sm text-foreground font-medium">
+          Loading conversation...
+        </p>
+      </div>
+    );
+  }
+
   if (!selectedTopicId || !selectedTopic) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">

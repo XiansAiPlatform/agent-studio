@@ -20,9 +20,13 @@ import {
 } from '../../utils';
 import { MessageStatesMap, TopicMessageState } from '../../types';
 import type { FileUploadPayload } from '@/components/features/conversations';
+import { AgentActivationSelector } from '@/components/features/conversations';
 import type { XiansMessage } from '@/lib/xians/types';
 import { ConversationView } from '../../_components';
 import { ParticipantMenuBar } from './_components';
+import {
+  SUPERVISOR_WORKFLOW,
+} from '@/lib/xians/built-in-workflows';
 
 /** Page size for the paginated message history (initial load and "load more"). */
 const MESSAGE_PAGE_SIZE = 10;
@@ -38,7 +42,7 @@ const OFFLINE_POLL_INTERVAL_MS = 10000;
  * It shows a list of topics on the left and the chat interface on the right.
  * 
  * Route: /conversations/[agentName]/[activationName]
- * Query params: ?topic=<topicId>
+ * Query params: ?topic=<topicId>&workflow=<workflowName>
  */
 function ConversationContent() {
   const searchParams = useSearchParams();
@@ -52,6 +56,11 @@ function ConversationContent() {
   const agentName = decodeURIComponent(params.agentName as string);
   const activationName = decodeURIComponent(params.activationName as string);
   const topicParam = searchParams.get('topic');
+  const workflowParam = searchParams.get('workflow');
+  const selectedWorkflowType =
+    workflowParam && workflowParam.trim()
+      ? workflowParam.trim()
+      : SUPERVISOR_WORKFLOW;
 
   // State
   const [selectedTopicId, setSelectedTopicId] = useState<string>('');
@@ -89,6 +98,7 @@ function ConversationContent() {
     tenantId: currentTenantId,
     agentName,
     activationName,
+    workflowType: selectedWorkflowType,
     page: currentPage,
   });
 
@@ -105,6 +115,7 @@ function ConversationContent() {
     tenantId: currentTenantId || '',
     agentName: agentName || '',
     activationName: activationName || '',
+    workflowType: selectedWorkflowType,
     topics,
     selectedTopicId,
   });
@@ -169,6 +180,7 @@ function ConversationContent() {
         pageSize: String(MESSAGE_SYNC_SIZE),
         chatOnly: 'false',
         sortOrder: 'desc',
+        workflowType: selectedWorkflowType,
       });
 
       const response = await fetch(`/api/messaging/history?${queryParams.toString()}`);
@@ -213,7 +225,7 @@ function ConversationContent() {
     } finally {
       syncingTopicsRef.current.delete(topicId);
     }
-  }, [currentTenantId, agentName, activationName, mergeTopicMessages]);
+  }, [currentTenantId, agentName, activationName, selectedWorkflowType, mergeTopicMessages]);
 
   // Keep the topic in a ref so the reconnect handler stays stable — passing an
   // unstable callback into the listener is fine (it stores it in a ref), but the
@@ -292,6 +304,7 @@ function ConversationContent() {
     tenantId: currentTenantId,
     agentName,
     activationName,
+    workflowType: selectedWorkflowType,
     enabled: !!(currentTenantId && agentName && activationName && session?.user?.email && isActivationActive),
     onMessage: handleIncomingMessage,
     onError: handleSSEError,
@@ -327,6 +340,7 @@ function ConversationContent() {
     tenantId: currentTenantId,
     agentName,
     activationName,
+    workflowType: selectedWorkflowType,
     enabled: !!(currentTenantId && agentName && activationName),
   });
 
@@ -346,8 +360,13 @@ function ConversationContent() {
   }, [maxReconnectAttemptsReached, hasEverConnected, sseError, searchParams, router, agentName, activationName]);
 
   // Handle activation change (navigate to different agent/activation)
-  const handleActivationChange = useCallback((newActivationName: string, newAgentName: string) => {
-    router.push(`/conversations/${encodeURIComponent(newAgentName)}/${encodeURIComponent(newActivationName)}?topic=general-discussions`);
+  const handleActivationChange = useCallback((newActivationName: string, newAgentName: string, workflowName: string = SUPERVISOR_WORKFLOW) => {
+    const urlParams = new URLSearchParams();
+    urlParams.set('topic', 'general-discussions');
+    if (workflowName !== SUPERVISOR_WORKFLOW) {
+      urlParams.set('workflow', workflowName);
+    }
+    router.push(`/conversations/${encodeURIComponent(newAgentName)}/${encodeURIComponent(newActivationName)}?${urlParams.toString()}`);
   }, [router]);
 
   // Update URL when topic is selected
@@ -406,6 +425,7 @@ function ConversationContent() {
         agentName,
         activationName,
         topic: topicParam,
+        workflowType: selectedWorkflowType,
       });
 
       const response = await fetch(
@@ -459,7 +479,7 @@ function ConversationContent() {
       showErrorToast(error, 'Failed to delete topic messages');
       throw error; // Re-throw to let the component handle the error state
     }
-  }, [currentTenantId, agentName, activationName, selectedTopicId, updateTopicInURL, refetchTopics, notifyTopicDeleted, updateTopicMessages]);
+  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, updateTopicInURL, refetchTopics, notifyTopicDeleted, updateTopicMessages]);
 
   // Handle topic selection
   const handleTopicSelect = useCallback((topicId: string) => {
@@ -472,16 +492,16 @@ function ConversationContent() {
     }, 100);
   }, [updateTopicInURL]);
 
-  // Clear message states when activation or agent changes
+  // Clear message states when activation, agent, or workflow changes
   useEffect(() => {
-    const activationKey = `${agentName}-${activationName}`;
+    const activationKey = `${agentName}-${activationName}-${selectedWorkflowType}`;
     if (activationKey !== lastActivationKey && lastActivationKey !== '') {
-      console.log('[ConversationPage] Activation changed, clearing message states');
+      console.log('[ConversationPage] Activation or workflow changed, clearing message states');
       setMessageStates({});
-      setSelectedTopicId('');
+      setSelectedTopicId('general-discussions');
     }
     setLastActivationKey(activationKey);
-  }, [agentName, activationName, lastActivationKey]);
+  }, [agentName, activationName, selectedWorkflowType, lastActivationKey]);
 
   // Sync selected topic from URL
   useEffect(() => {
@@ -588,6 +608,7 @@ function ConversationContent() {
           pageSize: String(MESSAGE_PAGE_SIZE),
           chatOnly: 'false',
           sortOrder: 'desc',
+          workflowType: selectedWorkflowType,
         });
 
         const response = await fetch(
@@ -640,7 +661,7 @@ function ConversationContent() {
     };
     
     fetchMessages();
-  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent]);
+  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent]);
 
   // Handle sending messages
   // Note: we intentionally do not gate on `session.user.email` here. After a period
@@ -684,6 +705,7 @@ function ConversationContent() {
             type: 'File',
             text: content,
             topic: topicParamValue,
+            workflowType: selectedWorkflowType,
             data: {
               files: files!.map((file) => ({
                 content: file.base64,
@@ -698,6 +720,7 @@ function ConversationContent() {
             activationName,
             text: content,
             topic: topicParamValue,
+            workflowType: selectedWorkflowType,
           };
 
       const response = await fetch(
@@ -764,6 +787,7 @@ function ConversationContent() {
     currentTenantId,
     agentName,
     activationName,
+    selectedWorkflowType,
     addMessageToTopic,
     notifyHeartbeatActivity,
     ensureMessageStreamConnected,
@@ -800,6 +824,7 @@ function ConversationContent() {
         pageSize: String(MESSAGE_PAGE_SIZE),
         chatOnly: 'false',
         sortOrder: 'desc',
+        workflowType: selectedWorkflowType,
       });
 
       const response = await fetch(
@@ -855,7 +880,7 @@ function ConversationContent() {
         },
       }));
     }
-  }, [currentTenantId, agentName, activationName, selectedTopicId, session?.user?.email, messageStates, mergeTopicMessages]);
+  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, session?.user?.email, messageStates, mergeTopicMessages]);
 
   const handleMessageFeedbackSubmitted = useCallback(
     (messageId: string, feedback: NonNullable<Message['feedback']>) => {
@@ -878,10 +903,10 @@ function ConversationContent() {
     [selectedTopicId, applyMessageFeedback]
   );
 
-  // Keep showing progress until conversation is ready. Do not treat a null
-  // conversation as "no topics" — that state exists for the whole fetch window
-  // and for one frame after topics arrive (conversation is set in an effect).
-  if (isLoadingTopics || !currentTenantId || (!conversation && !fetchError && !noConversationalCapability)) {
+  // Full-page loader only before the first conversation chrome is ready.
+  // Switching workflow keeps ConversationView mounted so the agent and
+  // workflow pickers do not remount; topics + discussion show their own loaders.
+  if (!currentTenantId || (!conversation && !fetchError && !noConversationalCapability)) {
     return <PageLoader label="Loading conversation..." className="h-full" />;
   }
 
@@ -906,6 +931,13 @@ function ConversationContent() {
     return (
       <div className="flex flex-col h-full min-h-0">
         <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
+        <AgentActivationSelector
+          activations={activations}
+          selectedActivationName={activationName}
+          selectedWorkflow={selectedWorkflowType}
+          onActivationChange={handleActivationChange}
+          isLoading={isLoadingActivations}
+        />
         {content}
       </div>
     );
@@ -926,6 +958,13 @@ function ConversationContent() {
     return (
       <div className="flex flex-col h-full min-h-0">
         <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
+        <AgentActivationSelector
+          activations={activations}
+          selectedActivationName={activationName}
+          selectedWorkflow={selectedWorkflowType}
+          onActivationChange={handleActivationChange}
+          isLoading={isLoadingActivations}
+        />
         {noConvContent}
       </div>
     );
@@ -956,6 +995,7 @@ function ConversationContent() {
         selectedActivationName={activationName}
         onActivationChange={handleActivationChange}
         isLoadingActivations={isLoadingActivations}
+        isLoadingTopics={isLoadingTopics}
         agentName={agentName}
         currentPage={currentPage}
         totalPages={totalPages}
@@ -972,6 +1012,7 @@ function ConversationContent() {
         chatInputRef={chatInputRef}
         agentInfo={agentInfo}
         onMessageFeedbackSubmitted={handleMessageFeedbackSubmitted}
+        selectedWorkflow={selectedWorkflowType}
       />
     </div>
   );

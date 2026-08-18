@@ -7,6 +7,8 @@ import { useParticipantLayout } from '@/contexts/participant-layout-context';
 interface ConversationHeaderProps {
   activationName: string;
   topic: Topic;
+  /** Built-in workflow name shown before the discussion name. */
+  workflowName?: string;
   isConnected: boolean;
   isAgentActive: boolean;
   /** Agent worker liveness from heartbeat. null = checking. */
@@ -28,13 +30,14 @@ interface ConversationHeaderProps {
 /**
  * Conversation Header Component
  *
- * Displays the current activation name, topic name, message count,
+ * Displays the current activation name, workflow, topic name, message count,
  * and SSE connection status with a visual indicator.
  * In participant mode, includes a hamburger menu to browse agents/topics.
  */
 export function ConversationHeader({
   activationName,
   topic,
+  workflowName,
   isConnected,
   isAgentActive,
   workerAvailable = null,
@@ -87,8 +90,16 @@ export function ConversationHeader({
               </h3>
             </div>
 
-            {/* Topic Name & Message Count */}
+            {/* Workflow, topic name, and message count */}
             <div className="flex items-center gap-1.5 min-w-0">
+              {workflowName && (
+                <>
+                  <span className="text-xs text-muted-foreground font-medium truncate">
+                    {workflowName}
+                  </span>
+                  <span className="text-xs text-muted-foreground/60">•</span>
+                </>
+              )}
               <span className="text-xs text-muted-foreground font-medium truncate">
                 {topic.name}
               </span>

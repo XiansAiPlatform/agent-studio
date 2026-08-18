@@ -7,6 +7,7 @@ interface UseTopicsParams {
   tenantId: string | null;
   agentName: string | null;
   activationName: string | null;
+  workflowType: string | null;
   page?: number;
   pageSize?: number;
 }
@@ -24,6 +25,7 @@ export function useTopics({
   tenantId,
   agentName,
   activationName,
+  workflowType,
   page = 1,
   pageSize = 20,
 }: UseTopicsParams) {
@@ -36,8 +38,8 @@ export function useTopics({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchKey =
-    tenantId && agentName && activationName
-      ? `${tenantId}:${agentName}:${activationName}:${page}:${pageSize}`
+    tenantId && agentName && activationName && workflowType
+      ? `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}`
       : null;
 
   // True while params are missing or this activation's fetch has not resolved yet.
@@ -45,11 +47,11 @@ export function useTopics({
   const isLoading = fetchKey === null || resolvedKey !== fetchKey;
 
   const fetchTopics = useCallback(async () => {
-    if (!tenantId || !agentName || !activationName) {
+    if (!tenantId || !agentName || !activationName || !workflowType) {
       return;
     }
 
-    const key = `${tenantId}:${agentName}:${activationName}:${page}:${pageSize}`;
+    const key = `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}`;
 
     // Cancel any pending request
     if (abortControllerRef.current) {
@@ -67,6 +69,7 @@ export function useTopics({
         activationName,
         page: page.toString(),
         pageSize: pageSize.toString(),
+        workflowType,
       });
 
       const response = await fetch(
@@ -161,7 +164,7 @@ export function useTopics({
       }
       setResolvedKey(key);
     }
-  }, [tenantId, agentName, activationName, page, pageSize]);
+  }, [tenantId, agentName, activationName, workflowType, page, pageSize]);
 
   useEffect(() => {
     fetchTopics();

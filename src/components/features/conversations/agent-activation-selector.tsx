@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as SelectPrimitive from '@radix-ui/react-select';
@@ -11,6 +11,11 @@ import {
   SelectLabel,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  chatWorkflowsForAgent,
+  listBuiltInWorkflows,
+  SUPERVISOR_WORKFLOW,
+} from '@/lib/xians/built-in-workflows';
 
 export interface ActivationOption {
   id: string;
@@ -20,10 +25,21 @@ export interface ActivationOption {
   description?: string;
 }
 
+type WorkflowSelectOption = {
+  id: string;
+  agentName: string;
+  workflowName: string;
+};
+
 interface AgentActivationSelectorProps {
   activations: ActivationOption[];
   selectedActivationName: string | null;
-  onActivationChange: (activationName: string, agentName: string) => void;
+  selectedWorkflow?: string;
+  onActivationChange: (
+    activationName: string,
+    agentName: string,
+    workflowName: string
+  ) => void;
   isLoading?: boolean;
   // Legacy props kept for API compatibility
   defaultExpanded?: boolean;
@@ -34,6 +50,7 @@ interface AgentActivationSelectorProps {
 export function AgentActivationSelector({
   activations,
   selectedActivationName,
+  selectedWorkflow = SUPERVISOR_WORKFLOW,
   onActivationChange,
   isLoading = false,
 }: AgentActivationSelectorProps) {
@@ -48,7 +65,7 @@ export function AgentActivationSelector({
     });
     return groups;
   }, [activations]);
-
+  
   // Get unique agent names (deployments)
   const agentNames = useMemo(() => {
     return Object.keys(groupedActivations).sort();
@@ -59,12 +76,101 @@ export function AgentActivationSelector({
     return activations.find((a) => a.name === selectedActivationName);
   }, [activations, selectedActivationName]);
 
-  const handleActivationChange = (activationName: string) => {
-    // Find the activation to get its agent name
-    const activation = activations.find((a) => a.name === activationName);
-    if (activation) {
-      onActivationChange(activation.name, activation.agentName);
+  const selectedAgentName = selectedActivation?.agentName ?? null;
+
+  const [workflowsByAgent, setWorkflowsByAgent] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (agentNames.length === 0) return;
+    let cancelled = false;
+
+    const load = async () => {
+      const entries = await Promise.all(
+        agentNames.map(async (name) => {
+          try {
+            const res = await fetch(`/api/agents/${encodeURIComponent(name)}`);
+            if (!res.ok) return [name, [SUPERVISOR_WORKFLOW]] as const;
+            const data = await res.json();
+            const definitions = Array.isArray(data.definitions) ? data.definitions : [];
+            const listed = listBuiltInWorkflows(definitions);
+            return [name, chatWorkflowsForAgent(listed)] as const;
+          } catch {
+            return [name, [SUPERVISOR_WORKFLOW]] as const;
+          }
+        })
+      );
+      if (!cancelled) {
+        setWorkflowsByAgent(Object.fromEntries(entries));
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [agentNames]);
+
+  const { optionGroups, optionById } = useMemo(() => {
+    const optionById = new Map<string, WorkflowSelectOption>();
+    const optionGroups: {
+      agentName: string;
+      items: { id: string; workflowName: string }[];
+    }[] = [];
+    let nextId = 0;
+
+    for (const agentName of agentNames) {
+      let workflows = chatWorkflowsForAgent(workflowsByAgent[agentName]);
+      if (
+        agentName === selectedAgentName &&
+        selectedWorkflow &&
+        !workflows.includes(selectedWorkflow)
+      ) {
+        workflows = [...workflows, selectedWorkflow];
+      }
+
+      const items = workflows.map((workflowName) => {
+        const id = String(nextId++);
+        const option: WorkflowSelectOption = { id, agentName, workflowName };
+        optionById.set(id, option);
+        return { id, workflowName };
+      });
+
+      optionGroups.push({ agentName, items });
     }
+
+    return { optionGroups, optionById };
+  }, [agentNames, workflowsByAgent, selectedAgentName, selectedWorkflow]);
+
+  const selectedValue = useMemo(() => {
+    if (!selectedAgentName) return '';
+    const workflowName = selectedWorkflow || SUPERVISOR_WORKFLOW;
+    for (const option of optionById.values()) {
+      if (
+        option.agentName === selectedAgentName &&
+        option.workflowName === workflowName
+      ) {
+        return option.id;
+      }
+    }
+    return '';
+  }, [optionById, selectedAgentName, selectedWorkflow]);
+
+  const resolveActivation = (agentName: string): ActivationOption | undefined => {
+    const agentActivations = groupedActivations[agentName] ?? [];
+    if (selectedActivation?.agentName === agentName) {
+      return selectedActivation;
+    }
+    return (
+      agentActivations.find((a) => a.status === 'active') ?? agentActivations[0]
+    );
+  };
+
+  const handleValueChange = (value: string) => {
+    const option = optionById.get(value);
+    if (!option) return;
+    const activation = resolveActivation(option.agentName);
+    if (!activation) return;
+    onActivationChange(activation.name, option.agentName, option.workflowName);
   };
 
   // Loading state
@@ -90,10 +196,7 @@ export function AgentActivationSelector({
 
   return (
     <div className="border-b border-border/60">
-      <Select
-        value={selectedActivationName || ''}
-        onValueChange={handleActivationChange}
-      >
+      <Select value={selectedValue} onValueChange={handleValueChange}>
         <SelectPrimitive.Trigger
           className={cn(
             'w-full flex items-center justify-between px-6 py-4',
@@ -106,10 +209,10 @@ export function AgentActivationSelector({
             {selectedActivation ? (
               <>
                 <h2 className="text-sm font-semibold text-foreground leading-snug mb-1">
-                  {selectedActivation.name}
+                  {selectedActivation.agentName}
                 </h2>
                 <Badge variant="outline" className="text-xs font-medium bg-primary/5 border-primary/20 text-primary">
-                  {selectedActivation.agentName}
+                  {selectedWorkflow || SUPERVISOR_WORKFLOW}
                 </Badge>
               </>
             ) : (
@@ -118,42 +221,35 @@ export function AgentActivationSelector({
                   Select an Agent
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Choose an activation to chat
+                  Choose a workflow to chat
                 </p>
               </>
             )}
           </div>
-          
+
           <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2 transition-transform data-[state=open]:rotate-180" />
         </SelectPrimitive.Trigger>
 
         <SelectContent className="max-h-[300px]" align="start" sideOffset={0}>
-          {/* Group activations by agent deployment */}
-          {agentNames.map((agentName, index) => (
+          {optionGroups.map(({ agentName, items }, index) => (
             <SelectGroup key={agentName}>
               {index > 0 && <div className="my-1 h-px bg-border/50" />}
               <SelectLabel className="px-2 py-2 text-[11px] font-semibold uppercase tracking-wider text-primary/70 bg-muted/30">
                 {agentName}
               </SelectLabel>
-              {groupedActivations[agentName].map((activation) => (
+              {items.map(({ id, workflowName }) => (
                 <SelectPrimitive.Item
-                  key={activation.id}
-                  value={activation.name}
+                  key={id}
+                  value={id}
                   className={cn(
-                    "relative flex w-full cursor-pointer select-none items-center justify-between",
-                    "rounded-sm py-2.5 pl-4 pr-8 text-sm outline-none",
-                    "focus:bg-accent focus:text-accent-foreground",
-                    "data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                    'relative flex w-full cursor-pointer select-none items-center justify-between',
+                    'rounded-sm py-2.5 pl-8 pr-8 text-sm outline-none',
+                    'focus:bg-accent focus:text-accent-foreground',
+                    'data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
                   )}
                 >
                   <SelectPrimitive.ItemText>
-                    <span className="flex items-center gap-2">
-                      <span className={cn(
-                        "h-1.5 w-1.5 rounded-full flex-shrink-0",
-                        activation.status === 'active' ? "bg-emerald-500" : "bg-muted-foreground/40"
-                      )} />
-                      <span>{activation.name}</span>
-                    </span>
+                    <span>{workflowName}</span>
                   </SelectPrimitive.ItemText>
                   <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
                     <SelectPrimitive.ItemIndicator>

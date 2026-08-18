@@ -1,11 +1,12 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useParticipantLayout } from '@/contexts/participant-layout-context'
 import { ParticipantAgentTree } from './participant-agent-tree'
 import { Topic } from '@/types/conversation'
+import { SUPERVISOR_WORKFLOW } from '@/lib/xians/built-in-workflows'
 
 interface ParticipantLayoutShellProps {
   children: React.ReactNode
@@ -19,15 +20,24 @@ export function ParticipantLayoutShell({
   onMenuOpenChange,
 }: ParticipantLayoutShellProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { notifyTopicDeleted } = useParticipantLayout()
 
   const handleTopicSelect = (
     agentName: string,
     activationName: string,
-    _topic: Topic
+    _topic: Topic,
+    workflowName?: string
   ) => {
     const topicId = _topic.id
-    const path = `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?topic=${encodeURIComponent(topicId)}`
+    const urlParams = new URLSearchParams()
+    urlParams.set('topic', topicId)
+    const resolvedWorkflow =
+      workflowName ?? searchParams.get('workflow')?.trim() ?? SUPERVISOR_WORKFLOW
+    if (resolvedWorkflow !== SUPERVISOR_WORKFLOW) {
+      urlParams.set('workflow', resolvedWorkflow)
+    }
+    const path = `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${urlParams.toString()}`
     router.push(path)
     onMenuOpenChange(false)
   }

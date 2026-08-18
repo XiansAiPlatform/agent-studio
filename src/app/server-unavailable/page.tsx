@@ -8,13 +8,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { cn } from '@/lib/utils'
 import { Suspense } from 'react'
 
+import { SUPERVISOR_WORKFLOW } from '@/lib/xians/built-in-workflows'
+
 const RETRY_INTERVAL_MS = 15_000
 const RETRY_TIMEOUT_MS = 5_000
 
-function parseMessagingParamsFromReturnUrl(returnUrl: string): { agentName: string; activationName: string } | null {
-  const match = returnUrl.match(/^\/conversations\/([^/]+)\/([^/?]+)/)
-  if (!match) return null
-  return { agentName: decodeURIComponent(match[1]), activationName: decodeURIComponent(match[2]) }
+function parseMessagingParamsFromReturnUrl(returnUrl: string): {
+  agentName: string
+  activationName: string
+  workflowType: string
+} | null {
+  try {
+    const url = new URL(returnUrl, 'http://local')
+    const match = url.pathname.match(/^\/conversations\/([^/]+)\/([^/]+)$/)
+    if (!match) return null
+    const workflow = url.searchParams.get('workflow')?.trim()
+    return {
+      agentName: decodeURIComponent(match[1]),
+      activationName: decodeURIComponent(match[2]),
+      workflowType: workflow || SUPERVISOR_WORKFLOW,
+    }
+  } catch {
+    return null
+  }
 }
 
 function ServerUnavailableContent() {
@@ -31,7 +47,11 @@ function ServerUnavailableContent() {
     if (params) {
       try {
         setIsCheckingConnection(true)
-        const listenUrl = `/api/messaging/listen?agentName=${encodeURIComponent(params.agentName)}&activationName=${encodeURIComponent(params.activationName)}&heartbeatSeconds=60`
+        const listenUrl =
+          `/api/messaging/listen?agentName=${encodeURIComponent(params.agentName)}` +
+          `&activationName=${encodeURIComponent(params.activationName)}` +
+          `&workflowType=${encodeURIComponent(params.workflowType)}` +
+          `&heartbeatSeconds=60`
         const eventSource = new EventSource(listenUrl)
         const connected = await new Promise<boolean>((resolve) => {
           const timeout = setTimeout(() => {

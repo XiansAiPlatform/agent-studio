@@ -15,6 +15,7 @@ export const DELETE = withTenantFromSession(
 
       const agentName = searchParams.get('agentName')
       const activationName = searchParams.get('activationName')
+      const workflowType = searchParams.get('workflowType')
       const topic = searchParams.get('topic')
 
       const participantId = session.user?.email
@@ -38,6 +39,7 @@ export const DELETE = withTenantFromSession(
         participantId,
       })
       if (topic !== null) queryParams.append('topic', topic ?? '')
+      if (workflowType) queryParams.set('workflowType', workflowType)
 
       const xiansClient = createXiansClient()
       await xiansClient.delete(
