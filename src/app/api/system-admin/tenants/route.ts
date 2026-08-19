@@ -39,6 +39,9 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
 /**
  * POST /api/system-admin/tenants
  * Create a new tenant. System administrators only.
+ *
+ * tenantId must be lowercase — it is used as a case-sensitive key across the
+ * platform, so mixed-case values would create lookup mismatches.
  */
 export const POST = withSystemAdmin(async (request: NextRequest) => {
   let body: {
@@ -62,12 +65,23 @@ export const POST = withSystemAdmin(async (request: NextRequest) => {
     )
   }
 
+  const tenantId = body.tenantId.trim()
+  if (!/^[a-z0-9._@-]+$/.test(tenantId)) {
+    return NextResponse.json(
+      {
+        error:
+          'tenantId may only contain lowercase letters, numbers and . _ @ -',
+      },
+      { status: 400 }
+    )
+  }
+
   try {
     const client = createXiansClient()
     const data = await client.post<{ tenant?: Tenant } & Tenant>(
       '/api/v1/admin/tenants',
       {
-        tenantId: body.tenantId,
+        tenantId,
         name: body.name,
         domain: body.domain || undefined,
         description: body.description || undefined,

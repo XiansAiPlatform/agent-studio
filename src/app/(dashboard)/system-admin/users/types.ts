@@ -15,12 +15,17 @@ export {
 } from '@/lib/auth/roles'
 export type { TenantRole, Role } from '@/lib/auth/roles'
 
-import type { Role, TenantRole } from '@/lib/auth/roles'
+import type { TenantRole } from '@/lib/auth/roles'
+import {
+  pickBoolean,
+  pickString,
+  pickUserIdentity,
+  type UserIdentityFields,
+} from '@/lib/users/identity'
 
 // ── Tenant-scoped user type (used for per-tenant list & role assignment) ────
 
-export interface TenantUser {
-  userId: string
+export interface TenantUser extends UserIdentityFields {
   email: string
   name: string
   roles: string[]
@@ -51,8 +56,7 @@ export interface ListTenantUsersParams {
  * A user as returned by GET /api/v1/admin/users (global list).
  * Has a tenantCount but no per-tenant role — those are in GlobalUserDetail.
  */
-export interface GlobalUser {
-  userId: string
+export interface GlobalUser extends UserIdentityFields {
   email: string
   name: string
   isSysAdmin: boolean
@@ -89,8 +93,7 @@ export interface UserTenantMembership {
  * Full user detail returned by GET /api/v1/admin/users/{userId}.
  * Includes all tenant memberships.
  */
-export interface GlobalUserDetail {
-  userId: string
+export interface GlobalUserDetail extends UserIdentityFields {
   email: string
   name: string
   isSysAdmin: boolean
@@ -98,13 +101,114 @@ export interface GlobalUserDetail {
   memberships: UserTenantMembership[]
 }
 
+function pickEnabled(raw: Record<string, unknown>): boolean {
+  const isEnabled = pickBoolean(raw, 'isEnabled', 'is_enabled')
+  if (isEnabled !== undefined) return isEnabled
+  const isLockedOut = pickBoolean(raw, 'isLockedOut', 'is_locked_out')
+  return isLockedOut !== true
+}
+
+function normalizeMembership(raw: unknown): UserTenantMembership {
+  const m = (raw ?? {}) as Record<string, unknown>
+  const roles = Array.isArray(m.roles)
+    ? m.roles.map(String)
+    : m.role != null
+      ? [String(m.role)]
+      : []
+  const tenantId = pickString(m, 'tenantId', 'tenant') ?? ''
+  return {
+    tenantId,
+    tenantName: pickString(m, 'tenantName', 'tenant_name') ?? tenantId,
+    roles,
+    isApproved: pickBoolean(m, 'isApproved', 'is_approved') ?? false,
+  }
+}
+
+export function normalizeAdminTenantUser(raw: unknown): TenantUser {
+  const u = (raw ?? {}) as Record<string, unknown>
+  const roles = Array.isArray(u.roles)
+    ? u.roles.map(String)
+    : u.role != null
+      ? [String(u.role)]
+      : []
+  const identity = pickUserIdentity(u)
+  return {
+    ...identity,
+    email: pickString(u, 'email', 'email') ?? '',
+    name: pickString(u, 'name', 'name') ?? '',
+    roles,
+    isSysAdmin: pickBoolean(u, 'isSysAdmin', 'is_sys_admin') ?? false,
+    isApproved: pickBoolean(u, 'isApproved', 'is_approved') ?? false,
+    isEnabled: pickEnabled(u),
+  }
+}
+
+export function normalizeGlobalUser(raw: unknown): GlobalUser {
+  const u = (raw ?? {}) as Record<string, unknown>
+  const identity = pickUserIdentity(u)
+  const tenantCount = u.tenantCount ?? u.tenant_count
+  return {
+    ...identity,
+    email: pickString(u, 'email', 'email') ?? '',
+    name: pickString(u, 'name', 'name') ?? '',
+    isSysAdmin: pickBoolean(u, 'isSysAdmin', 'is_sys_admin') ?? false,
+    isEnabled: pickEnabled(u),
+    tenantCount: typeof tenantCount === 'number' ? tenantCount : Number(tenantCount) || 0,
+  }
+}
+
+export function normalizeGlobalUserDetail(raw: unknown): GlobalUserDetail {
+  const u = (raw ?? {}) as Record<string, unknown>
+  const identity = pickUserIdentity(u)
+  const membershipsRaw = Array.isArray(u.memberships)
+    ? u.memberships
+    : Array.isArray(u.tenant_roles)
+      ? u.tenant_roles
+      : Array.isArray(u.tenantRoles)
+        ? u.tenantRoles
+        : []
+  return {
+    ...identity,
+    email: pickString(u, 'email', 'email') ?? '',
+    name: pickString(u, 'name', 'name') ?? '',
+    isSysAdmin: pickBoolean(u, 'isSysAdmin', 'is_sys_admin') ?? false,
+    isEnabled: pickEnabled(u),
+    memberships: membershipsRaw.map(normalizeMembership),
+  }
+}
+
 // ── Mutation request types ────────────────────────────────────────────────────
 
+/**
+ * Create a brand-new account and add it to the tenant.
+ *
+ * The backend rejects this with 409 if any account already holds `email`; in
+ * that case the account has to be added by id via AddExistingUserRequest.
+ */
 export interface CreateUserRequest {
   email: string
   name: string
   role: TenantRole
 }
+
+/**
+ * Add an account that already exists to a tenant.
+ *
+ * `userId` must be a user id — an email address is rejected with 400 because a
+ * single address can belong to accounts from more than one identity provider.
+ */
+export interface AddExistingUserRequest {
+  userId: string
+  role: TenantRole
+}
+
+/**
+ * Body of POST /api/v1/admin/tenants/{tenantId}/users. `role` is always
+ * required; the remaining fields pick one of the two modes above. `userId` and
+ * `email`/`name` are mutually exclusive — when `userId` is present the backend
+ * ignores `email` and `name`.
+ */
+export type AddTenantUserRequest = AddExistingUserRequest | CreateUserRequest
 
 /** A single tenant + role pair for new-user creation. */
 export interface TenantMembershipInput {

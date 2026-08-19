@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { ActivationOption } from '@/components/features/conversations';
+import { useResolvedLoading } from '@/hooks/use-resolved-loading';
 
 export function useActivations(tenantId: string | null) {
   const [activations, setActivations] = useState<ActivationOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
+  const { isLoading, resolve } = useResolvedLoading(tenantId);
 
   useEffect(() => {
     const fetchActivations = async () => {
@@ -13,22 +15,24 @@ export function useActivations(tenantId: string | null) {
         return;
       }
 
+      const requestId = ++requestIdRef.current;
+
       // Cancel any pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
       // Create new abort controller for this request
-      abortControllerRef.current = new AbortController();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-      setIsLoading(true);
       setError(null);
       
       try {
         const response = await fetch(
           `/api/agent-activations`,
           {
-            signal: abortControllerRef.current.signal,
+            signal: controller.signal,
           }
         );
 
@@ -37,6 +41,10 @@ export function useActivations(tenantId: string | null) {
         }
 
         const data = await response.json();
+        if (requestId !== requestIdRef.current || controller.signal.aborted) {
+          return;
+        }
+
         const activationsList = Array.isArray(data) ? data : [];
 
         const mappedActivations: ActivationOption[] = activationsList.map((activation: any) => ({
@@ -48,9 +56,13 @@ export function useActivations(tenantId: string | null) {
         }));
 
         setActivations(mappedActivations);
+        resolve(tenantId);
       } catch (err) {
-        // Ignore abort errors
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (
+          requestId !== requestIdRef.current ||
+          controller.signal.aborted ||
+          (err instanceof Error && err.name === 'AbortError')
+        ) {
           console.log('[useActivations] Request aborted');
           return;
         }
@@ -58,8 +70,7 @@ export function useActivations(tenantId: string | null) {
         console.error('[useActivations] Error fetching activations:', err);
         setError(err instanceof Error ? err : new Error('Unknown error'));
         setActivations([]);
-      } finally {
-        setIsLoading(false);
+        resolve(tenantId);
       }
     };
 
@@ -71,7 +82,7 @@ export function useActivations(tenantId: string | null) {
         abortControllerRef.current.abort();
       }
     };
-  }, [tenantId]);
+  }, [tenantId, resolve]);
 
   return { activations, isLoading, error };
 }

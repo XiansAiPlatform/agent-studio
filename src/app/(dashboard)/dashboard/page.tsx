@@ -15,7 +15,8 @@ import { useTenantStats, type TimePeriod } from './hooks/use-tenant-stats'
 import { useMyPendingTaskCount } from './hooks/use-my-pending-task-count'
 import { useTenantUserSummary } from './hooks/use-tenant-user-summary'
 import { PlatformStrip } from './components/platform-strip'
-import { MetricCard, MetricCardSkeleton } from './components/metric-card'
+import { PageLoader } from '@/components/ui/page-loader'
+import { MetricCard } from './components/metric-card'
 import { ActivityPanel } from './components/activity-panel'
 import { AgentsPanel } from './components/agents-panel'
 
@@ -117,11 +118,7 @@ export default function DashboardPage() {
             </div>
 
             {isLoadingOverview ? (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <MetricCardSkeleton key={i} />
-                ))}
-              </div>
+              <PageLoader label="Loading overview..." />
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                 <MetricCard

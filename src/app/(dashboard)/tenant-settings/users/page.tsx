@@ -36,6 +36,7 @@ import {
 } from '@/components/layout/dashboard-page'
 import { useUsers } from './hooks/use-users'
 import { TenantUser, TenantRole, TENANT_ROLE_LABELS } from './types'
+import type { AddTenantUserRequest } from './types'
 import { AddUserDialog } from './components/add-user-dialog'
 import { EditUserDialog } from './components/edit-user-dialog'
 import { DeleteUserDialog } from './components/delete-user-dialog'
@@ -60,8 +61,17 @@ export default function UsersPage() {
   const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
-  const { users, totalCount, isLoading, error, fetchUsers, createUser, updateUser, deleteUser } =
-    useUsers({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
+  const {
+    users,
+    totalCount,
+    isLoading,
+    error,
+    fetchUsers,
+    createUser,
+    addExistingUserToTenant,
+    updateUser,
+    deleteUser,
+  } = useUsers({ page, pageSize: PAGE_SIZE, search: debouncedSearch })
 
   // Debounce search input
   useEffect(() => {
@@ -91,15 +101,18 @@ export default function UsersPage() {
   }, [fetchUsers, page, debouncedSearch])
 
   // ── Add ──────────────────────────────────────────────────────────────────
-  const handleAdd = async (data: { email: string; name: string; roles: TenantRole[] }) => {
-    try {
+  // Failures are deliberately not caught here: the dialog renders them next to
+  // the form, because a conflict on the email address needs a follow-up action
+  // (supplying a user id) that a toast cannot carry.
+  const handleAdd = async (data: AddTenantUserRequest) => {
+    if ('userId' in data) {
+      await addExistingUserToTenant(data)
+      toast.success('Existing user added to this tenant')
+    } else {
       await createUser(data)
       toast.success(`User "${data.name}" added successfully`)
-      fetchUsers(page, debouncedSearch)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add user')
-      throw err
     }
+    fetchUsers(page, debouncedSearch)
   }
 
   // ── Edit ─────────────────────────────────────────────────────────────────
@@ -236,16 +249,37 @@ export default function UsersPage() {
             sortedUsers.map((user) => (
               <div
                 key={user.userId}
-                className="rounded-xl border bg-card p-4 space-y-3"
+                role="button"
+                tabIndex={0}
+                onClick={() => setEditTarget(user)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setEditTarget(user)
+                  }
+                }}
+                className={`rounded-xl border bg-card p-4 space-y-3 cursor-pointer transition-colors ${
+                  editTarget?.userId === user.userId ? 'bg-accent/40' : 'hover:bg-accent/20'
+                }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-foreground truncate">{user.name}</div>
                     <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                    {user.userId && (
+                      <div className="text-[11px] font-mono text-muted-foreground/80 truncate mt-0.5" title={user.userId}>
+                        {user.userId}
+                      </div>
+                    )}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Actions for {user.name}</span>
                       </Button>
@@ -286,7 +320,10 @@ export default function UsersPage() {
                       )
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div
+                    className="flex items-center gap-2 text-xs text-muted-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <span>Approved</span>
                     {togglingUserId === user.userId ? (
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -312,7 +349,8 @@ export default function UsersPage() {
 
         {/* Table (>= md) */}
         <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -329,6 +367,7 @@ export default function UsersPage() {
                   </button>
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Email</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">User ID</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
                 <th className="px-4 py-3 text-center font-medium text-muted-foreground">Approved</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
@@ -337,14 +376,14 @@ export default function UsersPage() {
             <tbody>
               {isLoading && users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                     Loading users…
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
                     <Users className="h-8 w-8 mx-auto mb-3 opacity-30" />
                     <p className="font-medium text-foreground">No users found</p>
                     <p className="text-xs mt-1">
@@ -358,7 +397,10 @@ export default function UsersPage() {
                 sortedUsers.map((user) => (
                   <tr
                     key={user.userId}
-                    className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+                    className={`border-b last:border-b-0 transition-colors cursor-pointer ${
+                      editTarget?.userId === user.userId ? 'bg-accent/40' : 'hover:bg-muted/30'
+                    }`}
+                    onClick={() => setEditTarget(user)}
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-foreground">{user.name}</div>
@@ -366,6 +408,14 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                       {user.email}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="block max-w-[220px] truncate font-mono text-xs text-muted-foreground"
+                        title={user.userId}
+                      >
+                        {user.userId || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
@@ -387,7 +437,7 @@ export default function UsersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                       {togglingUserId === user.userId ? (
                         <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground" />
                       ) : (
@@ -404,7 +454,7 @@ export default function UsersPage() {
                         />
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -433,7 +483,8 @@ export default function UsersPage() {
                 ))
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
         {/* Pagination */}

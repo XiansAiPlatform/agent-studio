@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast } from '@/lib/utils/error-handler';
-import { Loader2, Filter, X, ChevronLeft, ChevronRight, ClipboardList, CheckSquare } from 'lucide-react';
+import { Filter, X, ChevronLeft, ChevronRight, ClipboardList, CheckSquare } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 
 type XiansTask = {
   taskId: string;
@@ -126,6 +127,8 @@ function TasksContent() {
 
   // Fetch all activations (both active and inactive)
   const activationsAbortControllerRef = useRef<AbortController | null>(null);
+  const activationsRequestIdRef = useRef(0);
+  const tasksRequestIdRef = useRef(0);
   
   useEffect(() => {
     const fetchActivations = async () => {
@@ -143,6 +146,7 @@ function TasksContent() {
       // Create new abort controller for this request
       activationsAbortControllerRef.current = new AbortController();
 
+      const requestId = ++activationsRequestIdRef.current;
       setIsLoadingActivations(true);
       try {
         const response = await fetch(
@@ -191,7 +195,9 @@ function TasksContent() {
         // to avoid creating a dependency cycle
         setAllActivations([]);
       } finally {
-        setIsLoadingActivations(false);
+        if (requestId === activationsRequestIdRef.current) {
+          setIsLoadingActivations(false);
+        }
       }
     };
 
@@ -229,6 +235,7 @@ function TasksContent() {
     // Create new abort controller for this request
     tasksAbortControllerRef.current = new AbortController();
 
+    const requestId = ++tasksRequestIdRef.current;
     setIsLoadingTasks(true);
     try {
       // Build query parameters
@@ -344,7 +351,9 @@ function TasksContent() {
       showErrorToast(error, 'Failed to load tasks');
       setTasks([]);
     } finally {
-      setIsLoadingTasks(false);
+      if (requestId === tasksRequestIdRef.current) {
+        setIsLoadingTasks(false);
+      }
     }
   }, [currentTenantId, statusFilter, selectedActivation, viewType, currentPage, urlParamsInitialized]);
 
@@ -591,10 +600,7 @@ function TasksContent() {
           {isLoadingTasks ? (
             <Card className="border-border">
               <CardContent className="!px-0 !py-0">
-                <div className="flex flex-col items-center justify-center py-16 space-y-3">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Loading tasks...</p>
-                </div>
+                <PageLoader label="Loading tasks..." className="py-16" />
               </CardContent>
             </Card>
           ) : filteredTasks.length > 0 ? (
@@ -710,7 +716,7 @@ function TasksContent() {
 
 export default function TasksPage() {
   return (
-    <Suspense fallback={<div className="container mx-auto p-6">Loading...</div>}>
+    <Suspense fallback={<PageLoader label="Loading tasks..." />}>
       <TasksContent />
     </Suspense>
   );

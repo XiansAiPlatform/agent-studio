@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet } from '@/components/ui/sheet';
 import { Bot, Play, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
@@ -531,10 +532,7 @@ function AgentsPageContent() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <span className="ml-3 text-muted-foreground">Loading agent activations...</span>
-        </div>
+        <PageLoader label="Loading agent activations..." />
       )}
 
       {/* Empty State */}
@@ -736,11 +734,7 @@ function AgentsPageContent() {
 
 export default function AgentsPage() {
   return (
-    <Suspense fallback={
-      <div className="container mx-auto p-6 flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    }>
+    <Suspense fallback={<PageLoader label="Loading agents..." />}>
       <AgentsPageContent />
     </Suspense>
   );

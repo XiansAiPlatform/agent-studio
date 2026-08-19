@@ -50,6 +50,7 @@ import {
 } from '../types'
 import { RolesHelp } from '@/components/features/users/roles-help'
 import { RoleSelectItem } from '@/components/features/users/role-select-item'
+import { UserIdentityDetails } from '@/components/features/users/user-identity-details'
 import { useUsers } from '../hooks/use-users'
 import type { Tenant, ListTenantsResponse } from '@/app/(dashboard)/system-admin/tenants/types'
 
@@ -98,7 +99,7 @@ export function UserDetailPanel({
   onOpenChange,
   onRefresh,
 }: UserDetailPanelProps) {
-  const { fetchUser, updateUser, setSysAdmin, setUserEnabled, addRole, removeRole, createUser, setApproved } = useUsers()
+  const { fetchUser, updateUser, setSysAdmin, setUserEnabled, addRole, removeRole, addExistingUserToTenant, setApproved } = useUsers()
 
   const [detail, setDetail] = useState<GlobalUserDetail | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
@@ -275,9 +276,11 @@ export function UserDetailPanel({
     if (!user || !detail || !addTenantId) return
     setIsAddingTenant(true)
     try {
-      await createUser(addTenantId, {
-        email: detail.email,
-        name: detail.name,
+      // This account already exists, so it is named by id. Its address cannot
+      // be used: the same address may belong to accounts from more than one
+      // identity provider.
+      await addExistingUserToTenant(addTenantId, {
+        userId: user.userId,
         role: addTenantRole,
       })
       const selectedTenant = allTenants.find((t) => t.tenantId === addTenantId)
@@ -359,6 +362,11 @@ export function UserDetailPanel({
               <Badge variant={isEnabled ? 'outline' : 'secondary'} className="text-xs">
                 {isEnabled ? 'Enabled' : 'Disabled'}
               </Badge>
+              {(detail?.isLockedOut ?? ('isLockedOut' in user && user.isLockedOut)) && (
+                <Badge variant="destructive" className="text-xs">
+                  Locked out
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -414,6 +422,12 @@ export function UserDetailPanel({
                   Save Changes
                 </Button>
               </form>
+            </div>
+
+            <Separator />
+
+            <div className="px-6 py-5">
+              <UserIdentityDetails user={detail ?? user} />
             </div>
 
             <Separator />

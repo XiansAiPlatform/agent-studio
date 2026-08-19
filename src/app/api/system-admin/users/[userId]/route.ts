@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withSystemAdmin } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { normalizeGlobalUserDetail } from '@/app/(dashboard)/system-admin/users/types'
 
 /**
  * System Admin → single user operations.
@@ -14,8 +15,8 @@ import { handleApiError } from '@/lib/api/error-handler'
  *          rejects SysAdmin users. Role changes go through /[userId]/role instead.
  *          via PATCH /api/v1/admin/users/{userId}
  *
- * DELETE → remove user from a specific tenant (tenantId required)
- *          via DELETE /api/v1/admin/tenants/{tenantId}/users/{userId}
+ * DELETE → permanently delete the user account (including other system admins)
+ *          via DELETE /api/v1/admin/users/{userId}
  */
 
 function extractUserId(pathname: string): string | null {
@@ -23,9 +24,8 @@ function extractUserId(pathname: string): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
-function getTenantId(request: NextRequest): string | null {
-  const v = request.nextUrl.searchParams.get('tenantId')
-  return v && v.trim() ? v.trim() : null
+function emailsMatch(a?: string | null, b?: string | null): boolean {
+  return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
 }
 
 /**
@@ -41,7 +41,7 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
   try {
     const client = createXiansClient()
     const data = await client.get(`/api/v1/admin/users/${encodeURIComponent(userId)}`)
-    return NextResponse.json(data)
+    return NextResponse.json(normalizeGlobalUserDetail(data))
   } catch (error) {
     return handleApiError(error, 'system-admin/users/[userId] GET', {
       fallbackMessage: 'Failed to fetch user',
@@ -87,7 +87,7 @@ export const PATCH = withSystemAdmin(async (request: NextRequest) => {
       `/api/v1/admin/users/${encodeURIComponent(userId)}`,
       globalBody
     )
-    return NextResponse.json(data)
+    return NextResponse.json(normalizeGlobalUserDetail(data))
   } catch (error) {
     return handleApiError(error, 'system-admin/users/[userId] PATCH', {
       fallbackMessage: 'Failed to update user',
@@ -96,28 +96,38 @@ export const PATCH = withSystemAdmin(async (request: NextRequest) => {
 })
 
 /**
- * DELETE /api/system-admin/users/[userId]?tenantId=
- * Remove the user's membership from a specific tenant. tenantId is required.
+ * DELETE /api/system-admin/users/[userId]
+ * Permanently delete the user account. Other system admins may be deleted;
+ * callers cannot delete themselves.
  */
-export const DELETE = withSystemAdmin(async (request: NextRequest) => {
+export const DELETE = withSystemAdmin(async (request: NextRequest, { session }) => {
   const userId = extractUserId(request.nextUrl.pathname)
-  const tenantId = getTenantId(request)
   if (!userId) {
     return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-  }
-  if (!tenantId) {
-    return NextResponse.json({ error: 'tenantId is required' }, { status: 400 })
   }
 
   try {
     const client = createXiansClient()
-    await client.delete(
-      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}`
+    const target = await client.get<{ userId?: string; email?: string }>(
+      `/api/v1/admin/users/${encodeURIComponent(userId)}`
     )
+
+    if (
+      userId === session.user.id ||
+      emailsMatch(target.email, session.user.email)
+    ) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own account' },
+        { status: 400 }
+      )
+    }
+
+    // DELETE /api/v1/admin/users/{userId} — permanently delete the user account
+    await client.delete(`/api/v1/admin/users/${encodeURIComponent(userId)}`)
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     return handleApiError(error, 'system-admin/users/[userId] DELETE', {
-      fallbackMessage: 'Failed to remove user',
+      fallbackMessage: 'Failed to delete user',
     })
   }
 })

@@ -72,7 +72,7 @@ Structured data messages
 ```
 
 ### `heartbeat`
-Keep-alive events (sent every ~60 seconds)
+Keep-alive events (sent every ~30 seconds; also the liveness signal for the reconnect watchdog)
 ```json
 {
   "timestamp": "2026-01-19T18:35:47.782453Z",
@@ -98,9 +98,19 @@ Keep-alive events (sent every ~60 seconds)
 - Automatically includes user's participant ID from session
 
 ### Reconnection Strategy
-- **Exponential backoff**: Starts at 1 second, doubles each attempt
-- **Max attempts**: 5 attempts before giving up
+- **Exponential backoff**: Starts at 1 second, doubles each attempt, capped at 30 seconds with jitter
+- **Max attempts**: 6 attempts, after which the hook keeps retrying once a minute
 - **Auto-reconnect**: On connection errors (not on manual close)
+- **Heartbeat watchdog**: A stream that receives nothing for 75 seconds is rebuilt even if the browser still reports it `OPEN` (sleep/wake and silently dropped proxy connections never fire an `error` event)
+- **Network/visibility triggers**: Reconnects immediately when the browser comes back online or the tab becomes visible, and skips retries entirely while `navigator.onLine` is false
+
+### Recovering Missed Messages
+A new stream replays nothing, so anything published during an outage is only
+recoverable from history. The listener exposes `onReconnect`, which the
+conversation page uses to refetch the current topic and merge it into what is on
+screen (`mergeMessagesById`). While the stream is down the page also polls
+history every 10 seconds, so an agent reply still lands even if the stream never
+recovers.
 
 ### Disconnection
 - Automatic on page unmount or navigation
@@ -128,11 +138,13 @@ Only `Outgoing` messages (from agent) are displayed in the UI. `Incoming` messag
 - **Parse errors**: Logged but don't break connection
 - **Stream errors**: Gracefully handled with cleanup
 - **Client disconnects**: Silent cleanup on server side
-- **Max reconnection attempts**: After 5 failed attempts, users are redirected to a dedicated error page
+- **Max reconnection attempts**: After 6 failed attempts on a connection that never opened, users are redirected to a dedicated error page
 
 ### Server Unavailability Handling
 
-When the SSE connection fails after maximum reconnection attempts (5 attempts with exponential backoff: 1s, 2s, 4s, 8s, 16s), users are automatically redirected to `/server-unavailable`. This page is **outside the dashboard layout** so it remains accessible even when the backend or auth fails.
+When the SSE connection never opens and the backoff ladder is exhausted (6 attempts: 1s, 2s, 4s, 8s, 16s, 30s), users are automatically redirected to `/server-unavailable`. This page is **outside the dashboard layout** so it remains accessible even when the backend or auth fails.
+
+A stream that *had* been working does not trigger the redirect: dropping a user out of a live conversation over a transient blip is worse than staying put while the background retries and history polling do their job.
 
 **Why outside dashboard?** The dashboard layout requires auth and tenant data. If placed inside `(dashboard)`, the error page would fail to load when the backend is unavailable.
 
@@ -148,7 +160,13 @@ When the SSE connection fails after maximum reconnection attempts (5 attempts wi
 ```typescript
 import { useMessageListener } from '@/hooks/use-message-listener';
 
-const { isConnected, error, maxReconnectAttemptsReached, reconnect } = useMessageListener({
+const {
+  isConnected,
+  error,
+  maxReconnectAttemptsReached,
+  hasEverConnected,
+  reconnect,
+} = useMessageListener({
   tenantId: 'tenant-123',
   agentName: 'Support Agent',
   activationName: 'Live Chat',
@@ -165,25 +183,32 @@ const { isConnected, error, maxReconnectAttemptsReached, reconnect } = useMessag
   onDisconnect: () => {
     console.log('Disconnected');
   },
+  onReconnect: () => {
+    // Nothing is replayed on a new stream - refetch history to fill the gap
+    syncTopicMessages(selectedTopicId);
+  },
 });
 
-// Redirect to error page when max attempts reached
+// Redirect to error page only when the stream never came up
 useEffect(() => {
-  if (maxReconnectAttemptsReached) {
+  if (maxReconnectAttemptsReached && !hasEverConnected) {
     router.push('/server-unavailable?error=Connection failed');
   }
-}, [maxReconnectAttemptsReached]);
+}, [maxReconnectAttemptsReached, hasEverConnected]);
 ```
 
 ## Configuration
 
 ### Heartbeat Interval
-Default: 60 seconds (configurable via `heartbeatSeconds` query parameter)
+30 seconds, sent as the `heartbeatSeconds` query parameter. Kept below common
+proxy idle timeouts so the stream is not dropped for being quiet, and it doubles
+as the liveness signal for the watchdog.
 
 ### Reconnection Settings
 - Base delay: 1000ms
-- Max attempts: 5
-- Backoff multiplier: 2x
+- Max attempts: 6, then a 60s retry loop
+- Backoff multiplier: 2x, capped at 30s, plus up to 25% jitter
+- Stale stream threshold: 75s (2.5 heartbeats)
 
 ## Performance Considerations
 

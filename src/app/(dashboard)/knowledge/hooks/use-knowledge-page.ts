@@ -26,12 +26,20 @@ export function useKnowledgePage() {
 
   // API state
   const [knowledgeGroups, setKnowledgeGroups] = useState<KnowledgeGroup[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchedParams, setLastFetchedParams] = useState<{
     agent: string;
     activation: string;
   } | null>(null);
+
+  const fetchKey =
+    agentName && activationName ? `${agentName}:${activationName}` : null;
+  const resolvedKey = lastFetchedParams
+    ? `${lastFetchedParams.agent}:${lastFetchedParams.activation}`
+    : null;
+  // True on first render when the URL already has context, and until this pair resolves.
+  const isLoading = (fetchKey !== null && resolvedKey !== fetchKey) || isRefreshing;
 
   // Selected item state
   const [selectedItem, setSelectedItem] = useState<KnowledgeItem | null>(null);
@@ -39,6 +47,8 @@ export function useKnowledgePage() {
   const [isLoadingItem, setIsLoadingItem] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastFetchedParamsRef = useRef(lastFetchedParams);
+  lastFetchedParamsRef.current = lastFetchedParams;
 
   const selectedGroup = useMemo(() => {
     if (!selectedGroupName) return null;
@@ -49,10 +59,14 @@ export function useKnowledgePage() {
     async (agent: string, activation: string) => {
       if (!agent || !activation) return;
 
+      const isSameParams =
+        lastFetchedParamsRef.current?.agent === agent &&
+        lastFetchedParamsRef.current?.activation === activation;
+
       abortControllerRef.current?.abort();
       abortControllerRef.current = new AbortController();
 
-      setIsLoading(true);
+      if (isSameParams) setIsRefreshing(true);
       setError(null);
 
       try {
@@ -79,7 +93,7 @@ export function useKnowledgePage() {
         showErrorToast(err, 'Failed to load knowledge');
         setLastFetchedParams({ agent, activation });
       } finally {
-        setIsLoading(false);
+        if (isSameParams) setIsRefreshing(false);
       }
     },
     []
