@@ -6,7 +6,7 @@ import { useParticipantLayout } from '@/contexts/participant-layout-context';
 
 interface ConversationHeaderProps {
   activationName: string;
-  topic: Topic;
+  topic?: Topic;
   /** Built-in workflow name shown before the discussion name. */
   workflowName?: string;
   isConnected: boolean;
@@ -93,20 +93,24 @@ export function ConversationHeader({
             {/* Workflow, topic name, and message count */}
             <div className="flex items-center gap-1.5 min-w-0">
               {workflowName && (
+                <span className="text-xs text-muted-foreground font-medium truncate">
+                  {workflowName}
+                </span>
+              )}
+              {topic && (
                 <>
+                  {workflowName && (
+                    <span className="text-xs text-muted-foreground/60">•</span>
+                  )}
                   <span className="text-xs text-muted-foreground font-medium truncate">
-                    {workflowName}
+                    {topic.name}
                   </span>
-                  <span className="text-xs text-muted-foreground/60">•</span>
+                  <span className="text-xs text-muted-foreground/60 hidden sm:inline">•</span>
+                  <span className="text-xs text-muted-foreground/60 hidden sm:inline whitespace-nowrap">
+                    {topic.messageCount ?? topic.messages.length} messages
+                  </span>
                 </>
               )}
-              <span className="text-xs text-muted-foreground font-medium truncate">
-                {topic.name}
-              </span>
-              <span className="text-xs text-muted-foreground/60 hidden sm:inline">•</span>
-              <span className="text-xs text-muted-foreground/60 hidden sm:inline whitespace-nowrap">
-                {topic.messageCount ?? topic.messages.length} messages
-              </span>
             </div>
           </div>
         </div>

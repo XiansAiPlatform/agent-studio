@@ -54,6 +54,8 @@ interface ConversationViewProps {
     feedback: NonNullable<Message['feedback']>
   ) => void;
   selectedWorkflow?: string;
+  /** Hide topics and show the no-capability empty state in the chat panel. */
+  noConversationalCapability?: boolean;
 }
 
 /**
@@ -96,6 +98,7 @@ export function ConversationView({
   agentInfo,
   onMessageFeedbackSubmitted,
   selectedWorkflow,
+  noConversationalCapability = false,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
   const isMobile = useIsMobile();
@@ -187,7 +190,42 @@ export function ConversationView({
 
       {/* Chat Area - Right Column */}
       <div className="chat-conversation flex-1 flex flex-col min-w-0 overflow-hidden">
-        {selectedTopicId && selectedTopic ? (
+        {noConversationalCapability ? (
+          <>
+            <ConversationHeader
+              activationName={selectedActivationName || 'No Activation'}
+              workflowName={selectedWorkflow}
+              isConnected={isConnected}
+              isAgentActive={isAgentActive}
+              workerAvailable={workerAvailable}
+              serverUnavailable={serverUnavailable}
+              isHeartbeatLoading={isHeartbeatLoading}
+              onRetryHeartbeat={onRetryHeartbeat}
+              onOpenTopics={
+                showTopicsDrawerOnMobile
+                  ? () => setTopicsDrawerOpen(true)
+                  : undefined
+              }
+            />
+            <ChatPanel
+              conversation={conversation}
+              selectedTopic={undefined}
+              selectedTopicId={''}
+              onSendMessage={onSendMessage}
+              allowFileUpload={allowFileUpload}
+              isLoadingMessages={false}
+              onLoadMoreMessages={onLoadMoreMessages}
+              isLoadingMoreMessages={isLoadingMoreMessages}
+              hasMoreMessages={hasMoreMessages}
+              activationName={selectedActivationName}
+              isAgentActive={isAgentActive}
+              chatInputRef={chatInputRef}
+              agentInfo={agentInfo}
+              onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+              noConversationalCapability
+            />
+          </>
+        ) : selectedTopicId && selectedTopic ? (
           <>
             {/* Chat Header */}
             <ConversationHeader

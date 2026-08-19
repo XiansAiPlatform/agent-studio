@@ -1,10 +1,10 @@
 export const SUPERVISOR_WORKFLOW = 'Supervisor Workflow'
-export const TASK_WORKFLOW = 'Task Workflow'
 
 export type WorkflowDefinitionLike = {
   workflowType: string
   name?: string | null
   activable?: boolean
+  isBuiltIn?: boolean
 }
 
 export function builtInWorkflowName(
@@ -16,29 +16,36 @@ export function builtInWorkflowName(
   return idx >= 0 ? workflowType.slice(idx + 1) : workflowType
 }
 
-/** Non-activable definitions except Task Workflow. Supervisor first, then A–Z. */
+/**
+ * Chat picker targets: every DefineBuiltIn / DefineSupervisor workflow.
+ * DefineCustom is never listed (`isBuiltIn === false`).
+ *
+ * `isBuiltIn === true`
+ * non-activable workflows cannot include into the picker.
+ */
 export function listBuiltInWorkflows(
   definitions: WorkflowDefinitionLike[]
 ): string[] {
-  const source = definitions.filter((d) => {
-    const n = builtInWorkflowName(d.workflowType, d.name)
-    return d.activable !== true && n !== TASK_WORKFLOW
-  })
+  const rows = definitions.map((d) => ({
+    name: builtInWorkflowName(d.workflowType, d.name),
+    isBuiltIn: d.isBuiltIn,
+  }))
 
-  const unique = Array.from(
-    new Set(source.map((d) => builtInWorkflowName(d.workflowType, d.name)))
-  )
+  const flagged = rows.filter((d) => d.isBuiltIn === true)
+  const source =
+    flagged.length > 0
+      ? flagged
+      : rows.filter(
+          (d) => d.isBuiltIn !== false && d.name === SUPERVISOR_WORKFLOW
+        )
 
+  const unique = Array.from(new Set(source.map((d) => d.name)))
+
+  // Sort the workflows by name, with Supervisor first
   unique.sort((a, b) => {
     if (a === SUPERVISOR_WORKFLOW) return -1
     if (b === SUPERVISOR_WORKFLOW) return 1
     return a.localeCompare(b)
   })
   return unique
-}
-
-/** Supervisor first, even if it is not in the agent's definition list. */
-export function chatWorkflowsForAgent(listed: string[] | undefined): string[] {
-  const rest = (listed ?? []).filter((name) => name !== SUPERVISOR_WORKFLOW)
-  return [SUPERVISOR_WORKFLOW, ...rest]
 }

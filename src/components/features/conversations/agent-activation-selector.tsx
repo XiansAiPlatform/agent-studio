@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ChevronDown, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as SelectPrimitive from '@radix-ui/react-select';
@@ -11,11 +11,8 @@ import {
   SelectLabel,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import {
-  chatWorkflowsForAgent,
-  listBuiltInWorkflows,
-  SUPERVISOR_WORKFLOW,
-} from '@/lib/xians/built-in-workflows';
+import { SUPERVISOR_WORKFLOW } from '@/lib/xians/built-in-workflows';
+import { useBuiltInWorkflows } from '@/app/(dashboard)/conversations/hooks/use-built-in-workflows';
 
 export interface ActivationOption {
   id: string;
@@ -78,37 +75,7 @@ export function AgentActivationSelector({
 
   const selectedAgentName = selectedActivation?.agentName ?? null;
 
-  const [workflowsByAgent, setWorkflowsByAgent] = useState<Record<string, string[]>>({});
-
-  useEffect(() => {
-    if (agentNames.length === 0) return;
-    let cancelled = false;
-
-    const load = async () => {
-      const entries = await Promise.all(
-        agentNames.map(async (name) => {
-          try {
-            const res = await fetch(`/api/agents/${encodeURIComponent(name)}`);
-            if (!res.ok) return [name, [SUPERVISOR_WORKFLOW]] as const;
-            const data = await res.json();
-            const definitions = Array.isArray(data.definitions) ? data.definitions : [];
-            const listed = listBuiltInWorkflows(definitions);
-            return [name, chatWorkflowsForAgent(listed)] as const;
-          } catch {
-            return [name, [SUPERVISOR_WORKFLOW]] as const;
-          }
-        })
-      );
-      if (!cancelled) {
-        setWorkflowsByAgent(Object.fromEntries(entries));
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [agentNames]);
+  const { workflowsByAgent, isLoading: isLoadingWorkflows } = useBuiltInWorkflows(agentNames);
 
   const { optionGroups, optionById } = useMemo(() => {
     const optionById = new Map<string, WorkflowSelectOption>();
@@ -119,14 +86,9 @@ export function AgentActivationSelector({
     let nextId = 0;
 
     for (const agentName of agentNames) {
-      let workflows = chatWorkflowsForAgent(workflowsByAgent[agentName]);
-      if (
-        agentName === selectedAgentName &&
-        selectedWorkflow &&
-        !workflows.includes(selectedWorkflow)
-      ) {
-        workflows = [...workflows, selectedWorkflow];
-      }
+      // Only list workflows after definitions have been typed as built-in.
+      if (!(agentName in workflowsByAgent)) continue;
+      const workflows = workflowsByAgent[agentName] ?? [];
 
       const items = workflows.map((workflowName) => {
         const id = String(nextId++);
@@ -139,7 +101,7 @@ export function AgentActivationSelector({
     }
 
     return { optionGroups, optionById };
-  }, [agentNames, workflowsByAgent, selectedAgentName, selectedWorkflow]);
+  }, [agentNames, workflowsByAgent]);
 
   const selectedValue = useMemo(() => {
     if (!selectedAgentName) return '';
@@ -173,8 +135,8 @@ export function AgentActivationSelector({
     onActivationChange(activation.name, option.agentName, option.workflowName);
   };
 
-  // Loading state
-  if (isLoading) {
+  // Wait for activations and built-in workflow types before listing options.
+  if (isLoading || isLoadingWorkflows) {
     return (
       <div className="border-b border-border/60 px-6 py-4">
         <div className="flex items-center gap-2">

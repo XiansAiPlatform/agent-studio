@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
   ChevronRight,
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTenant } from '@/hooks/use-tenant'
-import { useActivations } from '@/app/(dashboard)/conversations/hooks'
+import { useActivations, useBuiltInWorkflows } from '@/app/(dashboard)/conversations/hooks'
 import { Topic } from '@/types/conversation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,17 +42,10 @@ import {
 } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
 import { showErrorToast } from '@/lib/utils/error-handler'
-import { SUPERVISOR_WORKFLOW, listBuiltInWorkflows, chatWorkflowsForAgent } from '@/lib/xians/built-in-workflows'
+import { SUPERVISOR_WORKFLOW } from '@/lib/xians/built-in-workflows'
+import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability'
 
 const TOPICS_PAGE_SIZE = 10
-
-function isNoConversationalCapabilityError(message: string): boolean {
-  const n = message.toLowerCase()
-  return (
-    n.includes('not registered') ||
-    (n.includes('workflow') && n.includes('registered workflow types'))
-  )
-}
 
 const GENERAL_TOPIC: Topic = {
   id: 'general-discussions',
@@ -179,9 +172,15 @@ export function ParticipantAgentTree({
     topicName: string
   } | null>(null)
   const [isDeletingTopic, setIsDeletingTopic] = useState(false)
-  const [workflowsByAgent, setWorkflowsByAgent] = useState<Record<string, string[]>>({})
   const createInputRef = useRef<HTMLInputElement>(null)
   const fetchedKeysRef = useRef<Set<string>>(new Set())
+
+  const agentNamesForWorkflows = useMemo(
+    () => Array.from(new Set(activations.map((a) => a.agentName))),
+    [activations]
+  )
+  const { workflowsByAgent, isLoading: isLoadingWorkflows } =
+    useBuiltInWorkflows(agentNamesForWorkflows)
 
   useEffect(() => {
     if (creatingForActivation && createInputRef.current) {
@@ -194,44 +193,19 @@ export function ParticipantAgentTree({
     setTopicsByActivation({})
   }, [selectedWorkflowType])
 
-  useEffect(() => {
-    const agentNames = Array.from(new Set(activations.map((a) => a.agentName)))
-    if (agentNames.length === 0) return
-    let cancelled = false
-    const load = async () => {
-      const entries = await Promise.all(
-        agentNames.map(async (agent) => {
-          try {
-            const res = await fetch(`/api/agents/${encodeURIComponent(agent)}`)
-            if (!res.ok) return [agent, [SUPERVISOR_WORKFLOW]] as const
-            const data = await res.json()
-            const definitions = Array.isArray(data.definitions) ? data.definitions : []
-            return [agent, chatWorkflowsForAgent(listBuiltInWorkflows(definitions))] as const
-          } catch {
-            return [agent, [SUPERVISOR_WORKFLOW]] as const
-          }
-        })
-      )
-      if (!cancelled) {
-        setWorkflowsByAgent(Object.fromEntries(entries))
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [activations])
-
   // Auto-expand and fetch topics for the currently selected activation
   useEffect(() => {
     if (!routeAgentName || !routeActivationName) return
-    const key = `${decodeURIComponent(routeAgentName)}|${decodeURIComponent(routeActivationName)}`
+    const decodedAgent = decodeURIComponent(routeAgentName)
+    const decodedActivation = decodeURIComponent(routeActivationName)
+    if (!(decodedAgent in workflowsByAgent)) return
+    const key = `${decodedAgent}|${decodedActivation}`
     const fetchKey = `${key}|${selectedWorkflowType}`
     setExpandedActivations((prev) => new Set(prev).add(key))
     if (!fetchedKeysRef.current.has(fetchKey)) {
       fetchedKeysRef.current.add(fetchKey)
       setLoadingActivations((prev) => new Set(prev).add(key))
-      fetchTopicsForActivation(decodeURIComponent(routeAgentName), decodeURIComponent(routeActivationName), selectedWorkflowType)
+      fetchTopicsForActivation(decodedAgent, decodedActivation, selectedWorkflowType)
         .then((topics) => setTopicsByActivation((p) => ({ ...p, [key]: topics })))
         .catch(console.error)
         .finally(() => {
@@ -242,7 +216,7 @@ export function ParticipantAgentTree({
           })
         })
     }
-  }, [routeAgentName, routeActivationName, selectedWorkflowType])
+  }, [routeAgentName, routeActivationName, selectedWorkflowType, workflowsByAgent])
 
   const refetchActivationTopics = useCallback(
     async (agentName: string, activationName: string) => {
@@ -369,7 +343,7 @@ export function ParticipantAgentTree({
     [onTopicSelect, onClose]
   )
 
-  if (isLoadingActivations) {
+  if (isLoadingActivations || isLoadingWorkflows) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin mb-3" />
@@ -454,7 +428,7 @@ export function ParticipantAgentTree({
 
             {isActivationExpanded && (
               <div className="ml-6 pl-3 border-l border-border/50 mt-0.5 space-y-0.5">
-                {chatWorkflowsForAgent(workflowsByAgent[agentName]).map((workflowName) => {
+                {(workflowsByAgent[agentName] ?? []).map((workflowName) => {
                   const isSelectedWorkflow =
                     isSelectedActivation && selectedWorkflowType === workflowName
                   return (

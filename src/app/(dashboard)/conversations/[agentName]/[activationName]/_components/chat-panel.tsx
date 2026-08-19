@@ -21,6 +21,8 @@ interface ChatPanelProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  /** Workflow has no OnUserChatMessage (or is not registered for messaging). */
+  noConversationalCapability?: boolean;
 }
 
 /**
@@ -43,7 +45,27 @@ export function ChatPanel({
   chatInputRef,
   agentInfo,
   onMessageFeedbackSubmitted,
+  noConversationalCapability = false,
 }: ChatPanelProps) {
+  if (noConversationalCapability) {
+    return (
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center p-12 bg-card">
+        <div className="h-28 w-28 rounded-3xl bg-muted flex items-center justify-center mb-8 shadow-sm border border-border">
+          <Bot className="h-14 w-14 text-muted-foreground" />
+        </div>
+        <h2 className="text-2xl font-semibold text-foreground mb-2 tracking-tight">
+          No Conversational Capability
+        </h2>
+        <p className="text-muted-foreground max-w-md text-sm">
+          This workflow does not support conversations.
+        </p>
+        <p className="text-muted-foreground/80 max-w-md text-xs mt-2">
+          Try selecting a different workflow, or contact your administrator to request conversation support.
+        </p>
+      </div>
+    );
+  }
+
   if (isLoadingMessages && (!selectedTopicId || !selectedTopic)) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-card">

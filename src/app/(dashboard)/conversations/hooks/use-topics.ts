@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Topic } from '@/types/conversation';
 import { XiansTopicsResponse } from '@/lib/xians/types';
 import { showErrorToast } from '@/lib/utils/error-handler';
+import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability';
 
 interface UseTopicsParams {
   tenantId: string | null;
@@ -10,15 +11,6 @@ interface UseTopicsParams {
   workflowType: string | null;
   page?: number;
   pageSize?: number;
-}
-
-/** Detects if the error indicates the agent has no conversational/messaging capability */
-function isNoConversationalCapabilityError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes('not registered') ||
-    (normalized.includes('workflow') && normalized.includes('registered workflow types'))
-  );
 }
 
 export function useTopics({
@@ -208,6 +200,7 @@ export function useTopics({
     totalPages,
     hasMore,
     noConversationalCapability,
+    setNoConversationalCapability,
     fetchError,
     refetch: fetchTopics,
     addTopic,

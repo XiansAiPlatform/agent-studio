@@ -1,16 +1,15 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Bot } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useMessageListener } from '@/hooks/use-message-listener';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { toast } from 'sonner';
 import { Message, Topic } from '@/types/conversation';
-import { useActivations, useTopics, useConversationState, useAgentHeartbeat } from '../../hooks';
+import { useActivations, useTopics, useConversationState, useAgentHeartbeat, useBuiltInWorkflows } from '../../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import {
   getTopicParam,
@@ -83,6 +82,17 @@ function ConversationContent() {
   // Fetch activations (for switching between agents)
   const { activations, isLoading: isLoadingActivations } = useActivations(currentTenantId);
 
+  const agentNamesForWorkflows = useMemo(() => {
+    const names = new Set(activations.map((activation) => activation.agentName));
+    if (agentName) names.add(agentName);
+    return Array.from(names);
+  }, [activations, agentName]);
+
+  const { workflowsByAgent } = useBuiltInWorkflows(agentNamesForWorkflows);
+  const currentWorkflowsReady = Boolean(agentName) && agentName in workflowsByAgent;
+  // Do not load topics/SSE until this agent's definitions have been filtered to built-ins.
+  const activeWorkflowType = currentWorkflowsReady ? selectedWorkflowType : null;
+
   // Fetch topics
   const {
     topics,
@@ -91,6 +101,7 @@ function ConversationContent() {
     totalPages,
     hasMore,
     noConversationalCapability,
+    setNoConversationalCapability,
     fetchError,
     addTopic,
     refetch: refetchTopics,
@@ -98,9 +109,13 @@ function ConversationContent() {
     tenantId: currentTenantId,
     agentName,
     activationName,
-    workflowType: selectedWorkflowType,
+    workflowType: activeWorkflowType,
     page: currentPage,
   });
+
+  const markNoConversationalCapability = useCallback(() => {
+    setNoConversationalCapability(true);
+  }, [setNoConversationalCapability]);
 
   // Conversation state management
   const {
@@ -118,6 +133,7 @@ function ConversationContent() {
     workflowType: selectedWorkflowType,
     topics,
     selectedTopicId,
+    onNoConversationalCapability: markNoConversationalCapability,
   });
 
   // Fetch agent deployment for empty chat state (summary, description, category)
@@ -160,7 +176,7 @@ function ConversationContent() {
   // only recoverable from history.
   const syncingTopicsRef = useRef<Set<string>>(new Set());
   const syncTopicMessages = useCallback(async (topicId: string) => {
-    if (!currentTenantId || !agentName || !activationName || !topicId) {
+    if (!currentTenantId || !agentName || !activationName || !topicId || !activeWorkflowType) {
       return;
     }
 
@@ -180,7 +196,7 @@ function ConversationContent() {
         pageSize: String(MESSAGE_SYNC_SIZE),
         chatOnly: 'false',
         sortOrder: 'desc',
-        workflowType: selectedWorkflowType,
+        workflowType: activeWorkflowType,
       });
 
       const response = await fetch(`/api/messaging/history?${queryParams.toString()}`);
@@ -225,7 +241,7 @@ function ConversationContent() {
     } finally {
       syncingTopicsRef.current.delete(topicId);
     }
-  }, [currentTenantId, agentName, activationName, selectedWorkflowType, mergeTopicMessages]);
+  }, [currentTenantId, agentName, activationName, activeWorkflowType, mergeTopicMessages]);
 
   // Keep the topic in a ref so the reconnect handler stays stable — passing an
   // unstable callback into the listener is fine (it stores it in a ref), but the
@@ -304,8 +320,8 @@ function ConversationContent() {
     tenantId: currentTenantId,
     agentName,
     activationName,
-    workflowType: selectedWorkflowType,
-    enabled: !!(currentTenantId && agentName && activationName && session?.user?.email && isActivationActive),
+    workflowType: activeWorkflowType,
+    enabled: !!(currentTenantId && agentName && activationName && session?.user?.email && isActivationActive && activeWorkflowType),
     onMessage: handleIncomingMessage,
     onError: handleSSEError,
     onConnect: handleSSEConnect,
@@ -340,8 +356,8 @@ function ConversationContent() {
     tenantId: currentTenantId,
     agentName,
     activationName,
-    workflowType: selectedWorkflowType,
-    enabled: !!(currentTenantId && agentName && activationName),
+    workflowType: activeWorkflowType,
+    enabled: !!(currentTenantId && agentName && activationName && activeWorkflowType),
   });
 
   // Redirect to the server unavailable page only when the stream never came up.
@@ -557,7 +573,7 @@ function ConversationContent() {
   // Fetch messages for selected topic
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!currentTenantId || !agentName || !activationName || !selectedTopicId || !session?.user?.email) {
+      if (!currentTenantId || !agentName || !activationName || !selectedTopicId || !session?.user?.email || !activeWorkflowType) {
         return;
       }
 
@@ -608,7 +624,7 @@ function ConversationContent() {
           pageSize: String(MESSAGE_PAGE_SIZE),
           chatOnly: 'false',
           sortOrder: 'desc',
-          workflowType: selectedWorkflowType,
+          workflowType: activeWorkflowType,
         });
 
         const response = await fetch(
@@ -661,7 +677,7 @@ function ConversationContent() {
     };
     
     fetchMessages();
-  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent]);
+  }, [currentTenantId, agentName, activationName, activeWorkflowType, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent]);
 
   // Handle sending messages
   // Note: we intentionally do not gate on `session.user.email` here. After a period
@@ -910,41 +926,29 @@ function ConversationContent() {
     return <PageLoader label="Loading conversation..." className="h-full" />;
   }
 
-  // Agent has no conversational capability (workflow not registered for messaging)
-  if (noConversationalCapability) {
-    const content = (
-      <div className="flex flex-col items-center justify-center flex-1 text-center p-12 bg-card min-h-0">
-        <div className="h-28 w-28 rounded-3xl bg-muted flex items-center justify-center mb-8 shadow-sm border border-border">
-          <Bot className="h-14 w-14 text-muted-foreground" />
-        </div>
-        <h2 className="text-2xl font-semibold text-foreground mb-2 tracking-tight">
-          No Conversational Capability
-        </h2>
-        <p className="text-muted-foreground max-w-md text-sm">
-          This agent does not support conversations.
-        </p>
-        <p className="text-muted-foreground/80 max-w-md text-xs mt-2">
-          Try selecting a different agent, or contact your administrator to request conversation support for this agent.
-        </p>
-      </div>
-    );
-    return (
-      <div className="flex flex-col h-full min-h-0">
-        <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
-        <AgentActivationSelector
-          activations={activations}
-          selectedActivationName={activationName}
-          selectedWorkflow={selectedWorkflowType}
-          onActivationChange={handleActivationChange}
-          isLoading={isLoadingActivations}
-        />
-        {content}
-      </div>
-    );
-  }
+  const viewConversation = noConversationalCapability
+    ? {
+        ...(conversation ?? {
+          id: `${agentName}-${activationName}-${selectedWorkflowType}`,
+          tenantId: currentTenantId,
+          user: { id: 'current-user', name: 'You' },
+          agent: {
+            id: agentName || '',
+            name: agentName || '',
+            status: 'online' as const,
+            avatar: undefined,
+          },
+          startTime: new Date().toISOString(),
+          lastActivity: new Date().toISOString(),
+          status: 'active' as const,
+          topics: [],
+        }),
+        topics: [],
+      }
+    : conversation;
 
   // No conversation found
-  if (!conversation) {
+  if (!viewConversation) {
     const noConvContent = (
       <div className="flex flex-col items-center justify-center flex-1 text-center p-12 bg-card min-h-0">
         <p className="text-foreground max-w-md text-base font-normal">
@@ -981,8 +985,8 @@ function ConversationContent() {
   return (
     <div className="h-full">
       <ConversationView
-        conversation={conversation}
-        selectedTopicId={selectedTopicId}
+        conversation={viewConversation}
+        selectedTopicId={noConversationalCapability ? '' : selectedTopicId}
         onTopicSelect={handleTopicSelect}
         onSendMessage={handleSendMessage}
         allowFileUpload
@@ -990,16 +994,16 @@ function ConversationContent() {
         onLoadMoreMessages={handleLoadMoreMessages}
         isLoadingMoreMessages={currentMessageState.isLoadingMore}
         hasMoreMessages={currentMessageState.hasMore}
-        unreadCounts={unreadCounts}
+        unreadCounts={noConversationalCapability ? {} : unreadCounts}
         activations={activations}
         selectedActivationName={activationName}
         onActivationChange={handleActivationChange}
         isLoadingActivations={isLoadingActivations}
-        isLoadingTopics={isLoadingTopics}
+        isLoadingTopics={isLoadingTopics && !noConversationalCapability}
         agentName={agentName}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        hasMore={hasMore}
+        currentPage={noConversationalCapability ? 1 : currentPage}
+        totalPages={noConversationalCapability ? 1 : totalPages}
+        hasMore={noConversationalCapability ? false : hasMore}
         onPageChange={setCurrentPage}
         isConnected={isConnected}
         sseError={sseError}
@@ -1007,12 +1011,13 @@ function ConversationContent() {
         serverUnavailable={serverUnavailable}
         isHeartbeatLoading={isHeartbeatLoading}
         onRetryHeartbeat={refetchHeartbeat}
-        onCreateTopic={handleCreateTopic}
-        onDeleteTopic={handleDeleteTopic}
+        onCreateTopic={noConversationalCapability ? undefined : handleCreateTopic}
+        onDeleteTopic={noConversationalCapability ? undefined : handleDeleteTopic}
         chatInputRef={chatInputRef}
         agentInfo={agentInfo}
         onMessageFeedbackSubmitted={handleMessageFeedbackSubmitted}
         selectedWorkflow={selectedWorkflowType}
+        noConversationalCapability={noConversationalCapability}
       />
     </div>
   );

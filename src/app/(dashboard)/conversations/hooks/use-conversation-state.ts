@@ -7,6 +7,10 @@ import {
   getBackgroundTopicToastDescription,
   mergeMessagesById,
 } from '../utils';
+import {
+  isNoConversationalCapabilityError,
+  messagesIndicateNoConversationalCapability,
+} from '@/lib/xians/conversational-capability';
 
 interface UseConversationStateParams {
   tenantId: string;
@@ -15,6 +19,7 @@ interface UseConversationStateParams {
   workflowType: string;
   topics: Topic[];
   selectedTopicId: string;
+  onNoConversationalCapability?: () => void;
 }
 
 export function useConversationState({
@@ -24,6 +29,7 @@ export function useConversationState({
   workflowType,
   topics,
   selectedTopicId,
+  onNoConversationalCapability,
 }: UseConversationStateParams) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -97,6 +103,15 @@ export function useConversationState({
     const message = mapXiansMessageToMessage(xiansMessage);
     const topicId = xiansMessage.scope ?? 'general-discussions';
 
+    // Missing OnUserChatMessage
+    if (
+      (!message.messageType || message.messageType === 'chat') &&
+      isNoConversationalCapabilityError(message.content)
+    ) {
+      onNoConversationalCapability?.();
+      return;
+    }
+
     // Update conversation state
     setConversation((prev) => {
       if (!prev) return null;
@@ -138,9 +153,12 @@ export function useConversationState({
         duration: 3000,
       });
     }
-  }, [selectedTopicId]);
+  }, [selectedTopicId, onNoConversationalCapability]);
 
   const updateTopicMessages = useCallback((topicId: string, messages: Message[]) => {
+    if (messagesIndicateNoConversationalCapability(messages)) {
+      onNoConversationalCapability?.();
+    }
     setConversation((prev) => {
       if (!prev) return null;
 
@@ -156,7 +174,7 @@ export function useConversationState({
         topics: updatedTopics,
       };
     });
-  }, []);
+  }, [onNoConversationalCapability]);
 
   /**
    * Merge fetched history into a topic without dropping messages that only exist
@@ -164,6 +182,9 @@ export function useConversationState({
    * were published while the stream was down.
    */
   const mergeTopicMessages = useCallback((topicId: string, incoming: Message[]) => {
+    if (messagesIndicateNoConversationalCapability(incoming)) {
+      onNoConversationalCapability?.();
+    }
     setConversation((prev) => {
       if (!prev) return null;
 
@@ -190,7 +211,7 @@ export function useConversationState({
         topics: updatedTopics,
       };
     });
-  }, []);
+  }, [onNoConversationalCapability]);
 
   const addMessageToTopic = useCallback((topicId: string, message: Message) => {
     setConversation((prev) => {

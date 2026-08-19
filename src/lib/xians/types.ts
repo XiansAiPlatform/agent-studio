@@ -156,6 +156,7 @@ export interface XiansAgentTemplateDefinition {
   tenant: string | null
   systemScoped: boolean
   activable?: boolean
+  isBuiltIn?: boolean
   summary?: string | null
   onboardingJson?: any | null
 }
@@ -239,6 +240,7 @@ export interface XiansAgentDeploymentDetail {
     tenant: string
     systemScoped: boolean
     activable?: boolean
+    isBuiltIn?: boolean
     summary?: string | null
     onboardingJson?: any | null
   }>
