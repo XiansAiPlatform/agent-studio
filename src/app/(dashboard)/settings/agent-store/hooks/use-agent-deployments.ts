@@ -10,13 +10,19 @@ export const useAgentDeployments = () => {
   // selection only gates whether we fetch and triggers a refetch on change.
   const { currentTenantId } = useTenant();
   const [deployedAgents, setDeployedAgents] = useState<EnhancedDeployment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const fetchKey = currentTenantId;
+  // True while tenant is missing or this tenant's fetch has not resolved yet.
+  const isLoading = fetchKey == null || resolvedKey !== fetchKey;
 
   useEffect(() => {
     async function fetchDeployments() {
       if (!currentTenantId) return;
+
+      const key = currentTenantId;
       
       // Cancel any pending request
       if (abortControllerRef.current) {
@@ -27,7 +33,6 @@ export const useAgentDeployments = () => {
       abortControllerRef.current = new AbortController();
       
       try {
-        setIsLoading(true);
         setError(null);
         
         const deploymentsRes = await fetch(`/api/agent-deployments`, {
@@ -64,8 +69,9 @@ export const useAgentDeployments = () => {
         });
         
         setDeployedAgents(enhancedDeployments);
+        setResolvedKey(key);
       } catch (err) {
-        // Ignore abort errors
+        // Ignore abort errors — do not resolve the key so loading stays true
         if (err instanceof Error && err.name === 'AbortError') {
           console.log('[useAgentDeployments] Request aborted');
           return;
@@ -74,8 +80,7 @@ export const useAgentDeployments = () => {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load agents';
         setError(errorMessage);
         showErrorToast(err, 'Failed to load agents');
-      } finally {
-        setIsLoading(false);
+        setResolvedKey(key);
       }
     }
 

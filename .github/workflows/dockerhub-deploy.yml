@@ -19,6 +19,9 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Emulated linux/arm64 builds can stall indefinitely; without this the job
+    # would run until GitHub's 6-hour hard limit. Normal builds finish in ~15m.
+    timeout-minutes: 45
     
     steps:
     - name: Checkout code

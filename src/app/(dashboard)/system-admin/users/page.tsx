@@ -56,7 +56,7 @@ const PAGE_SIZE = 20;
 const ALL_TENANTS = '__all__';
 
 function UsersPageContent() {
-  const { isLoading: isAuthLoading } = useAuth();
+  const { user: currentUser, isLoading: isAuthLoading } = useAuth();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string>(ALL_TENANTS);
   const [searchInput, setSearchInput] = useState('');
@@ -66,7 +66,7 @@ function UsersPageContent() {
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [detailTarget, setDetailTarget] = useState<GlobalUser | TenantUser | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<TenantUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GlobalUser | TenantUser | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // The tenant selector needs the full tenant list, not a single page — the
@@ -82,6 +82,7 @@ function UsersPageContent() {
     fetchGlobalUsers,
     fetchTenantUsers,
     createUser,
+    addExistingUserToTenant,
     setSysAdmin,
     setUserEnabled,
     deleteUser,
@@ -163,16 +164,41 @@ function UsersPageContent() {
         role: first.role,
       })
 
-      // Add to any additional tenants (best-effort, report failures without rolling back).
+      // Everything below addresses the account by id, so stop here if the
+      // create response did not carry one.
+      if (!created.userId) {
+        throw new Error(
+          'User was created but the server did not return a user id, so the remaining tenants and account settings were not applied.'
+        )
+      }
+
+      // Add the account just created to any additional tenants. These are
+      // by-id calls: the address cannot be reused to name it, and passing the
+      // address again would be rejected as an already-taken email.
+      // Best-effort — failures are reported without rolling back.
       if (rest.length > 0) {
         const results = await Promise.allSettled(
           rest.map((m) =>
-            createUser(m.tenantId, { name: data.name, email: data.email, role: m.role })
+            addExistingUserToTenant(m.tenantId, { userId: created.userId, role: m.role })
           )
         )
-        const failed = results.filter((r) => r.status === 'rejected').length
-        if (failed > 0) {
-          toast.warning(`User created but failed to add to ${failed} additional tenant(s)`)
+        const failures = results.filter(
+          (r): r is PromiseRejectedResult => r.status === 'rejected'
+        )
+        if (failures.length > 0) {
+          // Surface the server's messages: they say what the operator must do
+          // (enable the account first, and so on).
+          const reasons = [
+            ...new Set(
+              failures.map((r) =>
+                r.reason instanceof Error ? r.reason.message : String(r.reason)
+              )
+            ),
+          ]
+          toast.warning(
+            `User created but failed to add to ${failures.length} additional tenant(s)`,
+            { description: reasons.join(' ') }
+          )
         }
       }
 
@@ -188,16 +214,22 @@ function UsersPageContent() {
     }
   }
 
+  const isCurrentUser = (u: GlobalUser | TenantUser) =>
+    (!!currentUser?.id && u.userId === currentUser.id) ||
+    (!!currentUser?.email &&
+      u.email.toLowerCase() === currentUser.email.toLowerCase())
+
   const handleDeleteConfirm = async () => {
-    if (isAllTenants || !deleteTarget) return;
+    if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      await deleteUser(selectedTenantId, deleteTarget.userId);
-      toast.success(`${deleteTarget.name} removed`);
+      await deleteUser(deleteTarget.userId);
+      toast.success(`${deleteTarget.name} deleted`);
+      if (detailTarget?.userId === deleteTarget.userId) setDetailTarget(null);
       setDeleteTarget(null);
       loadUsers();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to remove user');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete user');
     } finally {
       setIsDeleting(false);
     }
@@ -317,6 +349,7 @@ function UsersPageContent() {
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-3 font-medium">User</th>
+                  <th className="px-4 py-3 font-medium">User ID</th>
                   {isAllTenants
                     ? <th className="px-4 py-3 font-medium">Tenants</th>
                     : <th className="px-4 py-3 font-medium">Role</th>}
@@ -357,6 +390,15 @@ function UsersPageContent() {
                         </div>
                       </td>
 
+                      <td className="px-4 py-3">
+                        <span
+                          className="block max-w-[220px] truncate font-mono text-xs text-muted-foreground"
+                          title={u.userId}
+                        >
+                          {u.userId || '—'}
+                        </span>
+                      </td>
+
                       {/* Tenants / Role */}
                       {isAllTenants ? (
                         <td className="px-4 py-3">
@@ -382,9 +424,14 @@ function UsersPageContent() {
 
                       {/* Status */}
                       <td className="px-4 py-3">
-                        <Badge variant={u.isEnabled ? 'default' : 'secondary'}>
-                          {u.isEnabled ? 'Enabled' : 'Disabled'}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge variant={u.isEnabled ? 'default' : 'secondary'}>
+                            {u.isEnabled ? 'Enabled' : 'Disabled'}
+                          </Badge>
+                          {u.isLockedOut && (
+                            <Badge variant="destructive">Locked out</Badge>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
@@ -401,12 +448,13 @@ function UsersPageContent() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => setDeleteTarget(u as TenantUser)}
-                              disabled={isAllTenants}
+                              onClick={() => setDeleteTarget(u)}
+                              disabled={isCurrentUser(u)}
+                              title={isCurrentUser(u) ? 'You cannot delete your own account' : undefined}
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Remove from Tenant
+                              Delete user
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -447,7 +495,7 @@ function UsersPageContent() {
 
       {isAllTenants && (
         <p className="text-xs text-muted-foreground text-center">
-          Showing all platform users. Select a specific tenant to add or remove users.
+          Showing all platform users. Select a specific tenant to add users.
         </p>
       )}
       </DashboardPageBody>
@@ -471,7 +519,6 @@ function UsersPageContent() {
 
       <DeleteUserDialog
         user={deleteTarget}
-        tenantName={tenantName}
         open={deleteTarget !== null}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
         onConfirm={handleDeleteConfirm}

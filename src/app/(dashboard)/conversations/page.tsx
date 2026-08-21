@@ -2,7 +2,8 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bot, Loader2, Search } from 'lucide-react';
+import { Bot, Search } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { Button } from '@/components/ui/button';
 import { useActivations } from './hooks';
@@ -70,10 +71,7 @@ function AgentSelectionContent() {
           {/* Agent Activation List */}
           <div>
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-                <p className="text-muted-foreground text-sm">Loading agents...</p>
-              </div>
+              <PageLoader label="Loading agents..." />
             ) : activeActivations.length === 0 ? (
               <div className="text-center py-12">
                 <div className="agent-icon-container h-10 w-10 rounded-2xl flex items-center justify-center mx-auto mb-3">
@@ -133,11 +131,7 @@ function AgentSelectionContent() {
 export default function ConversationsPage() {
   return (
     <div className="h-full overflow-hidden">
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }>
+      <Suspense fallback={<PageLoader label="Loading agents..." className="h-full" />}>
         <AgentSelectionContent />
       </Suspense>
     </div>

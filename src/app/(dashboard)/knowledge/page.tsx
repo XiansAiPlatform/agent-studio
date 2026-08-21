@@ -4,6 +4,7 @@ import { Suspense, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Loader2, AlertCircle, FileJson, FileCode, FileText } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { KnowledgeGroupItem, KnowledgeItemDetail } from '@/components/features/knowledge';
 import { cn } from '@/lib/utils';
 import { useKnowledgePage } from './hooks/use-knowledge-page';
@@ -86,30 +87,28 @@ function KnowledgeContent() {
           </Card>
         )}
 
-        {lastFetchedParams && (
+        {agentName && activationName ? (
           <Card
             className={cn(
               'overflow-visible',
-              knowledgeGroups.length === 0 && 'border-border/50'
+              !isLoading && knowledgeGroups.length === 0 && 'border-border/50'
             )}
           >
             <CardHeader>
               <CardTitle>
-                {knowledgeGroups.length > 0
+                {!isLoading && knowledgeGroups.length > 0
                   ? `Knowledge Articles (${knowledgeGroups.length})`
                   : 'Knowledge Articles'}
               </CardTitle>
               <CardDescription>
-                {knowledgeGroups.length > 0
+                {!isLoading && knowledgeGroups.length > 0
                   ? 'Each row\u2019s breadcrumb shows where the article is sourced from. Click any level to view that version.'
                   : 'Knowledge articles configured for this agent and activation will appear here.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="!px-0 !py-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
+              {isLoading || !lastFetchedParams ? (
+                <PageLoader label="Loading knowledge..." />
               ) : knowledgeGroups.length > 0 ? (
                 knowledgeGroups.map((group) => (
                   <KnowledgeGroupItem
@@ -129,9 +128,7 @@ function KnowledgeContent() {
               )}
             </CardContent>
           </Card>
-        )}
-
-        {!lastFetchedParams && !isLoading && (
+        ) : (
           <Card>
             <CardContent className="py-12">
               <KnowledgeEmptyState variant="no-context" />
@@ -182,7 +179,7 @@ function KnowledgeContent() {
 
 export default function KnowledgePage() {
   return (
-    <Suspense fallback={<div className="container mx-auto p-6">Loading...</div>}>
+    <Suspense fallback={<PageLoader label="Loading knowledge..." />}>
       <KnowledgeContent />
     </Suspense>
   );

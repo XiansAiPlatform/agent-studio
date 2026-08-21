@@ -11,11 +11,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-react'
-import { TenantUser } from '../types'
+import { GlobalUser, TenantUser } from '../types'
 
 interface DeleteUserDialogProps {
-  user: TenantUser | null
-  tenantName?: string
+  user: GlobalUser | TenantUser | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => Promise<void>
@@ -24,7 +23,6 @@ interface DeleteUserDialogProps {
 
 export function DeleteUserDialog({
   user,
-  tenantName,
   open,
   onOpenChange,
   onConfirm,
@@ -34,21 +32,13 @@ export function DeleteUserDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove user from tenant?</AlertDialogTitle>
+          <AlertDialogTitle>Delete user?</AlertDialogTitle>
           <AlertDialogDescription>
-            This removes{' '}
+            This permanently deletes{' '}
             <span className="font-medium text-foreground">{user?.name}</span>{' '}
-            (<span className="font-mono">{user?.email}</span>) from
-            {tenantName ? (
-              <>
-                {' '}
-                <span className="font-medium text-foreground">{tenantName}</span>
-              </>
-            ) : (
-              ' this tenant'
-            )}
-            . The user account itself is not deleted, but they will lose access to
-            this tenant.
+            (<span className="font-mono">{user?.email}</span>)
+            {user?.isSysAdmin ? ', including their System Admin access,' : ''}
+            {' '}and removes them from every tenant. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -63,7 +53,7 @@ export function DeleteUserDialog({
             className="bg-destructive text-white hover:bg-destructive/90"
           >
             {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Remove
+            Delete
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

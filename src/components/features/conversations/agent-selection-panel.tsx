@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bot, Loader2, Search, X } from 'lucide-react';
+import { Bot, Search, X } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { Button } from '@/components/ui/button';
 import { useActivations } from '@/app/(dashboard)/conversations/hooks';
@@ -48,13 +49,10 @@ export function AgentSelectionContent({
     return acc;
   }, {} as Record<string, typeof activations>);
 
-  if (isLoading) {
+  if (isLoading || !currentTenantId) {
     return (
       <div className={cn('flex flex-col gap-6', className)}>
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-          <p className="text-muted-foreground text-sm">Loading agents...</p>
-        </div>
+        <PageLoader label="Loading agents..." />
       </div>
     );
   }

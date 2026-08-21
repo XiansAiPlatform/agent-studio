@@ -22,6 +22,7 @@ import {
   Bot,
   Server 
 } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { OIDCConnection, ConnectionStatus } from './types';
 import { useConnections } from './hooks/use-connections';
@@ -308,12 +309,7 @@ function ConnectionsContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
         <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center py-24">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Loading connections...</p>
-            </div>
-          </div>
+          <PageLoader label="Loading connections..." className="py-24" />
         </div>
       </div>
     );
@@ -513,7 +509,7 @@ function ConnectionsContent() {
 
 export default function ConnectionsPage() {
   return (
-    <Suspense fallback={<div className="container mx-auto p-6">Loading...</div>}>
+    <Suspense fallback={<PageLoader label="Loading connections..." />}>
       <ConnectionsContent />
     </Suspense>
   );

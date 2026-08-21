@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MetricTimeseriesResponse } from '../types';
+import { useResolvedLoading } from '@/hooks/use-resolved-loading';
 
 export function useMetricsTimeseries(
   category: string,
@@ -14,18 +15,22 @@ export function useMetricsTimeseries(
   shouldFetch: boolean = true
 ) {
   const [data, setData] = useState<MetricTimeseriesResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchKey =
+    shouldFetch && startDate && endDate && category && type
+      ? `${category}:${type}:${startDate}:${endDate}:${agentName ?? ''}:${activationName ?? ''}:${groupBy}`
+      : null;
+  const { isLoading, resolve } = useResolvedLoading(fetchKey, false);
 
   useEffect(() => {
     if (!shouldFetch || !startDate || !endDate || !category || !type) {
       setData(null);
-      setIsLoading(false);
       return;
     }
 
+    const key = `${category}:${type}:${startDate}:${endDate}:${agentName ?? ''}:${activationName ?? ''}:${groupBy}`;
+
     const fetchTimeseries = async () => {
-      setIsLoading(true);
       setError(null);
 
       try {
@@ -62,12 +67,12 @@ export function useMetricsTimeseries(
 
         const result = await response.json();
         setData(result);
+        resolve(key);
       } catch (err) {
         console.error('[useMetricsTimeseries] Error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
         setData(null);
-      } finally {
-        setIsLoading(false);
+        resolve(key);
       }
     };
 

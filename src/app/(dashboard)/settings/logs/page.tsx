@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { LogFilterSlider } from './components/log-filter-slider';
@@ -132,7 +133,7 @@ function LogsContent() {
 
 export default function LogsPage() {
   return (
-    <Suspense fallback={<div className="container mx-auto p-6">Loading...</div>}>
+    <Suspense fallback={<PageLoader label="Loading logs..." />}>
       <LogsContent />
     </Suspense>
   );

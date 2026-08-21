@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTenant } from '@/hooks/use-tenant'
+import { useResolvedLoading } from '@/hooks/use-resolved-loading'
 import { 
   OIDCConnection, 
   CreateConnectionRequest, 
@@ -272,7 +273,6 @@ export function useConnections(options?: UseConnectionsOptions) {
   // selection only gates fetching and keys the cache.
   const { currentTenantId } = useTenant()
   const [connections, setConnections] = useState<OIDCConnection[] | undefined>(undefined)
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const lastFetchKeyRef = useRef<string | null>(null)
@@ -296,6 +296,8 @@ export function useConnections(options?: UseConnectionsOptions) {
     options?.activationName,
   ])
 
+  const { isLoading, resolve } = useResolvedLoading(currentTenantId ? optionsKey : null)
+
   useEffect(() => {
     if (!currentTenantId) return
     
@@ -314,7 +316,6 @@ export function useConnections(options?: UseConnectionsOptions) {
     abortControllerRef.current = new AbortController()
 
     const fetchData = async () => {
-      setIsLoading(true)
       setError(null)
       try {
         const data = await fetchConnections(options)
@@ -322,17 +323,17 @@ export function useConnections(options?: UseConnectionsOptions) {
         
         // Mark these parameters as fetched
         lastFetchKeyRef.current = optionsKey
+        resolve(optionsKey)
         console.log('[useConnections] ✅ Fetched successfully, marked params:', optionsKey)
       } catch (err) {
-        // Ignore abort errors
+        // Ignore abort errors — do not resolve so loading stays true
         if (err instanceof Error && err.name === 'AbortError') {
           console.log('[useConnections] Request aborted')
           return
         }
         
         setError(err instanceof Error ? err : new Error('Failed to fetch connections'))
-      } finally {
-        setIsLoading(false)
+        resolve(optionsKey)
       }
     }
     
@@ -360,24 +361,23 @@ export function useConnections(options?: UseConnectionsOptions) {
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController()
     
-    setIsLoading(true)
     setError(null)
     try {
       const data = await fetchConnections(options)
       setConnections(data)
       lastFetchKeyRef.current = optionsKey
+      resolve(optionsKey)
     } catch (err) {
-      // Ignore abort errors
+      // Ignore abort errors — do not resolve so loading stays true
       if (err instanceof Error && err.name === 'AbortError') {
         console.log('[useConnections] Request aborted')
         return
       }
       
       setError(err instanceof Error ? err : new Error('Failed to fetch connections'))
-    } finally {
-      setIsLoading(false)
+      resolve(optionsKey)
     }
-  }, [currentTenantId, optionsKey, options])
+  }, [currentTenantId, optionsKey, options, resolve])
 
   // Mutations
   const createConnectionMutation = createMutationState<CreateConnectionRequest>(

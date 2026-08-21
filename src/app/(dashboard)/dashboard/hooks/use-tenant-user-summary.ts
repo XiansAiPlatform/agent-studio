@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { showToast } from '@/lib/toast'
+import { useResolvedLoading } from '@/hooks/use-resolved-loading'
 
 type TenantUserSummary = {
   totalCount: number
@@ -16,18 +17,17 @@ const DEFAULT_SUMMARY: TenantUserSummary = { totalCount: 0 }
  */
 export function useTenantUserSummary(enabled = true) {
   const [summary, setSummary] = useState<TenantUserSummary | null>(null)
-  const [isLoading, setIsLoading] = useState(enabled)
+  const fetchKey = enabled ? 'tenant-user-summary' : null
+  const { isLoading, resolve } = useResolvedLoading(fetchKey, false)
 
   useEffect(() => {
     if (!enabled) {
-      setIsLoading(false)
       return
     }
 
     const abortController = new AbortController()
 
     async function fetchSummary() {
-      setIsLoading(true)
       try {
         const params = new URLSearchParams({ page: '1', pageSize: '1' })
         const response = await fetch(`/api/settings/users?${params}`, {
@@ -36,6 +36,7 @@ export function useTenantUserSummary(enabled = true) {
         if (!response.ok) throw new Error('Failed to fetch tenant user summary')
         const data = await response.json()
         setSummary({ totalCount: data.totalCount ?? 0 })
+        resolve('tenant-user-summary')
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return
         showToast.error({
@@ -44,8 +45,7 @@ export function useTenantUserSummary(enabled = true) {
             error instanceof Error ? error.message : 'Could not load tenant user count',
         })
         setSummary(DEFAULT_SUMMARY)
-      } finally {
-        setIsLoading(false)
+        resolve('tenant-user-summary')
       }
     }
 

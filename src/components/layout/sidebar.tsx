@@ -200,6 +200,7 @@ function NavItem({
   isPanelOpen,
   activePanelMode,
   onNavigate,
+  onExpandSidebar,
   can,
 }: {
   item: NavigationItem;
@@ -210,6 +211,7 @@ function NavItem({
   isPanelOpen?: boolean;
   activePanelMode?: string | null;
   onNavigate?: () => void;
+  onExpandSidebar?: () => void;
   can: (capability: Capability) => boolean;
 }) {
   const [expanded, setExpanded] = useState(active);
@@ -266,8 +268,16 @@ function NavItem({
             <Link
               href={item.href}
               onClick={(e) => {
-                if (hasChildren && !collapsed) {
+                if (hasChildren) {
                   e.preventDefault();
+                  // Collapsed rail hides submenus; expand the sidebar and open
+                  // the children instead of navigating to the parent href
+                  // (many parents like /system-admin have no page).
+                  if (collapsed) {
+                    onExpandSidebar?.();
+                    setExpanded(true);
+                    return;
+                  }
                   setExpanded(!expanded);
                   return;
                 }
@@ -481,6 +491,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
               isPanelOpen={activePanelMode === item.name}
               activePanelMode={activePanelMode}
               onNavigate={mobile ? onNavigate : undefined}
+              onExpandSidebar={() => setCollapsed(false)}
               can={can}
             />
           );
@@ -542,8 +553,15 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
             // h-full ensures the right border extends to the bottom of the
             // viewport regardless of how short the navigation list is.
             'h-full border-r bg-background transition-all duration-300',
-            effectiveCollapsed ? 'w-16' : 'w-64'
+            effectiveCollapsed ? 'w-16 cursor-pointer' : 'w-64'
           )}
+          onClick={(e) => {
+            if (!effectiveCollapsed) return;
+            // Expand when clicking empty rail space; leave links/buttons alone
+            // so leaf items and the menu toggle keep their own behavior.
+            if ((e.target as HTMLElement).closest('a, button')) return;
+            setCollapsed(false);
+          }}
         >
           {navContent}
         </aside>

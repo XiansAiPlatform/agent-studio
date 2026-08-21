@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, ChevronLeft, ChevronRight, MessageSquareText } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 import { getReasonLabel } from '@/components/features/conversations/message-feedback';
 import { cn } from '@/lib/utils';
 import type { FeedbackListResponse, MessageFeedbackDocument } from '../types';
@@ -107,19 +108,17 @@ export function FeedbackList({
     );
   }
 
-  if (loading && !data) {
+  if (!data) {
     return (
       <Card>
-        <CardContent className="space-y-2 py-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-10 animate-pulse rounded-lg bg-muted/40" />
-          ))}
+        <CardContent>
+          <PageLoader label="Loading feedback..." />
         </CardContent>
       </Card>
     );
   }
 
-  if (!data || data.items.length === 0) {
+  if (data.items.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">

@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react'
+import { throwApiRequestError } from '@/lib/api/request-error'
 import {
   TenantUser,
   ListUsersResponse,
   CreateUserRequest,
+  AddExistingUserRequest,
   UpdateUserRequest,
 } from '../types'
 
@@ -70,6 +72,12 @@ export function useUsers(options: UseUsersOptions = {}) {
     [page, pageSize, search]
   )
 
+  /**
+   * Create a brand-new account and add it to the tenant.
+   *
+   * Throws with status 409 when any account already holds this email address;
+   * that account can only be added with `addExistingUserToTenant`.
+   */
   const createUser = useCallback(
     async (data: CreateUserRequest): Promise<TenantUser> => {
       setIsMutating(true)
@@ -79,10 +87,31 @@ export function useUsers(options: UseUsersOptions = {}) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         })
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.error ?? `Failed to create user (${res.status})`)
-        }
+        if (!res.ok) await throwApiRequestError(res, 'Failed to create user')
+        return await res.json()
+      } finally {
+        setIsMutating(false)
+      }
+    },
+    []
+  )
+
+  /**
+   * Add an account that already exists to this tenant, named by user id.
+   *
+   * An email address cannot be used: it may match accounts from more than one
+   * identity provider, so the backend requires the id.
+   */
+  const addExistingUserToTenant = useCallback(
+    async (data: AddExistingUserRequest): Promise<TenantUser> => {
+      setIsMutating(true)
+      try {
+        const res = await fetch('/api/settings/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+        if (!res.ok) await throwApiRequestError(res, 'Failed to add user to tenant')
         return await res.json()
       } finally {
         setIsMutating(false)
@@ -136,6 +165,7 @@ export function useUsers(options: UseUsersOptions = {}) {
     isMutating,
     fetchUsers,
     createUser,
+    addExistingUserToTenant,
     updateUser,
     deleteUser,
   }
