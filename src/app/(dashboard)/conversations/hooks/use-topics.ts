@@ -2,28 +2,22 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Topic } from '@/types/conversation';
 import { XiansTopicsResponse } from '@/lib/xians/types';
 import { showErrorToast } from '@/lib/utils/error-handler';
+import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability';
 
 interface UseTopicsParams {
   tenantId: string | null;
   agentName: string | null;
   activationName: string | null;
+  workflowType: string | null;
   page?: number;
   pageSize?: number;
-}
-
-/** Detects if the error indicates the agent has no conversational/messaging capability */
-function isNoConversationalCapabilityError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes('not registered') ||
-    (normalized.includes('workflow') && normalized.includes('registered workflow types'))
-  );
 }
 
 export function useTopics({
   tenantId,
   agentName,
   activationName,
+  workflowType,
   page = 1,
   pageSize = 20,
 }: UseTopicsParams) {
@@ -36,8 +30,8 @@ export function useTopics({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchKey =
-    tenantId && agentName && activationName
-      ? `${tenantId}:${agentName}:${activationName}:${page}:${pageSize}`
+    tenantId && agentName && activationName && workflowType
+      ? `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}`
       : null;
 
   // True while params are missing or this activation's fetch has not resolved yet.
@@ -45,11 +39,11 @@ export function useTopics({
   const isLoading = fetchKey === null || resolvedKey !== fetchKey;
 
   const fetchTopics = useCallback(async () => {
-    if (!tenantId || !agentName || !activationName) {
+    if (!tenantId || !agentName || !activationName || !workflowType) {
       return;
     }
 
-    const key = `${tenantId}:${agentName}:${activationName}:${page}:${pageSize}`;
+    const key = `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}`;
 
     // Cancel any pending request
     if (abortControllerRef.current) {
@@ -67,6 +61,7 @@ export function useTopics({
         activationName,
         page: page.toString(),
         pageSize: pageSize.toString(),
+        workflowType,
       });
 
       const response = await fetch(
@@ -161,7 +156,7 @@ export function useTopics({
       }
       setResolvedKey(key);
     }
-  }, [tenantId, agentName, activationName, page, pageSize]);
+  }, [tenantId, agentName, activationName, workflowType, page, pageSize]);
 
   useEffect(() => {
     fetchTopics();
@@ -205,6 +200,7 @@ export function useTopics({
     totalPages,
     hasMore,
     noConversationalCapability,
+    setNoConversationalCapability,
     fetchError,
     refetch: fetchTopics,
     addTopic,

@@ -11,10 +11,23 @@ import { Suspense } from 'react'
 const RETRY_INTERVAL_MS = 15_000
 const RETRY_TIMEOUT_MS = 5_000
 
-function parseMessagingParamsFromReturnUrl(returnUrl: string): { agentName: string; activationName: string } | null {
-  const match = returnUrl.match(/^\/conversations\/([^/]+)\/([^/?]+)/)
-  if (!match) return null
-  return { agentName: decodeURIComponent(match[1]), activationName: decodeURIComponent(match[2]) }
+function parseMessagingParamsFromReturnUrl(returnUrl: string): {
+  agentName: string
+  activationName: string
+  workflowType: string | null
+} | null {
+  try {
+    const url = new URL(returnUrl, 'http://local')
+    const match = url.pathname.match(/^\/conversations\/([^/]+)\/([^/]+)$/)
+    if (!match) return null
+    return {
+      agentName: decodeURIComponent(match[1]),
+      activationName: decodeURIComponent(match[2]),
+      workflowType: url.searchParams.get('workflow')?.trim() || null,
+    }
+  } catch {
+    return null
+  }
 }
 
 function ServerUnavailableContent() {
@@ -31,7 +44,13 @@ function ServerUnavailableContent() {
     if (params) {
       try {
         setIsCheckingConnection(true)
-        const listenUrl = `/api/messaging/listen?agentName=${encodeURIComponent(params.agentName)}&activationName=${encodeURIComponent(params.activationName)}&heartbeatSeconds=60`
+        const listenUrl =
+          `/api/messaging/listen?agentName=${encodeURIComponent(params.agentName)}` +
+          `&activationName=${encodeURIComponent(params.activationName)}` +
+          (params.workflowType
+            ? `&workflowType=${encodeURIComponent(params.workflowType)}`
+            : '') +
+          `&heartbeatSeconds=60`
         const eventSource = new EventSource(listenUrl)
         const connected = await new Promise<boolean>((resolve) => {
           const timeout = setTimeout(() => {

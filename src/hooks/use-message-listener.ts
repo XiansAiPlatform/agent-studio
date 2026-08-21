@@ -7,6 +7,7 @@ export interface UseMessageListenerParams {
   tenantId: string | null;
   agentName: string | null;
   activationName: string | null;
+  workflowType: string | null;
   enabled?: boolean;
   onMessage?: (message: XiansMessage) => void;
   onError?: (error: Error) => void;
@@ -57,6 +58,7 @@ export function useMessageListener(
     tenantId,
     agentName,
     activationName,
+    workflowType,
     enabled = true,
     onMessage,
     onError,
@@ -67,7 +69,7 @@ export function useMessageListener(
 
   // Connection outcomes are tracked per parameter set rather than as plain
   // booleans, so switching agent/activation implicitly clears stale state.
-  const connectionKey = `${tenantId}|${agentName}|${activationName}`;
+  const connectionKey = `${tenantId}|${agentName}|${activationName}|${workflowType}`;
 
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -168,8 +170,8 @@ export function useMessageListener(
 
   const connect = useCallback(() => {
     // Validate required parameters
-    if (!tenantId || !agentName || !activationName) {
-      console.log('[SSE] Missing required parameters:', { tenantId, agentName, activationName });
+    if (!tenantId || !agentName || !activationName || !workflowType) {
+      console.log('[SSE] Missing required parameters:', { tenantId, agentName, activationName, workflowType });
       return;
     }
 
@@ -201,6 +203,7 @@ export function useMessageListener(
         agentName,
         activationName,
         heartbeatSeconds: String(HEARTBEAT_SECONDS),
+        workflowType,
       });
 
       const url = `/api/messaging/listen?${queryParams.toString()}`;
@@ -328,6 +331,7 @@ export function useMessageListener(
     tenantId,
     agentName,
     activationName,
+    workflowType,
     connectionKey,
     enabled,
     disconnect,
@@ -370,7 +374,7 @@ export function useMessageListener(
 
   // Connect on mount or when parameters change
   useEffect(() => {
-    if (!enabled || !tenantId || !agentName || !activationName) {
+    if (!enabled || !tenantId || !agentName || !activationName || !workflowType) {
       return;
     }
 
@@ -382,13 +386,13 @@ export function useMessageListener(
       disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, tenantId, agentName, activationName]);
+  }, [enabled, tenantId, agentName, activationName, workflowType]);
 
   // A dropped stream does not always surface as an `error` event: after a sleep/wake
   // or a silently killed proxy connection the EventSource can sit in OPEN forever.
   // Heartbeats let us notice the silence and rebuild the stream.
   useEffect(() => {
-    if (!enabled || !tenantId || !agentName || !activationName) {
+    if (!enabled || !tenantId || !agentName || !activationName || !workflowType) {
       return;
     }
 
@@ -433,7 +437,7 @@ export function useMessageListener(
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [enabled, tenantId, agentName, activationName, forceReconnect]);
+  }, [enabled, tenantId, agentName, activationName, workflowType, forceReconnect]);
 
   return {
     isConnected,

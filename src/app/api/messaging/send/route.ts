@@ -75,6 +75,7 @@ export const POST = withTenantFromSession(
         requestId,
         hint,
         origin,
+        workflowType,
       } = body
 
       const isFileUpload = type === 'File'
@@ -113,6 +114,9 @@ export const POST = withTenantFromSession(
           requestId,
           hint,
           origin,
+          ...(typeof workflowType === 'string' && workflowType.trim()
+            ? { workflowType: workflowType.trim() }
+            : {}),
           authorization: (session as any)?.accessToken,
         }
 
@@ -142,6 +146,9 @@ export const POST = withTenantFromSession(
         requestId,
         hint,
         origin,
+        ...(typeof workflowType === 'string' && workflowType.trim()
+          ? { workflowType: workflowType.trim() }
+          : {}),
         authorization: (session as any)?.accessToken,
       }
 

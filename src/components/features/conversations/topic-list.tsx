@@ -5,7 +5,7 @@ import { Topic } from '@/types/conversation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Check, X, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, Check, X, Trash2, MoreVertical, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TOPIC_STATUS_CONFIG } from '@/lib/conversation-status-config';
 import { AgentActivationSelector, ActivationOption } from './agent-activation-selector';
@@ -38,9 +38,11 @@ interface TopicListProps {
   selectedAgentName?: string | null;
   selectedActivationName?: string | null;
   onAgentChange?: (agentName: string | null) => void;
-  onActivationChange?: (activationName: string, agentName: string) => void;
+  onActivationChange?: (activationName: string, agentName: string, workflowName: string) => void;
   isLoadingActivations?: boolean;
+  isLoadingTopics?: boolean;
   showAgentSelector?: boolean;
+  selectedWorkflow?: string;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -73,7 +75,9 @@ export function TopicList({
   onAgentChange,
   onActivationChange,
   isLoadingActivations = false,
+  isLoadingTopics = false,
   showAgentSelector = false,
+  selectedWorkflow,
 }: TopicListProps) {
   const [isCreatingTopic, setIsCreatingTopic] = useState(false);
   const [newTopicName, setNewTopicName] = useState('');
@@ -148,6 +152,7 @@ export function TopicList({
           activations={activations}
           selectedAgentName={selectedAgentName}
           selectedActivationName={selectedActivationName}
+          selectedWorkflow={selectedWorkflow}
           onAgentChange={onAgentChange}
           onActivationChange={onActivationChange}
           isLoading={isLoadingActivations}
@@ -160,10 +165,12 @@ export function TopicList({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground font-medium">
-              {topics.length} conversation{topics.length !== 1 ? 's' : ''}
+              {isLoadingTopics
+                ? 'Loading conversations...'
+                : `${topics.length} conversation${topics.length !== 1 ? 's' : ''}`}
             </p>
           </div>
-          {onCreateTopic && !isCreatingTopic && (
+          {onCreateTopic && !isCreatingTopic && !isLoadingTopics && (
             <Button
               variant="ghost"
               size="sm"
@@ -178,7 +185,12 @@ export function TopicList({
 
       {/* Topics List */}
       <div className="flex-1 overflow-y-auto">
-        {topics.map((topic, index) => {
+        {isLoadingTopics ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin mb-2" />
+            <p className="text-xs">Loading conversations...</p>
+          </div>
+        ) : topics.map((topic, index) => {
           const StatusIcon = TOPIC_STATUS_CONFIG[topic.status].icon;
           const isSelected = topic.id === selectedTopicId;
           const isGeneralTopic = topic.id === 'general-discussions';
