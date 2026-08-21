@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
 import { showErrorToast } from '@/lib/utils/error-handler'
-import { SUPERVISOR_WORKFLOW } from '@/lib/xians/built-in-workflows'
+import { resolveWorkflowName } from '@/lib/xians/built-in-workflows'
 import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability'
 
 const TOPICS_PAGE_SIZE = 10
@@ -146,11 +146,7 @@ export function ParticipantAgentTree({
   const routeAgentName = params.agentName as string | undefined
   const routeActivationName = params.activationName as string | undefined
   const routeTopicId = searchParams.get('topic') || 'general-discussions'
-  const workflowParam = searchParams.get('workflow')
-  const selectedWorkflowType =
-    workflowParam && workflowParam.trim()
-      ? workflowParam.trim()
-      : SUPERVISOR_WORKFLOW
+  const workflowParam = searchParams.get('workflow')?.trim() || null
 
   const [expandedActivations, setExpandedActivations] = useState<Set<string>>(
     () =>
@@ -182,6 +178,20 @@ export function ParticipantAgentTree({
   const { workflowsByAgent, isLoading: isLoadingWorkflows } =
     useBuiltInWorkflows(agentNamesForWorkflows)
 
+  const workflowForAgent = useCallback(
+    (name: string) => {
+      const available = workflowsByAgent[name] ?? []
+      const isCurrent =
+        !!routeAgentName && decodeURIComponent(routeAgentName) === name
+      return resolveWorkflowName(isCurrent ? workflowParam : null, available)
+    },
+    [workflowsByAgent, routeAgentName, workflowParam]
+  )
+
+  const selectedWorkflowType = routeAgentName
+    ? workflowForAgent(decodeURIComponent(routeAgentName))
+    : null
+
   useEffect(() => {
     if (creatingForActivation && createInputRef.current) {
       createInputRef.current.focus()
@@ -199,13 +209,15 @@ export function ParticipantAgentTree({
     const decodedAgent = decodeURIComponent(routeAgentName)
     const decodedActivation = decodeURIComponent(routeActivationName)
     if (!(decodedAgent in workflowsByAgent)) return
+    const workflow = workflowForAgent(decodedAgent)
+    if (!workflow) return
     const key = `${decodedAgent}|${decodedActivation}`
-    const fetchKey = `${key}|${selectedWorkflowType}`
+    const fetchKey = `${key}|${workflow}`
     setExpandedActivations((prev) => new Set(prev).add(key))
     if (!fetchedKeysRef.current.has(fetchKey)) {
       fetchedKeysRef.current.add(fetchKey)
       setLoadingActivations((prev) => new Set(prev).add(key))
-      fetchTopicsForActivation(decodedAgent, decodedActivation, selectedWorkflowType)
+      fetchTopicsForActivation(decodedAgent, decodedActivation, workflow)
         .then((topics) => setTopicsByActivation((p) => ({ ...p, [key]: topics })))
         .catch(console.error)
         .finally(() => {
@@ -216,15 +228,17 @@ export function ParticipantAgentTree({
           })
         })
     }
-  }, [routeAgentName, routeActivationName, selectedWorkflowType, workflowsByAgent])
+  }, [routeAgentName, routeActivationName, workflowForAgent, workflowsByAgent])
 
   const refetchActivationTopics = useCallback(
     async (agentName: string, activationName: string) => {
+      const workflow = workflowForAgent(agentName)
+      if (!workflow) return
       const key = `${agentName}|${activationName}`
-      const topics = await fetchTopicsForActivation(agentName, activationName, selectedWorkflowType)
+      const topics = await fetchTopicsForActivation(agentName, activationName, workflow)
       setTopicsByActivation((prev) => ({ ...prev, [key]: topics }))
     },
-    [selectedWorkflowType]
+    [workflowForAgent]
   )
 
   const handleCreateTopic = useCallback(
@@ -247,10 +261,10 @@ export function ParticipantAgentTree({
       }))
       setCreatingForActivation(null)
       setNewTopicName('')
-      onTopicSelect(agentName, activationName, newTopic)
+      onTopicSelect(agentName, activationName, newTopic, workflowForAgent(agentName) ?? undefined)
       onClose?.()
     },
-    [onTopicSelect, onClose]
+    [onTopicSelect, onClose, workflowForAgent]
   )
 
   const handleDeleteTopic = useCallback(
@@ -258,11 +272,13 @@ export function ParticipantAgentTree({
       setIsDeletingTopic(true)
       try {
         const topicParam = topicId === 'general-discussions' ? '' : topicId
+        const workflow = workflowForAgent(agentName)
+        if (!workflow) throw new Error('No workflow available for this agent')
         const queryParams = new URLSearchParams({
           agentName,
           activationName,
           topic: topicParam,
-          workflowType: selectedWorkflowType,
+          workflowType: workflow,
         })
         const response = await fetch(`/api/messaging/messages?${queryParams.toString()}`, {
           method: 'DELETE',
@@ -278,7 +294,7 @@ export function ParticipantAgentTree({
           decodeURIComponent(routeActivationName) === activationName &&
           routeTopicId === topicId
         if (isViewingDeletedTopic && topicId !== 'general-discussions') {
-          onTopicSelect(agentName, activationName, GENERAL_TOPIC)
+          onTopicSelect(agentName, activationName, GENERAL_TOPIC, workflow)
           onClose?.()
         }
         toast.success('Topic deleted', {
@@ -289,7 +305,7 @@ export function ParticipantAgentTree({
         setIsDeletingTopic(false)
       }
     },
-    [refetchActivationTopics, onTopicDeleted, onTopicSelect, onClose, routeAgentName, routeActivationName, routeTopicId, selectedWorkflowType]
+    [refetchActivationTopics, onTopicDeleted, onTopicSelect, onClose, routeAgentName, routeActivationName, routeTopicId, workflowForAgent]
   )
 
   const toggleActivation = useCallback(
@@ -311,7 +327,10 @@ export function ParticipantAgentTree({
 
       setLoadingActivations((prev) => new Set(prev).add(key))
       try {
-        const topics = await fetchTopicsForActivation(agentName, activationName, selectedWorkflowType)
+        const workflow = workflowForAgent(agentName)
+        const topics = workflow
+          ? await fetchTopicsForActivation(agentName, activationName, workflow)
+          : []
         setTopicsByActivation((prev) => ({ ...prev, [key]: topics }))
       } catch (err) {
         console.error('[ParticipantAgentTree] Failed to fetch topics:', err)
@@ -324,23 +343,25 @@ export function ParticipantAgentTree({
         })
       }
     },
-    [expandedActivations, topicsByActivation, selectedWorkflowType]
+    [expandedActivations, topicsByActivation, workflowForAgent]
   )
 
   const handleTopicClick = useCallback(
     (agentName: string, activationName: string, topic: Topic) => {
-      onTopicSelect(agentName, activationName, topic)
+      onTopicSelect(agentName, activationName, topic, workflowForAgent(agentName) ?? undefined)
       onClose?.()
     },
-    [onTopicSelect, onClose]
+    [onTopicSelect, onClose, workflowForAgent]
   )
 
   const handleActivationClick = useCallback(
     (agentName: string, activationName: string) => {
-      onTopicSelect(agentName, activationName, GENERAL_TOPIC, SUPERVISOR_WORKFLOW)
+      const workflow = workflowForAgent(agentName)
+      if (!workflow) return
+      onTopicSelect(agentName, activationName, GENERAL_TOPIC, workflow)
       onClose?.()
     },
-    [onTopicSelect, onClose]
+    [onTopicSelect, onClose, workflowForAgent]
   )
 
   if (isLoadingActivations || isLoadingWorkflows) {

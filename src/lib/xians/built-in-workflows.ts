@@ -1,9 +1,15 @@
+/**
+ * Legacy default supervisor name.
+ * Treat this name as special only for backward compatibility: older deployments
+ * shipped it with `isBuiltIn: false`. New workflows set `isBuiltIn: true`.
+ */
 export const SUPERVISOR_WORKFLOW = 'Supervisor Workflow'
 
 export type WorkflowDefinitionLike = {
   workflowType: string
   name?: string | null
   activable?: boolean
+  /** New chat-eligible workflows set this true. */
   isBuiltIn?: boolean
 }
 
@@ -17,11 +23,11 @@ export function builtInWorkflowName(
 }
 
 /**
- * Chat picker targets: every DefineBuiltIn / DefineSupervisor workflow.
- * DefineCustom is never listed (`isBuiltIn === false`).
- *
- * `isBuiltIn === true`
- * non-activable workflows cannot include into the picker.
+ * Chat picker targets: workflows with `isBuiltIn === true`.
+ * Also includes the legacy "Supervisor Workflow" name so older agents that
+ * predate the flag still appear. That name match is backward compatibility
+ * only — do not add more special-cased names; new workflows must set
+ * `isBuiltIn: true`.
  */
 export function listBuiltInWorkflows(
   definitions: WorkflowDefinitionLike[]
@@ -31,21 +37,37 @@ export function listBuiltInWorkflows(
     isBuiltIn: d.isBuiltIn,
   }))
 
-  const flagged = rows.filter((d) => d.isBuiltIn === true)
-  const source =
-    flagged.length > 0
-      ? flagged
-      : rows.filter(
-          (d) => d.isBuiltIn !== false && d.name === SUPERVISOR_WORKFLOW
-        )
+  const source = rows.filter(
+    (d) =>
+      d.isBuiltIn === true ||
+      // Backward compat only: legacy supervisor predates isBuiltIn.
+      d.name === SUPERVISOR_WORKFLOW
+  )
 
-  const unique = Array.from(new Set(source.map((d) => d.name)))
+  const unique = Array.from(new Set(source.map((d) => d.name).filter(Boolean)))
 
-  // Sort the workflows by name, with Supervisor first
+  // Prefer the legacy supervisor name when both it and other built-ins exist.
   unique.sort((a, b) => {
     if (a === SUPERVISOR_WORKFLOW) return -1
     if (b === SUPERVISOR_WORKFLOW) return 1
     return a.localeCompare(b)
   })
   return unique
+}
+
+/**
+ * Pick a workflow from the agent's registered list.
+ * Uses `requested` when it is in the list; otherwise the first entry
+ * (`listBuiltInWorkflows` already prefers Supervisor Workflow when present).
+ * Returns null when the list is empty — never invents a name.
+ */
+export function resolveWorkflowName(
+  requested: string | null | undefined,
+  available: string[]
+): string | null {
+  const requestedName = requested?.trim()
+  if (requestedName && available.includes(requestedName)) {
+    return requestedName
+  }
+  return available[0] ?? null
 }

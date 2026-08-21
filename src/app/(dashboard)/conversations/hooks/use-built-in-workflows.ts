@@ -21,8 +21,9 @@ async function fetchBuiltInWorkflowsForAgent(agentName: string): Promise<string[
 }
 
 /**
- * Loads each agent's flow definitions and returns only built-in workflow names.
- * Does not invent Supervisor Workflow while definitions are still loading.
+ * Loads each agent's chat-eligible workflow names (`isBuiltIn`, plus the
+ * legacy "Supervisor Workflow" name for backward compatibility).
+ * Does not invent a workflow name while definitions are still loading.
  */
 export function useBuiltInWorkflows(agentNames: string[]) {
   const namesKey = [...agentNames].sort().join('\0');

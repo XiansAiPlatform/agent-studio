@@ -11,7 +11,6 @@ import {
   SelectLabel,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { SUPERVISOR_WORKFLOW } from '@/lib/xians/built-in-workflows';
 import { useBuiltInWorkflows } from '@/app/(dashboard)/conversations/hooks/use-built-in-workflows';
 
 export interface ActivationOption {
@@ -47,7 +46,7 @@ interface AgentActivationSelectorProps {
 export function AgentActivationSelector({
   activations,
   selectedActivationName,
-  selectedWorkflow = SUPERVISOR_WORKFLOW,
+  selectedWorkflow,
   onActivationChange,
   isLoading = false,
 }: AgentActivationSelectorProps) {
@@ -89,6 +88,7 @@ export function AgentActivationSelector({
       // Only list workflows after definitions have been typed as built-in.
       if (!(agentName in workflowsByAgent)) continue;
       const workflows = workflowsByAgent[agentName] ?? [];
+      if (workflows.length === 0) continue;
 
       const items = workflows.map((workflowName) => {
         const id = String(nextId++);
@@ -105,11 +105,11 @@ export function AgentActivationSelector({
 
   const selectedValue = useMemo(() => {
     if (!selectedAgentName) return '';
-    const workflowName = selectedWorkflow || SUPERVISOR_WORKFLOW;
+    if (!selectedWorkflow) return '';
     for (const option of optionById.values()) {
       if (
         option.agentName === selectedAgentName &&
-        option.workflowName === workflowName
+        option.workflowName === selectedWorkflow
       ) {
         return option.id;
       }
@@ -173,9 +173,11 @@ export function AgentActivationSelector({
                 <h2 className="text-sm font-semibold text-foreground leading-snug mb-1">
                   {selectedActivation.agentName}
                 </h2>
-                <Badge variant="outline" className="text-xs font-medium bg-primary/5 border-primary/20 text-primary">
-                  {selectedWorkflow || SUPERVISOR_WORKFLOW}
-                </Badge>
+                {selectedWorkflow && (
+                  <Badge variant="outline" className="text-xs font-medium bg-primary/5 border-primary/20 text-primary">
+                    {selectedWorkflow}
+                  </Badge>
+                )}
               </>
             ) : (
               <>

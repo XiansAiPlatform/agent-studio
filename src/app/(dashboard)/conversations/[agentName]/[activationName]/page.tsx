@@ -23,9 +23,7 @@ import { AgentActivationSelector } from '@/components/features/conversations';
 import type { XiansMessage } from '@/lib/xians/types';
 import { ConversationView } from '../../_components';
 import { ParticipantMenuBar } from './_components';
-import {
-  SUPERVISOR_WORKFLOW,
-} from '@/lib/xians/built-in-workflows';
+import { resolveWorkflowName } from '@/lib/xians/built-in-workflows';
 
 /** Page size for the paginated message history (initial load and "load more"). */
 const MESSAGE_PAGE_SIZE = 10;
@@ -55,11 +53,7 @@ function ConversationContent() {
   const agentName = decodeURIComponent(params.agentName as string);
   const activationName = decodeURIComponent(params.activationName as string);
   const topicParam = searchParams.get('topic');
-  const workflowParam = searchParams.get('workflow');
-  const selectedWorkflowType =
-    workflowParam && workflowParam.trim()
-      ? workflowParam.trim()
-      : SUPERVISOR_WORKFLOW;
+  const workflowParam = searchParams.get('workflow')?.trim() || null;
 
   // State
   const [selectedTopicId, setSelectedTopicId] = useState<string>('');
@@ -90,8 +84,11 @@ function ConversationContent() {
 
   const { workflowsByAgent } = useBuiltInWorkflows(agentNamesForWorkflows);
   const currentWorkflowsReady = Boolean(agentName) && agentName in workflowsByAgent;
-  // Do not load topics/SSE until this agent's definitions have been filtered to built-ins.
-  const activeWorkflowType = currentWorkflowsReady ? selectedWorkflowType : null;
+  const selectedWorkflowType = currentWorkflowsReady
+    ? resolveWorkflowName(workflowParam, workflowsByAgent[agentName] ?? [])
+    : null;
+  // Do not load topics/SSE until a registered workflow is known.
+  const activeWorkflowType = selectedWorkflowType;
 
   // Fetch topics
   const {
@@ -130,11 +127,22 @@ function ConversationContent() {
     tenantId: currentTenantId || '',
     agentName: agentName || '',
     activationName: activationName || '',
-    workflowType: selectedWorkflowType,
+    workflowType: selectedWorkflowType ?? '',
     topics,
     selectedTopicId,
     onNoConversationalCapability: markNoConversationalCapability,
   });
+
+  // Persist the resolved workflow so refresh/share does not invent a default name.
+  useEffect(() => {
+    if (!selectedWorkflowType || workflowParam === selectedWorkflowType) return;
+    const urlParams = new URLSearchParams(searchParams.toString());
+    urlParams.set('workflow', selectedWorkflowType);
+    router.replace(
+      `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${urlParams.toString()}`,
+      { scroll: false }
+    );
+  }, [agentName, activationName, selectedWorkflowType, workflowParam, searchParams, router]);
 
   // Fetch agent deployment for empty chat state (summary, description, category)
   useEffect(() => {
@@ -376,11 +384,11 @@ function ConversationContent() {
   }, [maxReconnectAttemptsReached, hasEverConnected, sseError, searchParams, router, agentName, activationName]);
 
   // Handle activation change (navigate to different agent/activation)
-  const handleActivationChange = useCallback((newActivationName: string, newAgentName: string, workflowName: string = SUPERVISOR_WORKFLOW) => {
+  const handleActivationChange = useCallback((newActivationName: string, newAgentName: string, workflowName: string) => {
     const urlParams = new URLSearchParams();
     urlParams.set('topic', 'general-discussions');
-    if (workflowName !== SUPERVISOR_WORKFLOW) {
-      urlParams.set('workflow', workflowName);
+    if (workflowName.trim()) {
+      urlParams.set('workflow', workflowName.trim());
     }
     router.push(`/conversations/${encodeURIComponent(newAgentName)}/${encodeURIComponent(newActivationName)}?${urlParams.toString()}`);
   }, [router]);
@@ -426,7 +434,7 @@ function ConversationContent() {
 
   // Handle topic deletion
   const handleDeleteTopic = useCallback(async (topicId: string, topicName: string) => {
-    if (!currentTenantId || !agentName || !activationName) {
+    if (!currentTenantId || !agentName || !activationName || !selectedWorkflowType) {
       showErrorToast(new Error('Missing required parameters'), 'Unable to delete topic');
       return;
     }
@@ -688,11 +696,12 @@ function ConversationContent() {
   // email check would cause false-positive failures without protecting anything.
   // A truly unauthenticated request is still caught by the `!response.ok` branch.
   const handleSendMessage = useCallback(async (content: string, topicId: string, files?: FileUploadPayload[]) => {
-    if (!currentTenantId || !agentName || !activationName) {
+    if (!currentTenantId || !agentName || !activationName || !selectedWorkflowType) {
       console.error('[ConversationPage] Missing required parameters for sending message', {
         hasTenant: !!currentTenantId,
         hasAgent: !!agentName,
         hasActivation: !!activationName,
+        hasWorkflow: !!selectedWorkflowType,
       });
       showErrorToast(new Error('Missing required parameters'), 'Unable to send message');
       return;
@@ -811,7 +820,7 @@ function ConversationContent() {
 
   // Handle loading more messages
   const handleLoadMoreMessages = useCallback(async () => {
-    if (!currentTenantId || !agentName || !activationName || !selectedTopicId || !session?.user?.email) {
+    if (!currentTenantId || !agentName || !activationName || !selectedTopicId || !session?.user?.email || !selectedWorkflowType) {
       return;
     }
 
@@ -922,14 +931,18 @@ function ConversationContent() {
   // Full-page loader only before the first conversation chrome is ready.
   // Switching workflow keeps ConversationView mounted so the agent and
   // workflow pickers do not remount; topics + discussion show their own loaders.
-  if (!currentTenantId || (!conversation && !fetchError && !noConversationalCapability)) {
+  const noRegisteredWorkflow = currentWorkflowsReady && !selectedWorkflowType;
+  if (
+    !currentTenantId ||
+    (!conversation && !fetchError && !noConversationalCapability && !noRegisteredWorkflow)
+  ) {
     return <PageLoader label="Loading conversation..." className="h-full" />;
   }
 
   const viewConversation = noConversationalCapability
     ? {
         ...(conversation ?? {
-          id: `${agentName}-${activationName}-${selectedWorkflowType}`,
+          id: `${agentName}-${activationName}-${selectedWorkflowType ?? ''}`,
           tenantId: currentTenantId,
           user: { id: 'current-user', name: 'You' },
           agent: {
@@ -952,9 +965,11 @@ function ConversationContent() {
     const noConvContent = (
       <div className="flex flex-col items-center justify-center flex-1 text-center p-12 bg-card min-h-0">
         <p className="text-foreground max-w-md text-base font-normal">
-          {agentName && activationName 
-            ? `No topics found for ${activationName}`
-            : 'There are no active conversations with this agent'
+          {noRegisteredWorkflow
+            ? `No chat workflows are registered for ${agentName}`
+            : agentName && activationName
+              ? `No topics found for ${activationName}`
+              : 'There are no active conversations with this agent'
           }
         </p>
       </div>
@@ -965,7 +980,7 @@ function ConversationContent() {
         <AgentActivationSelector
           activations={activations}
           selectedActivationName={activationName}
-          selectedWorkflow={selectedWorkflowType}
+          selectedWorkflow={selectedWorkflowType ?? undefined}
           onActivationChange={handleActivationChange}
           isLoading={isLoadingActivations}
         />
@@ -1016,7 +1031,7 @@ function ConversationContent() {
         chatInputRef={chatInputRef}
         agentInfo={agentInfo}
         onMessageFeedbackSubmitted={handleMessageFeedbackSubmitted}
-        selectedWorkflow={selectedWorkflowType}
+        selectedWorkflow={selectedWorkflowType ?? undefined}
         noConversationalCapability={noConversationalCapability}
       />
     </div>

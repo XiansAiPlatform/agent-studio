@@ -6,7 +6,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { useParticipantLayout } from '@/contexts/participant-layout-context'
 import { ParticipantAgentTree } from './participant-agent-tree'
 import { Topic } from '@/types/conversation'
-import { SUPERVISOR_WORKFLOW } from '@/lib/xians/built-in-workflows'
 
 interface ParticipantLayoutShellProps {
   children: React.ReactNode
@@ -33,8 +32,8 @@ export function ParticipantLayoutShell({
     const urlParams = new URLSearchParams()
     urlParams.set('topic', topicId)
     const resolvedWorkflow =
-      workflowName ?? searchParams.get('workflow')?.trim() ?? SUPERVISOR_WORKFLOW
-    if (resolvedWorkflow !== SUPERVISOR_WORKFLOW) {
+      workflowName?.trim() || searchParams.get('workflow')?.trim()
+    if (resolvedWorkflow) {
       urlParams.set('workflow', resolvedWorkflow)
     }
     const path = `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${urlParams.toString()}`
