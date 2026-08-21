@@ -979,6 +979,7 @@ function ConversationContent() {
         <ParticipantMenuBar onOpenMenu={onOpenMenu} label={(activationName || agentName) ? sanitizeTopicDisplayName(activationName || agentName) : 'Agent'} />
         <AgentActivationSelector
           activations={activations}
+          selectedAgentName={agentName}
           selectedActivationName={activationName}
           selectedWorkflow={selectedWorkflowType ?? undefined}
           onActivationChange={handleActivationChange}

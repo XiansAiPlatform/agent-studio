@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Conversation, Message } from '@/types/conversation';
-import { ActivationOption } from '../hooks';
+import { ActivationOption, useBuiltInWorkflows } from '../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -103,6 +103,8 @@ export function ConversationView({
   const { isParticipantMode } = useParticipantLayout();
   const isMobile = useIsMobile();
   const [topicsDrawerOpen, setTopicsDrawerOpen] = useState(false);
+  const { workflowsByAgent } = useBuiltInWorkflows(agentName ? [agentName] : []);
+  const workflowCount = agentName ? (workflowsByAgent[agentName]?.length ?? 0) : 0;
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
 
   // Find the current activation to check if it's active
@@ -145,6 +147,7 @@ export function ConversationView({
           onDeleteTopic={onDeleteTopic}
           unreadCounts={unreadCounts}
           activations={activations}
+          selectedAgentName={agentName}
           selectedActivationName={selectedActivationName}
           onActivationChange={onActivationChange}
           isLoadingActivations={isLoadingActivations}
@@ -174,6 +177,7 @@ export function ConversationView({
               onDeleteTopic={handleDeleteTopicMobile}
               unreadCounts={unreadCounts}
               activations={activations}
+              selectedAgentName={agentName}
               selectedActivationName={selectedActivationName}
               onActivationChange={onActivationChange}
               isLoadingActivations={isLoadingActivations}
@@ -195,6 +199,7 @@ export function ConversationView({
             <ConversationHeader
               activationName={selectedActivationName || 'No Activation'}
               workflowName={selectedWorkflow}
+              workflowCount={workflowCount}
               isConnected={isConnected}
               isAgentActive={isAgentActive}
               workerAvailable={workerAvailable}
@@ -232,6 +237,7 @@ export function ConversationView({
               activationName={selectedActivationName || 'No Activation'}
               topic={selectedTopic}
               workflowName={selectedWorkflow}
+              workflowCount={workflowCount}
               isConnected={isConnected}
               isAgentActive={isAgentActive}
               workerAvailable={workerAvailable}

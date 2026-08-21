@@ -13,6 +13,7 @@ interface TopicSidebarProps {
   onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   unreadCounts: Record<string, number>;
   activations: ActivationOption[];
+  selectedAgentName?: string | null;
   selectedActivationName: string | null;
   onActivationChange: (activationName: string, agentName: string, workflowName: string) => void;
   isLoadingActivations: boolean;
@@ -46,6 +47,7 @@ export function TopicSidebar({
   onDeleteTopic,
   unreadCounts,
   activations,
+  selectedAgentName = null,
   selectedActivationName,
   onActivationChange,
   isLoadingActivations,
@@ -76,6 +78,7 @@ export function TopicSidebar({
           onDeleteTopic={onDeleteTopic}
           unreadCounts={unreadCounts}
           activations={activations}
+          selectedAgentName={selectedAgentName}
           selectedActivationName={selectedActivationName}
           onActivationChange={onActivationChange}
           isLoadingActivations={isLoadingActivations}
