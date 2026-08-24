@@ -13,9 +13,11 @@ interface TopicSidebarProps {
   onDeleteTopic?: (topicId: string, topicName: string) => Promise<void>;
   unreadCounts: Record<string, number>;
   activations: ActivationOption[];
+  selectedAgentName?: string | null;
   selectedActivationName: string | null;
-  onActivationChange: (activationName: string, agentName: string) => void;
+  onActivationChange: (activationName: string, agentName: string, workflowName: string) => void;
   isLoadingActivations: boolean;
+  isLoadingTopics?: boolean;
   currentPage: number;
   totalPages: number;
   hasMore: boolean;
@@ -25,6 +27,7 @@ interface TopicSidebarProps {
    * + width). The host should also auto-close the Sheet on topic actions.
    */
   mobile?: boolean;
+  selectedWorkflow?: string;
 }
 
 /**
@@ -44,14 +47,17 @@ export function TopicSidebar({
   onDeleteTopic,
   unreadCounts,
   activations,
+  selectedAgentName = null,
   selectedActivationName,
   onActivationChange,
   isLoadingActivations,
+  isLoadingTopics = false,
   currentPage,
   totalPages,
   hasMore,
   onPageChange,
   mobile = false,
+  selectedWorkflow,
 }: TopicSidebarProps) {
   return (
     <div
@@ -72,15 +78,18 @@ export function TopicSidebar({
           onDeleteTopic={onDeleteTopic}
           unreadCounts={unreadCounts}
           activations={activations}
+          selectedAgentName={selectedAgentName}
           selectedActivationName={selectedActivationName}
           onActivationChange={onActivationChange}
           isLoadingActivations={isLoadingActivations}
+          isLoadingTopics={isLoadingTopics}
           showAgentSelector={true}
+          selectedWorkflow={selectedWorkflow}
         />
       </div>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
+      {!isLoadingTopics && totalPages > 1 && (
         <div className="border-t border-primary/20 p-4 flex items-center justify-between bg-primary/[0.04] shadow-lg">
           <Button
             variant="ghost"

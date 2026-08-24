@@ -7,21 +7,29 @@ import {
   getBackgroundTopicToastDescription,
   mergeMessagesById,
 } from '../utils';
+import {
+  isNoConversationalCapabilityError,
+  messagesIndicateNoConversationalCapability,
+} from '@/lib/xians/conversational-capability';
 
 interface UseConversationStateParams {
   tenantId: string;
   agentName: string;
   activationName: string;
+  workflowType: string;
   topics: Topic[];
   selectedTopicId: string;
+  onNoConversationalCapability?: () => void;
 }
 
 export function useConversationState({
   tenantId,
   agentName,
   activationName,
+  workflowType,
   topics,
   selectedTopicId,
+  onNoConversationalCapability,
 }: UseConversationStateParams) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -31,7 +39,7 @@ export function useConversationState({
   // When just adding a topic (same activation), the merge effect preserves loaded messages.
   useEffect(() => {
     if (topics.length > 0) {
-      const currentId = `${agentName}-${activationName}`;
+      const currentId = `${agentName}-${activationName}-${workflowType}`;
       setConversation((prev) => {
         const isInitializing = !prev;
         const isActivationChange = prev && prev.id !== currentId;
@@ -58,7 +66,7 @@ export function useConversationState({
         return prev;
       });
     }
-  }, [topics, agentName, activationName, tenantId]);
+  }, [topics, agentName, activationName, workflowType, tenantId]);
 
   // Update conversation topics when they change.
   // Preserve messages for existing topics - useTopics only has metadata (messages: []),
@@ -94,6 +102,15 @@ export function useConversationState({
 
     const message = mapXiansMessageToMessage(xiansMessage);
     const topicId = xiansMessage.scope ?? 'general-discussions';
+
+    // Missing OnUserChatMessage
+    if (
+      (!message.messageType || message.messageType === 'chat') &&
+      isNoConversationalCapabilityError(message.content)
+    ) {
+      onNoConversationalCapability?.();
+      return;
+    }
 
     // Update conversation state
     setConversation((prev) => {
@@ -136,9 +153,12 @@ export function useConversationState({
         duration: 3000,
       });
     }
-  }, [selectedTopicId]);
+  }, [selectedTopicId, onNoConversationalCapability]);
 
   const updateTopicMessages = useCallback((topicId: string, messages: Message[]) => {
+    if (messagesIndicateNoConversationalCapability(messages)) {
+      onNoConversationalCapability?.();
+    }
     setConversation((prev) => {
       if (!prev) return null;
 
@@ -154,7 +174,7 @@ export function useConversationState({
         topics: updatedTopics,
       };
     });
-  }, []);
+  }, [onNoConversationalCapability]);
 
   /**
    * Merge fetched history into a topic without dropping messages that only exist
@@ -162,6 +182,9 @@ export function useConversationState({
    * were published while the stream was down.
    */
   const mergeTopicMessages = useCallback((topicId: string, incoming: Message[]) => {
+    if (messagesIndicateNoConversationalCapability(incoming)) {
+      onNoConversationalCapability?.();
+    }
     setConversation((prev) => {
       if (!prev) return null;
 
@@ -188,7 +211,7 @@ export function useConversationState({
         topics: updatedTopics,
       };
     });
-  }, []);
+  }, [onNoConversationalCapability]);
 
   const addMessageToTopic = useCallback((topicId: string, message: Message) => {
     setConversation((prev) => {

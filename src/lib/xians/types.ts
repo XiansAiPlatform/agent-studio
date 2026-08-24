@@ -156,6 +156,8 @@ export interface XiansAgentTemplateDefinition {
   tenant: string | null
   systemScoped: boolean
   activable?: boolean
+  /** Chat-eligible built-in / supervisor workflow. New workflows set this true. */
+  isBuiltIn?: boolean
   summary?: string | null
   onboardingJson?: any | null
 }
@@ -239,6 +241,8 @@ export interface XiansAgentDeploymentDetail {
     tenant: string
     systemScoped: boolean
     activable?: boolean
+    /** Chat-eligible built-in / supervisor workflow. New workflows set this true. */
+    isBuiltIn?: boolean
     summary?: string | null
     onboardingJson?: any | null
   }>

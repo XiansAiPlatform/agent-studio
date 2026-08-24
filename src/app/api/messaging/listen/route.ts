@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
 
       const agentName = searchParams.get('agentName')
       const activationName = searchParams.get('activationName')
+      const workflowType = searchParams.get('workflowType')
       const heartbeatSeconds = searchParams.get('heartbeatSeconds') || '60'
 
       const participantId = session.user?.email
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
         participantId,
         heartbeatSeconds,
       })
+      if (workflowType) queryParams.set('workflowType', workflowType)
 
       const xiansUrl = `${xiansBaseUrl}/api/v1/admin/tenants/${tenantId}/messaging/listen?${queryParams.toString()}`
 

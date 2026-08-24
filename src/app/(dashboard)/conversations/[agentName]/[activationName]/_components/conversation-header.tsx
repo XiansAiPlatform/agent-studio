@@ -6,7 +6,11 @@ import { useParticipantLayout } from '@/contexts/participant-layout-context';
 
 interface ConversationHeaderProps {
   activationName: string;
-  topic: Topic;
+  topic?: Topic;
+  /** Built-in workflow name shown before the discussion name. */
+  workflowName?: string;
+  /** How many built-in workflows this agent has. Used to hint that the user can switch. */
+  workflowCount?: number;
   isConnected: boolean;
   isAgentActive: boolean;
   /** Agent worker liveness from heartbeat. null = checking. */
@@ -28,13 +32,15 @@ interface ConversationHeaderProps {
 /**
  * Conversation Header Component
  *
- * Displays the current activation name, topic name, message count,
+ * Displays the current activation name, workflow, topic name, message count,
  * and SSE connection status with a visual indicator.
  * In participant mode, includes a hamburger menu to browse agents/topics.
  */
 export function ConversationHeader({
   activationName,
   topic,
+  workflowName,
+  workflowCount = 0,
   isConnected,
   isAgentActive,
   workerAvailable = null,
@@ -51,6 +57,8 @@ export function ConversationHeader({
   const showWorkerWarning = workerAvailable === false && !serverUnavailable;
   const showServerWarning = serverUnavailable;
   const showChecking = isHeartbeatLoading || (workerAvailable === null && isAgentActive && !serverUnavailable);
+  const canSwitchWorkflow = workflowCount > 1;
+  const openSwitcher = onOpenMenu ?? onOpenTopics;
 
   return (
     <div className="border-b border-border/50 bg-card px-3 py-3 sm:px-6">
@@ -87,15 +95,49 @@ export function ConversationHeader({
               </h3>
             </div>
 
-            {/* Topic Name & Message Count */}
+            {/* Workflow, topic name, and message count */}
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-xs text-muted-foreground font-medium truncate">
-                {topic.name}
-              </span>
-              <span className="text-xs text-muted-foreground/60 hidden sm:inline">•</span>
-              <span className="text-xs text-muted-foreground/60 hidden sm:inline whitespace-nowrap">
-                {topic.messageCount ?? topic.messages.length} messages
-              </span>
+              {workflowName && canSwitchWorkflow && openSwitcher ? (
+                <button
+                  type="button"
+                  onClick={openSwitcher}
+                  className="inline-flex items-center gap-1 min-w-0 rounded-md px-1 -mx-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                  title={`${workflowCount} workflows available. Click to switch.`}
+                >
+                  <span className="truncate">{workflowName}</span>
+                  <span className="hidden sm:inline shrink-0 text-[10px] font-medium text-primary/80">
+                    {workflowCount} workflows
+                  </span>
+                </button>
+              ) : workflowName && canSwitchWorkflow ? (
+                <span
+                  className="inline-flex items-center gap-1 min-w-0 text-xs font-medium text-primary"
+                  title={`${workflowCount} workflows available. Switch from the list.`}
+                >
+                  <span className="truncate">{workflowName}</span>
+                  <span className="hidden sm:inline shrink-0 text-[10px] font-medium text-primary/80">
+                    {workflowCount} workflows
+                  </span>
+                </span>
+              ) : workflowName ? (
+                <span className="text-xs text-muted-foreground font-medium truncate">
+                  {workflowName}
+                </span>
+              ) : null}
+              {topic && (
+                <>
+                  {workflowName && (
+                    <span className="text-xs text-muted-foreground/60">•</span>
+                  )}
+                  <span className="text-xs text-muted-foreground font-medium truncate">
+                    {topic.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground/60 hidden sm:inline">•</span>
+                  <span className="text-xs text-muted-foreground/60 hidden sm:inline whitespace-nowrap">
+                    {topic.messageCount ?? topic.messages.length} messages
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
