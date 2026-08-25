@@ -155,10 +155,12 @@ export class XiansAgentsApi {
    */
   async deleteAgentDeployment(
     tenantId: string,
-    agentName: string
+    agentName: string,
+    options?: { forceDelete?: boolean }
   ): Promise<void> {
+    const query = options?.forceDelete ? '?forceDelete=true' : ''
     return this.client.delete<void>(
-      `/api/v1/admin/tenants/${tenantId}/agentDeployments/${agentName}`
+      `/api/v1/admin/tenants/${tenantId}/agentDeployments/${agentName}${query}`
     )
   }
 

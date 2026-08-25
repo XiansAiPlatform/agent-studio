@@ -52,6 +52,7 @@ export default function AgentTemplatesPage() {
   const [isDeletingAgent, setIsDeletingAgent] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<EnhancedDeployment | null>(null);
+  const [forceDelete, setForceDelete] = useState(true);
   const [isPromotingAgent, setIsPromotingAgent] = useState(false);
   const [showPromoteDialog, setShowPromoteDialog] = useState(false);
   const [agentToPromote, setAgentToPromote] = useState<EnhancedDeployment | null>(null);
@@ -204,19 +205,20 @@ export default function AgentTemplatesPage() {
 
   const handleDeleteClick = (deployment: EnhancedDeployment) => {
     setAgentToDelete(deployment);
+    setForceDelete(true);
     setShowDeleteDialog(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!currentTenantId || !agentToDelete) return;
-    
+
     try {
       setIsDeletingAgent(true);
-      
-      console.log('Deleting agent:', agentToDelete.name, 'from tenant:', currentTenantId);
-      
+
+      console.log('Deleting agent:', agentToDelete.name, 'from tenant:', currentTenantId, 'forceDelete:', forceDelete);
+
       const response = await fetch(
-        `/api/agent-deployments/${encodeURIComponent(agentToDelete.name)}`,
+        `/api/agent-deployments/${encodeURIComponent(agentToDelete.name)}?forceDelete=${forceDelete}`,
         {
           method: 'DELETE',
         }
@@ -673,6 +675,8 @@ export default function AgentTemplatesPage() {
         onOpenChange={setShowDeleteDialog}
         agent={agentToDelete}
         isDeleting={isDeletingAgent}
+        forceDelete={forceDelete}
+        onForceDeleteChange={setForceDelete}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />

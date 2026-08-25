@@ -24,10 +24,11 @@ export async function DELETE(
       }
 
       const tenantId = apiContext.tenantContext.tenant.id
-      console.log('[Delete Agent Deployment API] Deleting agent:', agentId, 'from tenant:', tenantId)
+      const forceDelete = req.nextUrl.searchParams.get('forceDelete') === 'true'
+      console.log('[Delete Agent Deployment API] Deleting agent:', agentId, 'from tenant:', tenantId, 'forceDelete:', forceDelete)
 
       const xians = createXiansSDK((apiContext.session as any)?.accessToken)
-      await xians.agents.deleteAgentDeployment(tenantId, agentId)
+      await xians.agents.deleteAgentDeployment(tenantId, agentId, { forceDelete })
 
       console.log('[Delete Agent Deployment API] Agent deleted successfully')
 
