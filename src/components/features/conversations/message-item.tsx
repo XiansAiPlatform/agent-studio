@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Message } from '@/types/conversation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, User, Copy, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink, Download } from 'lucide-react';
+import { Copy, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { cva } from 'class-variance-authority';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
 
-import { MessageFeedbackPrompt, MessageFeedbackSummary } from './message-feedback';
+import { MarkdownMessage, type MarkdownVariant } from './markdown-message';
+import { MessageActionsToolbar } from './message-actions-toolbar';
+import { MessageFeedbackSummary } from './message-feedback';
 
 interface MessageItemProps {
   message: Message;
@@ -39,9 +39,28 @@ function formatTimestamp(dateString: string): string {
   });
 }
 
-export function MessageItem({ message, agentName, userName, onMessageFeedbackSubmitted, disableFeedback }: MessageItemProps) {
+const messageColumnVariants = cva('flex flex-col min-w-0', {
+  variants: {
+    variant: {
+      user: 'items-end gap-1 self-end max-w-[70%]',
+      agent: 'items-start gap-1.5 self-start max-w-[75ch] w-full',
+    },
+  },
+});
+
+const messageBodyVariants = cva('transition-all duration-200 min-w-0 max-w-full', {
+  variants: {
+    variant: {
+      user: 'message-bubble message-bubble--user rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground font-medium',
+      agent: 'text-foreground',
+    },
+  },
+});
+
+export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, disableFeedback }: MessageItemProps) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
+  const variant: MarkdownVariant = isUser ? 'user' : 'agent';
   const [isDraftExpanded, setIsDraftExpanded] = useState(false);
   const router = useRouter();
   const hasCaption = message.content.trim().length > 0;
@@ -96,627 +115,269 @@ export function MessageItem({ message, agentName, userName, onMessageFeedbackSub
   }
 
   return (
-    <div
-      className={cn(
-        'flex gap-3.5 group w-full min-w-0',
-        isUser ? 'flex-row-reverse' : 'flex-row'
-      )}
-    >
-      {/* Avatar */}
-      <div className="flex-shrink-0">
-        <div
-          className={cn(
-            'chat-avatar h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200',
-            isUser ? 'chat-avatar--user bg-primary/15' : 'chat-avatar--agent bg-muted'
-          )}
-        >
-          {isUser ? (
-            <User className="h-4 w-4 text-primary" />
-          ) : (
-            <Bot className="h-4 w-4" />
-          )}
-        </div>
-      </div>
+    <div className={cn(messageColumnVariants({ variant }), 'group')}>
+      {/* Message Body */}
+      <div className={messageBodyVariants({ variant })}>
+        {hasContent && <MarkdownMessage content={displayContent} variant={variant} />}
 
-      {/* Message Content */}
-      <div
-        className={cn(
-          // min-w-0 lets max-w constrain flex children whose content has a large
-          // intrinsic width (JSON, URLs, fenced/indented code).
-          'flex flex-col gap-1 max-w-[70%] min-w-0',
-          isUser ? 'items-end' : 'items-start'
-        )}
-      >
-        {/* Sender Name + Timestamp */}
-        <div className="flex items-center gap-2 px-1 mb-1">
-          {isUser && (
-            <span className="text-[10px] text-muted-foreground/60 font-medium">
-              {formatTimestamp(message.timestamp)}
-            </span>
-          )}
-          <span className="text-xs font-semibold text-muted-foreground">
-            {isUser ? (userName || 'You') : (agentName || 'Agent')}
-          </span>
-          {!isUser && (
-            <span className="text-[10px] text-muted-foreground/60 font-medium">
-              {formatTimestamp(message.timestamp)}
-            </span>
-          )}
-        </div>
+        {/* Attachments — file rows are a reference + download icon; task chips stay cards */}
+        {message.attachments && message.attachments.length > 0 && !message.contentDraft && (
+          <div className={cn(hasContent && 'mt-3', 'space-y-2')}>
+            {message.attachments.map((attachment) => {
+              const isFileAttachment = attachment.type === 'file';
+              const isDownloadable = isFileAttachment && !!attachment.url;
+              const chipClassName = cn(
+                'flex items-center gap-2 p-2 rounded border',
+                isUser
+                  ? 'border-primary-foreground/20'
+                  : 'border-border bg-muted/30'
+              );
 
-        {/* Message Bubble */}
-        <div
-          className={cn(
-            'message-bubble rounded-2xl px-4 py-2.5 transition-all duration-200 min-w-0 max-w-full',
-            isUser
-              ? 'message-bubble--user bg-primary text-primary-foreground font-medium'
-              : 'message-bubble--agent bg-muted/50 text-foreground'
-          )}
-        >
-          {hasContent && (
-          <div className="text-sm leading-relaxed markdown-content min-w-0 max-w-full [overflow-wrap:anywhere] break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkBreaks]}
-              components={{
-                // Customize link styling
-                a: ({ node, ...props }) => (
-                  <a
-                    {...props}
-                    className={cn(
-                      'underline hover:opacity-80 transition-opacity [overflow-wrap:anywhere] break-words',
-                      isUser ? 'text-primary-foreground' : 'text-primary'
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
-                ),
-                // Customize code block styling
-                code: ({ node, className, children, ...props }) => {
-                  // Fenced / indented blocks pass a language-* className; inline code does not.
-                  const isBlock =
-                    typeof className === 'string' && className.length > 0;
-                  return isBlock ? (
-                    <code
-                      {...props}
-                      className={cn(
-                        className,
-                        'block max-w-full px-4 py-3 rounded-md text-xs font-mono leading-relaxed',
-                        'whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
-                        isUser
-                          ? 'bg-primary-foreground/20'
-                          : 'bg-muted-foreground/20'
-                      )}
-                    >
-                      {children}
-                    </code>
-                  ) : (
-                    <code
-                      {...props}
-                      className={cn(
-                        'px-1.5 py-0.5 rounded text-xs font-mono [overflow-wrap:anywhere] break-all',
-                        isUser
-                          ? 'bg-primary-foreground/20'
-                          : 'bg-muted-foreground/20'
-                      )}
-                    >
-                      {children}
-                    </code>
-                  );
-                },
-                // Customize pre block styling (wraps code blocks)
-                pre: ({ node, ...props }) => (
-                  <pre
-                    {...props}
-                    className="my-3 max-w-full overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
-                  />
-                ),
-                // Ensure proper text color and spacing
-                p: ({ node, ...props }) => (
-                  <p
-                    {...props}
-                    className={cn(
-                      'my-2 leading-relaxed max-w-full [overflow-wrap:anywhere] break-words',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                ul: ({ node, ...props }) => (
-                  <ul
-                    {...props}
-                    className={cn(
-                      'list-disc my-3 space-y-1.5 pl-6 marker:text-current max-w-full',
-                      '[&>li]:pl-1.5',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                ol: ({ node, ...props }) => (
-                  <ol
-                    {...props}
-                    className={cn(
-                      'list-decimal my-3 space-y-1.5 pl-6 marker:text-current max-w-full',
-                      '[&>li]:pl-1.5',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                li: ({ node, ...props }) => (
-                  <li
-                    {...props}
-                    className={cn(
-                      'leading-relaxed [overflow-wrap:anywhere] break-words',
-                      '[&>ul]:mt-1.5 [&>ol]:mt-1.5',
-                      '[&>ul]:mb-0 [&>ol]:mb-0',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                strong: ({ node, ...props }) => (
-                  <strong
-                    {...props}
-                    className={cn(
-                      'font-bold',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                em: ({ node, ...props }) => (
-                  <em
-                    {...props}
-                    className={isUser ? 'text-primary-foreground italic' : 'text-foreground italic'}
-                  />
-                ),
-                h1: ({ node, ...props }) => (
-                  <h1
-                    {...props}
-                    className={cn(
-                      'text-lg font-bold mt-4 mb-2 leading-tight [overflow-wrap:anywhere]',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                h2: ({ node, ...props }) => (
-                  <h2
-                    {...props}
-                    className={cn(
-                      'text-base font-bold mt-4 mb-2 leading-tight [overflow-wrap:anywhere]',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                h3: ({ node, ...props }) => (
-                  <h3
-                    {...props}
-                    className={cn(
-                      'text-sm font-bold mt-3 mb-1.5 leading-tight [overflow-wrap:anywhere]',
-                      isUser ? 'text-primary-foreground' : 'text-foreground'
-                    )}
-                  />
-                ),
-                blockquote: ({ node, ...props }) => (
-                  <blockquote
-                    {...props}
-                    className={cn(
-                      'border-l-3 pl-4 my-3 italic leading-relaxed max-w-full [overflow-wrap:anywhere]',
-                      isUser
-                        ? 'border-primary-foreground/40 text-primary-foreground/90'
-                        : 'border-muted-foreground/40 text-muted-foreground'
-                    )}
-                  />
-                ),
-                hr: ({ node, ...props }) => (
-                  <hr
-                    {...props}
-                    className={cn(
-                      'my-4',
-                      isUser
-                        ? 'border-primary-foreground/30'
-                        : 'border-muted-foreground/30'
-                    )}
-                  />
-                ),
-                table: ({ node, ...props }) => (
-                  <div className="overflow-x-auto my-3 max-w-full">
-                    <table
-                      {...props}
-                      className={cn(
-                        'min-w-full border-collapse',
-                        isUser ? 'text-primary-foreground' : 'text-foreground'
-                      )}
-                    />
-                  </div>
-                ),
-                th: ({ node, ...props }) => (
-                  <th
-                    {...props}
-                    className={cn(
-                      'border px-3 py-2 text-left font-semibold text-sm [overflow-wrap:anywhere]',
-                      isUser
-                        ? 'border-primary-foreground/30 bg-primary-foreground/10'
-                        : 'border-border bg-muted/50'
-                    )}
-                  />
-                ),
-                td: ({ node, ...props }) => (
-                  <td
-                    {...props}
-                    className={cn(
-                      'border px-3 py-2 text-sm [overflow-wrap:anywhere] break-words',
-                      isUser
-                        ? 'border-primary-foreground/30'
-                        : 'border-border'
-                    )}
-                  />
-                ),
-              }}
-            >
-            {displayContent}
-            </ReactMarkdown>
-          </div>
-          )}
-
-          {/* Attachments — file rows are a reference + download icon; task chips stay cards */}
-          {message.attachments && message.attachments.length > 0 && !message.contentDraft && (
-            <div className={cn(hasContent && 'mt-3', 'space-y-2')}>
-              {message.attachments.map((attachment) => {
-                const isFileAttachment = attachment.type === 'file';
-                const isDownloadable = isFileAttachment && !!attachment.url;
-                const chipClassName = cn(
-                  'flex items-center gap-2 p-2 rounded border',
-                  isUser
-                    ? 'border-primary-foreground/20'
-                    : 'border-border bg-muted/30'
-                );
-
-                if (isFileAttachment) {
-                  return (
-                    <div
-                      key={attachment.id}
-                      className="flex items-center gap-2"
-                    >
-                      <FileText className="h-4 w-4 flex-shrink-0" />
-                      <p className="flex-1 min-w-0 text-xs font-medium truncate">
-                        {attachment.name}
-                      </p>
-                      {isDownloadable && (
-                        <a
-                          href={attachment.url}
-                          download={attachment.name}
-                          aria-label={`Download ${attachment.name}`}
-                          title={`Download ${attachment.name}`}
-                          className={cn(
-                            'flex-shrink-0 rounded p-1 transition-colors',
-                            isUser
-                              ? 'hover:bg-primary-foreground/15'
-                              : 'hover:bg-accent'
-                          )}
-                        >
-                          <Download className="h-4 w-4 opacity-80" />
-                        </a>
-                      )}
-                    </div>
-                  );
-                }
-
+              if (isFileAttachment) {
                 return (
-                  <Link
+                  <div
                     key={attachment.id}
-                    href={`/tasks?task=${attachment.id}`}
-                    className={cn(
-                      chipClassName,
-                      'transition-colors',
-                      isUser
-                        ? 'hover:bg-primary-foreground/10'
-                        : 'hover:bg-accent'
-                    )}
+                    className="flex items-center gap-2"
                   >
                     <FileText className="h-4 w-4 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">
-                        {attachment.name}
-                      </p>
-                      <p className="text-[10px] opacity-70 capitalize">
-                        {attachment.type}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* View Task Link - Show when message has taskId */}
-        {message.taskId && !isUser && (
-          <Link
-            href={`/tasks?task=${message.taskId}`}
-            className="mt-2 flex items-center gap-2 p-3 rounded-lg border border-border bg-card hover:bg-primary transition-colors group/task"
-          >
-            <div className="h-8 w-8 rounded-md bg-primary/10 group-hover/task:bg-primary-foreground/20 flex items-center justify-center flex-shrink-0 transition-colors">
-              <FileText className="h-4 w-4 text-primary group-hover/task:text-primary-foreground transition-colors" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground group-hover/task:text-primary-foreground transition-colors">
-                View Related Task
-              </p>
-            </div>
-            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/task:text-primary-foreground transition-colors flex-shrink-0" />
-          </Link>
-        )}
-
-        {/* Content Draft Section */}
-        {message.contentDraft && !isUser && (
-          <div className="mt-3 w-full border border-border rounded-lg overflow-hidden bg-background">
-            {/* Draft Header */}
-            <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">{message.contentDraft.title}</p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {message.contentDraft.type}
-                    {message.contentDraft.metadata?.subject && (
-                      <span className="ml-2">• {message.contentDraft.metadata.subject}</span>
+                    <p className="flex-1 min-w-0 text-xs font-medium truncate">
+                      {attachment.name}
+                    </p>
+                    {isDownloadable && (
+                      <a
+                        href={attachment.url}
+                        download={attachment.name}
+                        aria-label={`Download ${attachment.name}`}
+                        title={`Download ${attachment.name}`}
+                        className={cn(
+                          'flex-shrink-0 rounded p-1 transition-colors',
+                          isUser
+                            ? 'hover:bg-primary-foreground/15'
+                            : 'hover:bg-accent'
+                        )}
+                      >
+                        <Download className="h-4 w-4 opacity-80" />
+                      </a>
                     )}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsDraftExpanded(!isDraftExpanded)}
-                className="h-7 px-2"
-              >
-                {isDraftExpanded ? (
-                  <>
-                    <ChevronUp className="h-3 w-3 mr-1" />
-                    Hide
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-3 w-3 mr-1" />
-                    Show
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Draft Content */}
-            {isDraftExpanded && (
-              <>
-                {/* Metadata */}
-                {message.contentDraft.metadata && (
-                  <div className="px-4 py-2 bg-muted/30 border-b border-border">
-                    <div className="space-y-1 text-xs">
-                      {message.contentDraft.metadata.subject && (
-                        <div className="flex gap-2">
-                          <span className="font-medium text-muted-foreground">Subject:</span>
-                          <span>{message.contentDraft.metadata.subject}</span>
-                        </div>
-                      )}
-                      {message.contentDraft.metadata.recipients && (
-                        <div className="flex gap-2">
-                          <span className="font-medium text-muted-foreground">Recipients:</span>
-                          <span>{message.contentDraft.metadata.recipients.join(', ')}</span>
-                        </div>
-                      )}
-                    </div>
                   </div>
-                )}
+                );
+              }
 
-                {/* Draft Body */}
-                <div className="px-4 py-3 max-h-96 overflow-y-auto overflow-x-hidden min-w-0">
-                  <div className="text-sm leading-relaxed markdown-content min-w-0 max-w-full [overflow-wrap:anywhere] break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkBreaks]}
-                      components={{
-                        a: ({ node, ...props }) => (
-                          <a
-                            {...props}
-                            className="text-primary underline hover:opacity-80 transition-opacity [overflow-wrap:anywhere] break-words"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          />
-                        ),
-                        code: ({ node, className, children, ...props }) => {
-                          const isBlock =
-                            typeof className === 'string' && className.length > 0;
-                          return isBlock ? (
-                            <code
-                              {...props}
-                              className={cn(
-                                className,
-                                'block max-w-full px-4 py-3 rounded-md text-xs font-mono leading-relaxed bg-muted-foreground/20',
-                                'whitespace-pre-wrap break-words [overflow-wrap:anywhere]'
-                              )}
-                            >
-                              {children}
-                            </code>
-                          ) : (
-                            <code
-                              {...props}
-                              className="px-1.5 py-0.5 rounded text-xs font-mono bg-muted-foreground/20 [overflow-wrap:anywhere] break-all"
-                            >
-                              {children}
-                            </code>
-                          );
-                        },
-                        pre: ({ node, ...props }) => (
-                          <pre
-                            {...props}
-                            className="my-3 max-w-full overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
-                          />
-                        ),
-                        p: ({ node, ...props }) => (
-                          <p {...props} className="my-2 leading-relaxed text-foreground max-w-full [overflow-wrap:anywhere] break-words" />
-                        ),
-                        ul: ({ node, ...props }) => (
-                          <ul {...props} className="list-disc my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground max-w-full" />
-                        ),
-                        ol: ({ node, ...props }) => (
-                          <ol {...props} className="list-decimal my-3 space-y-1.5 pl-6 marker:text-current [&>li]:pl-1.5 text-foreground max-w-full" />
-                        ),
-                        li: ({ node, ...props }) => (
-                          <li {...props} className="leading-relaxed [overflow-wrap:anywhere] break-words [&>ul]:mt-1.5 [&>ol]:mt-1.5 [&>ul]:mb-0 [&>ol]:mb-0 text-foreground" />
-                        ),
-                        strong: ({ node, ...props }) => (
-                          <strong {...props} className="font-bold text-foreground" />
-                        ),
-                        em: ({ node, ...props }) => (
-                          <em {...props} className="italic text-foreground" />
-                        ),
-                        h1: ({ node, ...props }) => (
-                          <h1 {...props} className="text-lg font-bold mt-4 mb-2 leading-tight text-foreground [overflow-wrap:anywhere]" />
-                        ),
-                        h2: ({ node, ...props }) => (
-                          <h2 {...props} className="text-base font-bold mt-4 mb-2 leading-tight text-foreground [overflow-wrap:anywhere]" />
-                        ),
-                        h3: ({ node, ...props }) => (
-                          <h3 {...props} className="text-sm font-bold mt-3 mb-1.5 leading-tight text-foreground [overflow-wrap:anywhere]" />
-                        ),
-                        blockquote: ({ node, ...props }) => (
-                          <blockquote
-                            {...props}
-                            className="border-l-3 border-muted-foreground/40 pl-4 my-3 italic leading-relaxed text-muted-foreground max-w-full [overflow-wrap:anywhere]"
-                          />
-                        ),
-                        hr: ({ node, ...props }) => (
-                          <hr {...props} className="my-4 border-muted-foreground/30" />
-                        ),
-                        table: ({ node, ...props }) => (
-                          <div className="overflow-x-auto my-3 max-w-full">
-                            <table {...props} className="min-w-full border-collapse text-foreground" />
-                          </div>
-                        ),
-                        th: ({ node, ...props }) => (
-                          <th
-                            {...props}
-                            className="border border-border px-3 py-2 text-left font-semibold text-sm bg-muted/50 [overflow-wrap:anywhere]"
-                          />
-                        ),
-                        td: ({ node, ...props }) => (
-                          <td {...props} className="border border-border px-3 py-2 text-sm [overflow-wrap:anywhere] break-words" />
-                        ),
-                      }}
-                    >
-                    {message.contentDraft.content}
-                    </ReactMarkdown>
+              return (
+                <Link
+                  key={attachment.id}
+                  href={`/tasks?task=${attachment.id}`}
+                  className={cn(
+                    chipClassName,
+                    'transition-colors',
+                    isUser
+                      ? 'hover:bg-primary-foreground/10'
+                      : 'hover:bg-accent'
+                  )}
+                >
+                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">
+                      {attachment.name}
+                    </p>
+                    <p className="text-[10px] opacity-70 capitalize">
+                      {attachment.type}
+                    </p>
                   </div>
-                </div>
-
-                {/* Draft Actions */}
-                <div className="px-4 py-3 bg-muted/50 border-t border-border flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleApproveDraft}
-                      className="h-8"
-                    >
-                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                      Approve
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRejectDraft}
-                      className="h-8"
-                    >
-                      <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                      Reject
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleEditDraft}
-                      className="h-8"
-                    >
-                      <Edit className="h-3.5 w-3.5 mr-1.5" />
-                      Edit Draft
-                    </Button>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopyDraft}
-                    className="h-8"
-                  >
-                    <Copy className="h-3.5 w-3.5 mr-1.5" />
-                    Copy
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {/* Collapsed Preview Actions */}
-            {!isDraftExpanded && (
-              <div className="px-4 py-2 flex items-center gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleApproveDraft}
-                  className="h-7 text-xs"
-                >
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Approve
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRejectDraft}
-                  className="h-7 text-xs"
-                >
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Reject
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEditDraft}
-                  className="h-7 text-xs"
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Edit
-                </Button>
-              </div>
-            )}
+                </Link>
+              );
+            })}
           </div>
         )}
+      </div>
 
-        {/* Actions — Copy + submitted rating + Rate (outside bubble; row shows on hover) */}
-        {!isUser && (
-          <div className="flex items-center gap-2 px-1 flex-wrap opacity-0 group-hover:opacity-100 transition-opacity [@media(hover:none)]:opacity-100">
+      {/* View Task Link - Show when message has taskId */}
+      {message.taskId && !isUser && (
+        <Link
+          href={`/tasks?task=${message.taskId}`}
+          className="mt-3 flex items-center gap-2 p-3 rounded-lg border border-border bg-card hover:bg-primary transition-colors group/task"
+        >
+          <div className="h-8 w-8 rounded-md bg-primary/10 group-hover/task:bg-primary-foreground/20 flex items-center justify-center flex-shrink-0 transition-colors">
+            <FileText className="h-4 w-4 text-primary group-hover/task:text-primary-foreground transition-colors" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground group-hover/task:text-primary-foreground transition-colors">
+              View Related Task
+            </p>
+          </div>
+          <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/task:text-primary-foreground transition-colors flex-shrink-0" />
+        </Link>
+      )}
+
+      {/* Content Draft Section */}
+      {message.contentDraft && !isUser && (
+        <div className="mt-3 w-full border border-border rounded-lg overflow-hidden bg-background">
+          {/* Draft Header */}
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-sm font-medium">{message.contentDraft.title}</p>
+                <p className="text-xs text-muted-foreground capitalize">
+                  {message.contentDraft.type}
+                  {message.contentDraft.metadata?.subject && (
+                    <span className="ml-2">• {message.contentDraft.metadata.subject}</span>
+                  )}
+                </p>
+              </div>
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs shrink-0"
-              onClick={handleCopy}
+              onClick={() => setIsDraftExpanded(!isDraftExpanded)}
+              className="h-7 px-2"
             >
-              <Copy className="h-3 w-3 mr-1" />
-              Copy
+              {isDraftExpanded ? (
+                <>
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  Hide
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                  Show
+                </>
+              )}
             </Button>
-            {message.feedback && (
-              <MessageFeedbackSummary feedback={message.feedback} />
-            )}
-            {!disableFeedback && (
-              <MessageFeedbackPrompt
-                message={message}
-                agentName={agentName ?? 'Agent'}
-                onFeedbackSubmitted={onMessageFeedbackSubmitted}
-              />
-            )}
           </div>
-        )}
 
-        {/* Status Indicator */}
-        {isUser && message.status && (
-          <div className="text-[10px] text-muted-foreground px-1">
-            {message.status === 'sent' && 'Sent'}
-            {message.status === 'delivered' && 'Delivered'}
-            {message.status === 'read' && 'Read'}
-          </div>
-        )}
-      </div>
+          {/* Draft Content */}
+          {isDraftExpanded && (
+            <>
+              {/* Metadata */}
+              {message.contentDraft.metadata && (
+                <div className="px-4 py-2 bg-muted/30 border-b border-border">
+                  <div className="space-y-1 text-xs">
+                    {message.contentDraft.metadata.subject && (
+                      <div className="flex gap-2">
+                        <span className="font-medium text-muted-foreground">Subject:</span>
+                        <span>{message.contentDraft.metadata.subject}</span>
+                      </div>
+                    )}
+                    {message.contentDraft.metadata.recipients && (
+                      <div className="flex gap-2">
+                        <span className="font-medium text-muted-foreground">Recipients:</span>
+                        <span>{message.contentDraft.metadata.recipients.join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Draft Body */}
+              <div className="px-4 py-3 max-h-96 overflow-y-auto overflow-x-hidden min-w-0">
+                <MarkdownMessage content={message.contentDraft.content} variant="agent" />
+              </div>
+
+              {/* Draft Actions */}
+              <div className="px-4 py-3 bg-muted/50 border-t border-border flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleApproveDraft}
+                    className="h-8"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRejectDraft}
+                    className="h-8"
+                  >
+                    <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Reject
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEditDraft}
+                    className="h-8"
+                  >
+                    <Edit className="h-3.5 w-3.5 mr-1.5" />
+                    Edit Draft
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyDraft}
+                  className="h-8"
+                >
+                  <Copy className="h-3.5 w-3.5 mr-1.5" />
+                  Copy
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Collapsed Preview Actions */}
+          {!isDraftExpanded && (
+            <div className="px-4 py-2 flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleApproveDraft}
+                className="h-7 text-xs"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Approve
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRejectDraft}
+                className="h-7 text-xs"
+              >
+                <XCircle className="h-3 w-3 mr-1" />
+                Reject
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEditDraft}
+                className="h-7 text-xs"
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Already-given rating — persistent state, not hover-gated */}
+      {!isUser && message.feedback && (
+        <div className="px-1">
+          <MessageFeedbackSummary feedback={message.feedback} />
+        </div>
+      )}
+
+      {/* Timestamp + Copy (+ Rate for agent) — hover/focus-revealed */}
+      <MessageActionsToolbar
+        message={message}
+        agentName={agentName}
+        timestamp={formatTimestamp(message.timestamp)}
+        variant={variant}
+        onCopy={handleCopy}
+        disableFeedback={disableFeedback}
+        onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+      />
+
+      {/* Status Indicator */}
+      {isUser && message.status && message.status !== 'delivered' && (
+        <div className="text-[10px] text-muted-foreground px-1">
+          {message.status === 'sent' && 'Sent'}
+          {message.status === 'read' && 'Read'}
+        </div>
+      )}
     </div>
   );
 }

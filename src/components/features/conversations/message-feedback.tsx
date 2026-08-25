@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -76,6 +77,8 @@ export interface MessageFeedbackPromptProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  /** Render the trigger as a tooltip'd icon button instead of the "Rate response" text pill. */
+  iconOnly?: boolean;
 }
 
 /** Stars + reason after feedback exists; render in the actions row next to Copy (same hover visibility as that row). */
@@ -115,6 +118,7 @@ export function MessageFeedbackPrompt({
   message,
   agentName,
   onFeedbackSubmitted,
+  iconOnly,
 }: MessageFeedbackPromptProps) {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
@@ -220,15 +224,36 @@ export function MessageFeedbackPrompt({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="h-6 px-2 text-xs"
-        onClick={() => setOpen(true)}
-      >
-        Rate response
-      </Button>
+      {iconOnly ? (
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setOpen(true)}
+              >
+                <Star className="h-3.5 w-3.5" />
+                <span className="sr-only">Rate response</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Rate response</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs"
+          onClick={() => setOpen(true)}
+        >
+          Rate response
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-md">

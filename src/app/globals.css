@@ -363,16 +363,6 @@ html.dark[data-theme="zenith"] .sonar-container::after {
 }
 
 /* ========== Chat Conversation — consistent borders (all themes) ========== */
-.chat-conversation .chat-avatar--user,
-.chat-conversation .chat-avatar--agent {
-  border: 1px solid var(--border);
-  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.06);
-}
-
-.chat-conversation .chat-avatar--agent svg {
-  color: hsl(var(--muted-foreground));
-}
-
 .chat-conversation .chat-header-avatar {
   border: 1px solid var(--border);
   box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.06);
@@ -399,11 +389,6 @@ html.dark[data-theme="zenith"] .sonar-container::after {
   color: hsl(var(--primary));
 }
 
-.chat-conversation .message-bubble--agent {
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-}
-
 .chat-conversation .message-bubble--user {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
@@ -423,38 +408,11 @@ html.dark[data-theme="zenith"] .sonar-container::after {
 }
 
 /* Dark mode — chat conversation borders (all themes) */
-.dark .chat-conversation .message-bubble--agent {
-  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.15);
-}
-
 .dark .chat-conversation .message-bubble--user {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
 }
 
 /* ========== Zenith: Chat Conversation — user vs agent differentiation ========== */
-/* User: #FFE6E6 blush (primary tint) — "you" */
-[data-theme="zenith"] .chat-conversation .chat-avatar--user {
-  background-color: #FFE6E6 !important;
-  border: 1px solid #F0D8D8;
-  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
-}
-
-[data-theme="zenith"] .chat-conversation .chat-avatar--user svg {
-  color: #CC0000 !important;
-}
-
-/* Agent: #F5F2F1 neutral (from Conversations SVG) — AI/bot */
-[data-theme="zenith"] .chat-conversation .chat-avatar--agent {
-  background-color: #F5F2F1 !important;
-  border: 1px solid #EDEDED;
-  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.05);
-}
-
-/* Agent icons: theme primary (Kinnevik red) */
-[data-theme="zenith"] .chat-conversation .chat-avatar--agent svg {
-  color: #CC0000 !important;
-}
-
 [data-theme="zenith"] .chat-conversation .chat-header-avatar {
   background-color: #FFE6E6 !important;
   border: 1px solid #F0D8D8;
@@ -507,12 +465,6 @@ html.dark[data-theme="zenith"] .chat-conversation .chat-load-more svg {
 [data-theme="zenith"] .chat-conversation .chat-attach-btn:hover {
   background-color: #FFE6E6 !important;
   color: #1A1A1A !important;
-}
-
-[data-theme="zenith"] .chat-conversation .message-bubble--agent {
-  background-color: #F5F2F1 !important;
-  border: 1px solid #EDEDED;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
 }
 
 [data-theme="zenith"] .chat-conversation .message-bubble--user {
@@ -642,29 +594,6 @@ html.dark[data-theme="zenith"] .agent-card--inactive {
 }
 
 /* Zenith dark mode — chat conversation (user vs agent) */
-/* User: red tint — "you" */
-html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--user {
-  background-color: color-mix(in srgb, #CC0000 20%, transparent) !important;
-  border-color: #4A5565;
-  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.3);
-}
-
-html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--user svg {
-  color: #E57373 !important;
-}
-
-/* Agent: neutral dark — AI/bot */
-html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--agent {
-  background-color: #2D2630 !important;
-  border-color: #4A5565;
-  box-shadow: 0 0.5px 0 0 rgb(0 0 0 / 0.2);
-}
-
-/* Agent icons: red accent on dark backgrounds */
-html.dark[data-theme="zenith"] .chat-conversation .chat-avatar--agent svg {
-  color: #E57373 !important;
-}
-
 html.dark[data-theme="zenith"] .chat-conversation .chat-header-avatar {
   background-color: color-mix(in srgb, #CC0000 18%, transparent) !important;
   border-color: #4A5565;
@@ -681,11 +610,6 @@ html.dark[data-theme="zenith"] .chat-conversation .chat-icon-container {
 
 html.dark[data-theme="zenith"] .chat-conversation .chat-icon-container svg {
   color: #E57373 !important;
-}
-
-html.dark[data-theme="zenith"] .chat-conversation .message-bubble--agent {
-  background-color: #2D2630 !important;
-  border-color: #4A5565;
 }
 
 html.dark[data-theme="zenith"] .chat-conversation .message-bubble--user {
@@ -929,22 +853,6 @@ html.dark[data-theme="gaia"] .agent-icon-container svg {
 }
 
 /* Gaia: chat conversation */
-[data-theme="gaia"] .chat-conversation .chat-avatar--user {
-  background-color: #FAE0CE !important;
-  border: 1px solid #F5C3A1;
-}
-[data-theme="gaia"] .chat-conversation .chat-avatar--user svg {
-  color: #1F4E66 !important;
-}
-
-[data-theme="gaia"] .chat-conversation .chat-avatar--agent {
-  background-color: #F2F3F5 !important;
-  border: 1px solid #CCCFD7;
-}
-[data-theme="gaia"] .chat-conversation .chat-avatar--agent svg {
-  color: #1F4E66 !important;
-}
-
 [data-theme="gaia"] .chat-conversation .chat-header-avatar {
   background-color: #FAE0CE !important;
   border: 1px solid #F5C3A1;
@@ -979,28 +887,7 @@ html.dark[data-theme="gaia"] .agent-icon-container svg {
   color: #133445 !important;
 }
 
-[data-theme="gaia"] .chat-conversation .message-bubble--agent {
-  background-color: #F2F3F5 !important;
-  border: 1px solid #CCCFD7;
-}
-
 /* Gaia dark — chat */
-html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--user {
-  background-color: color-mix(in srgb, #1F4E66 25%, transparent) !important;
-  border-color: #2A5570;
-}
-html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--user svg {
-  color: #377EA0 !important;
-}
-
-html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--agent {
-  background-color: #1A3A50 !important;
-  border-color: #2A5570;
-}
-html.dark[data-theme="gaia"] .chat-conversation .chat-avatar--agent svg {
-  color: #377EA0 !important;
-}
-
 html.dark[data-theme="gaia"] .chat-conversation .chat-header-avatar {
   background-color: color-mix(in srgb, #1F4E66 20%, transparent) !important;
   border-color: #2A5570;
@@ -1023,11 +910,6 @@ html.dark[data-theme="gaia"] .chat-conversation .chat-load-more {
 }
 html.dark[data-theme="gaia"] .chat-conversation .chat-load-more svg {
   color: #377EA0 !important;
-}
-
-html.dark[data-theme="gaia"] .chat-conversation .message-bubble--agent {
-  background-color: #1A3A50 !important;
-  border-color: #2A5570;
 }
 
 /* Gaia: sonar rings */

@@ -148,7 +148,7 @@ export function ChatInterface({
   }
 
   return (
-    <div className="flex flex-col h-full bg-card border-l-0 md:border-l border-border/30 overflow-hidden">
+    <div className="flex flex-col h-full min-w-0 bg-card border-l-0 md:border-l border-border/30 overflow-hidden">
       {!hideHeader && (
         <ChatHeader
           conversation={conversation}
