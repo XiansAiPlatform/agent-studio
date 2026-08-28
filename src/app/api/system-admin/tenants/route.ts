@@ -51,6 +51,11 @@ export const POST = withSystemAdmin(async (request: NextRequest) => {
     description?: string
     theme?: string
     timezone?: string
+    useSpecificTemporalNamespace?: boolean
+    temporalHost?: string
+    temporalNamespace?: string
+    temporalCertificate?: string
+    temporalCertificateKey?: string
   }
   try {
     body = await request.json()
@@ -87,6 +92,11 @@ export const POST = withSystemAdmin(async (request: NextRequest) => {
         description: body.description || undefined,
         theme: body.theme || undefined,
         timezone: body.timezone || undefined,
+        useSpecificTemporalNamespace: body.useSpecificTemporalNamespace ?? false,
+        temporalHost: body.temporalHost || undefined,
+        temporalNamespace: body.temporalNamespace || undefined,
+        temporalCertificate: body.temporalCertificate || undefined,
+        temporalCertificateKey: body.temporalCertificateKey || undefined,
       }
     )
     // Backend returns { tenant, location }; normalise to the tenant itself.
