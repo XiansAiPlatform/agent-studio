@@ -20,7 +20,6 @@ interface MessagesAreaProps {
   messages: Message[];
   agentName: string;
   activationName?: string;
-  userName: string;
   topicName: string;
   isLoadingMessages: boolean;
   isLoadingMoreMessages: boolean;
@@ -44,7 +43,6 @@ export function MessagesArea({
   messages,
   agentName,
   activationName,
-  userName,
   topicName,
   isLoadingMessages,
   isLoadingMoreMessages,
@@ -122,7 +120,6 @@ export function MessagesArea({
                       key={group.message.id}
                       message={group.message}
                       agentName={agentName}
-                      userName={userName}
                       onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
                     />
                   );

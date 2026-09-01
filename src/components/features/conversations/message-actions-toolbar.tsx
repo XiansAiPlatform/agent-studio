@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 import type { Message } from '@/types/conversation';
 import type { MarkdownVariant } from './markdown-message';
 import { MessageFeedbackPrompt } from './message-feedback';
@@ -14,7 +14,8 @@ interface MessageActionsToolbarProps {
   agentName?: string;
   timestamp: string;
   variant: MarkdownVariant;
-  onCopy: () => void;
+  /** Text copied to the clipboard when the copy action is clicked. */
+  copyText: string;
   disableFeedback?: boolean;
   onMessageFeedbackSubmitted?: (
     messageId: string,
@@ -32,17 +33,11 @@ export function MessageActionsToolbar({
   agentName,
   timestamp,
   variant,
-  onCopy,
+  copyText,
   disableFeedback,
   onMessageFeedbackSubmitted,
 }: MessageActionsToolbarProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    onCopy();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  const [copied, copy] = useCopyFeedback();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -62,7 +57,7 @@ export function MessageActionsToolbar({
               type="button"
               variant="ghost"
               size="icon-sm"
-              onClick={handleCopy}
+              onClick={() => copy(copyText)}
             >
               {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
               <span className="sr-only">Copy</span>

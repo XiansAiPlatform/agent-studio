@@ -17,7 +17,6 @@ import { MessageFeedbackSummary } from './message-feedback';
 interface MessageItemProps {
   message: Message;
   agentName?: string;
-  userName?: string;
   onMessageFeedbackSubmitted?: (
     messageId: string,
     feedback: NonNullable<Message['feedback']>
@@ -39,11 +38,13 @@ function formatTimestamp(dateString: string): string {
   });
 }
 
+// `ml-auto`/`mr-auto` (rather than `self-end`/`self-start` alone) so alignment holds
+// even when a caller renders MessageItem outside a flex parent (self-* is a no-op there).
 const messageColumnVariants = cva('flex flex-col min-w-0', {
   variants: {
     variant: {
-      user: 'items-end gap-1 self-end max-w-[70%]',
-      agent: 'items-start gap-1.5 self-start max-w-[75ch] w-full',
+      user: 'items-end gap-1 self-end ml-auto max-w-[70%]',
+      agent: 'items-start gap-1.5 self-start mr-auto max-w-[75ch] w-full',
     },
   },
 });
@@ -75,10 +76,6 @@ export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, di
         ? 'Your file is ready.'
         : '';
   const hasContent = displayContent.trim().length > 0;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(displayContent || message.content);
-  };
 
   const handleCopyDraft = () => {
     if (message.contentDraft) {
@@ -366,7 +363,7 @@ export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, di
         agentName={agentName}
         timestamp={formatTimestamp(message.timestamp)}
         variant={variant}
-        onCopy={handleCopy}
+        copyText={displayContent || message.content}
         disableFeedback={disableFeedback}
         onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
       />

@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState, type ComponentPropsWithoutRef } from 'react';
+import { createContext, useContext, useMemo, type ComponentPropsWithoutRef } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { cva } from 'class-variance-authority';
 import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCopyFeedback } from '@/hooks/use-copy-feedback';
 
 export type MarkdownVariant = 'user' | 'agent';
 
@@ -58,23 +59,12 @@ function extractText(node: unknown): string {
 }
 
 function CopyCodeButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    try {
-      navigator.clipboard.writeText(text);
-    } catch {
-      // Clipboard access can fail (permissions, insecure context) — the button
-      // still gives feedback so the user knows the click registered.
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  const [copied, copy] = useCopyFeedback();
 
   return (
     <button
       type="button"
-      onClick={handleCopy}
+      onClick={() => copy(text)}
       className={cn(
         'absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/90 px-2 py-1',
         'text-[11px] font-medium text-muted-foreground opacity-0 transition-opacity',

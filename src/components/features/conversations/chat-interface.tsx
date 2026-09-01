@@ -6,6 +6,7 @@ import { ChatHeader } from './chat-header';
 import { ChatInputArea } from './chat-input-area';
 import { MessagesArea } from './messages-area';
 import { useChatScroll } from './hooks/use-chat-scroll';
+import { useDocumentScrollLock } from '@/hooks/use-document-scroll-lock';
 import type { FileUploadPayload } from './types';
 
 interface ChatInterfaceProps {
@@ -87,6 +88,8 @@ export function ChatInterface({
     isTyping,
   });
 
+  useDocumentScrollLock();
+
   // Clear typing indicator only when agent *chat* response arrives (not reasoning/tool steps)
   useEffect(() => {
     if (!selectedTopic || !isTyping) return;
@@ -148,7 +151,7 @@ export function ChatInterface({
   }
 
   return (
-    <div className="flex flex-col h-full min-w-0 bg-card border-l-0 md:border-l border-border/30 overflow-hidden">
+    <div className="flex flex-col h-full min-w-0 bg-card overflow-hidden">
       {!hideHeader && (
         <ChatHeader
           conversation={conversation}
@@ -161,7 +164,6 @@ export function ChatInterface({
         messages={selectedTopic.messages}
         activationName={activationName}
         agentName={conversation.agent.name}
-        userName={conversation.user.name}
         topicName={selectedTopic.name}
         isLoadingMessages={isLoadingMessages}
         isLoadingMoreMessages={isLoadingMoreMessages}
