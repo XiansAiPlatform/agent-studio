@@ -6,6 +6,7 @@ export interface UseAgentHeartbeatParams {
   tenantId: string | null;
   agentName: string | null;
   activationName: string | null;
+  workflowType: string | null;
   /** Only check heartbeat when activation is active (worker expected to run) */
   enabled?: boolean;
   /** Starting interval in seconds. Doubles after each check up to maxIntervalSeconds. Default 30. */
@@ -42,6 +43,7 @@ export function useAgentHeartbeat({
   tenantId,
   agentName,
   activationName,
+  workflowType,
   enabled = true,
   baseIntervalSeconds = 30,
   maxIntervalSeconds = 300,
@@ -57,7 +59,7 @@ export function useAgentHeartbeat({
 
   const checkHeartbeat = useCallback(
     async (background = false) => {
-      if (!tenantId || !agentName || !activationName || !enabled) {
+      if (!tenantId || !agentName || !activationName || !workflowType || !enabled) {
         if (!background) {
           setWorkerAvailable(null);
           setServerUnavailable(false);
@@ -76,6 +78,7 @@ export function useAgentHeartbeat({
           agentName,
           activationName,
           timeoutSeconds: '5',
+          workflowType,
         });
         const res = await fetch(`/api/heartbeat?${params.toString()}`, {
           credentials: 'include',
@@ -98,7 +101,7 @@ export function useAgentHeartbeat({
         if (!background) setIsLoading(false);
       }
     },
-    [tenantId, agentName, activationName, enabled]
+    [tenantId, agentName, activationName, workflowType, enabled]
   );
 
   // Initial check when activation changes
@@ -110,7 +113,7 @@ export function useAgentHeartbeat({
   // Re-runs on activation change (checkHeartbeat identity change) OR on explicit reset
   // (scheduleTrigger increment). Always restarts from baseIntervalSeconds.
   useEffect(() => {
-    if (!enabled || !tenantId || !agentName || !activationName) return;
+    if (!enabled || !tenantId || !agentName || !activationName || !workflowType) return;
 
     currentIntervalRef.current = baseIntervalSeconds;
 
@@ -131,7 +134,7 @@ export function useAgentHeartbeat({
 
     scheduleNext();
     return () => clearTimeout(timeoutId);
-  }, [checkHeartbeat, enabled, tenantId, agentName, activationName, baseIntervalSeconds, maxIntervalSeconds, scheduleTrigger]);
+  }, [checkHeartbeat, enabled, tenantId, agentName, activationName, workflowType, baseIntervalSeconds, maxIntervalSeconds, scheduleTrigger]);
 
   // Reset backoff when the user returns to this tab
   useEffect(() => {

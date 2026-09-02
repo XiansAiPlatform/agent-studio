@@ -9,7 +9,7 @@ import { handleApiError } from '@/lib/api/error-handler'
  * Proxies to Xians AdminApi heartbeat endpoint which signals the Temporal workflow
  * and waits for a response to verify workers are available.
  *
- * Query params: agentName, activationName, timeoutSeconds (optional, 1-30, default: 10)
+ * Query params: agentName, activationName, workflowType (optional), timeoutSeconds (optional, 1-30, default: 10)
  * Response: { available: boolean }
  */
 export const GET = withTenantFromSession(
@@ -20,6 +20,7 @@ export const GET = withTenantFromSession(
 
       const agentName = searchParams.get('agentName')
       const activationName = searchParams.get('activationName')
+      const workflowType = searchParams.get('workflowType')
       const timeoutSeconds = searchParams.get('timeoutSeconds') || '10'
 
       if (!agentName || !activationName) {
@@ -34,6 +35,7 @@ export const GET = withTenantFromSession(
         activationName,
         timeoutSeconds,
       })
+      if (workflowType) queryParams.set('workflowType', workflowType)
 
       const client = createXiansClient()
       const result = await client.get<{ available: boolean }>(

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Conversation, Message } from '@/types/conversation';
-import { ActivationOption } from '../hooks';
+import { ActivationOption, useBuiltInWorkflows } from '../hooks';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -25,8 +25,10 @@ interface ConversationViewProps {
   unreadCounts: Record<string, number>;
   activations: ActivationOption[];
   selectedActivationName: string | null;
-  onActivationChange: (activationName: string, agentName: string) => void;
+  onActivationChange: (activationName: string, agentName: string, workflowName: string) => void;
   isLoadingActivations: boolean;
+  /** Reloads only the topic list and discussion area; agent/workflow pickers stay mounted. */
+  isLoadingTopics?: boolean;
   agentName?: string;
   currentPage: number;
   totalPages: number;
@@ -51,6 +53,9 @@ interface ConversationViewProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  selectedWorkflow?: string;
+  /** Hide topics and show the no-capability empty state in the chat panel. */
+  noConversationalCapability?: boolean;
 }
 
 /**
@@ -75,6 +80,7 @@ export function ConversationView({
   selectedActivationName,
   onActivationChange,
   isLoadingActivations,
+  isLoadingTopics = false,
   agentName,
   currentPage,
   totalPages,
@@ -91,10 +97,14 @@ export function ConversationView({
   chatInputRef,
   agentInfo,
   onMessageFeedbackSubmitted,
+  selectedWorkflow,
+  noConversationalCapability = false,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
   const isMobile = useIsMobile();
   const [topicsDrawerOpen, setTopicsDrawerOpen] = useState(false);
+  const { workflowsByAgent } = useBuiltInWorkflows(agentName ? [agentName] : []);
+  const workflowCount = agentName ? (workflowsByAgent[agentName]?.length ?? 0) : 0;
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
 
   // Find the current activation to check if it's active
@@ -137,13 +147,16 @@ export function ConversationView({
           onDeleteTopic={onDeleteTopic}
           unreadCounts={unreadCounts}
           activations={activations}
+          selectedAgentName={agentName}
           selectedActivationName={selectedActivationName}
           onActivationChange={onActivationChange}
           isLoadingActivations={isLoadingActivations}
+          isLoadingTopics={isLoadingTopics}
           currentPage={currentPage}
           totalPages={totalPages}
           hasMore={hasMore}
           onPageChange={onPageChange}
+          selectedWorkflow={selectedWorkflow}
         />
       )}
 
@@ -164,13 +177,16 @@ export function ConversationView({
               onDeleteTopic={handleDeleteTopicMobile}
               unreadCounts={unreadCounts}
               activations={activations}
+              selectedAgentName={agentName}
               selectedActivationName={selectedActivationName}
               onActivationChange={onActivationChange}
               isLoadingActivations={isLoadingActivations}
+              isLoadingTopics={isLoadingTopics}
               currentPage={currentPage}
               totalPages={totalPages}
               hasMore={hasMore}
               onPageChange={onPageChange}
+              selectedWorkflow={selectedWorkflow}
             />
           </SheetContent>
         </Sheet>
@@ -178,12 +194,50 @@ export function ConversationView({
 
       {/* Chat Area - Right Column */}
       <div className="chat-conversation flex-1 flex flex-col min-w-0 overflow-hidden">
-        {selectedTopicId && selectedTopic ? (
+        {noConversationalCapability ? (
+          <>
+            <ConversationHeader
+              activationName={selectedActivationName || 'No Activation'}
+              workflowName={selectedWorkflow}
+              workflowCount={workflowCount}
+              isConnected={isConnected}
+              isAgentActive={isAgentActive}
+              workerAvailable={workerAvailable}
+              serverUnavailable={serverUnavailable}
+              isHeartbeatLoading={isHeartbeatLoading}
+              onRetryHeartbeat={onRetryHeartbeat}
+              onOpenTopics={
+                showTopicsDrawerOnMobile
+                  ? () => setTopicsDrawerOpen(true)
+                  : undefined
+              }
+            />
+            <ChatPanel
+              conversation={conversation}
+              selectedTopic={undefined}
+              selectedTopicId={''}
+              onSendMessage={onSendMessage}
+              allowFileUpload={allowFileUpload}
+              isLoadingMessages={false}
+              onLoadMoreMessages={onLoadMoreMessages}
+              isLoadingMoreMessages={isLoadingMoreMessages}
+              hasMoreMessages={hasMoreMessages}
+              activationName={selectedActivationName}
+              isAgentActive={isAgentActive}
+              chatInputRef={chatInputRef}
+              agentInfo={agentInfo}
+              onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+              noConversationalCapability
+            />
+          </>
+        ) : selectedTopicId && selectedTopic ? (
           <>
             {/* Chat Header */}
             <ConversationHeader
               activationName={selectedActivationName || 'No Activation'}
               topic={selectedTopic}
+              workflowName={selectedWorkflow}
+              workflowCount={workflowCount}
               isConnected={isConnected}
               isAgentActive={isAgentActive}
               workerAvailable={workerAvailable}
@@ -204,7 +258,7 @@ export function ConversationView({
               selectedTopicId={selectedTopicId}
               onSendMessage={onSendMessage}
               allowFileUpload={allowFileUpload}
-              isLoadingMessages={isLoadingMessages}
+              isLoadingMessages={isLoadingMessages || isLoadingTopics}
               onLoadMoreMessages={onLoadMoreMessages}
               isLoadingMoreMessages={isLoadingMoreMessages}
               hasMoreMessages={hasMoreMessages}
@@ -222,7 +276,7 @@ export function ConversationView({
             selectedTopicId={''}
             onSendMessage={onSendMessage}
             allowFileUpload={allowFileUpload}
-            isLoadingMessages={isLoadingMessages}
+            isLoadingMessages={isLoadingMessages || isLoadingTopics}
             onLoadMoreMessages={onLoadMoreMessages}
             isLoadingMoreMessages={isLoadingMoreMessages}
             hasMoreMessages={hasMoreMessages}

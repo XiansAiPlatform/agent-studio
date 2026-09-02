@@ -4,13 +4,9 @@ import { useMemo } from 'react';
 import { ChevronDown, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as SelectPrimitive from '@radix-ui/react-select';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectLabel,
-} from '@/components/ui/select';
+import { Select, SelectContent } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { useBuiltInWorkflows } from '@/app/(dashboard)/conversations/hooks/use-built-in-workflows';
 
 export interface ActivationOption {
   id: string;
@@ -23,7 +19,12 @@ export interface ActivationOption {
 interface AgentActivationSelectorProps {
   activations: ActivationOption[];
   selectedActivationName: string | null;
-  onActivationChange: (activationName: string, agentName: string) => void;
+  selectedWorkflow?: string;
+  onActivationChange: (
+    activationName: string,
+    agentName: string,
+    workflowName: string
+  ) => void;
   isLoading?: boolean;
   // Legacy props kept for API compatibility
   defaultExpanded?: boolean;
@@ -34,66 +35,60 @@ interface AgentActivationSelectorProps {
 export function AgentActivationSelector({
   activations,
   selectedActivationName,
+  selectedWorkflow,
   onActivationChange,
   isLoading = false,
+  selectedAgentName: selectedAgentNameProp,
 }: AgentActivationSelectorProps) {
-  // Group activations by agent name (deployment)
-  const groupedActivations = useMemo(() => {
-    const groups: Record<string, ActivationOption[]> = {};
-    activations.forEach((activation) => {
-      if (!groups[activation.agentName]) {
-        groups[activation.agentName] = [];
-      }
-      groups[activation.agentName].push(activation);
-    });
-    return groups;
-  }, [activations]);
-
-  // Get unique agent names (deployments)
-  const agentNames = useMemo(() => {
-    return Object.keys(groupedActivations).sort();
-  }, [groupedActivations]);
-
-  // Find the currently selected activation
   const selectedActivation = useMemo(() => {
     return activations.find((a) => a.name === selectedActivationName);
   }, [activations, selectedActivationName]);
 
-  const handleActivationChange = (activationName: string) => {
-    // Find the activation to get its agent name
-    const activation = activations.find((a) => a.name === activationName);
-    if (activation) {
-      onActivationChange(activation.name, activation.agentName);
-    }
+  const currentAgentName =
+    selectedActivation?.agentName ?? selectedAgentNameProp ?? null;
+
+  const agentNames = useMemo(
+    () => (currentAgentName ? [currentAgentName] : []),
+    [currentAgentName]
+  );
+
+  const { workflowsByAgent, isLoading: isLoadingWorkflows } =
+    useBuiltInWorkflows(agentNames);
+
+  const workflows = currentAgentName
+    ? (workflowsByAgent[currentAgentName] ?? [])
+    : [];
+  const workflowsReady = Boolean(
+    currentAgentName && currentAgentName in workflowsByAgent
+  );
+
+  const handleValueChange = (workflowName: string) => {
+    if (!currentAgentName || !selectedActivationName) return;
+    onActivationChange(selectedActivationName, currentAgentName, workflowName);
   };
 
-  // Loading state
-  if (isLoading) {
+  if (isLoading || isLoadingWorkflows || !workflowsReady) {
     return (
       <div className="border-b border-border/60 px-6 py-4">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-primary/60" />
-          <span className="text-sm text-muted-foreground">Loading agents...</span>
+          <span className="text-sm text-muted-foreground">Loading workflows...</span>
         </div>
       </div>
     );
   }
 
-  // Empty state
-  if (activations.length === 0) {
+  if (!currentAgentName) {
     return (
       <div className="border-b border-border/60 px-6 py-4">
-        <p className="text-sm text-muted-foreground">No active agents found</p>
+        <p className="text-sm text-muted-foreground">No agent selected</p>
       </div>
     );
   }
 
   return (
     <div className="border-b border-border/60">
-      <Select
-        value={selectedActivationName || ''}
-        onValueChange={handleActivationChange}
-      >
+      <Select value={selectedWorkflow || ''} onValueChange={handleValueChange}>
         <SelectPrimitive.Trigger
           className={cn(
             'w-full flex items-center justify-between px-6 py-4',
@@ -103,67 +98,54 @@ export function AgentActivationSelector({
           )}
         >
           <div className="min-w-0 flex-1 text-left">
-            {selectedActivation ? (
-              <>
-                <h2 className="text-sm font-semibold text-foreground leading-snug mb-1">
-                  {selectedActivation.name}
-                </h2>
+            <h2 className="text-sm font-semibold text-foreground leading-snug mb-1">
+              {currentAgentName}
+            </h2>
+            {selectedWorkflow && (
+              <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs font-medium bg-primary/5 border-primary/20 text-primary">
-                  {selectedActivation.agentName}
+                  {selectedWorkflow}
                 </Badge>
-              </>
-            ) : (
-              <>
-                <h2 className="text-sm font-semibold text-foreground">
-                  Select an Agent
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Choose an activation to chat
-                </p>
-              </>
+                {workflows.length > 1 && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {workflows.length} workflows — click to switch
+                  </span>
+                )}
+              </div>
             )}
           </div>
-          
+
           <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2 transition-transform data-[state=open]:rotate-180" />
         </SelectPrimitive.Trigger>
 
         <SelectContent className="max-h-[300px]" align="start" sideOffset={0}>
-          {/* Group activations by agent deployment */}
-          {agentNames.map((agentName, index) => (
-            <SelectGroup key={agentName}>
-              {index > 0 && <div className="my-1 h-px bg-border/50" />}
-              <SelectLabel className="px-2 py-2 text-[11px] font-semibold uppercase tracking-wider text-primary/70 bg-muted/30">
-                {agentName}
-              </SelectLabel>
-              {groupedActivations[agentName].map((activation) => (
-                <SelectPrimitive.Item
-                  key={activation.id}
-                  value={activation.name}
-                  className={cn(
-                    "relative flex w-full cursor-pointer select-none items-center justify-between",
-                    "rounded-sm py-2.5 pl-4 pr-8 text-sm outline-none",
-                    "focus:bg-accent focus:text-accent-foreground",
-                    "data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                  )}
-                >
-                  <SelectPrimitive.ItemText>
-                    <span className="flex items-center gap-2">
-                      <span className={cn(
-                        "h-1.5 w-1.5 rounded-full flex-shrink-0",
-                        activation.status === 'active' ? "bg-emerald-500" : "bg-muted-foreground/40"
-                      )} />
-                      <span>{activation.name}</span>
-                    </span>
-                  </SelectPrimitive.ItemText>
-                  <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-                    <SelectPrimitive.ItemIndicator>
-                      <Check className="h-4 w-4 text-primary" />
-                    </SelectPrimitive.ItemIndicator>
-                  </span>
-                </SelectPrimitive.Item>
-              ))}
-            </SelectGroup>
-          ))}
+          {workflows.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              No chat workflows for this agent
+            </div>
+          ) : (
+            workflows.map((workflowName) => (
+              <SelectPrimitive.Item
+                key={workflowName}
+                value={workflowName}
+                className={cn(
+                  'relative flex w-full cursor-pointer select-none items-center justify-between',
+                  'rounded-sm py-2.5 pl-8 pr-8 text-sm outline-none',
+                  'focus:bg-accent focus:text-accent-foreground',
+                  'data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
+                )}
+              >
+                <SelectPrimitive.ItemText>
+                  <span>{workflowName}</span>
+                </SelectPrimitive.ItemText>
+                <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+                  <SelectPrimitive.ItemIndicator>
+                    <Check className="h-4 w-4 text-primary" />
+                  </SelectPrimitive.ItemIndicator>
+                </span>
+              </SelectPrimitive.Item>
+            ))
+          )}
         </SelectContent>
       </Select>
     </div>

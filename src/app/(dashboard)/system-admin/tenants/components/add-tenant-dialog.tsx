@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2, Building2 } from 'lucide-react'
 import { CreateTenantRequest } from '../types'
 
@@ -54,6 +55,18 @@ const schema = z.object({
     )
     .optional()
     .or(z.literal('')),
+  useSpecificTemporalNamespace: z.boolean(),
+  temporalHost: z.string().optional().or(z.literal('')),
+  temporalNamespace: z.string().optional().or(z.literal('')),
+  temporalCertificate: z.string().optional().or(z.literal('')),
+  temporalCertificateKey: z.string().optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (data.useSpecificTemporalNamespace) {
+    if (!data.temporalHost?.trim())
+      ctx.addIssue({ code: 'custom', path: ['temporalHost'], message: 'Host is required' })
+    if (!data.temporalNamespace?.trim())
+      ctx.addIssue({ code: 'custom', path: ['temporalNamespace'], message: 'Namespace is required' })
+  }
 })
 
 type FormValues = z.infer<typeof schema>
@@ -75,6 +88,8 @@ export function AddTenantDialog({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -84,6 +99,11 @@ export function AddTenantDialog({
       domain: '',
       description: '',
       timezone: '',
+      useSpecificTemporalNamespace: false,
+      temporalHost: '',
+      temporalNamespace: 'default',
+      temporalCertificate: '',
+      temporalCertificateKey: '',
     },
   })
 
@@ -103,6 +123,11 @@ export function AddTenantDialog({
         domain: values.domain?.trim() || undefined,
         description: values.description?.trim() || undefined,
         timezone: values.timezone?.trim() || undefined,
+        useSpecificTemporalNamespace: values.useSpecificTemporalNamespace,
+        temporalHost: values.temporalHost?.trim() || undefined,
+        temporalNamespace: values.temporalNamespace?.trim() || undefined,
+        temporalCertificate: values.temporalCertificate?.trim() || undefined,
+        temporalCertificateKey: values.temporalCertificateKey?.trim() || undefined,
       })
       reset()
       onOpenChange(false)
@@ -206,6 +231,81 @@ export function AddTenantDialog({
               <p className="text-xs text-destructive">{errors.description.message}</p>
             )}
           </div>
+
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="add-tenant-use-specific-temporal-namespace"
+              checked={watch('useSpecificTemporalNamespace')}
+              onCheckedChange={(checked) =>
+                setValue('useSpecificTemporalNamespace', checked === true)
+              }
+              className="mt-0.5"
+            />
+            <Label
+              htmlFor="add-tenant-use-specific-temporal-namespace"
+              className="font-normal leading-snug"
+            >
+              Use a specific Temporal namespace for this tenant
+            </Label>
+          </div>
+
+          {watch('useSpecificTemporalNamespace') && (
+            <div className="rounded-md border p-4 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-tenant-temporal-host">Temporal Host</Label>
+                <Input
+                  id="add-tenant-temporal-host"
+                  placeholder="my-temporal-server:7233"
+                  autoComplete="off"
+                  {...register('temporalHost')}
+                />
+                {errors.temporalHost && (
+                  <p className="text-xs text-destructive">{errors.temporalHost.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="add-tenant-temporal-namespace">Namespace</Label>
+                <Input
+                  id="add-tenant-temporal-namespace"
+                  placeholder="tenant-acme"
+                  autoComplete="off"
+                  {...register('temporalNamespace')}
+                />
+                {errors.temporalNamespace && (
+                  <p className="text-xs text-destructive">{errors.temporalNamespace.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="add-tenant-temporal-certificate">Client Certificate (PEM)</Label>
+                <Textarea
+                  id="add-tenant-temporal-certificate"
+                  placeholder="-----BEGIN CERTIFICATE-----&#10;..."
+                  rows={4}
+                  className="font-mono text-xs"
+                  {...register('temporalCertificate')}
+                />
+                {errors.temporalCertificate && (
+                  <p className="text-xs text-destructive">{errors.temporalCertificate.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="add-tenant-temporal-certificate-key">Certificate Key (PEM)</Label>
+                <Textarea
+                  id="add-tenant-temporal-certificate-key"
+                  placeholder="-----BEGIN PRIVATE KEY-----&#10;..."
+                  rows={4}
+                  className="font-mono text-xs"
+                  {...register('temporalCertificateKey')}
+                />
+                {errors.temporalCertificateKey && (
+                  <p className="text-xs text-destructive">{errors.temporalCertificateKey.message}</p>
+                )}
+              </div>
+            </div>
+          )}
         </form>
 
         <SheetFooter className="flex-row justify-end gap-2 px-6 pt-4 pb-[max(env(safe-area-inset-bottom),1rem)] border-t">

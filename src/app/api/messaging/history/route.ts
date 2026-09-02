@@ -15,6 +15,7 @@ export const GET = withTenantFromSession(
 
       const agentName = searchParams.get('agentName')
       const activationName = searchParams.get('activationName')
+      const workflowType = searchParams.get('workflowType')
       const topic = searchParams.get('topic')
       const page = searchParams.get('page') || '1'
       const pageSize = searchParams.get('pageSize') || '50'
@@ -46,6 +47,7 @@ export const GET = withTenantFromSession(
         sortOrder,
       })
       if (topic !== null) queryParams.append('topic', topic ?? '')
+      if (workflowType) queryParams.set('workflowType', workflowType)
 
       const xiansClient = createXiansClient((session as any)?.accessToken)
       const history = await xiansClient.get(
