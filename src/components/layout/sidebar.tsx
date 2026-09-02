@@ -168,7 +168,7 @@ const navigation: NavigationItem[] = [
         capability: 'system:admin',
       },
       {
-        name: 'Temporal Connectivity',
+        name: 'Temporal Server',
         href: '/tenant-settings/temporal',
         capability: 'system:admin',
       },

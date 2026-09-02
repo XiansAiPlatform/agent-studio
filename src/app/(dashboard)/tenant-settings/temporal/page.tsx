@@ -156,7 +156,7 @@ export default function TemporalSettingsPage() {
   return (
     <DashboardPage width="narrow">
       <DashboardPageHeader
-        title="Temporal Connectivity"
+        title="Temporal Server"
         description="Give this tenant its own Temporal server connection, or leave it unset to use the default."
         icon={<Workflow className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
       />
