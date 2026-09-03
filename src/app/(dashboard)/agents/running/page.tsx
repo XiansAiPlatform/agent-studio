@@ -27,6 +27,65 @@ import { AgentRedeployDialog } from './components/agent-redeploy-dialog';
 import { ConfigurePanel } from './components/agent-slider-panels';
 import { EmptyState } from './components/empty-state';
 
+/**
+ * One entry per associated-data checkbox in AgentDeleteDialog, in the exact order of
+ * ASSOCIATED_DATA_OPTIONS there (steps 1..N in the progress indicator map 1:1 to this order).
+ */
+const ASSOCIATED_DATA_DELETE_CONFIG: {
+  id: string;
+  label: string;
+  buildUrl: (agentName: string, activationName: string) => string;
+}[] = [
+  {
+    id: 'integrations',
+    label: 'App Integrations',
+    buildUrl: (agentName, activationName) =>
+      `/api/webhooks/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+  {
+    id: 'messages',
+    label: 'Messages',
+    buildUrl: (agentName, activationName) =>
+      `/api/messaging/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+  {
+    id: 'documents',
+    label: 'Documents',
+    buildUrl: (agentName, activationName) =>
+      `/api/data/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+  {
+    id: 'knowledge',
+    label: 'Knowledge',
+    buildUrl: (agentName, activationName) =>
+      `/api/knowledge/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+  {
+    id: 'logs',
+    label: 'Logs',
+    buildUrl: (agentName, activationName) =>
+      `/api/logs/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+  {
+    id: 'schedules',
+    label: 'Schedules',
+    buildUrl: (agentName, activationName) =>
+      `/api/schedules/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+  {
+    id: 'performance',
+    label: 'Performance Metrics',
+    buildUrl: (agentName, activationName) =>
+      `/api/metrics/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+  {
+    id: 'feedback',
+    label: 'Feedback',
+    buildUrl: (agentName, activationName) =>
+      `/api/messaging/feedback/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationName)}`,
+  },
+];
+
 function AgentsPageContent() {
   const { currentTenantId } = useTenant();
   const { isParticipantMode } = useParticipantLayout();
@@ -419,7 +478,7 @@ function AgentsPageContent() {
     }
   }, [currentTenantId, agentToRedeploy, closeSlider, refreshAgents]);
 
-  const handleDeleteInstance = useCallback(async () => {
+  const handleDeleteInstance = useCallback(async (selectedDataIds: string[]) => {
     if (!currentTenantId || !agentToDelete) return;
 
     setIsDeleting(true);
@@ -443,13 +502,41 @@ function AgentsPageContent() {
         };
       }
 
-      setDeleteStepIndex(1);
+      // Steps 1..N map 1:1 to ASSOCIATED_DATA_DELETE_CONFIG's fixed order (matching the
+      // dialog's checklist), so unselected categories are skipped without advancing the step
+      // index for them. Each category's delete is independent and non-blocking: a failure here
+      // is surfaced as its own toast but doesn't fail the overall undeploy.
+      let lastStepIndex = 0;
+      for (let i = 0; i < ASSOCIATED_DATA_DELETE_CONFIG.length; i++) {
+        const category = ASSOCIATED_DATA_DELETE_CONFIG[i];
+        if (!selectedDataIds.includes(category.id)) continue;
+
+        lastStepIndex = i + 1;
+        setDeleteStepIndex(lastStepIndex);
+        try {
+          const categoryResponse = await fetch(
+            category.buildUrl(agentToDelete.template, agentToDelete.name),
+            { method: 'DELETE' }
+          );
+          if (!categoryResponse.ok) {
+            const errorData = await categoryResponse.json().catch(() => ({}));
+            showErrorToast(
+              new Error(errorData.message || errorData.error || `Failed to delete ${category.label}`),
+              `${category.label} was not fully removed`
+            );
+          }
+        } catch (categoryError) {
+          showErrorToast(categoryError, `${category.label} was not fully removed`);
+        }
+      }
+
+      setDeleteStepIndex(lastStepIndex + 1);
       showSuccessToast(
         `Agent Undeployed Successfully`,
         `${agentToDelete.name} has been permanently removed from your workspace`,
         { icon: '🗑️' }
       );
-      
+
       setShowDeleteDialog(false);
       closeSlider();
       setAgents((prevAgents) => prevAgents.filter((a) => a.id !== agentToDelete.id));

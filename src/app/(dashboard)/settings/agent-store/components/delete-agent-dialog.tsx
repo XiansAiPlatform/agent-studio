@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { EnhancedDeployment } from '../types';
 
@@ -8,6 +9,8 @@ interface DeleteAgentDialogProps {
   onOpenChange: (open: boolean) => void;
   agent: EnhancedDeployment | null;
   isDeleting: boolean;
+  forceDelete: boolean;
+  onForceDeleteChange: (value: boolean) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -17,6 +20,8 @@ export function DeleteAgentDialog({
   onOpenChange,
   agent,
   isDeleting,
+  forceDelete,
+  onForceDeleteChange,
   onConfirm,
   onCancel
 }: DeleteAgentDialogProps) {
@@ -37,7 +42,7 @@ export function DeleteAgentDialog({
           </div>
         </DialogHeader>
         
-        <div className="py-4">
+        <div className="py-4 space-y-3">
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
             <p className="text-sm text-foreground">
               Are you sure you want to remove{' '}
@@ -47,6 +52,15 @@ export function DeleteAgentDialog({
               {' '} from your tenant?
             </p>
           </div>
+
+          <label className="flex items-start gap-2 text-sm text-foreground cursor-pointer">
+            <Checkbox
+              checked={forceDelete}
+              onCheckedChange={(checked) => onForceDeleteChange(checked === true)}
+              disabled={isDeleting}
+            />
+            <span>Terminate Activations (with Data)</span>
+          </label>
         </div>
 
         <DialogFooter>

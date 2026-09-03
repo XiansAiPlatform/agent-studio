@@ -61,10 +61,11 @@ export function useAgentTemplates() {
    * Permanently delete an agent template.
    * DELETE /api/system-admin/agent-templates/{templateId}
    */
-  const deleteTemplate = useCallback(async (templateId: string): Promise<void> => {
+  const deleteTemplate = useCallback(async (templateId: string, cleanActivations = false): Promise<void> => {
     setIsMutating(true)
     try {
-      const res = await fetch(`${BASE_URL}/${encodeURIComponent(templateId)}`, {
+      const query = cleanActivations ? '?cleanActivations=true' : ''
+      const res = await fetch(`${BASE_URL}/${encodeURIComponent(templateId)}${query}`, {
         method: 'DELETE',
       })
       if (!res.ok && res.status !== 204) {

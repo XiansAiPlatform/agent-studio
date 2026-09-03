@@ -49,9 +49,11 @@ export const DELETE = withSystemAdmin(async (request: NextRequest) => {
   }
 
   try {
+    const cleanActivations = request.nextUrl.searchParams.get('cleanActivations') === 'true'
+    const query = cleanActivations ? '?cleanActivations=true' : ''
     const client = createXiansClient()
     await client.delete<unknown>(
-      `/api/v1/admin/agentTemplates/${encodeURIComponent(templateId)}`
+      `/api/v1/admin/agentTemplates/${encodeURIComponent(templateId)}${query}`
     )
     return new NextResponse(null, { status: 204 })
   } catch (error) {

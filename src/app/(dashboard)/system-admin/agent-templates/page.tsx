@@ -53,6 +53,7 @@ function AgentTemplatesPageContent() {
   const [detailTarget, setDetailTarget] = useState<AgentTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AgentTemplate | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [cleanActivations, setCleanActivations] = useState(false);
 
   // Tenant names are used to label deployments below — the full tenant list
   // is needed for that lookup, not a single page (see the Tenants management
@@ -98,11 +99,16 @@ function AgentTemplatesPageContent() {
     });
   }, [templates, searchInput]);
 
+  const handleDeleteClick = (template: AgentTemplate) => {
+    setDeleteTarget(template);
+    setCleanActivations(false);
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      await deleteTemplate(deleteTarget.agent.id);
+      await deleteTemplate(deleteTarget.agent.id, cleanActivations);
       toast.success(`Template "${deleteTarget.agent.name}" deleted`);
       setDeleteTarget(null);
       // If the deleted template was open in the detail panel, close it too.
@@ -280,7 +286,7 @@ function AgentTemplatesPageContent() {
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => setDeleteTarget(template)}
+                              onClick={() => handleDeleteClick(template)}
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -306,7 +312,7 @@ function AgentTemplatesPageContent() {
         onOpenChange={(open) => { if (!open) setDetailTarget(null); }}
         fetchDeployments={fetchDeployments}
         tenantNameById={tenantNameById}
-        onDelete={(template) => setDeleteTarget(template)}
+        onDelete={handleDeleteClick}
       />
 
       <DeleteTemplateDialog
@@ -317,6 +323,8 @@ function AgentTemplatesPageContent() {
         isDeleting={isDeleting}
         fetchDeployments={fetchDeployments}
         tenantNameById={tenantNameById}
+        cleanActivations={cleanActivations}
+        onCleanActivationsChange={setCleanActivations}
       />
     </DashboardPage>
   );

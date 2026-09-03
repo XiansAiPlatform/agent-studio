@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { AlertTriangle, Building2, Loader2 } from 'lucide-react'
 import { AgentTemplate, TemplateDeployments } from '../types'
 
@@ -25,6 +26,8 @@ interface DeleteTemplateDialogProps {
   fetchDeployments: (templateId: string) => Promise<TemplateDeployments>
   /** Optional map of tenantId → display name for nicer tenant labels. */
   tenantNameById?: Record<string, string>
+  cleanActivations: boolean
+  onCleanActivationsChange: (value: boolean) => void
 }
 
 export function DeleteTemplateDialog({
@@ -35,6 +38,8 @@ export function DeleteTemplateDialog({
   isDeleting,
   fetchDeployments,
   tenantNameById = {},
+  cleanActivations,
+  onCleanActivationsChange,
 }: DeleteTemplateDialogProps) {
   const [deployments, setDeployments] = useState<TemplateDeployments | null>(null)
   const [isLoadingDeployments, setIsLoadingDeployments] = useState(false)
@@ -118,6 +123,14 @@ export function DeleteTemplateDialog({
                 </Badge>
               ))}
             </div>
+            <label className="flex items-start gap-2 pl-6 text-sm text-amber-700 dark:text-amber-400 cursor-pointer">
+              <Checkbox
+                checked={cleanActivations}
+                onCheckedChange={(checked) => onCleanActivationsChange(checked === true)}
+                disabled={isDeleting}
+              />
+              <span>Terminate Activations (with Data) in all tenants using this template</span>
+            </label>
           </div>
         ) : deployments ? (
           <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
