@@ -163,6 +163,8 @@ export function DashboardLayoutClient({
       }
     }
   }, [initialTenants, setTenants, setCanCustomizeTheme, canCustomizeTheme, router, clearTenants, setTenantLogo])
+  
+  const isParticipantMode = !showSidebar
 
   // Show loading while validating selected tenant
   if (isValidating) {
@@ -175,8 +177,6 @@ export function DashboardLayoutClient({
       </div>
     )
   }
-
-  const isParticipantMode = !showSidebar
 
   const mainContent = isParticipantMode ? (
     <ParticipantLayoutShell
@@ -238,7 +238,7 @@ export function DashboardLayoutClient({
           {/* Main Content - single panel under header for participant, or beside sidebar for admin */}
           <main className={cn(
             'flex-1 flex flex-col bg-background min-w-0 min-h-0',
-            isParticipantMode ? 'overflow-hidden' : 'overflow-y-auto'
+            isParticipantMode ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'
           )}>
             {mainContent}
           </main>

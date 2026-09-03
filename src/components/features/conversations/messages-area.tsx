@@ -7,7 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bot, Building2, Loader2, ArrowUp, Info, Sparkles } from 'lucide-react';
+import { Building2, Loader2, ArrowUp, Info, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { MessageRenderer } from './message-renderer';
 import { ProgressBlock } from './progress-block';
@@ -20,7 +20,6 @@ interface MessagesAreaProps {
   messages: Message[];
   agentName: string;
   activationName?: string;
-  userName: string;
   topicName: string;
   isLoadingMessages: boolean;
   isLoadingMoreMessages: boolean;
@@ -44,7 +43,6 @@ export function MessagesArea({
   messages,
   agentName,
   activationName,
-  userName,
   topicName,
   isLoadingMessages,
   isLoadingMoreMessages,
@@ -122,7 +120,6 @@ export function MessagesArea({
                       key={group.message.id}
                       message={group.message}
                       agentName={agentName}
-                      userName={userName}
                       onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
                     />
                   );
@@ -241,17 +238,10 @@ export function MessagesArea({
             )}
 
             {isTyping && (
-              <div className="flex items-center gap-3 animate-in fade-in duration-300 pb-4">
-                <div className="chat-avatar chat-avatar--agent h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                  <Bot className="h-4 w-4" />
-                </div>
-                <div className="message-bubble message-bubble--agent bg-muted/50 rounded-2xl px-4 py-2.5">
-                  <div className="flex gap-1">
-                    <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
+              <div className="flex items-center gap-1 animate-in fade-in duration-300 pb-4">
+                <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="h-2 w-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             )}
 

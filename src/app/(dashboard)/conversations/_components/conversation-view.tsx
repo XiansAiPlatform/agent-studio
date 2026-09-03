@@ -193,7 +193,7 @@ export function ConversationView({
       )}
 
       {/* Chat Area - Right Column */}
-      <div className="chat-conversation flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="chat-conversation flex-1 flex flex-col min-w-0 overflow-hidden border-l-0 md:border-l border-border/80">
         {noConversationalCapability ? (
           <>
             <ConversationHeader
