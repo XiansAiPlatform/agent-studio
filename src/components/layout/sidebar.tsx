@@ -167,6 +167,11 @@ const navigation: NavigationItem[] = [
         href: '/tenant-settings/oidc',
         capability: 'system:admin',
       },
+      {
+        name: 'Temporal Server',
+        href: '/tenant-settings/temporal',
+        capability: 'system:admin',
+      },
     ],
   },
   {
