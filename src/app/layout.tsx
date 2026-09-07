@@ -7,6 +7,7 @@ import { SessionProvider } from "@/components/session-provider";
 import { AuthErrorBoundary } from "@/components/auth-error-boundary";
 import { Toaster } from "@/components/ui/sonner";
 import { FaviconUpdater } from "@/components/favicon-updater";
+import { SessionErrorWatcher } from "@/components/session-error-watcher";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -85,6 +86,7 @@ export default function RootLayout({
             >
               <ColorThemeProvider>
                 <FaviconUpdater />
+                <SessionErrorWatcher />
                 {children}
                 <Toaster />
               </ColorThemeProvider>
