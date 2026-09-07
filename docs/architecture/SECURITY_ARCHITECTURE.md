@@ -1,7 +1,7 @@
 # Security Architecture
 
 **Version:** 1.0  
-**Last Updated:** 2026-07-16  
+**Last Updated:** 2026-09-07  
 **Status:** Active
 
 ---
@@ -22,6 +22,7 @@
 12. [Incident Response](#incident-response)
 
 **Related Documents:**
+
 - **[System Overview](./SYSTEM_OVERVIEW.md)** - BFF trust boundary
 - **[Multi-Tenancy Architecture](./MULTI_TENANCY.md)** - Tenant isolation
 - **[API Contract](./API_CONTRACT.md)** - API security requirements
@@ -97,7 +98,7 @@ graph TB
 ### Assets
 
 | Asset | Sensitivity | Threat Actors |
-|-------|-------------|---------------|
+| ------- | ------------- | --------------- |
 | **User Credentials** | Critical | External attackers, malicious insiders |
 | **Session Tokens** | Critical | XSS attacks, session hijacking |
 | **Tenant Data** | Critical | Cross-tenant attacks, data leakage |
@@ -115,7 +116,7 @@ graph TB
 
 - **Attack:** Malicious JavaScript injected into messages, task descriptions, or knowledge articles
 - **Impact:** Session hijacking, data exfiltration, account takeover
-- **Mitigation:** 
+- **Mitigation:**
   - React auto-escaping of user content
   - Content Security Policy (CSP) headers
   - Sanitization of markdown content before rendering
@@ -291,6 +292,7 @@ export default {
 **Purpose:** Prevent XSS by restricting resource loading
 
 **Configuration:**
+
 - `default-src 'self'` - Only load resources from same origin
 - `script-src 'self' 'unsafe-eval'` - Required for Next.js dev mode
 - `connect-src` - Whitelist Xians backend API
@@ -328,6 +330,7 @@ const validatedData = result.data
 ```
 
 **Rules:**
+
 - All user inputs validated before submission
 - Length limits enforced (prevent DoS)
 - Type validation (prevent type confusion)
@@ -357,6 +360,7 @@ function renderMarkdown(content: string): string {
 ```
 
 **Protections:**
+
 - React JSX escapes all interpolated values by default
 - Markdown converted to HTML then sanitized
 - Only safe HTML tags/attributes allowed
@@ -387,6 +391,7 @@ function renderMarkdown(content: string): string {
 ```
 
 **Protections:**
+
 - SameSite=Lax: Cookie not sent on cross-site POST requests
 - SameSite=Strict: Cookie not sent on any cross-site request
 - NextAuth.js CSRF token for state-changing operations
@@ -470,6 +475,7 @@ export const config = {
 ```
 
 **Session Validation:**
+
 - JWT signature verification (HS256 or RS256)
 - Expiration check (exp claim)
 - Issuer validation (iss claim)
@@ -595,6 +601,7 @@ export async function rejectClientTenantId(
 ```
 
 **Why This Matters:**
+
 - Prevents Insecure Direct Object Reference (IDOR) attacks
 - Prevents horizontal privilege escalation (accessing other tenants' data)
 - Enforces architectural principle: tenant context is server-side authority
@@ -658,6 +665,7 @@ export const POST = withTenantFromSession(async (req, ctx) => {
 ```
 
 **Validation Rules:**
+
 - All inputs validated before use
 - Whitelist approach (only known fields accepted)
 - Type safety (TypeScript + runtime validation)
@@ -722,6 +730,7 @@ export const POST = withTenantFromSession(async (req, ctx) => {
 ```
 
 **Rate Limits:**
+
 - Authentication: 10 req/min per IP
 - Message sending: 60 req/min per user+tenant
 - Task creation: 30 req/min per user+tenant
@@ -744,25 +753,42 @@ if (!XIANS_APIKEY) {
   throw new Error('XIANS_APIKEY environment variable is required')
 }
 
-// Create authenticated client
-function createXiansClient(userAccessToken?: string) {
-  return axios.create({
-    baseURL: process.env.XIANS_SERVER_URL,
-    headers: {
-      'Authorization': `Bearer ${XIANS_APIKEY}`,
-      'X-User-Token': userAccessToken || '',  // Optional user context
-      'Content-Type': 'application/json'
-    }
-  })
-}
+// Create authenticated client (src/lib/xians/client.ts)
+const client = createXiansClient(session.idToken) // OIDC ID token, not the OAuth access token
+
+// Authorization: Bearer <XIANS_APIKEY> is always sent.
+// X-User-Token is sent only when a call explicitly opts in:
+await client.post(path, body, { verifyActingUser: true })
 ```
 
 **Protection:**
+
 - Never committed to source control (.env in .gitignore)
 - Stored in secure environment variables (Vercel secrets, Docker secrets)
 - Minimal permission scope (admin API access only)
 - Rotated periodically (quarterly)
 - Monitored for unauthorized use
+
+**Verified acting user (`X-User-Token`), opt-in per call:**
+
+- The shared `XIANS_APIKEY` authenticates every Admin API request as the key's own owner, not the
+  individual signed-in user — by itself it cannot tell the Xians backend which human is really
+  behind a request.
+- Route handlers that need the backend to know the real acting human (currently: the agent
+  activation create/update/activate/deactivate/delete calls in `src/lib/xians/agents.ts`) pass
+  `{ verifyActingUser: true }`, which forwards the caller's own NextAuth-issued **ID token**
+  (`session.idToken`, refreshed automatically — see `refreshOidcToken` in
+  `[...nextauth]/route.ts`) as `X-User-Token`. Calls that omit the flag never send this header,
+  even if an `authToken` was passed to the client.
+- The Xians backend validates that token against a dedicated `admin-console` pseudo-tenant OIDC
+  config (`AdminConsoleOidc__Providers__*`), separate from any real tenant's own OIDC rules, and
+  either upgrades the request's identity to that verified human or rejects it outright — it never
+  silently falls back to the API key owner's identity for a token that was present but invalid.
+  **Operational requirement:** every OIDC provider enabled in this app's `[...nextauth]/route.ts`
+  (Google, Azure AD, Azure AD B2C, Keycloak, Visma Connect) must have a matching entry configured
+  on the backend for `verifyActingUser` calls to succeed — see the Xians server's
+  `AUTH_CONFIGURATION.md` ("Admin Console OIDC"). Without a matching entry, every
+  `verifyActingUser: true` call fails closed with `401`.
 
 #### Control 11: Backend Request Validation
 
@@ -786,6 +812,7 @@ export const POST = withTenantFromSession(async (req, ctx) => {
 ```
 
 **Backend Responsibilities:**
+
 - Validate tenantId matches authenticated service
 - Enforce tenantId filter on all queries
 - Validate foreign key references (e.g., agentName exists in tenant)
@@ -794,16 +821,19 @@ export const POST = withTenantFromSession(async (req, ctx) => {
 #### Control 12: Data Encryption
 
 **At Rest:**
+
 - Database: MongoDB encryption at rest (AES-256)
 - Secrets: Environment variables encrypted by platform
 - Backups: Encrypted with separate key
 
 **In Transit:**
+
 - Client ↔ Next.js: TLS 1.3 (HTTPS)
 - Next.js ↔ Xians Backend: TLS 1.3 (HTTPS)
 - Backend ↔ Database: TLS 1.2+ (MongoDB wire protocol)
 
 **Sensitive Fields:**
+
 - Passwords: Never stored (SSO only)
 - API Keys: Hashed before storage (bcrypt or Argon2)
 - Tokens: Short-lived JWTs (30-day max)
@@ -856,6 +886,7 @@ sequenceDiagram
 4. **Invalidation:** On logout or security event
 
 **Session Storage:**
+
 - **JWT Token:** Stateless, signed with HMAC-SHA256 or RSA
 - **Cookie:** httpOnly, secure, sameSite
 - **Server-Side:** Optional database session for revocation
@@ -882,11 +913,13 @@ sequenceDiagram
 **Status:** Optional (SSO provider-managed)
 
 Agent Studio delegates MFA to SSO providers:
+
 - **Google:** Google Authenticator, SMS, hardware keys
 - **Microsoft:** Microsoft Authenticator, SMS, hardware keys
 - **Keycloak:** OTP, WebAuthn
 
 **Enforcement:**
+
 - Recommended for all users
 - Required for system administrators
 - Enforced at SSO provider level
@@ -982,7 +1015,7 @@ Tenant Participant (TenantParticipant)
 ### Permission Matrix
 
 | Operation | TenantParticipant | TenantParticipantAdmin | TenantAdmin | SystemAdmin |
-|-----------|:-----------------:|:----------------------:|:-----------:|:-----------:|
+| ----------- | :-----------------: | :----------------------: | :-----------: | :-----------: |
 | **Conversations** |
 | View conversations | ✅ | ✅ | ✅ | ✅ |
 | Send messages | ✅ | ✅ | ✅ | ✅ |
@@ -1014,6 +1047,7 @@ Tenant Participant (TenantParticipant)
 ### Environment Variables
 
 **Production Secrets:**
+
 ```bash
 # Authentication
 NEXTAUTH_SECRET=<generated-with-openssl-rand-base64-32>
@@ -1039,11 +1073,13 @@ openssl rand -base64 32
 ```
 
 **Storage:**
+
 - **Development:** `.env.local` file (gitignored)
 - **Production:** Platform-managed secrets (Vercel Environment Variables, AWS Secrets Manager, Docker Secrets)
 - **Never:** Committed to source control
 
 **Rotation Policy:**
+
 - **NEXTAUTH_SECRET:** Rotate annually (invalidates all sessions)
 - **SSO Credentials:** Rotate when provider recommends or after security incident
 - **XIANS_APIKEY:** Rotate quarterly or after suspected compromise
@@ -1051,7 +1087,7 @@ openssl rand -base64 32
 ### Secret Access Control
 
 | Secret | Who Can Access | How Accessed |
-|--------|----------------|--------------|
+| -------- | ---------------- | -------------- |
 | `NEXTAUTH_SECRET` | Next.js runtime only | Environment variable |
 | `GOOGLE_CLIENT_SECRET` | Next.js runtime only | Environment variable |
 | `XIANS_APIKEY` | Next.js API routes only | Environment variable |
@@ -1067,7 +1103,7 @@ openssl rand -base64 32
 ### Data Classification
 
 | Data Type | Classification | Protection Level |
-|-----------|----------------|------------------|
+| ----------- | ---------------- | ------------------ |
 | User passwords | N/A (SSO only) | Never stored |
 | Session tokens | Critical | Encrypted, httpOnly, short-lived |
 | Service API keys | Critical | Encrypted env vars, rotated |
@@ -1081,7 +1117,7 @@ openssl rand -base64 32
 ### Data Retention
 
 | Data Type | Retention Period | Deletion Method |
-|-----------|------------------|-----------------|
+| ----------- | ------------------ | ----------------- |
 | Active conversations | Indefinite | Soft delete (archived) |
 | Archived conversations | 7 years | Hard delete |
 | Completed tasks | 7 years | Hard delete |
@@ -1092,6 +1128,7 @@ openssl rand -base64 32
 ### Personal Data (GDPR/CCPA)
 
 **User Rights:**
+
 1. **Right to Access:** Export all user data via `/api/user/export`
 2. **Right to Rectification:** Update profile via `/api/user/profile`
 3. **Right to Erasure:** Delete account via `/api/user/delete` (soft delete, then hard delete after 30 days)
@@ -1099,6 +1136,7 @@ openssl rand -base64 32
 5. **Right to Restrict Processing:** Deactivate account (pause processing)
 
 **Data Processing:**
+
 - **Purpose Limitation:** Data only used for stated purposes
 - **Data Minimization:** Only collect necessary data
 - **Storage Limitation:** Data deleted after retention period
@@ -1111,6 +1149,7 @@ openssl rand -base64 32
 ### TLS/SSL Configuration
 
 **Requirements:**
+
 - **TLS Version:** 1.3 (preferred) or 1.2 (minimum)
 - **Certificate:** Wildcard cert for `*.agent-studio.example.com`
 - **Cipher Suites:** Strong ciphers only (ECDHE-RSA-AES256-GCM-SHA384, etc.)
@@ -1152,7 +1191,7 @@ export default {
 ### Audit Event Types
 
 | Event Type | Logged Data | Retention |
-|------------|-------------|-----------|
+| ------------ | ------------- | ----------- |
 | **Authentication** | Login, logout, SSO callback | 7 years |
 | **Authorization** | Permission check failures | 7 years |
 | **Tenant Switch** | User ID, old tenant, new tenant | 7 years |
@@ -1201,6 +1240,7 @@ export default {
 ### A01:2021 – Broken Access Control
 
 **Mitigations:**
+
 - ✅ Server-side authorization enforcement (API layer)
 - ✅ Deny by default (explicit permission checks)
 - ✅ Capability-based access control
@@ -1211,6 +1251,7 @@ export default {
 ### A02:2021 – Cryptographic Failures
 
 **Mitigations:**
+
 - ✅ TLS 1.3 for all network traffic
 - ✅ Strong cipher suites only
 - ✅ Encryption at rest (database, backups)
@@ -1221,6 +1262,7 @@ export default {
 ### A03:2021 – Injection
 
 **Mitigations:**
+
 - ✅ Parameterized queries (MongoDB ODM)
 - ✅ Input validation with Zod schemas
 - ✅ Output encoding (React auto-escaping)
@@ -1231,6 +1273,7 @@ export default {
 ### A04:2021 – Insecure Design
 
 **Mitigations:**
+
 - ✅ Threat modeling (documented in this section)
 - ✅ Defense-in-depth architecture (multiple security layers)
 - ✅ Least privilege principle (minimal permissions)
@@ -1240,6 +1283,7 @@ export default {
 ### A05:2021 – Security Misconfiguration
 
 **Mitigations:**
+
 - ✅ Secure default configuration (environment-specific)
 - ✅ Minimal feature set enabled
 - ✅ Security headers (CSP, HSTS, X-Frame-Options, etc.)
@@ -1250,6 +1294,7 @@ export default {
 ### A06:2021 – Vulnerable and Outdated Components
 
 **Mitigations:**
+
 - ✅ Dependency scanning (npm audit, Dependabot)
 - ✅ Regular updates (monthly security patch cycle)
 - ✅ Minimal dependencies (reduce attack surface)
@@ -1259,6 +1304,7 @@ export default {
 ### A07:2021 – Identification and Authentication Failures
 
 **Mitigations:**
+
 - ✅ SSO with established providers (Google, Microsoft, Keycloak)
 - ✅ MFA support (delegated to SSO provider)
 - ✅ Secure session management (short-lived JWTs, httpOnly cookies)
@@ -1269,6 +1315,7 @@ export default {
 ### A08:2021 – Software and Data Integrity Failures
 
 **Mitigations:**
+
 - ✅ Digital signatures (JWT tokens)
 - ✅ Dependency integrity (package-lock.json hashes)
 - ✅ CI/CD pipeline security (signed commits, protected branches)
@@ -1278,6 +1325,7 @@ export default {
 ### A09:2021 – Security Logging and Monitoring Failures
 
 **Mitigations:**
+
 - ✅ Comprehensive audit logging (authentication, authorization, errors)
 - ✅ Log aggregation (centralized logging service)
 - ✅ Alerting on security events (failed auth, permission denial)
@@ -1287,6 +1335,7 @@ export default {
 ### A10:2021 – Server-Side Request Forgery (SSRF)
 
 **Mitigations:**
+
 - ✅ URL validation and allowlisting
 - ✅ No user-controlled URLs in backend requests
 - ✅ Network segmentation (frontend, API, backend)
@@ -1300,6 +1349,7 @@ export default {
 ### Automated Testing
 
 **Tools:**
+
 - **npm audit:** Dependency vulnerability scanning (daily)
 - **Dependabot:** Automated dependency updates (GitHub)
 - **ESLint:** Static analysis for common security issues
@@ -1351,6 +1401,7 @@ jobs:
 - [ ] Cookie security (httpOnly, secure, sameSite)
 
 **Penetration Testing:**
+
 - **Frequency:** Annually
 - **Scope:** Full application (authenticated and unauthenticated)
 - **Provider:** Third-party security firm
@@ -1371,28 +1422,33 @@ jobs:
 ### Incident Response Plan
 
 **Phase 1: Detection & Triage (0-2 hours)**
+
 - Identify incident type and severity
 - Assign incident commander
 - Notify security team and stakeholders
 
 **Phase 2: Containment (2-6 hours)**
+
 - Isolate affected systems
 - Revoke compromised credentials
 - Block malicious traffic
 - Preserve evidence for forensics
 
 **Phase 3: Eradication (6-24 hours)**
+
 - Remove malicious code/access
 - Patch vulnerabilities
 - Rotate all secrets
 - Validate system integrity
 
 **Phase 4: Recovery (24-48 hours)**
+
 - Restore services from clean backups
 - Monitor for re-compromise
 - Notify affected users (if required by law)
 
 **Phase 5: Post-Incident Review (1 week)**
+
 - Root cause analysis
 - Document lessons learned
 - Update security controls
@@ -1401,7 +1457,7 @@ jobs:
 ### Communication Plan
 
 | Stakeholder | Notification Threshold | Timeline |
-|-------------|------------------------|----------|
+| ------------- | ------------------------ | ---------- |
 | Security Team | All incidents | Immediate |
 | Engineering Lead | Medium+ severity | Within 1 hour |
 | CTO | High+ severity | Within 2 hours |
@@ -1454,6 +1510,4 @@ jobs:
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** 2026-07-16  
 **Maintained By:** Agent Studio Security Team
