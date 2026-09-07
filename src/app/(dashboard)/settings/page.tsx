@@ -12,6 +12,7 @@ import {
   ArrowRight,
   KeyRound,
   CalendarClock,
+  ClipboardList,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -61,6 +62,14 @@ export default function SettingsPage() {
       description: 'View system logs and debug information',
       href: '/settings/logs',
       icon: FileText,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      title: 'Audit Activities',
+      description: 'Review the audit trail of user and system actions',
+      href: '/settings/audit-activities',
+      icon: ClipboardList,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },
