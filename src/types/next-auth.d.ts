@@ -26,6 +26,8 @@ declare module "next-auth" {
     } & DefaultSession["user"]
     /** OAuth provider access token (e.g. Microsoft) for API calls */
     accessToken?: string
+    /** OAuth ID token */
+    idToken?: string
     /** Set when the provider access token could not be refreshed */
     error?: string
   }

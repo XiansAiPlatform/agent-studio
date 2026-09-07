@@ -47,77 +47,85 @@ function getAzureAdB2CScopes(): string {
   )
 }
 
-type MicrosoftTokenEndpoint = {
-  tokenUrl: string
+
+type OidcRefreshConfig = {
+  wellKnownUrl: string
   clientId: string
   clientSecret?: string
-  scopes: string
+  scope?: string
 }
 
-function resolveMicrosoftTokenEndpoint(
-  provider: string | undefined
-): MicrosoftTokenEndpoint | null {
-  if (provider === "azure-ad") {
-    const clientId = process.env.AZURE_AD_CLIENT_ID
-    const clientSecret = process.env.AZURE_AD_CLIENT_SECRET
-    if (!clientId || !clientSecret) return null
-    const tenantId = process.env.AZURE_AD_TENANT_ID || "common"
-    return {
-      tokenUrl: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
-      clientId,
-      clientSecret,
-      scopes: getAzureAdScopes(),
-    }
+const providerRefreshConfigs = new Map<string, OidcRefreshConfig>()
+
+// Discovery documents are effectively static. Cache each provider's
+// token_endpoint so a near-hourly access-token refresh doesn't also mean a
+// round trip to fetch the same JSON every time.
+const DISCOVERY_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const tokenEndpointCache = new Map<string, { url: string; fetchedAt: number }>()
+
+async function discoverTokenEndpoint(wellKnownUrl: string): Promise<string> {
+  const cached = tokenEndpointCache.get(wellKnownUrl)
+  if (cached && Date.now() - cached.fetchedAt < DISCOVERY_CACHE_TTL_MS) {
+    return cached.url
   }
 
-  if (provider === "azure-ad-b2c") {
-    const clientId = process.env.AZURE_AD_B2C_CLIENT_ID
-    const authority = process.env.AZURE_AD_B2C_AUTHORITY?.replace(/\/$/, "")
-    if (!clientId || !authority) return null
-    const clientSecret = process.env.AZURE_AD_B2C_CLIENT_SECRET
-    return {
-      tokenUrl: `${authority}/oauth2/v2.0/token`,
-      clientId,
-      // B2C may be configured as a public client (no secret)
-      clientSecret:
-        typeof clientSecret === "string" && clientSecret.length > 0
-          ? clientSecret
-          : undefined,
-      scopes: getAzureAdB2CScopes(),
-    }
+  const response = await fetch(wellKnownUrl)
+  if (!response.ok) {
+    throw new Error(
+      `OIDC discovery failed for ${wellKnownUrl}: ${response.status} ${response.statusText}`
+    )
+  }
+  const doc = await response.json()
+  const tokenEndpoint = doc?.token_endpoint
+  if (typeof tokenEndpoint !== "string" || !tokenEndpoint) {
+    throw new Error(`OIDC discovery document at ${wellKnownUrl} has no token_endpoint`)
   }
 
-  return null
+  tokenEndpointCache.set(wellKnownUrl, { url: tokenEndpoint, fetchedAt: Date.now() })
+  return tokenEndpoint
 }
 
 /**
- * Exchange a Microsoft (Entra ID or B2C) refresh_token for a fresh
- * access_token audienced for the configured resource scope. Used so messaging
- * can forward a valid user token to the backend.
+ * Exchange a provider's refresh_token for a fresh access_token (and, since
+ * every provider configured here requests the `openid` scope, a fresh
+ * id_token too). Generic across any OIDC-compliant IdP registered in
+ * `providerRefreshConfigs`.
+ * 
+ * This exists so the id_token forwarded as X-User-Token (see
+ * XiansRequestOptions.verifyActingUser in lib/xians/client.ts) stays valid for
+ * as long as the NextAuth session does. The session can live for days while
+ * an ID token typically lives for under an hour; without this, every
+ * verifyActingUser call fails closed on the backend once it expires, and the
+ * user has no way to recover short of logging out and back in to mint a new
+ * one.
  */
-async function refreshMicrosoftAccessToken(token: JWT): Promise<JWT> {
-  const endpoint = resolveMicrosoftTokenEndpoint(token.provider)
+async function refreshOidcToken(token: JWT): Promise<JWT> {
+  const config = providerRefreshConfigs.get(token.provider as string)
 
-  if (!endpoint || !token.refreshToken) {
+  if (!config || !token.refreshToken) {
     console.error(
-      "[Auth] Cannot refresh Microsoft access token: missing endpoint config or refresh token",
+      "[Auth] Cannot refresh OIDC token: no refresh config or refresh token for provider",
       { provider: token.provider }
     )
     return { ...token, error: "RefreshAccessTokenError" }
   }
 
   try {
+    const tokenUrl = await discoverTokenEndpoint(config.wellKnownUrl)
+
     const body = new URLSearchParams({
-      client_id: endpoint.clientId,
+      client_id: config.clientId,
       grant_type: "refresh_token",
       refresh_token: token.refreshToken,
-      scope: endpoint.scopes,
     })
-    if (endpoint.clientSecret) {
-      body.set("client_secret", endpoint.clientSecret)
+    if (config.clientSecret) {
+      body.set("client_secret", config.clientSecret)
+    }
+    if (config.scope) {
+      body.set("scope", config.scope)
     }
 
-    const response = await fetch(endpoint.tokenUrl, {
+    const response = await fetch(tokenUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body,
@@ -127,7 +135,7 @@ async function refreshMicrosoftAccessToken(token: JWT): Promise<JWT> {
 
     if (!response.ok) {
       console.error(
-        "[Auth] Microsoft access token refresh failed:",
+        "[Auth] OIDC token refresh failed:",
         refreshed?.error_description || refreshed?.error || response.statusText
       )
       return { ...token, error: "RefreshAccessTokenError" }
@@ -136,7 +144,8 @@ async function refreshMicrosoftAccessToken(token: JWT): Promise<JWT> {
     return {
       ...token,
       accessToken: refreshed.access_token as string,
-      // Azure may rotate the refresh token; fall back to the existing one.
+      idToken: (refreshed.id_token as string | undefined) ?? token.idToken,
+      // The provider may rotate the refresh token; fall back to the existing one.
       refreshToken:
         (refreshed.refresh_token as string | undefined) ?? token.refreshToken,
       expiresAt:
@@ -145,7 +154,7 @@ async function refreshMicrosoftAccessToken(token: JWT): Promise<JWT> {
       error: undefined,
     }
   } catch (error) {
-    console.error("[Auth] Microsoft access token refresh threw:", error)
+    console.error("[Auth] OIDC token refresh threw:", error)
     return { ...token, error: "RefreshAccessTokenError" }
   }
 }
@@ -213,6 +222,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       }
     })
   )
+  providerRefreshConfigs.set("google", {
+    wellKnownUrl: "https://accounts.google.com/.well-known/openid-configuration",
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  })
 } else {
   console.log('[Auth] Google SSO disabled - GOOGLE_CLIENT_ID and/or GOOGLE_CLIENT_SECRET not configured')
 }
@@ -247,6 +261,13 @@ if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
       }
     })
   )
+  providerRefreshConfigs.set("azure-ad", {
+    wellKnownUrl: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID || "common"}/v2.0/.well-known/openid-configuration`,
+    clientId: process.env.AZURE_AD_CLIENT_ID,
+    clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+    // Azure drops the API resource scope on refresh unless it's re-specified.
+    scope: getAzureAdScopes(),
+  })
 } else {
   console.log('[Auth] Microsoft SSO disabled - AZURE_AD_CLIENT_ID and/or AZURE_AD_CLIENT_SECRET not configured')
 }
@@ -267,6 +288,13 @@ if (process.env.AZURE_AD_B2C_CLIENT_ID && process.env.AZURE_AD_B2C_AUTHORITY) {
       },
     })
   )
+  providerRefreshConfigs.set("azure-ad-b2c", {
+    wellKnownUrl: `${process.env.AZURE_AD_B2C_AUTHORITY.replace(/\/$/, "")}/v2.0/.well-known/openid-configuration`,
+    clientId: process.env.AZURE_AD_B2C_CLIENT_ID,
+    // B2C may be configured as a public client (no secret).
+    clientSecret: process.env.AZURE_AD_B2C_CLIENT_SECRET || undefined,
+    scope: getAzureAdB2CScopes(),
+  })
 } else {
   console.log('[Auth] Azure AD B2C SSO disabled - AZURE_AD_B2C_CLIENT_ID and/or AZURE_AD_B2C_AUTHORITY not configured')
 }
@@ -283,6 +311,11 @@ if (process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET && proc
       }
     })
   )
+  providerRefreshConfigs.set("keycloak", {
+    wellKnownUrl: `${process.env.KEYCLOAK_ISSUER}/.well-known/openid-configuration`,
+    clientId: process.env.KEYCLOAK_CLIENT_ID,
+    clientSecret: process.env.KEYCLOAK_CLIENT_SECRET,
+  })
 }
 
 // Add Visma Connect provider if credentials are available
@@ -296,6 +329,12 @@ if (process.env.VISMA_CONNECT_CLIENT_ID && process.env.VISMA_CONNECT_ISSUER) {
       },
     })
   )
+  providerRefreshConfigs.set("visma-connect", {
+    wellKnownUrl: `${process.env.VISMA_CONNECT_ISSUER}/.well-known/openid-configuration`,
+    clientId: process.env.VISMA_CONNECT_CLIENT_ID,
+    // Visma SPA registrations are public clients (PKCE, no secret).
+    clientSecret: process.env.VISMA_CONNECT_CLIENT_SECRET || undefined,
+  })
 } else {
   console.log('[Auth] Visma Connect SSO disabled - VISMA_CONNECT_CLIENT_ID and/or VISMA_CONNECT_ISSUER not configured')
 }
@@ -415,15 +454,17 @@ export const authOptions: NextAuthOptions = {
         token.tenantAccessCheckedAt = Date.now()
       }
 
-      // Refresh the Microsoft (Entra ID or B2C) access token before it expires
-      // so messaging can forward a valid user token to the backend.
+      // Refresh the access/id token before it expires, for any provider we know how to
+      // refresh (see providerRefreshConfigs) — so messaging and verifyActingUser calls
+      // always have a valid, current token to forward to the backend regardless of which
+      // IdP is configured.
       if (
-        (token.provider === "azure-ad" || token.provider === "azure-ad-b2c") &&
+        providerRefreshConfigs.has(token.provider as string) &&
         token.refreshToken &&
         typeof token.expiresAt === "number" &&
         Date.now() / 1000 >= token.expiresAt - ACCESS_TOKEN_REFRESH_BUFFER_SECONDS
       ) {
-        token = await refreshMicrosoftAccessToken(token)
+        token = await refreshOidcToken(token)
       }
 
       // Periodically re-validate tenant membership so that admin role / tenant
@@ -466,6 +507,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.email = (token.email as string | null | undefined) ?? session.user.email
         session.accessToken = token.accessToken as string
+        session.idToken = token.idToken as string | undefined
         session.user.hasTenantAccess = token.hasTenantAccess as boolean
         session.user.isSystemAdmin = token.isSystemAdmin as boolean
       }

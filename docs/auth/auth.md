@@ -224,6 +224,7 @@ declare module "next-auth" {
       role: string
     } & DefaultSession["user"]
     accessToken?: string
+    idToken?: string
   }
 
   interface User extends DefaultUser {
