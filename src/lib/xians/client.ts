@@ -18,7 +18,19 @@ export class XiansApiError extends Error {
 export interface XiansClientConfig {
   baseUrl: string
   apiKey?: string
+  /**
+   * The caller's own verified identity, forwarded as X-User-Token when a request opts in via
+   * verifyActingUser.
+   */
   authToken?: string
+}
+
+export interface XiansRequestOptions extends RequestInit {
+  /**
+   * Forward the caller's own verified session token (this.authToken) as the X-User-Token header. 
+   * Set true only on calls already verified to work with a real, possibly-non-admin identity behind them.
+   */
+  verifyActingUser?: boolean
 }
 
 export class XiansClient {
@@ -44,17 +56,18 @@ export class XiansClient {
    */
   private async request<T>(
     path: string,
-    options: RequestInit = {}
+    options: XiansRequestOptions = {}
   ): Promise<T> {
     const url = new URL(path, this.baseUrl + '/').toString()
-    
+    const { verifyActingUser, ...fetchOptions } = options
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
 
     // Merge existing headers
-    if (options.headers) {
-      const existingHeaders = new Headers(options.headers)
+    if (fetchOptions.headers) {
+      const existingHeaders = new Headers(fetchOptions.headers)
       existingHeaders.forEach((value, key) => {
         headers[key] = value
       })
@@ -65,20 +78,27 @@ export class XiansClient {
       headers['Authorization'] = `Bearer ${this.apiKey}`
     }
 
+    // Forward the caller's own verified session token as a second, optional credential so
+    // XiansAi.Server can resolve the real acting human instead of just the API key's owner —
+    // see XiansRequestOptions.verifyActingUser for why this is opt-in, not automatic.
+    if (this.authToken && verifyActingUser) {
+      headers['X-User-Token'] = this.authToken
+    }
+
     try {
       const response = await fetch(url, {
-        ...options,
+        ...fetchOptions,
         headers,
       })
 
       // Handle non-OK responses
       if (!response.ok) {
         const error = await response.json().catch(() => ({}))
-        
+
         // Extract error message from various formats
         // Priority: error.error > error.error.message > error.message > error.detail (RFC 9110 problem+json) > error.title > default
         let errorMessage = `Request failed with status ${response.status}`
-        
+
         if (error.error && typeof error.error === 'string') {
           errorMessage = error.error
         } else if (error.error?.message) {
@@ -90,7 +110,7 @@ export class XiansClient {
         } else if (error.title) {
           errorMessage = error.title
         }
-        
+
         throw new XiansApiError(
           errorMessage,
           response.status,
@@ -112,10 +132,10 @@ export class XiansClient {
       if (error instanceof XiansApiError) {
         throw error
       }
-      
+
       // Network or other errors (status 0 indicates network failure)
       let errorMessage = 'Unknown error'
-      
+
       if (error instanceof Error) {
         // Provide more helpful error messages for common network issues
         if (error.message.includes('fetch failed') || error.message.includes('Failed to fetch')) {
@@ -130,7 +150,7 @@ export class XiansClient {
           errorMessage = error.message
         }
       }
-      
+
       throw new XiansApiError(
         errorMessage,
         0
@@ -141,14 +161,14 @@ export class XiansClient {
   /**
    * GET request
    */
-  async get<T>(path: string, options?: RequestInit): Promise<T> {
+  async get<T>(path: string, options?: XiansRequestOptions): Promise<T> {
     return this.request<T>(path, { ...options, method: 'GET' })
   }
 
   /**
    * POST request
    */
-  async post<T>(path: string, data?: any, options?: RequestInit): Promise<T> {
+  async post<T>(path: string, data?: any, options?: XiansRequestOptions): Promise<T> {
     return this.request<T>(path, {
       ...options,
       method: 'POST',
@@ -159,7 +179,7 @@ export class XiansClient {
   /**
    * PUT request
    */
-  async put<T>(path: string, data?: any, options?: RequestInit): Promise<T> {
+  async put<T>(path: string, data?: any, options?: XiansRequestOptions): Promise<T> {
     return this.request<T>(path, {
       ...options,
       method: 'PUT',
@@ -170,7 +190,7 @@ export class XiansClient {
   /**
    * PATCH request
    */
-  async patch<T>(path: string, data?: any, options?: RequestInit): Promise<T> {
+  async patch<T>(path: string, data?: any, options?: XiansRequestOptions): Promise<T> {
     return this.request<T>(path, {
       ...options,
       method: 'PATCH',
@@ -181,7 +201,7 @@ export class XiansClient {
   /**
    * DELETE request
    */
-  async delete<T>(path: string, options?: RequestInit): Promise<T> {
+  async delete<T>(path: string, options?: XiansRequestOptions): Promise<T> {
     return this.request<T>(path, { ...options, method: 'DELETE' })
   }
 }
@@ -192,15 +212,15 @@ export class XiansClient {
 export function createXiansClient(authToken?: string): XiansClient {
   const baseUrl = process.env.XIANS_SERVER_URL
   const apiKey = process.env.XIANS_APIKEY
-  
+
   if (!baseUrl) {
     throw new Error('XIANS_SERVER_URL environment variable is required')
   }
-  
+
   if (!apiKey) {
     throw new Error('XIANS_APIKEY environment variable is required')
   }
-  
+
   return new XiansClient({
     baseUrl,
     apiKey,
