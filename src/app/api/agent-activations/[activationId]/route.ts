@@ -23,7 +23,7 @@ export async function PUT(
       }
 
       const { participantId: _, ...safeBody } = body
-      const xians = createXiansSDK((apiContext.session as any).accessToken)
+      const xians = createXiansSDK((apiContext.session as any).idToken)
       const result = await xians.agents.updateActivation(
         apiContext.tenantContext.tenant.id,
         activationId,
@@ -70,7 +70,7 @@ export async function DELETE(
         )
       }
 
-      const xians = createXiansSDK((apiContext.session as any).accessToken)
+      const xians = createXiansSDK((apiContext.session as any).idToken)
       await xians.agents.deleteActivation(apiContext.tenantContext.tenant.id, activationId)
 
       return NextResponse.json(

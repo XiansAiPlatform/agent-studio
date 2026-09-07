@@ -21,7 +21,7 @@ export async function POST(
         )
       }
 
-      const xians = createXiansSDK((apiContext.session as any).accessToken)
+      const xians = createXiansSDK((apiContext.session as any).idToken)
       await xians.agents.deactivateActivation(apiContext.tenantContext.tenant.id, activationId)
 
       return NextResponse.json(

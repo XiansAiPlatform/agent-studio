@@ -24,10 +24,11 @@ export async function POST(
       }
 
       const tenantId = apiContext.tenantContext.tenant.id
-      const client = createXiansClient((apiContext.session as any)?.accessToken)
+      const client = createXiansClient((apiContext.session as any)?.idToken)
       const result = await client.post<any>(
         `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/activate`,
-        { workflowConfiguration }
+        { workflowConfiguration },
+        { verifyActingUser: true }
       )
 
       return NextResponse.json({

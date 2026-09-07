@@ -208,7 +208,8 @@ export class XiansAgentsApi {
   ): Promise<XiansAgentActivation> {
     return this.client.post<XiansAgentActivation>(
       `/api/v1/admin/tenants/${tenantId}/agentActivations`,
-      data
+      data,
+      { verifyActingUser: true }
     )
   }
 
@@ -248,7 +249,8 @@ export class XiansAgentsApi {
   ): Promise<void> {
     return this.client.post<void>(
       `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/activate`,
-      { workflowConfiguration }
+      { workflowConfiguration },
+      { verifyActingUser: true }
     )
   }
 
@@ -261,7 +263,9 @@ export class XiansAgentsApi {
     activationId: string
   ): Promise<void> {
     return this.client.post<void>(
-      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/deactivate`
+      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/deactivate`,
+      undefined,
+      { verifyActingUser: true }
     )
   }
 
@@ -281,7 +285,8 @@ export class XiansAgentsApi {
   ): Promise<XiansAgentActivation> {
     return this.client.put<XiansAgentActivation>(
       `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}`,
-      data
+      data,
+      { verifyActingUser: true }
     )
   }
 
@@ -294,7 +299,8 @@ export class XiansAgentsApi {
     activationId: string
   ): Promise<void> {
     return this.client.delete<void>(
-      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}`
+      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}`,
+      { verifyActingUser: true }
     )
   }
 }

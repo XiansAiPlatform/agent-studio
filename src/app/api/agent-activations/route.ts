@@ -60,7 +60,7 @@ export const POST = withParticipantAdmin(
         )
       }
 
-      const xians = createXiansSDK((session as any).accessToken)
+      const xians = createXiansSDK((session as any).idToken)
       const activation = await xians.agents.createActivation(tenantContext.tenant.id, {
         ...data,
         participantId,
