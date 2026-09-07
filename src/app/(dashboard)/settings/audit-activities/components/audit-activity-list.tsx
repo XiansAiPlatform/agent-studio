@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
+import { cn } from '@/lib/utils';
 import type { AuditActivityDocument, AuditActivityListResponse } from '../types';
 
 interface AuditActivityListProps {
@@ -26,27 +28,79 @@ function formatDateTime(value: string): string {
   });
 }
 
+function formatDetailValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
 function AuditActivityRow({ item }: { item: AuditActivityDocument }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailEntries = item.details ? Object.entries(item.details) : [];
+  const hasDetails = detailEntries.length > 0;
+
   return (
-    <div className="grid w-full grid-cols-12 items-center gap-3 px-4 py-3 text-left text-sm">
-      <div className="col-span-6 min-w-0 truncate font-medium sm:col-span-3" title={item.action}>
-        {item.action}
+    <div>
+      <div className="grid w-full grid-cols-12 items-center gap-3 px-4 py-3 text-left text-sm">
+        <div className="col-span-6 min-w-0 sm:col-span-3">
+          <div className="truncate font-medium" title={item.action}>
+            {item.action}
+          </div>
+          {item.description && (
+            <div
+              className="mt-0.5 truncate text-xs text-muted-foreground"
+              title={item.description}
+            >
+              {item.description}
+            </div>
+          )}
+        </div>
+        <div className="col-span-6 min-w-0 truncate text-muted-foreground sm:col-span-3" title={item.performedBy}>
+          {item.performedBy}
+        </div>
+        <div className="col-span-4 min-w-0 sm:col-span-2">
+          {item.activationName ? (
+            <Badge variant="secondary" className="max-w-full truncate font-normal">
+              {item.activationName}
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground/60">—</span>
+          )}
+        </div>
+        <div className="col-span-2 flex items-center sm:col-span-1">
+          {hasDetails && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              aria-expanded={expanded}
+            >
+              Details
+              <ChevronDown
+                className={cn('h-3.5 w-3.5 transition-transform', expanded && 'rotate-180')}
+              />
+            </button>
+          )}
+        </div>
+        <div className="col-span-12 truncate text-xs text-muted-foreground sm:col-span-3 sm:text-right">
+          {formatDateTime(item.createdAt)}
+        </div>
       </div>
-      <div className="col-span-6 min-w-0 truncate text-muted-foreground sm:col-span-3" title={item.performedBy}>
-        {item.performedBy}
-      </div>
-      <div className="col-span-6 min-w-0 sm:col-span-3">
-        {item.activationName ? (
-          <Badge variant="secondary" className="max-w-full truncate font-normal">
-            {item.activationName}
-          </Badge>
-        ) : (
-          <span className="text-muted-foreground/60">—</span>
-        )}
-      </div>
-      <div className="col-span-12 truncate text-xs text-muted-foreground sm:col-span-3 sm:text-right">
-        {formatDateTime(item.createdAt)}
-      </div>
+
+      {expanded && hasDetails && (
+        <div className="border-t border-border/40 bg-muted/20 px-4 py-3">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+            {detailEntries.map(([key, value]) => (
+              <div key={key} className="flex min-w-0 items-baseline gap-2 text-xs">
+                <dt className="shrink-0 font-medium text-muted-foreground">{key}</dt>
+                <dd className="min-w-0 truncate text-foreground" title={formatDetailValue(value)}>
+                  {formatDetailValue(value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
     </div>
   );
 }
@@ -92,7 +146,8 @@ export function AuditActivityList({ data, loading, error, onPageChange }: AuditA
         <div className="hidden grid-cols-12 gap-3 border-b border-border/60 bg-muted/30 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:grid">
           <div className="col-span-3">Action</div>
           <div className="col-span-3">Performed By</div>
-          <div className="col-span-3">Activation</div>
+          <div className="col-span-2">Activation</div>
+          <div className="col-span-1"></div>
           <div className="col-span-3 text-right">When</div>
         </div>
 

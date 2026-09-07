@@ -23,6 +23,7 @@ export interface AuditActivityDocument {
   performedBy: string;
   action: string;
   activationName?: string | null;
+  description?: string | null;
   details?: Record<string, unknown> | null;
   createdAt: string;
 }
