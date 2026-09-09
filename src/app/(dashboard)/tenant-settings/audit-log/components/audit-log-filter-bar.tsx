@@ -12,28 +12,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { X } from 'lucide-react';
-import type { AuditActivityFilters } from '../types';
+import type { AuditLogFilters } from '../types';
 
 const ANY_VALUE = 'all';
-/** Sentinel for activities recorded above the activation level (no activationName set). */
+/** Sentinel for entries recorded above the activation level (no activationName set). */
 const NO_ACTIVATION_VALUE = 'none';
 const NO_ACTIVATION_LABEL = 'Tenant-Level (No Activation)';
 
-interface AuditActivityFilterBarProps {
-  filters: AuditActivityFilters;
+interface AuditLogFilterBarProps {
+  filters: AuditLogFilters;
   performedByOptions: string[];
   activationNameOptions: string[];
-  onChange: (next: Partial<AuditActivityFilters>) => void;
+  onChange: (next: Partial<AuditLogFilters>) => void;
   onClearAll: () => void;
 }
 
-export function AuditActivityFilterBar({
+export function AuditLogFilterBar({
   filters,
   performedByOptions,
   activationNameOptions,
   onChange,
   onClearAll,
-}: AuditActivityFilterBarProps) {
+}: AuditLogFilterBarProps) {
   const hasActiveFilters =
     filters.performedBy !== null ||
     filters.activationName !== null ||

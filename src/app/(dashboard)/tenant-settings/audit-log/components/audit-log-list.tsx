@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { cn } from '@/lib/utils';
-import type { AuditActivityDocument, AuditActivityListResponse } from '../types';
+import type { AuditLogEntry, AuditLogListResponse } from '../types';
 
-interface AuditActivityListProps {
-  data: AuditActivityListResponse | null;
+interface AuditLogListProps {
+  data: AuditLogListResponse | null;
   loading: boolean;
   error: string | null;
   onPageChange: (page: number) => void;
@@ -34,34 +34,34 @@ function formatDetailValue(value: unknown): string {
   return String(value);
 }
 
-function AuditActivityRow({ item }: { item: AuditActivityDocument }) {
+function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
   const [expanded, setExpanded] = useState(false);
-  const detailEntries = item.details ? Object.entries(item.details) : [];
+  const detailEntries = entry.details ? Object.entries(entry.details) : [];
   const hasDetails = detailEntries.length > 0;
 
   return (
     <div>
       <div className="grid w-full grid-cols-12 items-center gap-3 px-4 py-3 text-left text-sm">
         <div className="col-span-6 min-w-0 sm:col-span-3">
-          <div className="truncate font-medium" title={item.action}>
-            {item.action}
+          <div className="truncate font-medium" title={entry.action}>
+            {entry.action}
           </div>
-          {item.description && (
+          {entry.description && (
             <div
               className="mt-0.5 truncate text-xs text-muted-foreground"
-              title={item.description}
+              title={entry.description}
             >
-              {item.description}
+              {entry.description}
             </div>
           )}
         </div>
-        <div className="col-span-6 min-w-0 truncate text-muted-foreground sm:col-span-3" title={item.performedBy}>
-          {item.performedBy}
+        <div className="col-span-6 min-w-0 truncate text-muted-foreground sm:col-span-3" title={entry.participantId}>
+          {entry.participantId}
         </div>
         <div className="col-span-4 min-w-0 sm:col-span-2">
-          {item.activationName ? (
+          {entry.activationName ? (
             <Badge variant="secondary" className="max-w-full truncate font-normal">
-              {item.activationName}
+              {entry.activationName}
             </Badge>
           ) : (
             <span className="text-muted-foreground/60">—</span>
@@ -83,7 +83,7 @@ function AuditActivityRow({ item }: { item: AuditActivityDocument }) {
           )}
         </div>
         <div className="col-span-12 truncate text-xs text-muted-foreground sm:col-span-3 sm:text-right">
-          {formatDateTime(item.createdAt)}
+          {formatDateTime(entry.createdAt)}
         </div>
       </div>
 
@@ -105,7 +105,7 @@ function AuditActivityRow({ item }: { item: AuditActivityDocument }) {
   );
 }
 
-export function AuditActivityList({ data, loading, error, onPageChange }: AuditActivityListProps) {
+export function AuditLogList({ data, loading, error, onPageChange }: AuditLogListProps) {
   if (error) {
     return (
       <Card>
@@ -118,17 +118,17 @@ export function AuditActivityList({ data, loading, error, onPageChange }: AuditA
     return (
       <Card>
         <CardContent>
-          <PageLoader label="Loading audit activities..." />
+          <PageLoader label="Loading audit log..." />
         </CardContent>
       </Card>
     );
   }
 
-  if (data.activities.length === 0) {
+  if (data.entries.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-sm font-medium text-foreground">No audit activities found</p>
+          <p className="text-sm font-medium text-foreground">No audit log entries found</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Try adjusting the filters or check back later.
           </p>
@@ -137,7 +137,7 @@ export function AuditActivityList({ data, loading, error, onPageChange }: AuditA
     );
   }
 
-  const { activities, page, totalPages, totalCount } = data;
+  const { entries, page, totalPages, totalCount } = data;
 
   return (
     <Card className="overflow-hidden py-0">
@@ -152,8 +152,8 @@ export function AuditActivityList({ data, loading, error, onPageChange }: AuditA
         </div>
 
         <div className="divide-y divide-border/50">
-          {activities.map((item) => (
-            <AuditActivityRow key={item.id} item={item} />
+          {entries.map((entry) => (
+            <AuditLogRow key={entry.id} entry={entry} />
           ))}
         </div>
 

@@ -5,13 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
-import { AuditActivityFilterBar } from './components/audit-activity-filter-bar';
-import { AuditActivityList } from './components/audit-activity-list';
-import type { AuditActivityFilters, AuditActivityListResponse } from './types';
+import { AuditLogFilterBar } from './components/audit-log-filter-bar';
+import { AuditLogList } from './components/audit-log-list';
+import type { AuditLogFilters, AuditLogListResponse } from './types';
 
 const PAGE_SIZE = 20;
 
-function buildFilterQuery(filters: AuditActivityFilters): URLSearchParams {
+function buildFilterQuery(filters: AuditLogFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.performedBy) params.set('performedBy', filters.performedBy);
   if (filters.onlyWithoutActivation) {
@@ -24,14 +24,14 @@ function buildFilterQuery(filters: AuditActivityFilters): URLSearchParams {
   return params;
 }
 
-function AuditActivitiesContent() {
+function AuditLogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currentTenantId } = useTenant();
   const { user } = useAuth();
 
   // Derive state from URL so the view is shareable / refresh-safe.
-  const filters: AuditActivityFilters = useMemo(
+  const filters: AuditLogFilters = useMemo(
     () => ({
       performedBy: searchParams.get('performedBy'),
       activationName: searchParams.get('activationName'),
@@ -46,7 +46,7 @@ function AuditActivitiesContent() {
     return !Number.isNaN(p) && p > 0 ? p : 1;
   }, [searchParams]);
 
-  const [list, setList] = useState<AuditActivityListResponse | null>(null);
+  const [list, setList] = useState<AuditLogListResponse | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
 
@@ -59,8 +59,8 @@ function AuditActivitiesContent() {
 
   // URL writer: merge partial filter / page changes.
   const updateURL = useCallback(
-    (next: { filters?: Partial<AuditActivityFilters>; page?: number }) => {
-      const mergedFilters: AuditActivityFilters = {
+    (next: { filters?: Partial<AuditLogFilters>; page?: number }) => {
+      const mergedFilters: AuditLogFilters = {
         ...filters,
         ...(next.filters ?? {}),
       };
@@ -70,7 +70,7 @@ function AuditActivitiesContent() {
       if (nextPage > 1) params.set('page', String(nextPage));
 
       const qs = params.toString();
-      router.push(qs ? `/settings/audit-activities?${qs}` : '/settings/audit-activities', {
+      router.push(qs ? `/tenant-settings/audit-log?${qs}` : '/tenant-settings/audit-log', {
         scroll: false,
       });
     },
@@ -78,7 +78,7 @@ function AuditActivitiesContent() {
   );
 
   const handleFilterChange = useCallback(
-    (partial: Partial<AuditActivityFilters>) => {
+    (partial: Partial<AuditLogFilters>) => {
       // Any filter change resets pagination.
       updateURL({ filters: partial, page: 1 });
     },
@@ -111,8 +111,8 @@ function AuditActivitiesContent() {
     (async () => {
       try {
         const [performedByRes, activationNamesRes] = await Promise.all([
-          fetch('/api/audit-activities/performed-by', { signal: controller.signal }),
-          fetch('/api/audit-activities/activation-names', { signal: controller.signal }),
+          fetch('/api/audit-log/performed-by', { signal: controller.signal }),
+          fetch('/api/audit-log/activation-names', { signal: controller.signal }),
         ]);
 
         if (performedByRes.ok) {
@@ -132,7 +132,7 @@ function AuditActivitiesContent() {
     return () => controller.abort();
   }, [shouldFetch]);
 
-  // Fetch the audit activity list whenever filters or page change.
+  // Fetch the audit log list whenever filters or page change.
   useEffect(() => {
     if (!shouldFetch) return;
     const requestId = ++listRequestIdRef.current;
@@ -145,20 +145,20 @@ function AuditActivitiesContent() {
         const params = buildFilterQuery(filters);
         params.set('page', String(currentPage));
         params.set('pageSize', String(PAGE_SIZE));
-        const res = await fetch(`/api/audit-activities?${params.toString()}`, {
+        const res = await fetch(`/api/audit-log?${params.toString()}`, {
           signal: controller.signal,
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
         }
-        const json = (await res.json()) as AuditActivityListResponse;
+        const json = (await res.json()) as AuditLogListResponse;
         if (requestId !== listRequestIdRef.current) return;
         setList(json);
       } catch (e) {
         if (e instanceof Error && e.name === 'AbortError') return;
         if (requestId !== listRequestIdRef.current) return;
-        setListError(e instanceof Error ? e.message : 'Failed to load audit activities');
+        setListError(e instanceof Error ? e.message : 'Failed to load audit log');
       } finally {
         if (requestId === listRequestIdRef.current) {
           setListLoading(false);
@@ -173,14 +173,14 @@ function AuditActivitiesContent() {
     <div className="container mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="min-w-0">
         <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-          Audit Activities
+          Audit Log
         </h1>
         <p className="mt-1 text-xs text-muted-foreground sm:mt-1.5 sm:text-sm">
-          Review the audit trail of user and system actions across this tenant.
+          Review the audit log of user and system actions across this tenant.
         </p>
       </div>
 
-      <AuditActivityFilterBar
+      <AuditLogFilterBar
         filters={filters}
         performedByOptions={performedByOptions}
         activationNameOptions={activationNameOptions}
@@ -189,9 +189,9 @@ function AuditActivitiesContent() {
       />
 
       {!list && !listError ? (
-        <PageLoader label="Loading audit activities..." />
+        <PageLoader label="Loading audit log..." />
       ) : (
-        <AuditActivityList
+        <AuditLogList
           data={list}
           loading={listLoading}
           error={listError}
@@ -202,10 +202,10 @@ function AuditActivitiesContent() {
   );
 }
 
-export default function AuditActivitiesPage() {
+export default function AuditLogPage() {
   return (
-    <Suspense fallback={<PageLoader label="Loading audit activities..." />}>
-      <AuditActivitiesContent />
+    <Suspense fallback={<PageLoader label="Loading audit log..." />}>
+      <AuditLogContent />
     </Suspense>
   );
 }

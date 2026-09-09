@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
 /**
- * GET /api/audit-activities
- * Paginated, filterable list of audit trail entries for the current tenant (newest first).
- * Restricted to users with Agent Settings access.
+ * GET /api/audit-log
+ * Paginated, filterable list of audit log entries for the current tenant (newest first).
+ * Restricted to tenant admins (and system admins).
  */
-export const GET = withParticipantAdmin(
+export const GET = withTenantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {
     try {
       const { searchParams } = new URL(request.url)
@@ -32,7 +32,7 @@ export const GET = withParticipantAdmin(
       upstream.set('pageSize', searchParams.get('pageSize') || '20')
 
       const xiansClient = createXiansClient((session as { accessToken?: string })?.accessToken)
-      const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/audit-activities?${upstream.toString()}`
+      const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/audit-logs?${upstream.toString()}`
       const response = await xiansClient.get(path)
 
       return NextResponse.json(response)

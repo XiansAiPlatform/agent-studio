@@ -150,7 +150,6 @@ const navigation: NavigationItem[] = [
       },
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' },
-      { name: 'Audit Activities', href: '/settings/audit-activities' },
       { name: 'Feedback', href: '/settings/feedback' },
       { name: 'Secrets', href: '/settings/secrets' },
     ],
@@ -163,6 +162,7 @@ const navigation: NavigationItem[] = [
     children: [
       { name: 'Users', href: '/tenant-settings/users' },
       { name: 'Branding', href: '/tenant-settings/branding' },
+      { name: 'Audit Log', href: '/tenant-settings/audit-log' },
       {
         name: 'OIDC Providers',
         href: '/tenant-settings/oidc',
