@@ -14,6 +14,7 @@ interface AgentSelectionContentProps {
   onActivationSelect: (activationName: string, agentName: string) => void;
   /** Optional className for the outer wrapper (e.g. padding overrides). */
   className?: string;
+  editableAgentNames?: string[] | null;
 }
 
 /**
@@ -24,6 +25,7 @@ interface AgentSelectionContentProps {
 export function AgentSelectionContent({
   onActivationSelect,
   className,
+  editableAgentNames,
 }: AgentSelectionContentProps) {
   const router = useRouter();
   const { currentTenantId } = useTenant();
@@ -31,7 +33,10 @@ export function AgentSelectionContent({
 
   const { activations, isLoading } = useActivations(currentTenantId);
 
-  const activeActivations = activations.filter((a) => a.status === 'active');
+  const allowed = editableAgentNames ? new Set(editableAgentNames) : null;
+  const activeActivations = activations.filter(
+    (a) => a.status === 'active' && (!allowed || allowed.has(a.agentName))
+  );
 
   const filteredActivations = activeActivations.filter((activation) => {
     const query = searchQuery.toLowerCase();
@@ -128,6 +133,8 @@ interface AgentSelectionPanelProps {
   description?: string;
   icon?: React.ComponentType<{ className?: string }>;
   onActivationSelect?: (activationName: string, agentName: string) => void;
+  /** Restrict the list to these agents (settings panels). Omit for Conversations. */
+  editableAgentNames?: string[] | null;
 }
 
 /**
@@ -144,6 +151,7 @@ export function AgentSelectionPanel({
   description = 'Choose an activation to start chatting',
   icon: Icon,
   onActivationSelect: externalOnActivationSelect,
+  editableAgentNames,
 }: AgentSelectionPanelProps) {
   const router = useRouter();
 
@@ -201,7 +209,10 @@ export function AgentSelectionPanel({
         </div>
 
         <div className="p-6 overflow-y-auto h-[calc(100vh-56px-120px)]">
-          <AgentSelectionContent onActivationSelect={handleActivationSelect} />
+          <AgentSelectionContent
+            onActivationSelect={handleActivationSelect}
+            editableAgentNames={editableAgentNames}
+          />
         </div>
       </div>
     </>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
+import { assertCanEditAgent } from '@/lib/auth/agent-access';
 
 function extractRecordIdFromPath(pathname: string): string | null {
   const match = pathname.match(/\/api\/data\/([^/]+)/);
@@ -22,6 +23,10 @@ export const DELETE = withParticipantAdmin(
         { status: 400 }
       );
     }
+
+    const agentName = new URL(request.url).searchParams.get('agentName');
+    const denied = await assertCanEditAgent(session, tenantId, agentName);
+    if (denied) return denied;
 
     try {
       const xiansClient = createXiansClient((session as any)?.accessToken);

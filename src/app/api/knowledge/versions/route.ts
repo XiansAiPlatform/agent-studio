@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
+import { assertCanEditAgent } from '@/lib/auth/agent-access';
 
 /**
  * DELETE /api/knowledge/versions
@@ -8,7 +9,7 @@ import { createXiansClient } from '@/lib/xians/client';
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
  */
 export const DELETE = withParticipantAdmin(
-  async (request: NextRequest, { tenantId }: ApiContext) => {
+  async (request: NextRequest, { session, tenantId }: ApiContext) => {
     try {
       const { searchParams } = new URL(request.url);
       const name = searchParams.get('name');
@@ -43,6 +44,9 @@ export const DELETE = withParticipantAdmin(
           { status: 400 }
         );
       }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName);
+      if (denied) return denied;
 
       const client = createXiansClient();
       const params = new URLSearchParams({ agentName });

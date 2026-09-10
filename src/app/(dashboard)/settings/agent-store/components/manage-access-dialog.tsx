@@ -1,0 +1,386 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Loader2, Trash2, ShieldCheck, Users } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
+import type { AgentAccess, AgentAccessLevel } from '@/lib/xians/types';
+
+const LEVELS: AgentAccessLevel[] = ['Read', 'Write', 'Owner'];
+
+const LEVEL_HELP: Record<AgentAccessLevel, string> = {
+  Read: 'Can see and use the agent',
+  Write: 'Can also edit the agent, its knowledge and schedules',
+  Owner: 'Full control, including managing access',
+};
+
+interface DirectoryUser {
+  userId: string;
+  name?: string;
+  email?: string;
+}
+
+interface AccessRow {
+  userId: string;
+  level: AgentAccessLevel;
+}
+
+interface ManageAccessDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  agent: { id: string; name: string } | null;
+}
+
+function toRows(access: AgentAccess): AccessRow[] {
+  // Highest level wins if an id somehow appears in more than one list.
+  const byId = new Map<string, AgentAccessLevel>();
+  for (const id of access.readAccess ?? []) byId.set(id, 'Read');
+  for (const id of access.writeAccess ?? []) byId.set(id, 'Write');
+  for (const id of access.ownerAccess ?? []) byId.set(id, 'Owner');
+  return [...byId.entries()]
+    .map(([userId, level]) => ({ userId, level }))
+    .sort((a, b) => LEVELS.indexOf(b.level) - LEVELS.indexOf(a.level));
+}
+
+export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDialogProps) {
+  const [access, setAccess] = useState<AgentAccess | null>(null);
+  const [pendingUser, setPendingUser] = useState<string | null>(null);
+  const [directory, setDirectory] = useState<DirectoryUser[]>([]);
+  const [canListUsers, setCanListUsers] = useState(true);
+
+  const [newUserId, setNewUserId] = useState('');
+  const [newLevel, setNewLevel] = useState<AgentAccessLevel>('Read');
+  const [isAdding, setIsAdding] = useState(false);
+
+  const agentId = agent?.id ?? null;
+  // Loading is derived: the loaded access object carries its own agentId, so it
+  // is only "ready" once that matches the agent the dialog is currently for.
+  const isReady = !!access && !!agentId && access.agentId === agentId;
+
+  useEffect(() => {
+    if (!open || !agentId) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/agent-deployments/${encodeURIComponent(agentId)}/access`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) {
+          throw Object.assign(new Error(data.error || data.message || 'Failed to load access'), {
+            status: res.status,
+          });
+        }
+        setAccess(data as AgentAccess);
+      } catch (err) {
+        if (cancelled) return;
+        showErrorToast(err, 'Failed to load access');
+        onOpenChange(false);
+      }
+    })();
+
+    (async () => {
+      // Directory of tenant users for the picker + display names. Only tenant
+      // admins can list users; owners who aren't fall back to a raw id field.
+      try {
+        const res = await fetch('/api/settings/users?page=1&pageSize=200');
+        if (cancelled) return;
+        if (res.status === 403) {
+          setCanListUsers(false);
+          setDirectory([]);
+          return;
+        }
+        const data = (await res.json()) as {
+          users?: Array<{ userId?: string; user_id?: string; name?: string; email?: string }>;
+        };
+        if (cancelled) return;
+        if (res.ok && Array.isArray(data.users)) {
+          setCanListUsers(true);
+          setDirectory(
+            data.users.map((u) => ({
+              userId: u.userId ?? u.user_id ?? '',
+              name: u.name,
+              email: u.email,
+            }))
+          );
+        }
+      } catch {
+        if (!cancelled) setCanListUsers(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, agentId, onOpenChange]);
+
+  const rows = useMemo(() => (access && isReady ? toRows(access) : []), [access, isReady]);
+  const ownerCount = rows.filter((r) => r.level === 'Owner').length;
+
+  const displayName = useCallback(
+    (userId: string) => {
+      const match = directory.find((u) => u.userId === userId);
+      if (match) return match.name || match.email || userId;
+      return userId;
+    },
+    [directory]
+  );
+
+  const listedIds = useMemo(() => new Set(rows.map((r) => r.userId)), [rows]);
+  const addableUsers = useMemo(
+    () => directory.filter((u) => u.userId && !listedIds.has(u.userId)),
+    [directory, listedIds]
+  );
+
+  const applyResult = (updated: AgentAccess) => setAccess(updated);
+
+  const handleChangeLevel = async (userId: string, level: AgentAccessLevel) => {
+    if (!agentId) return;
+    const currentRow = rows.find((r) => r.userId === userId);
+    if (currentRow?.level === level) return;
+    if (currentRow?.level === 'Owner' && level !== 'Owner' && ownerCount <= 1) {
+      showErrorToast(new Error('An agent must keep at least one owner.'));
+      return;
+    }
+    setPendingUser(userId);
+    try {
+      const res = await fetch(
+        `/api/agent-deployments/${encodeURIComponent(agentId)}/access/users/${encodeURIComponent(userId)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ level }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'Failed to update access');
+      applyResult(data as AgentAccess);
+      showSuccessToast('Access updated', `${displayName(userId)} is now ${level}`);
+    } catch (err) {
+      showErrorToast(err);
+    } finally {
+      setPendingUser(null);
+    }
+  };
+
+  const handleRemove = async (userId: string) => {
+    if (!agentId) return;
+    const currentRow = rows.find((r) => r.userId === userId);
+    if (currentRow?.level === 'Owner' && ownerCount <= 1) {
+      showErrorToast(new Error('An agent must keep at least one owner.'));
+      return;
+    }
+    setPendingUser(userId);
+    try {
+      const res = await fetch(
+        `/api/agent-deployments/${encodeURIComponent(agentId)}/access/users/${encodeURIComponent(userId)}`,
+        { method: 'DELETE' }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'Failed to remove access');
+      applyResult(data as AgentAccess);
+      showSuccessToast('Access removed', `${displayName(userId)} can no longer access this agent`);
+    } catch (err) {
+      showErrorToast(err);
+    } finally {
+      setPendingUser(null);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!agentId) return;
+    const userId = newUserId.trim();
+    if (!userId) {
+      showErrorToast(new Error('Pick a user to add.'));
+      return;
+    }
+    if (userId.includes('@')) {
+      showErrorToast(new Error('Enter a user id, not an email address.'));
+      return;
+    }
+    setIsAdding(true);
+    try {
+      const res = await fetch(`/api/agent-deployments/${encodeURIComponent(agentId)}/access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, level: newLevel }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'Failed to add user');
+      applyResult(data as AgentAccess);
+      setNewUserId('');
+      setNewLevel('Read');
+      showSuccessToast('Access granted', `${displayName(userId)} is now ${newLevel}`);
+    } catch (err) {
+      showErrorToast(err);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Manage access{agent ? ` — ${agent.name}` : ''}
+          </DialogTitle>
+          <DialogDescription>
+            Choose who can access this agent and at what level. Tenant and system
+            administrators always have full access.
+          </DialogDescription>
+        </DialogHeader>
+
+        {!isReady || !access ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Current access list */}
+            <div className="rounded-lg border divide-y">
+              {rows.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-muted-foreground text-center">
+                  No explicit access yet.
+                </p>
+              ) : (
+                rows.map((row) => {
+                  const isCreator = row.userId === access.createdBy;
+                  const busy = pendingUser === row.userId;
+                  return (
+                    <div key={row.userId} className="flex items-center gap-3 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                          {displayName(row.userId)}
+                          {isCreator && (
+                            <span className="text-[10px] font-normal text-muted-foreground border rounded px-1 py-0.5">
+                              creator
+                            </span>
+                          )}
+                        </p>
+                        {displayName(row.userId) !== row.userId && (
+                          <p className="text-xs text-muted-foreground truncate">{row.userId}</p>
+                        )}
+                      </div>
+                      <Select
+                        value={row.level}
+                        onValueChange={(v) => handleChangeLevel(row.userId, v as AgentAccessLevel)}
+                        disabled={busy}
+                      >
+                        <SelectTrigger className="w-[110px] h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LEVELS.map((lvl) => (
+                            <SelectItem key={lvl} value={lvl}>
+                              {lvl}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemove(row.userId)}
+                        disabled={busy}
+                        aria-label={`Remove ${displayName(row.userId)}`}
+                      >
+                        {busy ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Add a user */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Add a user</Label>
+              <div className="flex items-center gap-2">
+                {canListUsers ? (
+                  <Select value={newUserId} onValueChange={setNewUserId} disabled={isAdding}>
+                    <SelectTrigger className="flex-1 h-9">
+                      <SelectValue placeholder="Select a user…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {addableUsers.length === 0 ? (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                          Everyone is already listed
+                        </div>
+                      ) : (
+                        addableUsers.map((u) => (
+                          <SelectItem key={u.userId} value={u.userId}>
+                            {u.name || u.email || u.userId}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    className="flex-1 h-9"
+                    placeholder="User id"
+                    value={newUserId}
+                    onChange={(e) => setNewUserId(e.target.value)}
+                    disabled={isAdding}
+                  />
+                )}
+                <Select
+                  value={newLevel}
+                  onValueChange={(v) => setNewLevel(v as AgentAccessLevel)}
+                  disabled={isAdding}
+                >
+                  <SelectTrigger className="w-[110px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEVELS.map((lvl) => (
+                      <SelectItem key={lvl} value={lvl}>
+                        {lvl}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleAdd} disabled={isAdding || !newUserId.trim()} className="h-9">
+                  {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Add
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                {LEVEL_HELP[newLevel]}
+              </p>
+              {!canListUsers && (
+                <p className="text-xs text-muted-foreground">
+                  You can add users by id. Ask a tenant administrator if you need to look one up.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

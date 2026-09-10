@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
+import { assertCanEditActivation } from '@/lib/auth/agent-access'
 
 /**
  * POST /api/agent-activations/{activationId}/deactivate
@@ -20,6 +21,13 @@ export async function POST(
           { status: 400 }
         )
       }
+
+      const denied = await assertCanEditActivation(
+        apiContext.session,
+        apiContext.tenantContext.tenant.id,
+        activationId
+      )
+      if (denied) return denied
 
       const xians = createXiansSDK((apiContext.session as any).accessToken)
       await xians.agents.deactivateActivation(apiContext.tenantContext.tenant.id, activationId)

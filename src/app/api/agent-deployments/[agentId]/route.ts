@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
 
 /**
  * DELETE /api/agent-deployments/{agentId}
@@ -24,6 +25,10 @@ export async function DELETE(
       }
 
       const tenantId = apiContext.tenantContext.tenant.id
+
+      const denied = await assertCanEditAgent(apiContext.session, tenantId, agentId)
+      if (denied) return denied
+
       const forceDelete = req.nextUrl.searchParams.get('forceDelete') === 'true'
       console.log('[Delete Agent Deployment API] Deleting agent:', agentId, 'from tenant:', tenantId, 'forceDelete:', forceDelete)
 
