@@ -228,7 +228,7 @@ export function SlackWizardSheet({
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">Create Your Slack App</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 First, you'll need to create a new Slack application in your workspace.
               </p>
             </div>
@@ -294,7 +294,7 @@ export function SlackWizardSheet({
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">Configure OAuth Scopes</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Add the required permissions for your bot to function properly.
               </p>
             </div>
@@ -359,7 +359,7 @@ export function SlackWizardSheet({
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">Install App to Workspace</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Install the app to your Slack workspace to get the Bot OAuth Token.
               </p>
             </div>
@@ -398,7 +398,7 @@ export function SlackWizardSheet({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm mb-2"><strong>Copy the "Bot User OAuth Token"</strong> (starts with <code className="text-xs bg-card px-1 py-0.5 rounded">xoxb-</code>)</p>
-                  <p className="text-xs text-slate-500 mb-3">Paste it below:</p>
+                  <p className="text-xs text-muted-foreground mb-3">Paste it below:</p>
                   <div className="relative">
                     <Input
                       type={showSecrets.botToken ? 'text' : 'password'}
@@ -439,7 +439,7 @@ export function SlackWizardSheet({
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">Get Signing Secret</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 The signing secret is used to verify that requests are coming from Slack.
               </p>
             </div>
@@ -469,7 +469,7 @@ export function SlackWizardSheet({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm mb-2"><strong>Copy the "Signing Secret"</strong></p>
-                  <p className="text-xs text-slate-500 mb-3">Paste it below:</p>
+                  <p className="text-xs text-muted-foreground mb-3">Paste it below:</p>
                   <div className="relative">
                     <Input
                       type={showSecrets.signingSecret ? 'text' : 'password'}
@@ -503,7 +503,7 @@ export function SlackWizardSheet({
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">Choose Outgoing Message Configuration</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Select how you want the agent to send messages back to Slack.
               </p>
             </div>
@@ -526,13 +526,13 @@ export function SlackWizardSheet({
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium mb-1">Bot Token Only (Recommended)</h4>
-                    <p className="text-sm text-slate-600 mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Uses the Bot OAuth Token to send messages. Supports threading and all Slack features.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">Message Threading</span>
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">Full Features</span>
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">Dynamic Channels</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">Message Threading</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">Full Features</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">Dynamic Channels</span>
                     </div>
                   </div>
                 </div>
@@ -555,13 +555,13 @@ export function SlackWizardSheet({
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium mb-1">Incoming Webhook</h4>
-                    <p className="text-sm text-slate-600 mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Simple webhook URL for posting messages. Easier setup but limited features.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">Simple Setup</span>
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">No Threading</span>
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">Fixed Channel</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">Simple Setup</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">No Threading</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">Fixed Channel</span>
                     </div>
                   </div>
                 </div>
@@ -584,12 +584,12 @@ export function SlackWizardSheet({
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium mb-1">Both (Maximum Flexibility)</h4>
-                    <p className="text-sm text-slate-600 mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Configure both options. System will prefer webhook if available, otherwise use bot token.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">Fallback Support</span>
-                      <span className="text-xs bg-amber-100 text-slate-700 px-2 py-1 rounded">Maximum Flexibility</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">Fallback Support</span>
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-2 py-1 rounded">Maximum Flexibility</span>
                     </div>
                   </div>
                 </div>
@@ -597,30 +597,30 @@ export function SlackWizardSheet({
             </div>
 
             {(outgoingOption === 'webhook' || outgoingOption === 'both') && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-4">
                 <h4 className="font-medium mb-2 text-sm">Additional Setup for Webhook</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-700 mt-1">1.</span>
+                    <span className="text-blue-700 dark:text-blue-300 mt-1">1.</span>
                     <p>Go to <strong>"Incoming Webhooks"</strong> in the left sidebar</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-700 mt-1">2.</span>
+                    <span className="text-blue-700 dark:text-blue-300 mt-1">2.</span>
                     <p>Toggle <strong>"Activate Incoming Webhooks"</strong> to ON</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-700 mt-1">3.</span>
+                    <span className="text-blue-700 dark:text-blue-300 mt-1">3.</span>
                     <p>Click <strong>"Add New Webhook to Workspace"</strong></p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-700 mt-1">4.</span>
+                    <span className="text-blue-700 dark:text-blue-300 mt-1">4.</span>
                     <p>Select a default channel</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-700 mt-1">5.</span>
+                    <span className="text-blue-700 dark:text-blue-300 mt-1">5.</span>
                     <div className="flex-1">
                       <p className="mb-2"><strong>Copy the Webhook URL</strong> (starts with <code className="text-xs bg-card px-1 py-0.5 rounded">https://hooks.slack.com/services/...</code>)</p>
-                      <p className="text-xs text-slate-500 mb-3">Paste it below:</p>
+                      <p className="text-xs text-muted-foreground mb-3">Paste it below:</p>
                       <Input
                         type="text"
                         value={incomingWebhookUrl}
@@ -676,7 +676,7 @@ export function SlackWizardSheet({
               
               <div className="space-y-3">
                 <div>
-                  <Label className="text-xs text-slate-600 mb-2">Signing Secret</Label>
+                  <Label className="text-xs text-muted-foreground mb-2">Signing Secret</Label>
                   <div className="relative">
                     <Input
                       type={showSecrets.signingSecret ? 'text' : 'password'}
@@ -702,7 +702,7 @@ export function SlackWizardSheet({
 
                 {(outgoingOption === 'botToken' || outgoingOption === 'both') && (
                   <div>
-                    <Label className="text-xs text-slate-600 mb-2">Bot User OAuth Token</Label>
+                    <Label className="text-xs text-muted-foreground mb-2">Bot User OAuth Token</Label>
                     <div className="relative">
                       <Input
                         type={showSecrets.botToken ? 'text' : 'password'}
@@ -729,7 +729,7 @@ export function SlackWizardSheet({
 
                 {(outgoingOption === 'webhook' || outgoingOption === 'both') && incomingWebhookUrl && (
                   <div>
-                    <Label className="text-xs text-slate-600">Incoming Webhook URL</Label>
+                    <Label className="text-xs text-muted-foreground">Incoming Webhook URL</Label>
                     <Input
                       type="text"
                       value={incomingWebhookUrl}
@@ -755,7 +755,7 @@ export function SlackWizardSheet({
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">Configure Event Subscriptions</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Set up Slack to send events to your XiansAI integration using the webhook URL below.
               </p>
             </div>
@@ -897,7 +897,7 @@ export function SlackWizardSheet({
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">Enable Direct Messages</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Allow users to send direct messages to your bot.
               </p>
             </div>
@@ -950,14 +950,14 @@ export function SlackWizardSheet({
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Setup Complete!</h3>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 Your Slack integration is now fully configured and ready to use.
               </p>
             </div>
 
             <div className="bg-muted rounded-lg p-4 space-y-3">
               <h4 className="font-medium text-sm">What's Next?</h4>
-              <ul className="space-y-2 text-sm text-slate-600">
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
                   <span>Invite your bot to channels where you want it to respond</span>
@@ -1022,7 +1022,7 @@ export function SlackWizardSheet({
                             ? 'bg-primary text-white' 
                             : isPast
                             ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                            : 'bg-muted text-slate-400 cursor-not-allowed'
+                            : 'bg-muted text-muted-foreground cursor-not-allowed'
                         }`}
                       >
                         {isPast ? (
