@@ -210,19 +210,19 @@ export function CreateConnectionDialog({
           ) : typesError ? (
             <div className="text-center py-12 sm:py-16 px-4 sm:px-6 overflow-y-auto flex-1 min-h-0">
               <div className="max-w-md mx-auto space-y-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
-                  <Info className="h-6 w-6 text-amber-600" />
+                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto">
+                  <Info className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
-                <h3 className="text-lg font-medium text-slate-900">Backend API Required</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <h3 className="text-lg font-medium text-foreground">Backend API Required</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   Unable to connect to the integration metadata service. Please ensure the backend API endpoint is running:
                 </p>
                 <div className="bg-muted border border-border rounded-lg p-3 text-left">
-                  <code className="text-xs text-slate-700 break-all">
+                  <code className="text-xs text-foreground break-all">
                     GET {process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/integrations/metadata/types
                   </code>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   See <code className="bg-muted px-1 py-0.5 rounded">CONNECTIONS_API_REQUIREMENTS.md</code> for implementation details.
                 </p>
               </div>
@@ -239,11 +239,11 @@ export function CreateConnectionDialog({
                   >
                     <div className="flex items-center gap-3 sm:gap-6">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-muted rounded-lg">
-                        <Webhook className="h-6 w-6 sm:h-8 sm:w-8 text-slate-500" />
+                        <Webhook className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1 text-left">
-                        <h3 className="text-sm sm:text-base font-normal text-slate-900 group-hover:text-slate-950">Webhooks</h3>
-                        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed line-clamp-2 sm:line-clamp-none">Built-in HTTP webhooks for triggering workflows via POST</p>
+                        <h3 className="text-sm sm:text-base font-normal text-foreground">Webhooks</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2 sm:line-clamp-none">Built-in HTTP webhooks for triggering workflows via POST</p>
                       </div>
                     </div>
                   </button>
@@ -258,9 +258,9 @@ export function CreateConnectionDialog({
                       {/* Icon */}
                       <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-muted rounded-lg">
                         {integration.platformId === 'webhook' ? (
-                          <Webhook className="h-6 w-6 sm:h-8 sm:w-8 text-slate-500" />
+                          <Webhook className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                         ) : failedIcons.has(integration.platformId) ? (
-                          <Plug className="h-6 w-6 sm:h-8 sm:w-8 text-slate-500" />
+                          <Plug className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                         ) : (
                           <Image
                             src={getIconUrl(integration.icon)}
@@ -277,10 +277,10 @@ export function CreateConnectionDialog({
 
                       {/* Content */}
                       <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1 text-left">
-                        <h3 className="text-sm sm:text-base font-normal text-slate-900 group-hover:text-slate-950 truncate">
+                        <h3 className="text-sm sm:text-base font-normal text-foreground truncate">
                           {integration.displayName}
                         </h3>
-                        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed line-clamp-2 sm:line-clamp-none">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2 sm:line-clamp-none">
                           {integration.description}
                         </p>
                       </div>
@@ -295,7 +295,7 @@ export function CreateConnectionDialog({
                             }}
                             className="p-1.5 rounded-md hover:bg-muted transition-colors"
                           >
-                            <ExternalLink className="h-4 w-4 text-slate-400" />
+                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
                       )}
@@ -395,13 +395,13 @@ export function CreateConnectionDialog({
 
                   {/* Documentation Link */}
                   {selectedIntegration?.documentationUrl && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-900">
+                    <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <p className="text-sm text-blue-900 dark:text-blue-100">
                         Need help configuring this integration?{' '}
                         <Button
                           type="button"
                           variant="link"
-                          className="p-0 h-auto text-blue-900 font-semibold"
+                          className="p-0 h-auto text-blue-900 dark:text-blue-100 font-semibold"
                           onClick={() => window.open(selectedIntegration.documentationUrl!, '_blank')}
                         >
                           View documentation <ExternalLink className="h-3 w-3 ml-1 inline" />
