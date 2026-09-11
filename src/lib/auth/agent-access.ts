@@ -43,28 +43,30 @@ const EMPTY: AgentEditability = { canEditAll: false, levels: {}, editable: new S
 // the key includes the user's email and the upstream call uses the service key.
 const cache = createTtlCache<AgentAccessResponse>(TENANT_LOOKUP_TTL_MS)
 
-async function fetchAgentAccess(tenantId: string, email: string): Promise<AgentAccessResponse> {
+async function fetchAgentAccess(tenantId: string, identifier: string): Promise<AgentAccessResponse> {
   const client = createXiansClient()
   return client.get<AgentAccessResponse>(
-    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agent-access?user=${encodeURIComponent(email)}`,
+    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agent-access?user=${encodeURIComponent(identifier)}`,
     { headers: { 'X-Tenant-Id': tenantId } }
   )
 }
 
 /**
- * Resolve which agents the session user may edit in the given tenant.
+ * Resolve which agents a user may edit in the given tenant. `identifier` may be
+ * a user id or an email — the backend accepts either and resolves globally
+ * (`IUserRepository.GetByUserIdOrEmailAsync`), independent of tenant membership,
+ * so this also works for e.g. a SysAdmin who isn't a member of this tenant.
  * Fails closed (empty) when the user can't be identified or the lookup fails.
  */
-export async function resolveAgentEditability(
-  session: Session | null,
+export async function resolveAgentEditabilityFor(
+  identifier: string | null | undefined,
   tenantId: string
 ): Promise<AgentEditability> {
-  const email = session?.user?.email
-  if (!email || !tenantId) return EMPTY
+  if (!identifier || !tenantId) return EMPTY
 
   try {
-    const res = await cache.get(`${tenantId}|${email.toLowerCase()}`, () =>
-      fetchAgentAccess(tenantId, email)
+    const res = await cache.get(`${tenantId}|${identifier.toLowerCase()}`, () =>
+      fetchAgentAccess(tenantId, identifier)
     )
     const agents = res.agents ?? {}
     return {
@@ -79,6 +81,17 @@ export async function resolveAgentEditability(
   } catch {
     return EMPTY
   }
+}
+
+/**
+ * Resolve which agents the session user may edit in the given tenant.
+ * Fails closed (empty) when the user can't be identified or the lookup fails.
+ */
+export async function resolveAgentEditability(
+  session: Session | null,
+  tenantId: string
+): Promise<AgentEditability> {
+  return resolveAgentEditabilityFor(session?.user?.email, tenantId)
 }
 
 /**

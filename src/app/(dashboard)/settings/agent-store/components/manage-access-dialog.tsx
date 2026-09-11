@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Trash2, ShieldCheck, Users } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Loader2, Trash2, ShieldCheck, Users, CheckCircle2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -34,11 +34,24 @@ interface DirectoryUser {
   userId: string;
   name?: string;
   email?: string;
+  roles?: string[];
+  isSysAdmin?: boolean;
+  resolvedAdmin?: boolean;
+}
+
+/**
+ * TenantAdmin / SysAdmin always bypass the per-agent access lists
+ */
+function isAdminUser(u: DirectoryUser | undefined | null): boolean {
+  if (!u) return false;
+  return u.isSysAdmin === true || u.resolvedAdmin === true || (u.roles ?? []).includes('TenantAdmin');
 }
 
 interface AccessRow {
   userId: string;
   level: AgentAccessLevel;
+  /** True for a TenantAdmin/SysAdmin shown by default with no explicit grant on this agent. */
+  virtual?: boolean;
 }
 
 interface ManageAccessDialogProps {
@@ -62,6 +75,8 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
   const [access, setAccess] = useState<AgentAccess | null>(null);
   const [pendingUser, setPendingUser] = useState<string | null>(null);
   const [directory, setDirectory] = useState<DirectoryUser[]>([]);
+  
+  const [resolvedExtras, setResolvedExtras] = useState<Record<string, DirectoryUser>>({});
   const [canListUsers, setCanListUsers] = useState(true);
 
   const [newUserId, setNewUserId] = useState('');
@@ -73,8 +88,13 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
   // is only "ready" once that matches the agent the dialog is currently for.
   const isReady = !!access && !!agentId && access.agentId === agentId;
 
+  // Listed userIds we've already tried a per-user admin-status lookup for (see
+  // the resolution effect below), so a re-render doesn't re-fetch the same id.
+  const attemptedResolveRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!open || !agentId) return;
+  
     let cancelled = false;
 
     (async () => {
@@ -107,7 +127,15 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
           return;
         }
         const data = (await res.json()) as {
-          users?: Array<{ userId?: string; user_id?: string; name?: string; email?: string }>;
+          users?: Array<{
+            userId?: string;
+            user_id?: string;
+            name?: string;
+            email?: string;
+            roles?: string[];
+            isSysAdmin?: boolean;
+            is_sys_admin?: boolean;
+          }>;
         };
         if (cancelled) return;
         if (res.ok && Array.isArray(data.users)) {
@@ -117,6 +145,8 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
               userId: u.userId ?? u.user_id ?? '',
               name: u.name,
               email: u.email,
+              roles: u.roles,
+              isSysAdmin: u.isSysAdmin ?? u.is_sys_admin,
             }))
           );
         }
@@ -131,18 +161,83 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
   }, [open, agentId, onOpenChange]);
 
   const rows = useMemo(() => (access && isReady ? toRows(access) : []), [access, isReady]);
+  
   const ownerCount = rows.filter((r) => r.level === 'Owner').length;
+
+  const directoryById = useMemo(() => {
+    const map = new Map<string, DirectoryUser>();
+    
+    for (const u of directory) if (u.userId) map.set(u.userId, u);
+    for (const u of Object.values(resolvedExtras)) if (u.userId) map.set(u.userId, u);
+    return map;
+  }, [directory, resolvedExtras]);
+
+
+  useEffect(() => {
+    if (!open || !agentId || rows.length === 0) return;
+
+    const missing = rows
+      .map((r) => r.userId)
+      .filter((id) => id && !directoryById.has(id) && !attemptedResolveRef.current.has(id));
+    if (missing.length === 0) return;
+    missing.forEach((id) => attemptedResolveRef.current.add(id));
+
+    let cancelled = false;
+    (async () => {
+      const resolved = await Promise.all(
+        missing.map(async (id): Promise<DirectoryUser | null> => {
+          try {
+            const res = await fetch(`/api/agent-access?userId=${encodeURIComponent(id)}`);
+            if (!res.ok) return null;
+            const data = (await res.json()) as { canEditAll?: boolean };
+            return data.canEditAll ? { userId: id, resolvedAdmin: true } : null;
+          } catch {
+            return null;
+          }
+        })
+      );
+      if (cancelled) return;
+      const additions = resolved.filter((u): u is DirectoryUser => !!u);
+      if (additions.length > 0) {
+        setResolvedExtras((prev) => {
+          const next = { ...prev };
+          for (const u of additions) next[u.userId] = u;
+          return next;
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, agentId, rows, directoryById]);
+
+  // Every current TenantAdmin/SysAdmin in the tenant already has full access to
+  // every agent regardless of any list 
+  const displayRows = useMemo(() => {
+    const byId = new Map<string, AccessRow>();
+    for (const r of rows) {
+      const admin = isAdminUser(directoryById.get(r.userId));
+      byId.set(r.userId, { userId: r.userId, level: admin ? 'Owner' : r.level });
+    }
+    for (const u of directory) {
+      if (u.userId && isAdminUser(u) && !byId.has(u.userId)) {
+        byId.set(u.userId, { userId: u.userId, level: 'Owner', virtual: true });
+      }
+    }
+    return [...byId.values()].sort((a, b) => LEVELS.indexOf(b.level) - LEVELS.indexOf(a.level));
+  }, [rows, directory, directoryById]);
 
   const displayName = useCallback(
     (userId: string) => {
-      const match = directory.find((u) => u.userId === userId);
+      const match = directoryById.get(userId);
       if (match) return match.name || match.email || userId;
       return userId;
     },
-    [directory]
+    [directoryById]
   );
 
-  const listedIds = useMemo(() => new Set(rows.map((r) => r.userId)), [rows]);
+  const listedIds = useMemo(() => new Set(displayRows.map((r) => r.userId)), [displayRows]);
   const addableUsers = useMemo(
     () => directory.filter((u) => u.userId && !listedIds.has(u.userId)),
     [directory, listedIds]
@@ -151,7 +246,7 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
   const applyResult = (updated: AgentAccess) => setAccess(updated);
 
   const handleChangeLevel = async (userId: string, level: AgentAccessLevel) => {
-    if (!agentId) return;
+    if (!agentId || isAdminUser(directoryById.get(userId))) return;
     const currentRow = rows.find((r) => r.userId === userId);
     if (currentRow?.level === level) return;
     if (currentRow?.level === 'Owner' && level !== 'Owner' && ownerCount <= 1) {
@@ -180,7 +275,7 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
   };
 
   const handleRemove = async (userId: string) => {
-    if (!agentId) return;
+    if (!agentId || isAdminUser(directoryById.get(userId))) return;
     const currentRow = rows.find((r) => r.userId === userId);
     if (currentRow?.level === 'Owner' && ownerCount <= 1) {
       showErrorToast(new Error('An agent must keep at least one owner.'));
@@ -212,6 +307,12 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
     }
     if (userId.includes('@')) {
       showErrorToast(new Error('Enter a user id, not an email address.'));
+      return;
+    }
+    if (isAdminUser(directoryById.get(userId))) {
+      showErrorToast(
+        new Error('Tenant/System admins already have full access and always bypass this list.')
+      );
       return;
     }
     setIsAdding(true);
@@ -256,14 +357,15 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
           <div className="space-y-4">
             {/* Current access list */}
             <div className="rounded-lg border divide-y">
-              {rows.length === 0 ? (
+              {displayRows.length === 0 ? (
                 <p className="px-4 py-6 text-sm text-muted-foreground text-center">
                   No explicit access yet.
                 </p>
               ) : (
-                rows.map((row) => {
+                displayRows.map((row) => {
                   const isCreator = row.userId === access.createdBy;
                   const busy = pendingUser === row.userId;
+                  const rowIsAdmin = isAdminUser(directoryById.get(row.userId));
                   return (
                     <div key={row.userId} className="flex items-center gap-3 px-4 py-3">
                       <div className="min-w-0 flex-1">
@@ -274,6 +376,11 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
                               creator
                             </span>
                           )}
+                          {rowIsAdmin && (
+                            <span className="text-[10px] font-normal text-muted-foreground border rounded px-1 py-0.5">
+                              admin — always full access{row.virtual ? ', not explicitly granted' : ''}
+                            </span>
+                          )}
                         </p>
                         {displayName(row.userId) !== row.userId && (
                           <p className="text-xs text-muted-foreground truncate">{row.userId}</p>
@@ -282,7 +389,7 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
                       <Select
                         value={row.level}
                         onValueChange={(v) => handleChangeLevel(row.userId, v as AgentAccessLevel)}
-                        disabled={busy}
+                        disabled={busy || rowIsAdmin}
                       >
                         <SelectTrigger className="w-[110px] h-8">
                           <SelectValue />
@@ -300,7 +407,7 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={() => handleRemove(row.userId)}
-                        disabled={busy}
+                        disabled={busy || rowIsAdmin}
                         aria-label={`Remove ${displayName(row.userId)}`}
                       >
                         {busy ? (
@@ -330,11 +437,22 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
                           Everyone is already listed
                         </div>
                       ) : (
-                        addableUsers.map((u) => (
-                          <SelectItem key={u.userId} value={u.userId}>
-                            {u.name || u.email || u.userId}
-                          </SelectItem>
-                        ))
+                        addableUsers.map((u) => {
+                          const admin = isAdminUser(u);
+                          return (
+                            <SelectItem key={u.userId} value={u.userId} disabled={admin}>
+                              <span className="flex items-center gap-1.5">
+                                {u.name || u.email || u.userId}
+                                {admin && (
+                                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    admin — already has full access
+                                  </span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          );
+                        })
                       )}
                     </SelectContent>
                   </Select>
@@ -363,7 +481,11 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
                     ))}
                   </SelectContent>
                 </Select>
-                <Button onClick={handleAdd} disabled={isAdding || !newUserId.trim()} className="h-9">
+                <Button
+                  onClick={handleAdd}
+                  disabled={isAdding || !newUserId.trim() || isAdminUser(directoryById.get(newUserId))}
+                  className="h-9"
+                >
                   {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Add
                 </Button>
