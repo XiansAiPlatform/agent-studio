@@ -5,7 +5,7 @@
  */
 
 import { XiansClient } from './client'
-import { XiansAgent, CreateAgentRequest, PaginatedResponse, XiansAgentTemplate, XiansAgentDeployment, XiansAgentDeploymentsResponse, XiansAgentActivation, CreateAgentActivationRequest, XiansAgentDeploymentDetail } from './types'
+import { XiansAgent, CreateAgentRequest, PaginatedResponse, XiansAgentTemplate, XiansAgentDeployment, XiansAgentDeploymentsResponse, XiansAgentActivation, CreateAgentActivationRequest, XiansAgentDeploymentDetail, AgentAccess, AgentAccessLevel } from './types'
 
 export class XiansAgentsApi {
   constructor(private client: XiansClient) {}
@@ -176,6 +176,62 @@ export class XiansAgentsApi {
   ): Promise<XiansAgent> {
     return this.client.post<XiansAgent>(
       `/api/v1/admin/tenants/${tenantId}/agentDeployments/${agentName}/promote-to-template`
+    )
+  }
+
+  /**
+   * Get an agent's owner / write / read access lists.
+   * GET /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access
+   */
+  async getAgentAccess(tenantId: string, agentId: string): Promise<AgentAccess> {
+    return this.client.get<AgentAccess>(
+      `/api/v1/admin/tenants/${tenantId}/agents/${agentId}/access`
+    )
+  }
+
+  /**
+   * Add a user to an agent's access at the given level (moving them if already present).
+   * POST /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access/users
+   */
+  async addAgentAccessUser(
+    tenantId: string,
+    agentId: string,
+    userId: string,
+    level: AgentAccessLevel
+  ): Promise<AgentAccess> {
+    return this.client.post<AgentAccess>(
+      `/api/v1/admin/tenants/${tenantId}/agents/${agentId}/access/users`,
+      { userId, level }
+    )
+  }
+
+  /**
+   * Change an existing user's access level for an agent.
+   * PATCH /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access/users/{userId}
+   */
+  async updateAgentAccessUser(
+    tenantId: string,
+    agentId: string,
+    userId: string,
+    level: AgentAccessLevel
+  ): Promise<AgentAccess> {
+    return this.client.patch<AgentAccess>(
+      `/api/v1/admin/tenants/${tenantId}/agents/${agentId}/access/users/${encodeURIComponent(userId)}`,
+      { level }
+    )
+  }
+
+  /**
+   * Remove a user from every access level for an agent.
+   * DELETE /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access/users/{userId}
+   */
+  async removeAgentAccessUser(
+    tenantId: string,
+    agentId: string,
+    userId: string
+  ): Promise<AgentAccess> {
+    return this.client.delete<AgentAccess>(
+      `/api/v1/admin/tenants/${tenantId}/agents/${agentId}/access/users/${encodeURIComponent(userId)}`
     )
   }
 

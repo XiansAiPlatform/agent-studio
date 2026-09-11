@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Bot, Play, MoreVertical, Trash2, Layers } from 'lucide-react';
+import { Bot, Play, MoreVertical, Trash2, Layers, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EnhancedDeployment } from '../types';
 import { getCategoryLabel } from '../utils/category-utils';
@@ -16,6 +16,10 @@ interface DeployedAgentCardProps {
   onDelete?: () => void;
   canPromoteToTemplate?: boolean;
   onPromoteToTemplate?: () => void;
+  canManageAccess?: boolean;
+  onManageAccess?: () => void;
+  /** The signed-in user only has Read (or no) access to this agent: show it, but no edit affordances. */
+  readOnly?: boolean;
 }
 
 export function DeployedAgentCard({
@@ -27,7 +31,10 @@ export function DeployedAgentCard({
   onStartNewRun,
   onDelete,
   canPromoteToTemplate = false,
-  onPromoteToTemplate
+  onPromoteToTemplate,
+  canManageAccess = false,
+  onManageAccess,
+  readOnly = false
 }: DeployedAgentCardProps) {
   const Icon = deployment.icon || Bot;
   const hasDescription = deployment.description && deployment.description.trim() !== '';
@@ -41,7 +48,7 @@ export function DeployedAgentCard({
           ? 'border-emerald-300 dark:border-emerald-700 shadow-sm shadow-emerald-500/5' 
           : 'border-border hover:border-primary/30 hover:shadow-md'
       }`}
-      onClick={onClick}
+      onClick={readOnly ? undefined : onClick}
     >
       {/* Top accent / icon area */}
       <div className="flex items-start gap-4 p-5 pb-4">
@@ -69,7 +76,13 @@ export function DeployedAgentCard({
                   New
                 </span>
               )}
+              {readOnly && (
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-full shrink-0">
+                  View only
+                </span>
+              )}
             </div>
+            {!readOnly && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -83,6 +96,18 @@ export function DeployedAgentCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {canManageAccess && (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onManageAccess?.();
+                    }}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage access
+                  </DropdownMenuItem>
+                )}
                 {canPromoteToTemplate && (
                   <DropdownMenuItem
                     className="cursor-pointer"
@@ -107,6 +132,7 @@ export function DeployedAgentCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
           {(deployment.version || deployment.author) && (
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -158,17 +184,19 @@ export function DeployedAgentCard({
           <span className="text-xs text-muted-foreground">
             {deployment.activationCount ?? 0} run{(deployment.activationCount ?? 0) !== 1 ? 's' : ''}
           </span>
-          <Button
-            size="sm"
-            className="shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStartNewRun?.();
-            }}
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Activate New Run
-          </Button>
+          {!readOnly && (
+            <Button
+              size="sm"
+              className="shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartNewRun?.();
+              }}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Activate New Run
+            </Button>
+          )}
         </div>
       </div>
     </article>

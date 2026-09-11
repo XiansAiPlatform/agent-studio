@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
 
 /**
  * Build the AdminApi schedules base path for the current tenant + agent.
@@ -38,6 +39,9 @@ export const GET = withParticipantAdmin(
           { status: 400 }
         )
       }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName)
+      if (denied) return denied
 
       const upstreamParams = new URLSearchParams()
       const workflowType = searchParams.get('workflowType')
@@ -80,6 +84,9 @@ export const DELETE = withParticipantAdmin(
           { status: 400 }
         )
       }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName)
+      if (denied) return denied
 
       const client = createXiansClient((session as any)?.accessToken)
       const response = await client.delete<any>(

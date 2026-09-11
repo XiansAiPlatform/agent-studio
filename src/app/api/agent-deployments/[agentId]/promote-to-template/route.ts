@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
 
 /**
  * POST /api/agent-deployments/{agentId}/promote-to-template
@@ -26,6 +27,10 @@ export async function POST(
       }
 
       const tenantId = apiContext.tenantContext.tenant.id
+
+      const denied = await assertCanEditAgent(apiContext.session, tenantId, agentId)
+      if (denied) return denied
+
       console.log('[Promote Agent To Template API] Promoting agent:', agentId, 'from tenant:', tenantId)
 
       const xians = createXiansSDK((apiContext.session as any)?.accessToken)

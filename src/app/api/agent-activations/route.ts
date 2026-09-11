@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
 
 /**
  * GET /api/agent-activations
@@ -51,6 +52,9 @@ export const POST = withParticipantAdmin(
           { status: 400 }
         )
       }
+
+      const denied = await assertCanEditAgent(session, tenantContext.tenant.id, data.agentName)
+      if (denied) return denied
 
       const participantId = (session as any)?.user?.email
       if (!participantId) {

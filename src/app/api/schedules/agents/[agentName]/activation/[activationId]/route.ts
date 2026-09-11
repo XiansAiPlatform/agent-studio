@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
@@ -17,7 +18,7 @@ export async function DELETE(
   context: { params: Promise<{ agentName: string; activationId: string }> }
 ) {
   const handler = withParticipantAdmin(
-    async (req: NextRequest, { tenantContext }: ApiContext) => {
+    async (req: NextRequest, { session, tenantContext }: ApiContext) => {
       try {
         const { agentName, activationId } = await context.params
         if (!agentName || !activationId) {
@@ -31,6 +32,10 @@ export async function DELETE(
         }
 
         const tenantId = tenantContext.tenant.id
+
+        const denied = await assertCanEditAgent(session, tenantId, agentName)
+        if (denied) return denied
+
         const backendPath = `/api/v1/admin/tenants/${tenantId}/agents/${encodeURIComponent(agentName)}/schedules/activation/${encodeURIComponent(activationId)}`
 
         const client = createXiansClient()

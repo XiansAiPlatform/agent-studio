@@ -10,6 +10,7 @@ import { Loader2, Bot } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useCan } from '@/hooks/use-permissions';
+import { useEditableAgents } from '@/hooks/use-editable-agents';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 
 // Local imports
@@ -26,6 +27,7 @@ import { StoreSliderSheet } from './components/store-slider-sheet';
 import { DeleteAgentDialog } from './components/delete-agent-dialog';
 import { PromoteToTemplateDialog } from './components/promote-to-template-dialog';
 import { CategoryFilter } from './components/category-filter';
+import { ManageAccessDialog } from './components/manage-access-dialog';
 import { getCategoryLabel, groupByCategory, getUniqueCategories } from './utils/category-utils';
 import { ActivationConfigWizard, ActivationWizardData, InstanceMetadata } from '@/components/features/agents/activation-config-wizard';
 
@@ -34,7 +36,13 @@ export default function AgentTemplatesPage() {
   const { data: session } = useSession();
   // Only system admins can import/browse the global template store.
   const canImportTemplates = useCan('system:admin');
-  
+  // Editable agents
+  const editableAgents = useEditableAgents();
+  const canEditAgentCard = (deployment: EnhancedDeployment) =>
+    editableAgents.canEditAll || editableAgents.editable.includes(deployment.name);
+  const canManageAccess = (deployment: EnhancedDeployment) =>
+    editableAgents.canEditAll || editableAgents.levels[deployment.name] === 'Owner';
+
   // Use custom hooks for data fetching
   const { deployedAgents, isLoading, error } = useAgentDeployments();
   const { 
@@ -57,6 +65,8 @@ export default function AgentTemplatesPage() {
   const [showPromoteDialog, setShowPromoteDialog] = useState(false);
   const [agentToPromote, setAgentToPromote] = useState<EnhancedDeployment | null>(null);
   const [isCreatingInstance, setIsCreatingInstance] = useState(false);
+  const [agentForAccess, setAgentForAccess] = useState<EnhancedDeployment | null>(null);
+  const [showAccessDialog, setShowAccessDialog] = useState(false);
   const [isStoreSliderOpen, setIsStoreSliderOpen] = useState(false);
   const [mainGridExpanded, setMainGridExpanded] = useState(false);
   const [sliderExpanded, setSliderExpanded] = useState(false);
@@ -264,6 +274,11 @@ export default function AgentTemplatesPage() {
   const handlePromoteClick = (deployment: EnhancedDeployment) => {
     setAgentToPromote(deployment);
     setShowPromoteDialog(true);
+  };
+
+  const handleManageAccessClick = (deployment: EnhancedDeployment) => {
+    setAgentForAccess(deployment);
+    setShowAccessDialog(true);
   };
 
   const handleConfirmPromote = async () => {
@@ -608,6 +623,9 @@ export default function AgentTemplatesPage() {
                               onClick={() => handleDeploymentClick(deployment)}
                               onStartNewRun={() => handleStartNewRun(deployment)}
                               onDelete={() => handleDeleteClick(deployment)}
+                              readOnly={!canEditAgentCard(deployment)}
+                              canManageAccess={canManageAccess(deployment)}
+                              onManageAccess={() => handleManageAccessClick(deployment)}
                               canPromoteToTemplate={canImportTemplates}
                               onPromoteToTemplate={() => handlePromoteClick(deployment)}
                             />
@@ -627,6 +645,9 @@ export default function AgentTemplatesPage() {
                           onClick={() => handleDeploymentClick(deployment)}
                           onStartNewRun={() => handleStartNewRun(deployment)}
                           onDelete={() => handleDeleteClick(deployment)}
+                          readOnly={!canEditAgentCard(deployment)}
+                          canManageAccess={canManageAccess(deployment)}
+                          onManageAccess={() => handleManageAccessClick(deployment)}
                         />
                       ))}
                     </div>
@@ -679,6 +700,16 @@ export default function AgentTemplatesPage() {
         onForceDeleteChange={setForceDelete}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
+      />
+
+      {/* Manage Access Dialog */}
+      <ManageAccessDialog
+        open={showAccessDialog}
+        onOpenChange={(open) => {
+          setShowAccessDialog(open);
+          if (!open) setAgentForAccess(null);
+        }}
+        agent={agentForAccess ? { id: agentForAccess.id, name: agentForAccess.name } : null}
       />
 
       {/* Convert to Template Confirmation Dialog */}

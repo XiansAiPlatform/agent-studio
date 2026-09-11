@@ -32,6 +32,7 @@ import {
 } from '@/components/features/conversations/agent-selection-panel';
 import { useRouter } from 'next/navigation';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useEditableAgents } from '@/hooks/use-editable-agents';
 import type { Capability } from '@/lib/auth/capabilities';
 
 // Types for panel configuration
@@ -439,6 +440,14 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const effectiveCollapsed = mobile ? false : collapsed;
   const activePanelConfig = activePanelMode ? findPanelConfig(activePanelMode) : null;
 
+  // The settings panels (Knowledge / Data / Schedules / Connections) should only
+  // offer agents the user may edit. The Conversations panel is unrestricted.
+  const editableAgents = useEditableAgents();
+  const panelEditableAgentNames =
+    activePanelConfig && activePanelConfig.basePath !== '/conversations' && !editableAgents.canEditAll
+      ? editableAgents.editable
+      : null;
+
   const handlePanelTriggerClick = (itemName: string) => {
     // Both mobile and desktop: open the agent picker so the user can select
     // an activation. The chosen activation drives the per-agent URL params
@@ -536,6 +545,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           <AgentSelectionContent
+            editableAgentNames={panelEditableAgentNames}
             onActivationSelect={(activationName, agentName) => {
               const url = buildPanelDestinationUrl(activePanelConfig, agentName, activationName);
               router.push(url);
@@ -581,6 +591,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
           title={activePanelConfig.title}
           description={activePanelConfig.description}
           icon={activePanelConfig.icon}
+          editableAgentNames={panelEditableAgentNames}
           onActivationSelect={(activationName, agentName) => {
             const url = buildPanelDestinationUrl(activePanelConfig, agentName, activationName);
             router.push(url);
