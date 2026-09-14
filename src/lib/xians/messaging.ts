@@ -5,6 +5,7 @@
  */
 
 import { XiansClient } from './client'
+import { decodeAgentNameParam } from './agent-name'
 import { 
   XiansMessageHistoryResponse,
   XiansTopicsResponse,
@@ -47,8 +48,8 @@ export class XiansMessagingApi {
     } = params
 
     const queryParams = new URLSearchParams({
-      agentName,
-      activationName,
+      agentName: decodeAgentNameParam(agentName),
+      activationName: decodeAgentNameParam(activationName),
       participantId,
       page: page.toString(),
       pageSize: pageSize.toString(),
@@ -87,8 +88,8 @@ export class XiansMessagingApi {
     pageSize = 20
   ): Promise<XiansTopicsResponse> {
     const queryParams = new URLSearchParams({
-      agentName,
-      activationName,
+      agentName: decodeAgentNameParam(agentName),
+      activationName: decodeAgentNameParam(activationName),
       participantId,
       page: page.toString(),
       pageSize: pageSize.toString(),
@@ -125,8 +126,8 @@ export class XiansMessagingApi {
     authorization?: string
   ): Promise<SendMessageResponse> {
     const requestBody: SendMessageRequest = {
-      agentName: params.agentName,
-      activationName: params.activationName,
+      agentName: decodeAgentNameParam(params.agentName),
+      activationName: decodeAgentNameParam(params.activationName),
       participantId,
       text: params.text,
       topic: params.topic,
@@ -162,8 +163,8 @@ export class XiansMessagingApi {
     }
   ): Promise<void> {
     const queryParams = new URLSearchParams({
-      agentName: params.agentName,
-      activationName: params.activationName,
+      agentName: decodeAgentNameParam(params.agentName),
+      activationName: decodeAgentNameParam(params.activationName),
       participantId,
     })
 

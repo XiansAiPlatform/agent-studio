@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { encodeAgentNamePath } from '@/lib/xians/agent-name'
 
 /**
  * DELETE /api/webhooks/agents/{agentName}/activation/{activationId}
@@ -27,7 +28,7 @@ export async function DELETE(
         }
 
         const tenantId = tenantContext.tenant.id
-        const backendPath = `/api/v1/admin/tenants/${tenantId}/webhooks/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationId)}`
+        const backendPath = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/webhooks/agents/${encodeAgentNamePath(agentName)}/activation/${encodeAgentNamePath(activationId)}`
 
         const client = createXiansClient()
         await client.delete<any>(backendPath)

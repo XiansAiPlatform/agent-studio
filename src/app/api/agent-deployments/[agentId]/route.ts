@@ -3,6 +3,7 @@ import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
+import { decodeAgentNameParam } from '@/lib/xians/agent-name'
 
 /**
  * DELETE /api/agent-deployments/{agentId}
@@ -15,7 +16,7 @@ export async function DELETE(
 ) {
   const handler = withParticipantAdmin(async (req: NextRequest, apiContext: ApiContext) => {
     try {
-      const { agentId } = await context.params
+      const agentId = decodeAgentNameParam((await context.params).agentId)
 
       if (!agentId) {
         return NextResponse.json(

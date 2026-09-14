@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTenant } from '@/hooks/use-tenant'
+import { decodeAgentNameParam } from '@/lib/xians/agent-name'
 
 export type AgentLevel = 'Read' | 'Write' | 'Owner'
 
@@ -65,5 +66,7 @@ export function useEditableAgents(): EditableAgents {
 /** Whether `agentName` is editable given a resolved `EditableAgents`. */
 export function canEditAgent(access: EditableAgents, agentName: string | null | undefined): boolean {
   if (!agentName) return false
-  return access.canEditAll || access.editable.includes(agentName)
+  if (access.canEditAll) return true
+  const canonical = decodeAgentNameParam(agentName)
+  return access.editable.some((name) => decodeAgentNameParam(name) === canonical)
 }
