@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { useTenant } from '@/hooks/use-tenant';
+import { AGENT_NAME_VALIDATION_MESSAGE, isValidAgentName, normalizeAgentName } from '@/lib/xians/agent-name';
 
 interface WebhooksSheetProps {
   open: boolean;
@@ -62,7 +63,9 @@ export function WebhooksSheet({
   const validateCreate = (): boolean => {
     const err: Record<string, string> = {};
     if (!createAgentName?.trim()) err.agentName = 'Agent name is required';
+    else if (!isValidAgentName(createAgentName)) err.agentName = AGENT_NAME_VALIDATION_MESSAGE;
     if (!createActivationName?.trim()) err.activationName = 'Activation name is required';
+    else if (!isValidAgentName(createActivationName)) err.activationName = AGENT_NAME_VALIDATION_MESSAGE;
     if (createTimeout < 1 || createTimeout > 300) {
       err.timeout = 'Timeout must be between 1 and 300 seconds';
     }
@@ -79,8 +82,8 @@ export function WebhooksSheet({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agentName: createAgentName.trim(),
-          activationName: createActivationName.trim(),
+          agentName: normalizeAgentName(createAgentName),
+          activationName: normalizeAgentName(createActivationName),
           name: !useDefaultOptions && createWebhookName?.trim() ? createWebhookName.trim() : undefined,
           webhookName: createWebhookName?.trim() || 'Default',
           workflowName: createWorkflowName?.trim() || 'Integrator Workflow',

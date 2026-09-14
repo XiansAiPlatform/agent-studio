@@ -5,6 +5,7 @@
  */
 
 import { createXiansClient } from './client';
+import { decodeAgentNameParam } from './agent-name';
 
 /**
  * Get metrics categories overview for a tenant
@@ -29,10 +30,10 @@ export async function getMetricsCategories(
   
   // Add optional filters
   if (filters?.agentName) {
-    params.set('agentName', filters.agentName);
+    params.set('agentName', decodeAgentNameParam(filters.agentName));
   }
   if (filters?.activationName) {
-    params.set('activationName', filters.activationName);
+    params.set('activationName', decodeAgentNameParam(filters.activationName));
   }
   
   return client.get<any>(
@@ -77,10 +78,10 @@ export async function getMetricsTimeseries(
   
   // Add optional filters
   if (filters?.agentName) {
-    params.set('agentName', filters.agentName);
+    params.set('agentName', decodeAgentNameParam(filters.agentName));
   }
   if (filters?.activationName) {
-    params.set('activationName', filters.activationName);
+    params.set('activationName', decodeAgentNameParam(filters.activationName));
   }
   if (filters?.participantId) {
     params.set('participantId', filters.participantId);

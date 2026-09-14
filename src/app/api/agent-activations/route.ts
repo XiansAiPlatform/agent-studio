@@ -3,6 +3,7 @@ import { withTenantFromSession, withParticipantAdmin, ApiContext } from '@/lib/a
 import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
+import { decodeAgentNameParam, isValidAgentName, normalizeAgentName, AGENT_NAME_VALIDATION_MESSAGE } from '@/lib/xians/agent-name'
 
 /**
  * GET /api/agent-activations
@@ -23,7 +24,7 @@ export const GET = withTenantFromSession(
       const response = await xians.agents.listActivations(tenantContext.tenant.id, {
         page: page ? parseInt(page) : undefined,
         pageSize: pageSize ? parseInt(pageSize) : undefined,
-        agentName: agentName || undefined,
+        agentName: agentName ? decodeAgentNameParam(agentName) : undefined,
         status: status || undefined,
       })
 
@@ -53,7 +54,19 @@ export const POST = withParticipantAdmin(
         )
       }
 
-      const denied = await assertCanEditAgent(session, tenantContext.tenant.id, data.agentName)
+      const name = normalizeAgentName(String(data.name))
+      const agentName = decodeAgentNameParam(String(data.agentName))
+      if (!isValidAgentName(name) || !isValidAgentName(agentName)) {
+        return NextResponse.json(
+          {
+            error: 'Validation failed',
+            message: AGENT_NAME_VALIDATION_MESSAGE,
+          },
+          { status: 400 }
+        )
+      }
+
+      const denied = await assertCanEditAgent(session, tenantContext.tenant.id, agentName)
       if (denied) return denied
 
       const participantId = (session as any)?.user?.email
@@ -67,6 +80,8 @@ export const POST = withParticipantAdmin(
       const xians = createXiansSDK((session as any).accessToken)
       const activation = await xians.agents.createActivation(tenantContext.tenant.id, {
         ...data,
+        name,
+        agentName,
         participantId,
       })
 

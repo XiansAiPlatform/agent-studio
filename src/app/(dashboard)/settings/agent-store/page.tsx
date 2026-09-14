@@ -10,7 +10,8 @@ import { Loader2, Bot } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useCan } from '@/hooks/use-permissions';
-import { useEditableAgents } from '@/hooks/use-editable-agents';
+import { useEditableAgents, canEditAgent } from '@/hooks/use-editable-agents';
+import { decodeAgentNameParam } from '@/lib/xians/agent-name';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 
 // Local imports
@@ -39,9 +40,10 @@ export default function AgentTemplatesPage() {
   // Editable agents
   const editableAgents = useEditableAgents();
   const canEditAgentCard = (deployment: EnhancedDeployment) =>
-    editableAgents.canEditAll || editableAgents.editable.includes(deployment.name);
+    canEditAgent(editableAgents, deployment.name);
   const canManageAccess = (deployment: EnhancedDeployment) =>
-    editableAgents.canEditAll || editableAgents.levels[deployment.name] === 'Owner';
+    editableAgents.canEditAll ||
+    editableAgents.levels[decodeAgentNameParam(deployment.name)] === 'Owner';
 
   // Use custom hooks for data fetching
   const { deployedAgents, isLoading, error } = useAgentDeployments();

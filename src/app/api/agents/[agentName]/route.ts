@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { XiansAgentsApi } from '@/lib/xians/agents'
+import { decodeAgentNameParam } from '@/lib/xians/agent-name'
 
 /**
  * GET /api/agents/{agentName}
@@ -13,7 +14,7 @@ export async function GET(
 ) {
   const handler = withTenantFromSession(async (req: NextRequest, apiContext: ApiContext) => {
     try {
-      const { agentName } = await context.params
+      const agentName = decodeAgentNameParam((await context.params).agentName)
 
       if (!agentName) {
         return NextResponse.json(

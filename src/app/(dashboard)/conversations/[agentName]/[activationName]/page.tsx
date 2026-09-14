@@ -24,6 +24,7 @@ import type { XiansMessage } from '@/lib/xians/types';
 import { ConversationView } from '../../_components';
 import { ParticipantMenuBar } from './_components';
 import { resolveWorkflowName } from '@/lib/xians/built-in-workflows';
+import { decodeAgentNameParam } from '@/lib/xians/agent-name';
 
 /** Page size for the paginated message history (initial load and "load more"). */
 const MESSAGE_PAGE_SIZE = 10;
@@ -49,9 +50,10 @@ function ConversationContent() {
   const { data: session } = useSession();
   const { onOpenMenu, topicDeletedEvent, notifyTopicDeleted } = useParticipantLayout();
   
-  // Get route parameters
-  const agentName = decodeURIComponent(params.agentName as string);
-  const activationName = decodeURIComponent(params.activationName as string);
+  // Get route parameters. Decode percent-encoding and NFC-normalize so
+  // Kjøpsassistent / Kj%C3%B8psassistent / decomposed å all match.
+  const agentName = decodeAgentNameParam(params.agentName as string);
+  const activationName = decodeAgentNameParam(params.activationName as string);
   const topicParam = searchParams.get('topic');
   const workflowParam = searchParams.get('workflow')?.trim() || null;
 

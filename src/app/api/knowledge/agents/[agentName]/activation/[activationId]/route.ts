@@ -3,6 +3,7 @@ import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { encodeAgentNamePath } from '@/lib/xians/agent-name'
 
 /**
  * DELETE /api/knowledge/agents/{agentName}/activation/{activationId}
@@ -32,7 +33,7 @@ export async function DELETE(
         const denied = await assertCanEditAgent(session, tenantId, agentName)
         if (denied) return denied
 
-        const backendPath = `/api/v1/admin/tenants/${tenantId}/knowledge/agents/${encodeURIComponent(agentName)}/activation/${encodeURIComponent(activationId)}`
+        const backendPath = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/knowledge/agents/${encodeAgentNamePath(agentName)}/activation/${encodeAgentNamePath(activationId)}`
 
         const client = createXiansClient()
         await client.delete<any>(backendPath)

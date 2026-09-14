@@ -17,6 +17,7 @@ import type { NextResponse } from 'next/server'
 import { createXiansClient } from '@/lib/xians/client'
 import { createTtlCache, TENANT_LOOKUP_TTL_MS } from '@/lib/xians/cache'
 import { forbiddenError, validationError } from '@/lib/api/error-handler'
+import { decodeAgentNameParam, normalizeAgentName } from '@/lib/xians/agent-name'
 
 export type AgentLevel = 'Read' | 'Write' | 'Owner'
 
@@ -69,11 +70,15 @@ export async function resolveAgentEditabilityFor(
       fetchAgentAccess(tenantId, identifier)
     )
     const agents = res.agents ?? {}
+    const levels: Record<string, AgentLevel> = {}
+    for (const [name, lvl] of Object.entries(agents)) {
+      levels[normalizeAgentName(name)] = lvl
+    }
     return {
       canEditAll: res.isSysAdmin || res.isTenantAdmin,
-      levels: agents,
+      levels,
       editable: new Set(
-        Object.entries(agents)
+        Object.entries(levels)
           .filter(([, lvl]) => lvl === 'Write' || lvl === 'Owner')
           .map(([name]) => name)
       ),
@@ -106,7 +111,8 @@ export async function assertCanEditAgent(
   if (!agentName) return validationError('Agent name is required')
 
   const { canEditAll, editable } = await resolveAgentEditability(session, tenantId)
-  if (canEditAll || editable.has(agentName)) return null
+  const canonicalName = decodeAgentNameParam(agentName)
+  if (canEditAll || editable.has(canonicalName)) return null
   return forbiddenError('You need write access to this agent to perform this action.')
 }
 
