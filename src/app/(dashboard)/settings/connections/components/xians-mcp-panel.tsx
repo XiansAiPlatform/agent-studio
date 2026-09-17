@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Copy } from 'lucide-react'
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 
 type Configuration = { mcpServers: { url: string }[] }
 
 export function XiansMcpPanel({ agentName, activationName }: { agentName: string; activationName: string }) {
   const [configuration, setConfiguration] = useState<Configuration>()
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -27,9 +27,9 @@ export function XiansMcpPanel({ agentName, activationName }: { agentName: string
   async function copy(value: string) {
     try {
       await navigator.clipboard.writeText(value)
-      setMessage('Copied to clipboard.')
+      showSuccessToast('MCP URL copied.')
     } catch {
-      setMessage('Unable to copy. Select and copy the text below.')
+      showErrorToast(new Error('Unable to copy. Select and copy the URL manually.'))
     }
   }
 
@@ -48,7 +48,6 @@ export function XiansMcpPanel({ agentName, activationName }: { agentName: string
         <p className="text-sm" role="status">{error || 'Loading MCP configuration…'}</p>
       )}
       <p className="text-xs text-muted-foreground">Authentication: Xians admin API key (Bearer token).</p>
-      {message && <p className="text-xs" role="status">{message}</p>}
     </section>
   )
 }
