@@ -19,6 +19,7 @@ import { formatDateTime, formatDateTimeWithSeconds, formatRelative } from '../fo
 import { humanizeScheduleSpec } from '../schedule-spec'
 import { fetchScheduleHistory, fetchUpcomingRuns } from '../hooks/use-schedules'
 import { showErrorToast } from '@/lib/utils/error-handler'
+import { WorkflowInput } from './workflow-input'
 
 interface ScheduleDetailsSheetProps {
   schedule: Schedule | null
@@ -210,6 +211,8 @@ export function ScheduleDetailsSheet({
                   />
                 </div>
               </div>
+
+              {agentName && <WorkflowInput key={schedule.id} agentName={agentName} scheduleId={schedule.id} />}
 
               <RunsSection
                 title="Upcoming runs"

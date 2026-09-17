@@ -39,6 +39,7 @@ export interface Schedule {
   description?: string | null
   lastRunTime?: string | null
   executionCount: number
+  workflowInput?: unknown[] | null
 }
 
 /** Matches Shared.Models.Schedule.ScheduleRunModel. */
