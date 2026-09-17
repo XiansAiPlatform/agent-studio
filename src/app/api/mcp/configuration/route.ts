@@ -10,9 +10,9 @@ export const GET = withParticipantAdmin(async (request, { session, tenantId }) =
   if (denied) return denied
   const serverUrl = process.env.XIANS_SERVER_URL?.replace(/\/+$/, '')
   if (!serverUrl) return NextResponse.json({ error: 'Xians server URL is not configured.' }, { status: 503 })
-  const url = `${serverUrl}/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeURIComponent(agentName)}/activations/${encodeURIComponent(activationName)}/mcp`
+  const url = `${serverUrl}/api/v1/admin/mcp`
   return NextResponse.json({ mcpServers: [{
-    name: 'xians', url, enabled: true, transport: 'streamableHttp',
+    name: 'xians', url, enabled: true, transport: 'streamableHttp', context: 'xians',
     authentication: { type: 'bearer', secret: 'XIANS_MCP_KEY' },
   }] })
 })
