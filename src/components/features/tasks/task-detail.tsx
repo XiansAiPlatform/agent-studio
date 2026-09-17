@@ -288,7 +288,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
         'The agent can continue with your decision.'
       );
 
-      refreshMyPendingTaskCounts()
+      refreshMyPendingTaskCounts();
 
       // Call the callback to trigger parent component refresh and highlight
       // Both onApprove and onReject do the same thing (close and refresh), so we use onApprove for all actions
