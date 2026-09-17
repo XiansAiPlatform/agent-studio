@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { TASK_STATUS_CONFIG, TaskStatus } from '@/lib/task-status-config';
+import { resolveXiansTaskStatus } from '@/lib/task-mapper';
 import { cn } from '@/lib/utils';
 
 interface TaskStatusBadgeProps {
@@ -15,15 +16,14 @@ function resolveVisibleStatus({
   workflowStatus,
   isCompleted,
   performedAction,
-}: TaskStatusBadgeProps): 'pending' | 'approved' | 'rejected' {
-  const action = performedAction?.toLowerCase() ?? '';
-  const rejected = status === 'rejected' || action.includes('reject');
-  const approved = status === 'approved' || action.includes('approve');
-
-  if (rejected) return 'rejected';
-  if (approved || isCompleted) return 'approved';
-  if (workflowStatus === 'Running' || status === 'pending') return 'pending';
-  return 'pending';
+}: TaskStatusBadgeProps): TaskStatus {
+  if (status === 'obsolete') return 'obsolete';
+  if (status === 'rejected' || status === 'approved') return status;
+  return resolveXiansTaskStatus({
+    status: workflowStatus,
+    isCompleted,
+    performedAction,
+  });
 }
 
 export function TaskStatusBadge({

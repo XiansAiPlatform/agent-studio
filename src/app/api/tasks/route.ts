@@ -7,6 +7,7 @@ import {
   fetchParticipantMessages,
   fetchTaskById,
   filterTasksOwnedBySession,
+  hydrateListedTasks,
   presentTaskForSession,
   sanitizeListedTask,
   storedTaskOwner,
@@ -37,6 +38,8 @@ const OWNED_SCAN_MAX_PAGES = 5
  * agent/activation is not enough.
  *
  * `viewType=everyone` requires Agent Settings access and is not owner-filtered.
+ * Those list rows are still hydrated from GetTaskInfo so completion status
+ * (`isCompleted` / `performedAction`) is present for the Admin UI.
  */
 export const GET = withTenantFromSession(
   async (request: NextRequest, { tenantContext, session, tenantId: cookieTenantId }: ApiContext) => {
@@ -102,9 +105,10 @@ export const GET = withTenantFromSession(
           `/api/v1/admin/tenants/${tenantId}/tasks?${baseParams.toString()}`
         )
         const listed = Array.isArray(response?.tasks) ? response.tasks : []
+        const hydrated = await hydrateListedTasks(tenantId, listed, accessToken)
         return NextResponse.json({
           ...response,
-          tasks: listed.map(sanitizeListedTask),
+          tasks: hydrated.map(sanitizeListedTask),
         })
       }
 

@@ -6,6 +6,7 @@ import {
   canActOnTask,
   isTaskOwnedBySession,
   isTaskVisibleToSession,
+  mergeListedAndDetailedTask,
   presentTaskForSession,
   sanitizeListedTask,
   sessionIsTaskConversationParticipant,
@@ -131,5 +132,23 @@ describe('task ownership', () => {
     const sanitized = sanitizeListedTask(makeTask())
     assert.equal(sanitized.participantId, null)
     assert.equal(sanitized.taskOwner, null)
+  })
+
+  it('keeps GetTaskInfo completion fields when merging list + detail', () => {
+    const listed = makeTask({
+      status: 'Running',
+      isCompleted: undefined,
+      performedAction: undefined,
+    })
+    const detailed = makeTask({
+      status: 'Completed',
+      isCompleted: true,
+      performedAction: 'approve',
+      closeTime: '2026-09-17T08:10:00.000Z',
+    })
+    const merged = mergeListedAndDetailedTask(listed, detailed)
+    assert.equal(merged.isCompleted, true)
+    assert.equal(merged.performedAction, 'approve')
+    assert.equal(merged.status, 'Completed')
   })
 })

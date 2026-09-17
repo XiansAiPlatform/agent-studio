@@ -42,6 +42,30 @@ export async function fetchTaskById(
   )
 }
 
+/**
+ * List rows often omit HITL completion (`isCompleted`, `performedAction`).
+ * GetTaskInfo has those fields — merge them so Everyone listings do not
+ * render Approved/Rejected tasks as Pending.
+ */
+export async function hydrateListedTasks(
+  tenantId: string,
+  tasks: XiansTaskRecord[],
+  accessToken?: string
+): Promise<XiansTaskRecord[]> {
+  return Promise.all(
+    tasks.map(async (listed) => {
+      const id = taskWorkflowId(listed)
+      if (!id) return listed
+      try {
+        const byId = await fetchTaskById(tenantId, id, accessToken)
+        return mergeListedAndDetailedTask(listed, byId)
+      } catch {
+        return listed
+      }
+    })
+  )
+}
+
 export async function fetchParticipantMessages(
   tenantId: string,
   session: Session,

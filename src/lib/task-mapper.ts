@@ -21,14 +21,35 @@ export type XiansTaskLike = {
   activationName?: string | null
 }
 
+const TERMINAL_WORKFLOW_STATUSES = new Set([
+  'completed',
+  'failed',
+  'canceled',
+  'cancelled',
+  'terminated',
+  'timedout',
+])
+
+export function resolveXiansTaskStatus(
+  xiansTask: Pick<XiansTaskLike, 'status' | 'isCompleted' | 'performedAction' | 'closeTime'>
+): Task['status'] {
+  const action = (xiansTask.performedAction || '').toLowerCase()
+  if (action.includes('reject')) return 'rejected'
+  if (action.includes('approve')) return 'approved'
+
+  const workflow = (xiansTask.status || '').toLowerCase()
+  const completed =
+    xiansTask.isCompleted === true ||
+    !!xiansTask.closeTime ||
+    TERMINAL_WORKFLOW_STATUSES.has(workflow)
+
+  if (!completed) return 'pending'
+  return 'approved'
+}
+
 export function mapXiansTaskToTask(xiansTask: XiansTaskLike): Task {
   const workflowId = (xiansTask.workflowId || xiansTask.taskId || '').trim()
-  let status: Task['status'] = 'pending'
-  if (xiansTask.isCompleted) {
-    status = xiansTask.performedAction?.toLowerCase().includes('reject')
-      ? 'rejected'
-      : 'approved'
-  }
+  const status = resolveXiansTaskStatus(xiansTask)
 
   return {
     id: workflowId,
@@ -80,7 +101,11 @@ export function taskMatchesId(task: Task, id: string): boolean {
 
 export function isPendingTask(task: Task | null | undefined): boolean {
   if (!task) return false
+  if (task.status === 'approved' || task.status === 'rejected' || task.status === 'obsolete') {
+    return false
+  }
   if (task.content?.data?.isCompleted) return false
+  if (task.content?.data?.performedAction) return false
   if (task.status === 'pending') return true
   return task.content?.data?.workflowStatus === 'Running'
 }
