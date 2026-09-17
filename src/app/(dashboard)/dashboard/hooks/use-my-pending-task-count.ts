@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { subscribeMyPendingTaskCountRefresh } from '@/lib/pending-task-count-sync'
 
 type TasksListResponse = {
   tasks?: unknown[]
@@ -36,7 +37,10 @@ export function useMyPendingTaskCount(
       if (agentName) params.set('agentName', agentName)
       if (activationName) params.set('activationName', activationName)
 
-      const response = await fetch(`/api/tasks?${params}`, { signal })
+      const response = await fetch(`/api/tasks?${params}`, {
+        signal,
+        cache: 'no-store',
+      })
       if (!response.ok) {
         setCount(0)
         return
@@ -75,19 +79,25 @@ export function useMyPendingTaskCount(
 
     load()
 
-    if (!pollIntervalMs || pollIntervalMs <= 0) {
-      return () => abortController.abort()
-    }
+    const interval =
+      pollIntervalMs && pollIntervalMs > 0
+        ? window.setInterval(() => {
+            fetchCount(abortController.signal).catch((error) => {
+              if (error instanceof Error && error.name === 'AbortError') return
+            })
+          }, pollIntervalMs)
+        : null
 
-    const interval = window.setInterval(() => {
+    const unsubscribe = subscribeMyPendingTaskCountRefresh(() => {
       fetchCount(abortController.signal).catch((error) => {
         if (error instanceof Error && error.name === 'AbortError') return
       })
-    }, pollIntervalMs)
+    })
 
     return () => {
       abortController.abort()
-      window.clearInterval(interval)
+      if (interval) window.clearInterval(interval)
+      unsubscribe()
     }
   }, [enabled, fetchCount, pollIntervalMs])
 

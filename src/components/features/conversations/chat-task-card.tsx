@@ -10,6 +10,7 @@ import {
   isPendingTask,
   performTaskAction,
 } from '@/lib/task-mapper'
+import { refreshMyPendingTaskCounts } from '@/lib/pending-task-count-sync'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 import type { Task } from '@/types/task'
 import { cn } from '@/lib/utils'
@@ -30,7 +31,9 @@ export function ChatTaskCard({ taskId, draftPreview }: ChatTaskCardProps) {
     setIsLoading(true)
     fetchTaskByIdClient(taskId)
       .then((loaded) => {
-        if (!cancelled) setTask(loaded)
+        if (cancelled) return
+        setTask(loaded)
+        if (isPendingTask(loaded)) refreshMyPendingTaskCounts()
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -57,6 +60,7 @@ export function ChatTaskCard({ taskId, draftPreview }: ChatTaskCardProps) {
     setIsActing(action)
     try {
       await performTaskAction(taskId, action)
+      refreshMyPendingTaskCounts()
       showSuccessToast(
         action.toLowerCase().includes('reject') ? 'Request rejected' : 'Request approved',
         'The agent can continue with your decision.'

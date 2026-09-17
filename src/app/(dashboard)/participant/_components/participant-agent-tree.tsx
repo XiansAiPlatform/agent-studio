@@ -47,6 +47,7 @@ import { showErrorToast } from '@/lib/utils/error-handler'
 import { resolveWorkflowName } from '@/lib/xians/built-in-workflows'
 import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability'
 import { decodeAgentNameParam, agentNamesEqual } from '@/lib/xians/agent-name'
+import { subscribeMyPendingTaskCountRefresh } from '@/lib/pending-task-count-sync'
 
 const TOPICS_PAGE_SIZE = 10
 
@@ -144,7 +145,9 @@ async function fetchPendingTaskCount(
     agentName,
     activationName,
   })
-  const response = await fetch(`/api/tasks?${queryParams.toString()}`)
+  const response = await fetch(`/api/tasks?${queryParams.toString()}`, {
+    cache: 'no-store',
+  })
   if (!response.ok) return 0
   const data = await response.json().catch(() => ({}))
   if (typeof data.totalCount === 'number') return data.totalCount
@@ -275,9 +278,11 @@ export function ParticipantAgentTree({
 
     loadPendingCounts()
     const interval = window.setInterval(loadPendingCounts, 20_000)
+    const unsubscribe = subscribeMyPendingTaskCountRefresh(loadPendingCounts)
     return () => {
       cancelled = true
       window.clearInterval(interval)
+      unsubscribe()
     }
   }, [activationKeys])
 

@@ -24,6 +24,7 @@ import { TaskStatusBadge } from './task-status-badge';
 import { useTenant } from '@/hooks/use-tenant';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { formatTaskActionLabel } from '@/lib/task-mapper';
+import { refreshMyPendingTaskCounts } from '@/lib/pending-task-count-sync';
 import { cn } from '@/lib/utils';
 
 interface TaskDetailProps {
@@ -286,6 +287,8 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
         action.toLowerCase().includes('reject') ? 'Request rejected' : 'Request approved',
         'The agent can continue with your decision.'
       );
+
+      refreshMyPendingTaskCounts()
 
       // Call the callback to trigger parent component refresh and highlight
       // Both onApprove and onReject do the same thing (close and refresh), so we use onApprove for all actions

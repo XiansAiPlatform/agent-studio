@@ -111,7 +111,9 @@ export function isPendingTask(task: Task | null | undefined): boolean {
 }
 
 export async function fetchTaskByIdClient(taskId: string): Promise<Task | null> {
-  const response = await fetch(`/api/tasks?taskId=${encodeURIComponent(taskId)}`)
+  const response = await fetch(`/api/tasks?taskId=${encodeURIComponent(taskId)}`, {
+    cache: 'no-store',
+  })
   if (!response.ok) return null
   const data = await response.json().catch(() => null)
   if (!data || typeof data !== 'object' || data.error) return null

@@ -109,7 +109,7 @@ export function ParticipantChatPage() {
                           : `${pendingTaskCount} tasks are waiting for you`}
                       </p>
                       <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-0.5">
-                        Approve or reject so your agent can continue.
+                        Manage tasks requiring your attention
                       </p>
                     </div>
                     <Button size="sm" className="shrink-0">

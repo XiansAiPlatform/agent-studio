@@ -84,7 +84,9 @@ export const GET = withTenantFromSession(
                 activation
               ).catch(() => [])
             : []
-        return NextResponse.json(presentTaskForSession(task, session, messages))
+        return NextResponse.json(presentTaskForSession(task, session, messages), {
+          headers: { 'Cache-Control': 'private, no-store' },
+        })
       }
 
       if (viewType !== 'my') {
@@ -124,13 +126,16 @@ export const GET = withTenantFromSession(
       const start = (page - 1) * pageSize
       const pageTasks = owned.slice(start, start + pageSize)
 
-      return NextResponse.json({
-        tasks: pageTasks,
-        pageSize,
-        nextPageToken: start + pageSize < owned.length ? String(page + 1) : null,
-        hasNextPage: start + pageSize < owned.length,
-        totalCount: owned.length,
-      })
+      return NextResponse.json(
+        {
+          tasks: pageTasks,
+          pageSize,
+          nextPageToken: start + pageSize < owned.length ? String(page + 1) : null,
+          hasNextPage: start + pageSize < owned.length,
+          totalCount: owned.length,
+        },
+        { headers: { 'Cache-Control': 'private, no-store' } }
+      )
     } catch (error: any) {
       return NextResponse.json(
         {
