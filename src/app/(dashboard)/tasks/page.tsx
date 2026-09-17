@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Card, CardContent } from '@/components/ui/card';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -11,14 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Task } from '@/types/task';
 import { TaskListItem } from '@/components/features/tasks/task-list-item';
 import { TaskDetail } from '@/components/features/tasks/task-detail';
-import { TaskFilterSlider, TaskFilters, SelectedActivation } from '@/components/features/tasks';
-import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
+import { TaskFilterSlider, SelectedActivation } from '@/components/features/tasks';
+import { fetchTaskByIdClient, mapXiansTaskToTask, taskMatchesId } from '@/lib/task-mapper';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { Filter, X, ChevronLeft, ChevronRight, ClipboardList, CheckSquare } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
+import { useParticipantLayout } from '@/contexts/participant-layout-context';
+import { ParticipantMenuBar } from '@/app/(dashboard)/conversations/[agentName]/[activationName]/_components/participant-menu-bar';
 
 type XiansTask = {
   taskId: string;
@@ -58,6 +60,7 @@ function TasksContent() {
   const searchParams = useSearchParams();
   const { currentTenantId } = useTenant();
   const { user } = useAuth();
+  const { isParticipantMode, onOpenMenu } = useParticipantLayout();
   
   const selectedTaskId = searchParams.get('task');
   
@@ -75,12 +78,14 @@ function TasksContent() {
   const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [persistentSelectedTaskId, setPersistentSelectedTaskId] = useState<string | null>(null);
+  const [deepLinkedTask, setDeepLinkedTask] = useState<Task | null>(null);
+  const [isLoadingDeepLinkedTask, setIsLoadingDeepLinkedTask] = useState(false);
 
-  // Current user ID from auth
-  const currentUserId = user?.id || 'user-001';
   const currentUserEmail = user?.email || null;
-  
-  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
+  const selectedTaskFromList = selectedTaskId
+    ? tasks.find((task) => taskMatchesId(task, selectedTaskId)) ?? null
+    : null;
+  const selectedTask = selectedTaskFromList || deepLinkedTask;
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -95,6 +100,8 @@ function TasksContent() {
     
     if (statusParam && ['all', 'pending'].includes(statusParam)) {
       setStatusFilter(statusParam);
+    } else {
+      setStatusFilter('all');
     }
     
     if (agentParam && activationParam) {
@@ -109,11 +116,17 @@ function TasksContent() {
       const page = parseInt(pageParam, 10);
       if (!isNaN(page) && page > 0) {
         setCurrentPage(page);
+      } else {
+        setCurrentPage(1);
       }
+    } else {
+      setCurrentPage(1);
     }
     
-    if (viewTypeParam && ['my', 'everyone'].includes(viewTypeParam)) {
+    if (!isParticipantMode && viewTypeParam && ['my', 'everyone'].includes(viewTypeParam)) {
       setViewType(viewTypeParam);
+    } else {
+      setViewType('my');
     }
     
     // Set persistent selected task from URL if present
@@ -123,7 +136,7 @@ function TasksContent() {
     
     // Mark URL params as initialized
     setUrlParamsInitialized(true);
-  }, [searchParams]);
+  }, [searchParams, isParticipantMode]);
 
   // Fetch all activations (both active and inactive)
   const activationsAbortControllerRef = useRef<AbortController | null>(null);
@@ -242,7 +255,7 @@ function TasksContent() {
       const params = new URLSearchParams();
       params.set('pageSize', '20');
       params.set('pageToken', currentPage.toString());
-      params.set('viewType', viewType);
+      params.set('viewType', isParticipantMode ? 'my' : viewType);
       
       // Map frontend status filter to backend status
       if (statusFilter === 'pending') {
@@ -286,58 +299,15 @@ function TasksContent() {
       setTotalPages(data.hasNextPage ? currentPage + 1 : currentPage);
 
       // Remove duplicates based on workflowId (keep first occurrence)
-      const uniqueTasks = data.tasks.reduce((acc, task) => {
+      const listedTasks = Array.isArray(data.tasks) ? data.tasks : [];
+      const uniqueTasks = listedTasks.reduce((acc, task) => {
         if (!acc.find(t => t.workflowId === task.workflowId)) {
           acc.push(task);
         }
         return acc;
       }, [] as XiansTask[]);
 
-      // Map Xians tasks to our Task format
-      const mappedTasks: Task[] = uniqueTasks.map((xiansTask) => {
-          // Map status: Running -> pending, Completed -> approved
-          let status: 'pending' | 'approved' | 'rejected' | 'obsolete' = 'pending';
-          if (xiansTask.isCompleted) {
-            status = xiansTask.performedAction?.toLowerCase().includes('reject') ? 'rejected' : 'approved';
-          }
-
-          return {
-            id: xiansTask.workflowId,
-            title: xiansTask.title || 'Untitled Task',
-            description: xiansTask.description || 'No description available',
-            status,
-            priority: 'medium', // Default priority
-            createdBy: {
-              id: xiansTask.activationName || 'Unknown Activation',
-              name: xiansTask.activationName || 'Unknown Activation',
-            },
-            assignedTo: {
-              id: xiansTask.participantId,
-              name: xiansTask.participantId,
-            },
-            createdAt: xiansTask.startTime,
-            updatedAt: xiansTask.closeTime || xiansTask.startTime,
-            conversationId: undefined,
-            topicId: undefined,
-            content: {
-              originalRequest: xiansTask.initialWork || undefined,
-              proposedAction: xiansTask.finalWork || undefined,
-              reasoning: xiansTask.description || undefined,
-              data: {
-                workflowId: xiansTask.workflowId,
-                runId: xiansTask.runId,
-                workflowStatus: xiansTask.status, // Add workflow status from API
-                isCompleted: xiansTask.isCompleted, // Add isCompleted flag
-                availableActions: xiansTask.availableActions || [],
-                performedAction: xiansTask.performedAction || null,
-                comment: xiansTask.comment || null,
-                metadata: xiansTask.metadata || null,
-                activationName: xiansTask.activationName,
-                agentName: xiansTask.agentName,
-              },
-            },
-          };
-      });
+      const mappedTasks: Task[] = uniqueTasks.map((xiansTask) => mapXiansTaskToTask(xiansTask));
 
       setTasks(mappedTasks);
     } catch (error) {
@@ -355,7 +325,7 @@ function TasksContent() {
         setIsLoadingTasks(false);
       }
     }
-  }, [currentTenantId, statusFilter, selectedActivation, viewType, currentPage, urlParamsInitialized]);
+  }, [currentTenantId, statusFilter, selectedActivation, viewType, currentPage, urlParamsInitialized, isParticipantMode]);
 
   useEffect(() => {
     fetchTasks();
@@ -368,6 +338,66 @@ function TasksContent() {
     };
   }, [fetchTasks]);
 
+  useEffect(() => {
+    if (!selectedTaskId) {
+      setDeepLinkedTask(null);
+      setIsLoadingDeepLinkedTask(false);
+      return;
+    }
+
+    if (tasks.some((task) => taskMatchesId(task, selectedTaskId))) {
+      setDeepLinkedTask(null);
+      setIsLoadingDeepLinkedTask(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+    setIsLoadingDeepLinkedTask(true);
+
+    fetchTaskByIdClient(selectedTaskId)
+      .then((task) => {
+        if (abortController.signal.aborted) return;
+        setDeepLinkedTask(task);
+        if (!task) {
+          showErrorToast(
+            'This request could not be opened. It may have been completed or you may not have access to it.',
+            'Unable to open request'
+          );
+        }
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        if (!abortController.signal.aborted) {
+          setDeepLinkedTask(null);
+          showErrorToast(error, 'Unable to open request');
+        }
+      })
+      .finally(() => {
+        if (!abortController.signal.aborted) setIsLoadingDeepLinkedTask(false);
+      });
+
+    return () => abortController.abort();
+  }, [selectedTaskId, tasks]);
+
+  const buildTasksHref = useCallback(
+    (updates: Record<string, string | null | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (isParticipantMode) {
+        params.delete('viewType');
+      }
+      for (const [key, value] of Object.entries(updates)) {
+        if (value == null || value === '') {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      }
+      const qs = params.toString();
+      return qs ? `/tasks?${qs}` : '/tasks';
+    },
+    [searchParams, isParticipantMode]
+  );
+
   // Update URL when filters change
   const updateFiltersInURL = (
     newStatusFilter: TaskStatusFilter,
@@ -375,44 +405,24 @@ function TasksContent() {
     newViewType?: ViewType,
     page: number = 1
   ) => {
-    const params = new URLSearchParams();
+    const finalViewType = isParticipantMode
+      ? 'my'
+      : newViewType !== undefined
+        ? newViewType
+        : viewType;
+
+    const href = buildTasksHref({
+      viewType: finalViewType === 'my' ? null : finalViewType,
+      status: newStatusFilter !== 'all' ? newStatusFilter : null,
+      agent: newActivation?.agentName ?? null,
+      activation: newActivation?.activationName ?? null,
+      page: page > 1 ? page.toString() : null,
+    });
+    router.push(href, { scroll: false });
     
-    // Update view type
-    const finalViewType = newViewType !== undefined ? newViewType : viewType;
-    if (finalViewType !== 'my') {
-      params.set('viewType', finalViewType);
-    }
-    
-    // Update status filter
-    if (newStatusFilter !== 'all') {
-      params.set('status', newStatusFilter);
-    }
-    
-    // Update activation filter
-    if (newActivation) {
-      params.set('agent', newActivation.agentName);
-      params.set('activation', newActivation.activationName);
-    }
-    
-    // Update page
-    if (page > 1) {
-      params.set('page', page.toString());
-    }
-    
-    // Preserve the task parameter if present
-    const taskParam = searchParams.get('task');
-    if (taskParam) {
-      params.set('task', taskParam);
-    }
-    
-    // Update URL
-    const newURL = params.toString() ? `/tasks?${params.toString()}` : '/tasks';
-    router.push(newURL, { scroll: false });
-    
-    // Update state
     setStatusFilter(newStatusFilter);
     setSelectedActivation(newActivation);
-    if (newViewType !== undefined) {
+    if (!isParticipantMode && newViewType !== undefined) {
       setViewType(newViewType);
     }
     setCurrentPage(page);
@@ -423,11 +433,12 @@ function TasksContent() {
 
   const handleTaskClick = (taskId: string) => {
     setPersistentSelectedTaskId(taskId);
-    router.push(`/tasks?task=${taskId}`, { scroll: false });
+    router.push(buildTasksHref({ task: taskId }), { scroll: false });
   };
 
   const handleCloseSlider = () => {
-    router.push('/tasks', { scroll: false });
+    router.push(buildTasksHref({ task: null }), { scroll: false });
+    setDeepLinkedTask(null);
   };
 
   const handleCloseWithRefresh = async (taskId: string) => {
@@ -464,11 +475,6 @@ function TasksContent() {
     await handleCloseWithRefresh(taskId);
   };
 
-  const pendingTasks = filteredTasks.filter(t => t.status === 'pending');
-  const completedTasks = filteredTasks.filter(t => t.status === 'approved' || t.status === 'rejected');
-  const approvedTasks = filteredTasks.filter(t => t.status === 'approved').length;
-  const rejectedTasks = filteredTasks.filter(t => t.status === 'rejected').length;
-
   // Clear individual filter
   const clearFilter = (type: 'status' | 'activation') => {
     if (type === 'status') {
@@ -496,22 +502,41 @@ function TasksContent() {
 
   return (
     <>
+      <div className="flex h-full min-h-0 flex-col">
+      {isParticipantMode && (
+        <ParticipantMenuBar
+          onOpenMenu={onOpenMenu}
+          label={
+            selectedActivation
+              ? `Requests · ${selectedActivation.activationName}`
+              : 'My Tasks'
+          }
+        />
+      )}
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl space-y-6">
         {/* Page Header */}
         <div className="space-y-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
             <div className="min-w-0">
               <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-                {viewType === 'my' ? 'My Tasks' : "Everyone's Tasks"}
+                {viewType === 'my'
+                  ? 'My Tasks'
+                  : "Everyone's requests"}
               </h1>
               <p className="text-sm text-muted-foreground mt-1.5">
-                {viewType === 'my' 
-                  ? 'Manage tasks requiring your attention'
-                  : 'View all tasks across the organization'}
+                {isParticipantMode
+                  ? selectedActivation
+                    ? `Requests from ${selectedActivation.activationName} that need your attention`
+                    : 'Manage tasks requiring your attention'
+                  : viewType === 'my'
+                    ? 'Manage tasks requiring your attention'
+                    : 'View all tasks across the organization'}
               </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap md:flex-nowrap md:shrink-0">
-              {/* View Type Switch */}
+              {/* Reviewers can switch between own and tenant-wide tasks. Participants stay on My Tasks. */}
+              {!isParticipantMode && (
               <div className="flex items-center gap-2.5 rounded-xl bg-muted/40 px-3.5 py-2 border border-border/50">
                 <Label 
                   htmlFor="view-type-switch" 
@@ -520,7 +545,7 @@ function TasksContent() {
                     viewType === 'my' ? 'text-foreground' : 'text-muted-foreground'
                   )}
                 >
-                  My Tasks
+                  My requests
                 </Label>
                 <Switch
                   id="view-type-switch"
@@ -539,6 +564,7 @@ function TasksContent() {
                   Everyone
                 </Label>
               </div>
+              )}
               
               <Button 
                 variant="outline" 
@@ -660,12 +686,14 @@ function TasksContent() {
                   </div>
                   <div className="text-center space-y-1">
                     <p className="text-sm font-medium text-foreground">
-                      {tasks.length === 0 ? 'No tasks yet' : 'No matching tasks'}
+                      {tasks.length === 0 ? 'Nothing waiting right now' : 'No matching requests'}
                     </p>
                     <p className="text-xs text-muted-foreground max-w-sm">
-                      {tasks.length === 0 
-                        ? 'Tasks will appear here when they require your attention' 
-                        : 'Try adjusting your filters to see more tasks'}
+                      {tasks.length === 0
+                        ? selectedActivation
+                          ? 'When this agent needs your approval, the request will show up here.'
+                          : 'When an agent needs your approval, the request will show up here.'
+                        : 'Try adjusting your filters to see more requests'}
                     </p>
                   </div>
                 </div>
@@ -673,6 +701,8 @@ function TasksContent() {
             </Card>
           )}
         </div>
+      </div>
+      </div>
       </div>
 
       {/* Filter Slider */}
@@ -692,14 +722,20 @@ function TasksContent() {
 
       {/* Task Detail Slider */}
       <Sheet 
-        open={!!selectedTask} 
-        onOpenChange={handleCloseSlider}
-        headerIcon={selectedTask ? <CheckSquare className="h-5 w-5 text-blue-500" /> : undefined}
-        headerTitle={selectedTask ? 'Task Details' : undefined}
-        headerDescription={selectedTask ? selectedTask.title : undefined}
+        open={!!selectedTask || isLoadingDeepLinkedTask} 
+        onOpenChange={(open) => {
+          if (!open) handleCloseSlider();
+        }}
+        headerIcon={<CheckSquare className="h-5 w-5 text-amber-500" />}
+        headerTitle="Task Details"
+        headerDescription={selectedTask ? selectedTask.title : 'The agent is waiting for your decision'}
       >
         <SheetContent className="flex flex-col p-0">
-          {selectedTask && (
+          {isLoadingDeepLinkedTask && !selectedTask ? (
+            <div className="flex flex-1 flex-col items-center justify-center py-16">
+              <PageLoader label="Opening this request..." />
+            </div>
+          ) : selectedTask ? (
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <TaskDetail
                 task={selectedTask}
@@ -707,7 +743,7 @@ function TasksContent() {
                 onReject={handleReject}
               />
             </div>
-          )}
+          ) : null}
         </SheetContent>
       </Sheet>
     </>
@@ -716,7 +752,7 @@ function TasksContent() {
 
 export default function TasksPage() {
   return (
-    <div className="h-full min-h-0 overflow-x-hidden overflow-y-auto">
+    <div className="h-full min-h-0 overflow-hidden">
       <Suspense fallback={<PageLoader label="Loading tasks..." className="h-full" />}>
         <TasksContent />
       </Suspense>

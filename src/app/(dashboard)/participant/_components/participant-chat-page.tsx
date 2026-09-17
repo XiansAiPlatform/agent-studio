@@ -9,7 +9,6 @@ import { useParticipantLayout } from '@/contexts/participant-layout-context'
 import { useTenant } from '@/hooks/use-tenant'
 import { useActivations } from '@/app/(dashboard)/conversations/hooks'
 import { useMyPendingTaskCount } from '@/app/(dashboard)/dashboard/hooks/use-my-pending-task-count'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -30,7 +29,9 @@ export function ParticipantChatPage() {
   const { onOpenMenu } = useParticipantLayout()
   const { currentTenantId } = useTenant()
   const { activations: allActivations, isLoading } = useActivations(currentTenantId)
-  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId))
+  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId), {
+    pollIntervalMs: 20_000,
+  })
   const activations = allActivations.filter((a) => a.status === 'active')
   const displayName = getUserDisplayName(session)
 
@@ -95,20 +96,35 @@ export function ParticipantChatPage() {
               </p>
             )}
             <div className="mt-5 flex justify-center">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/tasks?status=pending">
-                  <ListTodo className="mr-2 h-4 w-4" />
-                  My pending tasks
-                  {pendingTaskCount > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="ml-2 h-5 min-w-5 px-1.5 text-xs tabular-nums"
-                    >
-                      {pendingTaskCount}
-                    </Badge>
-                  )}
+              {pendingTaskCount > 0 ? (
+                <Link
+                  href="/tasks?status=pending"
+                  className="w-full max-w-md rounded-2xl border px-5 py-4 text-left transition-colors border-amber-300 bg-amber-100 hover:bg-amber-200/70 dark:border-amber-500/40 dark:bg-amber-500/15 dark:hover:bg-amber-500/25"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
+                        {pendingTaskCount === 1
+                          ? '1 task is waiting for you'
+                          : `${pendingTaskCount} tasks are waiting for you`}
+                      </p>
+                      <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+                        Approve or reject so your agent can continue.
+                      </p>
+                    </div>
+                    <Button size="sm" className="shrink-0">
+                      Review now
+                    </Button>
+                  </div>
                 </Link>
-              </Button>
+              ) : (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/tasks">
+                    <ListTodo className="mr-2 h-4 w-4" />
+                    My Tasks
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
 

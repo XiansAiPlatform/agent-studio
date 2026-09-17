@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   ChevronRight,
   ChevronDown,
   MessageSquare,
+  ListTodo,
   Loader2,
   Plus,
   Check,
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { useTenant } from '@/hooks/use-tenant'
 import { useActivations, useBuiltInWorkflows } from '@/app/(dashboard)/conversations/hooks'
 import { Topic } from '@/types/conversation'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -132,31 +134,62 @@ async function fetchTopicsForActivation(
   return all.sort((a, b) => (a.isDefault ? -1 : b.isDefault ? 1 : 0))
 }
 
+async function fetchPendingTaskCount(
+  agentName: string,
+  activationName: string
+): Promise<number> {
+  const queryParams = new URLSearchParams({
+    viewType: 'my',
+    status: 'Running',
+    agentName,
+    activationName,
+  })
+  const response = await fetch(`/api/tasks?${queryParams.toString()}`)
+  if (!response.ok) return 0
+  const data = await response.json().catch(() => ({}))
+  if (typeof data.totalCount === 'number') return data.totalCount
+  return Array.isArray(data.tasks) ? data.tasks.length : 0
+}
+
 export function ParticipantAgentTree({
   onTopicSelect,
   onClose,
   onTopicDeleted,
 }: ParticipantAgentTreeProps) {
   const params = useParams()
+  const pathname = usePathname()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { currentTenantId } = useTenant()
   const { activations: allActivations, isLoading: isLoadingActivations } =
     useActivations(currentTenantId)
   const activations = allActivations.filter((a) => a.status === 'active')
+  const activationKeys = activations
+    .map((activation) => `${activation.agentName}|${activation.name}`)
+    .join(',')
 
+  const isTasksRoute = pathname === '/tasks' || pathname.startsWith('/tasks/')
   const routeAgentName = decodeAgentNameParam(params.agentName as string | undefined)
   const routeActivationName = decodeAgentNameParam(params.activationName as string | undefined)
+  const tasksAgentName = decodeAgentNameParam(searchParams.get('agent'))
+  const tasksActivationName = decodeAgentNameParam(searchParams.get('activation'))
+  const selectedAgentName = routeAgentName || (isTasksRoute ? tasksAgentName : '')
+  const selectedActivationName =
+    routeActivationName || (isTasksRoute ? tasksActivationName : '')
   const routeTopicId = searchParams.get('topic') || 'general-discussions'
   const workflowParam = searchParams.get('workflow')?.trim() || null
 
   const [expandedActivations, setExpandedActivations] = useState<Set<string>>(
     () =>
-      routeAgentName && routeActivationName
-        ? new Set([`${routeAgentName}|${routeActivationName}`])
+      selectedAgentName && selectedActivationName
+        ? new Set([`${selectedAgentName}|${selectedActivationName}`])
         : new Set()
   )
   const [topicsByActivation, setTopicsByActivation] = useState<
     Record<string, Topic[]>
+  >({})
+  const [pendingCountByActivation, setPendingCountByActivation] = useState<
+    Record<string, number>
   >({})
   const [loadingActivations, setLoadingActivations] = useState<
     Set<string>
@@ -183,15 +216,31 @@ export function ParticipantAgentTree({
     (name: string) => {
       const available = workflowsByAgent[name] ?? []
       const isCurrent =
-        !!routeAgentName && agentNamesEqual(routeAgentName, name)
+        !!selectedAgentName && agentNamesEqual(selectedAgentName, name)
       return resolveWorkflowName(isCurrent ? workflowParam : null, available)
     },
-    [workflowsByAgent, routeAgentName, workflowParam]
+    [workflowsByAgent, selectedAgentName, workflowParam]
   )
 
-  const selectedWorkflowType = routeAgentName
-    ? workflowForAgent(routeAgentName)
+  const selectedWorkflowType = selectedAgentName
+    ? workflowForAgent(selectedAgentName)
     : null
+
+  const loadActivationChildren = useCallback(
+    async (agentName: string, activationName: string) => {
+      const workflow = workflowForAgent(agentName)
+      const [topics, pendingCount] = await Promise.all([
+        workflow
+          ? fetchTopicsForActivation(agentName, activationName, workflow)
+          : Promise.resolve([] as Topic[]),
+        fetchPendingTaskCount(agentName, activationName),
+      ])
+      const key = `${agentName}|${activationName}`
+      setTopicsByActivation((prev) => ({ ...prev, [key]: topics }))
+      setPendingCountByActivation((prev) => ({ ...prev, [key]: pendingCount }))
+    },
+    [workflowForAgent]
+  )
 
   useEffect(() => {
     if (creatingForActivation && createInputRef.current) {
@@ -202,24 +251,50 @@ export function ParticipantAgentTree({
   useEffect(() => {
     fetchedKeysRef.current = new Set()
     setTopicsByActivation({})
-  }, [selectedWorkflowType])
+  }, [selectedWorkflowType, currentTenantId])
 
-  // Auto-expand and fetch topics for the currently selected activation
   useEffect(() => {
-    if (!routeAgentName || !routeActivationName) return
-    const decodedAgent = routeAgentName
-    const decodedActivation = routeActivationName
+    if (!activationKeys) return
+    let cancelled = false
+    const items = activationKeys.split(',').filter(Boolean).map((key) => {
+      const [agentName, activationName] = key.split('|')
+      return { agentName, activationName }
+    })
+
+    const loadPendingCounts = async () => {
+      const entries = await Promise.all(
+        items.map(async ({ agentName, activationName }) => {
+          const count = await fetchPendingTaskCount(agentName, activationName)
+          return [`${agentName}|${activationName}`, count] as const
+        })
+      )
+      if (!cancelled) {
+        setPendingCountByActivation(Object.fromEntries(entries))
+      }
+    }
+
+    loadPendingCounts()
+    const interval = window.setInterval(loadPendingCounts, 20_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [activationKeys])
+
+  // Auto-expand and fetch children for the currently selected activation
+  useEffect(() => {
+    if (!selectedAgentName || !selectedActivationName) return
+    const decodedAgent = selectedAgentName
+    const decodedActivation = selectedActivationName
     if (!(decodedAgent in workflowsByAgent)) return
     const workflow = workflowForAgent(decodedAgent)
-    if (!workflow) return
     const key = `${decodedAgent}|${decodedActivation}`
-    const fetchKey = `${key}|${workflow}`
+    const fetchKey = `${key}|${workflow ?? ''}`
     setExpandedActivations((prev) => new Set(prev).add(key))
     if (!fetchedKeysRef.current.has(fetchKey)) {
       fetchedKeysRef.current.add(fetchKey)
       setLoadingActivations((prev) => new Set(prev).add(key))
-      fetchTopicsForActivation(decodedAgent, decodedActivation, workflow)
-        .then((topics) => setTopicsByActivation((p) => ({ ...p, [key]: topics })))
+      loadActivationChildren(decodedAgent, decodedActivation)
         .catch(console.error)
         .finally(() => {
           setLoadingActivations((prev) => {
@@ -229,17 +304,19 @@ export function ParticipantAgentTree({
           })
         })
     }
-  }, [routeAgentName, routeActivationName, workflowForAgent, workflowsByAgent])
+  }, [
+    selectedAgentName,
+    selectedActivationName,
+    workflowForAgent,
+    workflowsByAgent,
+    loadActivationChildren,
+  ])
 
   const refetchActivationTopics = useCallback(
     async (agentName: string, activationName: string) => {
-      const workflow = workflowForAgent(agentName)
-      if (!workflow) return
-      const key = `${agentName}|${activationName}`
-      const topics = await fetchTopicsForActivation(agentName, activationName, workflow)
-      setTopicsByActivation((prev) => ({ ...prev, [key]: topics }))
+      await loadActivationChildren(agentName, activationName)
     },
-    [workflowForAgent]
+    [loadActivationChildren]
   )
 
   const handleCreateTopic = useCallback(
@@ -324,18 +401,17 @@ export function ParticipantAgentTree({
       }
 
       setExpandedActivations((prev) => new Set(prev).add(key))
-      if (topicsByActivation[key]?.length) return
+      if (topicsByActivation[key]?.length || pendingCountByActivation[key] !== undefined) {
+        return
+      }
 
       setLoadingActivations((prev) => new Set(prev).add(key))
       try {
-        const workflow = workflowForAgent(agentName)
-        const topics = workflow
-          ? await fetchTopicsForActivation(agentName, activationName, workflow)
-          : []
-        setTopicsByActivation((prev) => ({ ...prev, [key]: topics }))
+        await loadActivationChildren(agentName, activationName)
       } catch (err) {
-        console.error('[ParticipantAgentTree] Failed to fetch topics:', err)
+        console.error('[ParticipantAgentTree] Failed to fetch activation children:', err)
         setTopicsByActivation((prev) => ({ ...prev, [key]: [] }))
+        setPendingCountByActivation((prev) => ({ ...prev, [key]: 0 }))
       } finally {
         setLoadingActivations((prev) => {
           const next = new Set(prev)
@@ -344,7 +420,12 @@ export function ParticipantAgentTree({
         })
       }
     },
-    [expandedActivations, topicsByActivation, workflowForAgent]
+    [
+      expandedActivations,
+      topicsByActivation,
+      pendingCountByActivation,
+      loadActivationChildren,
+    ]
   )
 
   const handleTopicClick = useCallback(
@@ -353,6 +434,18 @@ export function ParticipantAgentTree({
       onClose?.()
     },
     [onTopicSelect, onClose, workflowForAgent]
+  )
+
+  const handleTasksClick = useCallback(
+    (agentName: string, activationName: string, pendingCount = 0) => {
+      const urlParams = new URLSearchParams()
+      urlParams.set('agent', agentName)
+      urlParams.set('activation', activationName)
+      if (pendingCount > 0) urlParams.set('status', 'pending')
+      router.push(`/tasks?${urlParams.toString()}`)
+      onClose?.()
+    },
+    [router, onClose]
   )
 
   const handleActivationClick = useCallback(
@@ -393,10 +486,12 @@ export function ParticipantAgentTree({
         const isLoading = loadingActivations.has(key)
 
         const isSelectedActivation =
-          routeAgentName &&
-          routeActivationName &&
-          agentNamesEqual(routeAgentName, agentName) &&
-          agentNamesEqual(routeActivationName, activationName)
+          !!selectedAgentName &&
+          !!selectedActivationName &&
+          agentNamesEqual(selectedAgentName, agentName) &&
+          agentNamesEqual(selectedActivationName, activationName)
+        const isSelectedTasks = isTasksRoute && isSelectedActivation
+        const pendingCount = pendingCountByActivation[key]
 
         return (
           <div key={key} className="flex flex-col">
@@ -422,6 +517,14 @@ export function ParticipantAgentTree({
                     <p>{activationName}</p>
                   </TooltipContent>
                 </Tooltip>
+                {typeof pendingCount === 'number' && pendingCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="h-5 min-w-5 px-1.5 text-[10px] tabular-nums bg-amber-100 text-amber-900 dark:bg-amber-900/70 dark:text-amber-100"
+                  >
+                    {pendingCount}
+                  </Badge>
+                )}
 
               </button>
               {/* Expand to see topics + create new thread - visible on hover or when expanded */}
@@ -452,7 +555,9 @@ export function ParticipantAgentTree({
               <div className="ml-6 pl-3 border-l border-border/50 mt-0.5 space-y-0.5">
                 {(workflowsByAgent[agentName] ?? []).map((workflowName) => {
                   const isSelectedWorkflow =
-                    isSelectedActivation && selectedWorkflowType === workflowName
+                    !isTasksRoute &&
+                    isSelectedActivation &&
+                    selectedWorkflowType === workflowName
                   return (
                     <button
                       key={workflowName}
@@ -470,6 +575,31 @@ export function ParticipantAgentTree({
                     </button>
                   )
                 })}
+                <button
+                  type="button"
+                  onClick={() => handleTasksClick(agentName, activationName, pendingCount || 0)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-2 py-2 rounded-md text-left',
+                    'hover:bg-primary/10 transition-colors',
+                    isSelectedTasks && 'font-semibold bg-primary/10',
+                    pendingCount > 0 && 'text-amber-800 dark:text-amber-200'
+                  )}
+                >
+                  <span className="participant-tree-icon-wrap participant-tree-icon-wrap--topic flex h-6 w-6 shrink-0 items-center justify-center rounded border border-border">
+                    <ListTodo className="participant-tree-icon participant-tree-icon--topic h-3.5 w-3.5 text-muted-foreground" />
+                  </span>
+                  <span className="text-sm truncate flex-1">
+                    My Tasks
+                  </span>
+                  {pendingCount > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="h-5 min-w-5 px-1.5 text-[10px] tabular-nums bg-amber-100 text-amber-900 dark:bg-amber-900/70 dark:text-amber-100"
+                    >
+                      {pendingCount}
+                    </Badge>
+                  )}
+                </button>
                 {isLoading ? (
                   <div className="py-4 text-center">
                     <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground" />
@@ -483,7 +613,9 @@ export function ParticipantAgentTree({
                     )}
                     {topics.map((topic) => {
                       const isSelectedTopic =
-                        isSelectedActivation && topic.id === routeTopicId
+                        !isTasksRoute &&
+                        isSelectedActivation &&
+                        topic.id === routeTopicId
                       return (
                       <div
                         key={topic.id}

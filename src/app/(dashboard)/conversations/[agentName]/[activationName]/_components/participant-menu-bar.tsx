@@ -8,7 +8,7 @@ export function ParticipantMenuButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background hover:bg-muted/80 transition-colors"
-      aria-label="Open conversation menu"
+              aria-label="Open agent menu"
     >
       <PanelLeft className="h-4 w-4" />
     </button>
