@@ -44,11 +44,13 @@ Welcome to Agent Studio - a general-purpose AI agent platform. This documentatio
 ---
 
 ### [layout.md](./layout.md)
-**1,096 lines** | Application layout & UX structure
+**Application layout & UX structure**
 
 **Contains:**
 - Application shell (header, sidebar, main content, right slider)
-- Navigation structure (7 main sections, hierarchical)
+- Layout modes: full layout vs participant shell
+- Participant agent tree and the per-activation **Tasks node**
+- Navigation structure (sidebar for full layout; sheet menu for participants)
 - Routing organization (Next.js App Router)
 - Component hierarchy and state management
 - Responsive design (desktop, tablet, mobile)
@@ -211,7 +213,7 @@ docs/
 |----------|-------|--------|--------------|
 | requirements.md | 820 | ✅ Complete | 2026-01-15 |
 | theme.md | 943 | ✅ Complete | 2026-01-15 |
-| layout.md | 1,096 | ✅ Complete | 2026-01-15 |
+| layout.md | — | ✅ Complete | 2026-09-16 |
 | technology.md | 622 | ✅ Complete | 2026-01-15 |
 | auth.md | 929 | ✅ Complete | 2026-01-15 |
 | development.md | 1,243 | ✅ Complete | 2026-01-15 |
