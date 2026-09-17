@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
+import { authorizeTaskAccess, fetchTaskById } from '@/lib/api/task-access'
 
 /**
  * PUT /api/tasks/draft
- * Update a task's draft. Editing arbitrary tasks is a reviewer action, so it is
- * gated to Agent Settings access (excludes plain participants).
+ * Update a task's draft. The caller may edit only when session participantId
+ * equals the task owner; otherwise Agent Settings access is required.
  * Tenant is injected from session (httpOnly cookie).
  */
-export const PUT = withParticipantAdmin(
-  async (request: NextRequest, { tenantContext, session }: ApiContext) => {
+export const PUT = withTenantFromSession(
+  async (request: NextRequest, { tenantContext, session, tenantId: cookieTenantId }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id
       const { searchParams } = new URL(request.url)
@@ -32,7 +33,15 @@ export const PUT = withParticipantAdmin(
         )
       }
 
-      const client = createXiansClient((session as any)?.accessToken)
+      const accessToken = (session as { accessToken?: string }).accessToken
+      const task = await fetchTaskById(tenantId, workflowId, accessToken)
+      const accessError = await authorizeTaskAccess(session, cookieTenantId, task, {
+        tenantId,
+        accessToken,
+      })
+      if (accessError) return accessError
+
+      const client = createXiansClient(accessToken)
       const response = await client.put<any>(
         `/api/v1/admin/tenants/${tenantId}/tasks/draft?taskId=${encodeURIComponent(workflowId)}`,
         { updatedDraft }
