@@ -7,7 +7,6 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   CheckCircle,
   XCircle,
@@ -23,7 +22,9 @@ import {
 } from 'lucide-react';
 import { TaskStatusBadge } from './task-status-badge';
 import { useTenant } from '@/hooks/use-tenant';
-import { showErrorToast, showSuccessToast, showInfoToast } from '@/lib/utils/error-handler';
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
+import { formatTaskActionLabel } from '@/lib/task-mapper';
+import { cn } from '@/lib/utils';
 
 interface TaskDetailProps {
   task: Task;
@@ -282,8 +283,8 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
       // Show success toast
       showSuccessToast(
-        'Action Performed',
-        `The action "${action}" has been successfully executed`
+        action.toLowerCase().includes('reject') ? 'Request rejected' : 'Request approved',
+        'The agent can continue with your decision.'
       );
 
       // Call the callback to trigger parent component refresh and highlight
@@ -462,12 +463,12 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
           <div className="space-y-5">
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Comment (Optional)
+                Add a note (optional)
               </h3>
               <textarea
                 value={actionComment}
                 onChange={(e) => setActionComment(e.target.value)}
-                placeholder="Add a note about this action..."
+                placeholder="Explain your decision if you want…"
                 className="w-full min-h-[70px] px-3.5 py-3 bg-background border border-border/50 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none placeholder:text-muted-foreground/50 transition-all"
                 disabled={isPerformingAction}
               />
@@ -475,22 +476,32 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Actions
+                What would you like to do?
               </h3>
               <div className="flex gap-2 flex-wrap">
                 {(taskDetail?.availableActions || task.content?.data?.availableActions || []).map((action: string) => {
+                  const lower = action.toLowerCase();
+                  const isApprove = lower.includes('approve');
+                  const isReject = lower.includes('reject');
                   return (
                     <Button
                       key={action}
-                      variant="outline"
+                      variant={isReject ? 'destructive' : isApprove ? 'default' : 'outline'}
                       onClick={() => handleAction(action)}
                       disabled={isPerformingAction}
-                      className="text-xs rounded-lg h-9"
-                    >
-                      {isPerformingAction && (
-                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      className={cn(
+                        'text-sm rounded-lg h-10 min-w-[7.5rem]',
+                        isApprove && 'bg-emerald-600 hover:bg-emerald-700 text-white'
                       )}
-                      {action.charAt(0).toUpperCase() + action.slice(1)}
+                    >
+                      {isPerformingAction ? (
+                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      ) : isReject ? (
+                        <XCircle className="mr-1.5 h-4 w-4" />
+                      ) : (
+                        <CheckCircle className="mr-1.5 h-4 w-4" />
+                      )}
+                      {formatTaskActionLabel(action)}
                     </Button>
                   );
                 })}

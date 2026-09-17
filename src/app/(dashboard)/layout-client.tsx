@@ -10,6 +10,8 @@ import { Tenant } from '@/types/tenant'
 import type { Capability } from '@/lib/auth/capabilities'
 import { cn } from '@/lib/utils'
 import { ParticipantLayoutProvider } from '@/contexts/participant-layout-context'
+import { TaskReviewProvider } from '@/contexts/task-review-context'
+import { PendingTaskNotifier } from '@/components/features/tasks/pending-task-notifier'
 import { ParticipantLayoutShell } from '@/app/(dashboard)/participant/_components/participant-layout-shell'
 import { ParticipantChatPage } from '@/app/(dashboard)/participant/_components/participant-chat-page'
 
@@ -199,6 +201,8 @@ export function DashboardLayoutClient({
       onOpenMenu={isParticipantMode ? () => setParticipantMenuOpen(true) : undefined}
       canCustomizeTheme={canCustomizeTheme}
     >
+      <TaskReviewProvider>
+      <PendingTaskNotifier />
       <div className="flex h-screen flex-col">
         {/* Fixed Header - hamburger toggles admin sidebar drawer or participant menu */}
         <Header
@@ -244,6 +248,7 @@ export function DashboardLayoutClient({
           </main>
         </div>
       </div>
+      </TaskReviewProvider>
     </ParticipantLayoutProvider>
   )
 }
