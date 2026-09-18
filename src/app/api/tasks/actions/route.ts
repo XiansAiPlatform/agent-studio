@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
+import { authorizeTaskAccess, fetchTaskById } from '@/lib/api/task-access'
 
 /**
  * POST /api/tasks/actions
- * Perform task action (approve/reject/etc.) on any task in the tenant. This is a
- * reviewer action, so it is gated to Agent Settings access — a plain participant
- * must not be able to act on arbitrary tasks by editing the taskId in the URL.
- * Tenant is injected from session (httpOnly cookie).
+ * Perform a task action (approve/reject/etc.). The caller may act only when
+ * session participantId equals the task owner; otherwise Agent Settings
+ * access is required. Tenant is injected from session (httpOnly cookie).
  */
-export const POST = withParticipantAdmin(
-  async (request: NextRequest, { tenantContext, session }: ApiContext) => {
+export const POST = withTenantFromSession(
+  async (request: NextRequest, { tenantContext, session, tenantId: cookieTenantId }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id
       const { searchParams } = new URL(request.url)
@@ -33,7 +33,15 @@ export const POST = withParticipantAdmin(
         )
       }
 
-      const client = createXiansClient((session as any)?.accessToken)
+      const accessToken = (session as { accessToken?: string }).accessToken
+      const task = await fetchTaskById(tenantId, workflowId, accessToken)
+      const accessError = await authorizeTaskAccess(session, cookieTenantId, task, {
+        tenantId,
+        accessToken,
+      })
+      if (accessError) return accessError
+
+      const client = createXiansClient(accessToken)
       const response = await client.post<any>(
         `/api/v1/admin/tenants/${tenantId}/tasks/actions?taskId=${encodeURIComponent(workflowId)}`,
         { action, comment: comment || undefined }

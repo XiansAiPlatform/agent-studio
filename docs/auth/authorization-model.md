@@ -137,16 +137,31 @@ const participantId = session.user?.email      // server-derived identity
 
 If a route using `withTenantFromSession` needs a tenant-wide or another-user view,
 it must add an explicit capability check before performing it. Example from
-`src/app/api/tasks/route.ts` — "my tasks" is open, but the tenant-wide "everyone"
-view and single-task-by-id fetch require `settings:view`:
+`src/app/api/tasks/route.ts` — "my tasks" is open to any member but the BFF
+keeps only tasks whose owner matches the session (`participantId = taskOwner`);
+"everyone" requires `settings:view`; fetch-by-id / actions require the caller
+to be the owner or a reviewer:
 
 ```ts
-const isOwnTasksView = viewType === 'my' && !taskId
-if (!isOwnTasksView) {
+if (taskId) {
+  const task = await fetchTaskById(tenantId, taskId, accessToken)
+  const accessError = await authorizeTaskAccess(session, cookieTenantId, task)
+  if (accessError) return accessError
+  return NextResponse.json(task)
+}
+
+if (viewType !== 'my') {
   const authError = await requireParticipantAdmin(session, cookieTenantId)
   if (authError) return authError
 }
 ```
+
+Ownership and access decisions themselves live in `src/lib/api/task-ownership.ts`
+(`storedTaskOwner`, `isTaskOwnedBySession`, `canActOnTask`). The API routes stay the I/O boundary:
+they fetch the task/messages, then call `authorizeTaskAccess`. Session
+`participantId` must equal the task owner. When Xians stored `heartbeat` or a
+blank assignee, only the conversation that spawned the task is treated as the
+owner (`participantId = taskOwner`). Sharing an agent/activation is not enough.
 
 ---
 
@@ -264,6 +279,14 @@ still needs review. Run it in CI and before merging any change that adds routes.
 - **`messaging/files/[fileId]`** relies on the backend enforcing tenant isolation on
   stored files and is scoped to the current tenant, but has no per-participant
   ownership check. Enforcing per-participant access requires backend support.
+- **HITL `participantId` must equal the task owner.** Temporal UserIds (`heartbeat`,
+  `system`, `worker`, `temporal`) are not owners. When Xians stored a person on
+  `taskOwner` / `participantId`, that person is the assignee. When it left the
+  field blank, the task belongs to the session whose conversation spawned it
+  (a `taskId` on a message, or a message in that session within 10 seconds of
+  `startTime`). Chat-substring matching is not used, and sharing an
+  agent/activation is not ownership. The lasting backend fix is for Xians to
+  persist the real HITL assignee.
 
 ---
 

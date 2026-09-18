@@ -53,10 +53,10 @@ export function ParticipantLayoutShell({
           {/* Simple header - SheetTitle required for accessibility; SheetContent provides close X */}
           <div className="px-4 py-4 pr-12 border-b shrink-0">
             <SheetTitle className="text-base font-semibold text-foreground">
-              Conversations
+              Agents
             </SheetTitle>
             <p className="text-sm text-muted-foreground font-normal mt-0.5">
-              Browse agents and topics
+              Browse topics and tasks
             </p>
           </div>
           <div className="participant-tree-sheet flex-1 overflow-y-auto px-3 py-2">

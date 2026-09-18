@@ -1,8 +1,11 @@
-import { AlertTriangle, Bot, Loader2, PanelLeft } from 'lucide-react';
+import { AlertTriangle, Bot, Loader2, PanelLeft, ListTodo } from 'lucide-react';
 import { ParticipantMenuButton } from './participant-menu-bar';
 import { cn } from '@/lib/utils';
 import { Topic } from '@/types/conversation';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { useMyPendingTaskCount } from '@/app/(dashboard)/dashboard/hooks/use-my-pending-task-count';
 
 interface ConversationHeaderProps {
   activationName: string;
@@ -27,6 +30,7 @@ interface ConversationHeaderProps {
    * `useParticipantLayout().onOpenMenu` instead).
    */
   onOpenTopics?: () => void;
+  agentName?: string;
 }
 
 /**
@@ -48,8 +52,14 @@ export function ConversationHeader({
   isHeartbeatLoading = false,
   onRetryHeartbeat,
   onOpenTopics,
+  agentName,
 }: ConversationHeaderProps) {
   const { onOpenMenu } = useParticipantLayout();
+  const { count: pendingCount } = useMyPendingTaskCount(Boolean(agentName && activationName), {
+    pollIntervalMs: 20_000,
+    agentName,
+    activationName,
+  });
   // In admin mode (no participant menu), expose a topics drawer button on mobile.
   const showAdminTopicsBtn = !onOpenMenu && Boolean(onOpenTopics);
 
@@ -144,6 +154,27 @@ export function ConversationHeader({
 
         {/* Worker Status: Live, Checking, or Warning */}
         <div className="flex items-center gap-2 shrink-0">
+          {pendingCount > 0 && agentName && (
+            <Link
+              href={`/tasks?status=pending&agent=${encodeURIComponent(agentName)}&activation=${encodeURIComponent(activationName)}`}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                'border-amber-300 bg-amber-100 text-amber-950 hover:bg-amber-200/80',
+                'dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-100 dark:hover:bg-amber-500/25'
+              )}
+            >
+              <ListTodo className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">
+                {pendingCount === 1 ? '1 task waiting' : `${pendingCount} tasks waiting`}
+              </span>
+              <Badge
+                variant="secondary"
+                className="h-4 min-w-4 px-1 text-[10px] tabular-nums sm:hidden bg-amber-800 text-amber-50 dark:bg-amber-300 dark:text-amber-950"
+              >
+                {pendingCount}
+              </Badge>
+            </Link>
+          )}
           {showChecking ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

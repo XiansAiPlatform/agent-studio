@@ -25,6 +25,11 @@ const contentSecurityPolicy = [
 ].join('; ');
 
 const nextConfig: NextConfig = {
+  // Next.js 16 blocks /_next assets when the browser host differs from the
+  // hostname the dev server bound (localhost vs 127.0.0.1). Without this the
+  // login page never hydrates and stays on "Loading sign-in options...".
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
+
   // Enable standalone mode for Docker deployment
   output: 'standalone',
   

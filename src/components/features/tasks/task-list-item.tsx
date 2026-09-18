@@ -1,16 +1,14 @@
 'use client';
 
 import { Task } from '@/types/task';
-import { Bot, Clock, Flag, User, ArrowRight } from 'lucide-react';
+import { Bot, Clock, Flag, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { cn } from '@/lib/utils';
-import { TASK_STATUS_CONFIG } from '@/lib/task-status-config';
 import { TaskStatusBadge } from './task-status-badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskListItemProps {
   task: Task;
@@ -168,11 +166,6 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
               </div>
             )}
           </div>
-        </div>
-
-        {/* Hover Indicator (visible by default on touch, hover-revealed on desktop) */}
-        <div className="hidden sm:block shrink-0 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
     </div>

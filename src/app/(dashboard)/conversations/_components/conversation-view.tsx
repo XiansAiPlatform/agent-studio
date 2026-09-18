@@ -206,6 +206,7 @@ export function ConversationView({
               serverUnavailable={serverUnavailable}
               isHeartbeatLoading={isHeartbeatLoading}
               onRetryHeartbeat={onRetryHeartbeat}
+              agentName={agentName}
               onOpenTopics={
                 showTopicsDrawerOnMobile
                   ? () => setTopicsDrawerOpen(true)
@@ -244,6 +245,7 @@ export function ConversationView({
               serverUnavailable={serverUnavailable}
               isHeartbeatLoading={isHeartbeatLoading}
               onRetryHeartbeat={onRetryHeartbeat}
+              agentName={agentName}
               onOpenTopics={
                 showTopicsDrawerOnMobile
                   ? () => setTopicsDrawerOpen(true)

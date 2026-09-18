@@ -183,7 +183,7 @@ export function withTenantFromSession(handler: ApiHandler) {
  * Use for Agent Settings operations AND for tenant-wide workspace management that
  * a plain TenantParticipant must never reach by manipulating the frontend/URL:
  * agent activations (create/update/activate/deactivate), knowledge CRUD,
- * schedules, webhooks, tenant stats, and task review actions. Extends
+ * schedules, webhooks, tenant stats, and tenant-wide task review. Extends
  * withTenantFromSession with a capability check.
  *
  * SECURITY: The tenant is ALWAYS resolved from the server-side httpOnly

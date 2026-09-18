@@ -9,6 +9,7 @@ import { TenantSelector } from './tenant-selector';
 import { useTenant } from '@/hooks/use-tenant';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { Button } from '@/components/ui/button';
+import { PendingTasksNavButton } from '@/components/features/tasks/pending-tasks-nav-button';
 
 interface HeaderProps {
   /** Admin-mode handler that opens the mobile sidebar drawer. */
@@ -82,6 +83,7 @@ export function Header({ onOpenSidebar }: HeaderProps = {}) {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <PendingTasksNavButton />
           <ThemeToggle />
           <UserMenu />
         </div>

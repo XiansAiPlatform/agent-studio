@@ -33,6 +33,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useEditableAgents } from '@/hooks/use-editable-agents';
+import { useMyPendingTaskCount } from '@/app/(dashboard)/dashboard/hooks/use-my-pending-task-count';
+import { useTenant } from '@/hooks/use-tenant';
 import type { Capability } from '@/lib/auth/capabilities';
 
 // Types for panel configuration
@@ -209,6 +211,7 @@ function NavItem({
   onNavigate,
   onExpandSidebar,
   can,
+  badgeCount = 0,
 }: {
   item: NavigationItem;
   collapsed: boolean;
@@ -220,6 +223,7 @@ function NavItem({
   onNavigate?: () => void;
   onExpandSidebar?: () => void;
   can: (capability: Capability) => boolean;
+  badgeCount?: number;
 }) {
   const [expanded, setExpanded] = useState(active);
   const Icon = item.icon;
@@ -262,6 +266,14 @@ function NavItem({
               {!collapsed && (
                 <>
                   <span className="flex-1 truncate text-left">{item.name}</span>
+                  {badgeCount > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="h-5 min-w-5 px-1.5 text-[10px] tabular-nums bg-amber-100 text-amber-900 dark:bg-amber-900/70 dark:text-amber-100"
+                    >
+                      {badgeCount}
+                    </Badge>
+                  )}
                   <ChevronRight
                     className={cn(
                       'h-4 w-4 transition-all group-hover:translate-x-0.5',
@@ -303,6 +315,14 @@ function NavItem({
               {!collapsed && (
                 <>
                   <span className="flex-1 truncate">{item.name}</span>
+                  {badgeCount > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="h-5 min-w-5 px-1.5 text-[10px] tabular-nums bg-amber-100 text-amber-900 dark:bg-amber-900/70 dark:text-amber-100"
+                    >
+                      {badgeCount}
+                    </Badge>
+                  )}
                   {hasChildren && (
                     <ChevronRight
                       className={cn(
@@ -313,11 +333,17 @@ function NavItem({
                   )}
                 </>
               )}
+              {collapsed && badgeCount > 0 && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500" />
+              )}
             </Link>
           )}
         </TooltipTrigger>
         <TooltipContent side="right">
-          <p>{item.name}</p>
+          <p>
+            {item.name}
+            {badgeCount > 0 ? ` · ${badgeCount} waiting` : ''}
+          </p>
         </TooltipContent>
       </Tooltip>
 
@@ -433,6 +459,10 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const { can } = usePermissions();
+  const { currentTenantId } = useTenant();
+  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId), {
+    pollIntervalMs: 20_000,
+  });
 
   const visibleNavigation = navigation.filter((item) =>
     item.capability ? can(item.capability) : true
@@ -508,6 +538,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
               onNavigate={mobile ? onNavigate : undefined}
               onExpandSidebar={() => setCollapsed(false)}
               can={can}
+              badgeCount={item.name === 'Tasks' ? pendingTaskCount : 0}
             />
           );
         })}

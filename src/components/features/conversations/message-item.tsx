@@ -1,11 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Message } from '@/types/conversation';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Copy, FileText, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Edit, ExternalLink, Download } from 'lucide-react';
+import { FileText, AlertCircle, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
@@ -13,6 +9,7 @@ import Link from 'next/link';
 import { MarkdownMessage, type MarkdownVariant } from './markdown-message';
 import { MessageActionsToolbar } from './message-actions-toolbar';
 import { MessageFeedbackSummary } from './message-feedback';
+import { ChatTaskCard } from './chat-task-card';
 
 interface MessageItemProps {
   message: Message;
@@ -62,9 +59,8 @@ export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, di
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const variant: MarkdownVariant = isUser ? 'user' : 'agent';
-  const [isDraftExpanded, setIsDraftExpanded] = useState(false);
-  const router = useRouter();
   const hasCaption = message.content.trim().length > 0;
+  const relatedTaskId = message.taskId || message.contentDraft?.taskId;
   const hasFileAttachments =
     !!message.attachments?.some((attachment) => attachment.type === 'file');
   // Agent File messages with no caption still get a short reply so the bubble
@@ -76,28 +72,6 @@ export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, di
         ? 'Your file is ready.'
         : '';
   const hasContent = displayContent.trim().length > 0;
-
-  const handleCopyDraft = () => {
-    if (message.contentDraft) {
-      navigator.clipboard.writeText(message.contentDraft.content);
-    }
-  };
-
-  const handleApproveDraft = () => {
-    console.log('Approving draft:', message.contentDraft?.id);
-    // In a real app, this would send an API request to approve the draft
-  };
-
-  const handleRejectDraft = () => {
-    console.log('Rejecting draft:', message.contentDraft?.id);
-    // In a real app, this would send an API request to reject the draft
-  };
-
-  const handleEditDraft = () => {
-    if (message.contentDraft?.taskId) {
-      router.push(`/tasks?task=${message.contentDraft.taskId}`);
-    }
-  };
 
   if (isSystem) {
     return (
@@ -163,7 +137,7 @@ export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, di
               return (
                 <Link
                   key={attachment.id}
-                  href={`/tasks?task=${attachment.id}`}
+                  href={`/tasks?task=${encodeURIComponent(attachment.id)}`}
                   className={cn(
                     chipClassName,
                     'transition-colors',
@@ -177,8 +151,8 @@ export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, di
                     <p className="text-xs font-medium truncate">
                       {attachment.name}
                     </p>
-                    <p className="text-[10px] opacity-70 capitalize">
-                      {attachment.type}
+                    <p className="text-[10px] opacity-70">
+                      Request
                     </p>
                   </div>
                 </Link>
@@ -188,166 +162,11 @@ export function MessageItem({ message, agentName, onMessageFeedbackSubmitted, di
         )}
       </div>
 
-      {/* View Task Link - Show when message has taskId */}
-      {message.taskId && !isUser && (
-        <Link
-          href={`/tasks?task=${message.taskId}`}
-          className="mt-3 flex items-center gap-2 p-3 rounded-lg border border-border bg-card hover:bg-primary transition-colors group/task"
-        >
-          <div className="h-8 w-8 rounded-md bg-primary/10 group-hover/task:bg-primary-foreground/20 flex items-center justify-center flex-shrink-0 transition-colors">
-            <FileText className="h-4 w-4 text-primary group-hover/task:text-primary-foreground transition-colors" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground group-hover/task:text-primary-foreground transition-colors">
-              View Related Task
-            </p>
-          </div>
-          <ExternalLink className="h-4 w-4 text-muted-foreground group-hover/task:text-primary-foreground transition-colors flex-shrink-0" />
-        </Link>
-      )}
-
-      {/* Content Draft Section */}
-      {message.contentDraft && !isUser && (
-        <div className="mt-3 w-full border border-border rounded-lg overflow-hidden bg-background">
-          {/* Draft Header */}
-          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <div>
-                <p className="text-sm font-medium">{message.contentDraft.title}</p>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {message.contentDraft.type}
-                  {message.contentDraft.metadata?.subject && (
-                    <span className="ml-2">• {message.contentDraft.metadata.subject}</span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsDraftExpanded(!isDraftExpanded)}
-              className="h-7 px-2"
-            >
-              {isDraftExpanded ? (
-                <>
-                  <ChevronUp className="h-3 w-3 mr-1" />
-                  Hide
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-3 w-3 mr-1" />
-                  Show
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* Draft Content */}
-          {isDraftExpanded && (
-            <>
-              {/* Metadata */}
-              {message.contentDraft.metadata && (
-                <div className="px-4 py-2 bg-muted/30 border-b border-border">
-                  <div className="space-y-1 text-xs">
-                    {message.contentDraft.metadata.subject && (
-                      <div className="flex gap-2">
-                        <span className="font-medium text-muted-foreground">Subject:</span>
-                        <span>{message.contentDraft.metadata.subject}</span>
-                      </div>
-                    )}
-                    {message.contentDraft.metadata.recipients && (
-                      <div className="flex gap-2">
-                        <span className="font-medium text-muted-foreground">Recipients:</span>
-                        <span>{message.contentDraft.metadata.recipients.join(', ')}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Draft Body */}
-              <div className="px-4 py-3 max-h-96 overflow-y-auto overflow-x-hidden min-w-0">
-                <MarkdownMessage content={message.contentDraft.content} variant="agent" />
-              </div>
-
-              {/* Draft Actions */}
-              <div className="px-4 py-3 bg-muted/50 border-t border-border flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleApproveDraft}
-                    className="h-8"
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRejectDraft}
-                    className="h-8"
-                  >
-                    <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                    Reject
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEditDraft}
-                    className="h-8"
-                  >
-                    <Edit className="h-3.5 w-3.5 mr-1.5" />
-                    Edit Draft
-                  </Button>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCopyDraft}
-                  className="h-8"
-                >
-                  <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  Copy
-                </Button>
-              </div>
-            </>
-          )}
-
-          {/* Collapsed Preview Actions */}
-          {!isDraftExpanded && (
-            <div className="px-4 py-2 flex items-center gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleApproveDraft}
-                className="h-7 text-xs"
-              >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Approve
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRejectDraft}
-                className="h-7 text-xs"
-              >
-                <XCircle className="h-3 w-3 mr-1" />
-                Reject
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleEditDraft}
-                className="h-7 text-xs"
-              >
-                <Edit className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
-            </div>
-          )}
-        </div>
+      {relatedTaskId && !isUser && (
+        <ChatTaskCard
+          taskId={relatedTaskId}
+          draftPreview={message.contentDraft?.content}
+        />
       )}
 
       {/* Already-given rating — persistent state, not hover-gated */}

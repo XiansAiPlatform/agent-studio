@@ -1,7 +1,7 @@
 # Application Layout & UX Structure
 
-**Version:** 1.0  
-**Last Updated:** 2026-01-15  
+**Version:** 1.1  
+**Last Updated:** 2026-09-16  
 **Status:** Approved
 
 ---
@@ -21,14 +21,16 @@ This document specifies the complete layout and UX structure for Agent Studio. I
 ## Table of Contents
 
 1. [Application Shell](#application-shell)
-2. [Header Component](#header-component)
-3. [Side Navigation](#side-navigation)
-4. [Right Slider Panel](#right-slider-panel)
-5. [Main Content Area](#main-content-area)
-6. [Routing Structure](#routing-structure)
-7. [Layout Patterns](#layout-patterns)
-8. [Responsive Design](#responsive-design)
-9. [Component Hierarchy](#component-hierarchy)
+2. [Layout Modes](#layout-modes)
+3. [Participant Shell](#participant-shell)
+4. [Header Component](#header-component)
+5. [Side Navigation](#side-navigation)
+6. [Right Slider Panel](#right-slider-panel)
+7. [Main Content Area](#main-content-area)
+8. [Routing Structure](#routing-structure)
+9. [Layout Patterns](#layout-patterns)
+10. [Responsive Design](#responsive-design)
+11. [Component Hierarchy](#component-hierarchy)
 
 ---
 
@@ -96,6 +98,85 @@ export default function DashboardLayout({ children }) {
 
 ---
 
+## Layout Modes
+
+The dashboard shell is chosen **server-side** from the current tenant role (`src/app/(dashboard)/layout.tsx`). The client never picks the layout.
+
+| Mode | Who gets it | Shell |
+|------|-------------|--------|
+| **Full layout** | Anyone with `app:use-full-layout` (TenantUser, TenantParticipantAdmin, TenantAdmin, SysAdmin) | Header + collapsible **sidebar** + main content |
+| **Participant shell** | Plain `TenantParticipant` (no capabilities) | Header + **single panel** (no sidebar). A left sheet is the only navigation. |
+
+`showSidebar` is derived from `app:use-full-layout`. An unknown current tenant falls back to the full layout.
+
+---
+
+## Participant Shell
+
+**Implementation:** `ParticipantLayoutShell` in `src/app/(dashboard)/participant/_components/participant-layout-shell.tsx`, mounted from `layout-client.tsx` when `showSidebar` is false.
+
+Participants do not see Dashboard / Agents / Settings. They chat with activations and act on HITL requests that belong to them.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Header (logo, tenant, My Tasks, theme, user)           │
+├─────────────────────────────────────────────────────────┤
+│  [☰] page label                                         │  ← in-page menu button
+│─────────────────────────────────────────────────────────│
+│                                                         │
+│              Single full-height panel                   │
+│         (chat, agent picker, or /tasks)                 │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+Menu open (Sheet, below the header):
+┌──────────────┬──────────────────────────────────────────┐
+│ Agents       │                                          │
+│ Browse topics│         Current page stays put           │
+│ and tasks    │                                          │
+│              │                                          │
+│ ▸ activation │                                          │
+│   workflow   │                                          │
+│   Tasks node │                                          │
+│   topics     │                                          │
+└──────────────┴──────────────────────────────────────────┘
+```
+
+### Opening the menu
+
+There is no persistent sidebar. The same left `Sheet` is opened from:
+
+- **Header hamburger** (mobile) — `Header` calls `onOpenMenu` from `ParticipantLayoutProvider`
+- **In-page panel button** — `ParticipantMenuButton` on chat (`ConversationHeader`) and the Tasks page (`ParticipantMenuBar`)
+- **Participant home** (`/dashboard`) — `ParticipantChatPage` renders an agent picker (or redirects when only one activation exists) with the same menu button
+
+The sheet is titled **Agents** with subtitle **Browse topics and tasks**. It contains `ParticipantAgentTree`.
+
+### Participant agent tree
+
+Each **active** activation is a row. Clicking the row opens that activation’s default chat. Expanding it shows:
+
+1. Built-in **workflow** names (switch the conversation workflow)
+2. The **Tasks node** (HITL requests for this activation)
+3. **Topics / threads**, plus New thread / delete
+
+Pending HITL counts poll `GET /api/tasks?viewType=my&status=Running` about every 20 seconds and badge the activation row and the Tasks node.
+
+### Tasks node
+
+The Tasks node is the participant’s path into `/tasks`. It is **not** the admin sidebar item; it lives under each activation in the agent tree.
+
+| Pending count | Label | Navigation |
+|---------------|--------|------------|
+| `0` | **My Tasks** | `/tasks?agent=…&activation=…` |
+| `> 0` | **My Tasks** (amber badge) | `/tasks?agent=…&activation=…&status=pending` |
+
+On `/tasks`, the tree highlights the Tasks node for the activation in the query string. The page itself uses `ParticipantMenuBar` with the same labels (`My Tasks` / `Requests · {activation}`). Participants only see **their** requests (`viewType=my`); the Everyone toggle is hidden.
+
+The header **My Tasks** chip (`PendingTasksNavButton`) is a second entry point: it appears when the tenant-wide pending count is greater than zero and links to `/tasks?status=pending`.
+
+---
+
 ## Header Component
 
 **Requirement ID:** AS-002 (from requirements.md)  
@@ -143,6 +224,16 @@ export default function DashboardLayout({ children }) {
   - Error (red)
   - Success (green)
 - Click to open notification panel
+
+**Pending tasks chip (current):**
+- `PendingTasksNavButton` in the header — **My Tasks** with a count
+- Shown only when the current user has pending HITL requests
+- Links to `/tasks?status=pending` (both layout modes)
+
+**Hamburger / menu:**
+- Full layout, mobile: opens the sidebar drawer
+- Participant shell, mobile: opens the agent-tree sheet
+- Desktop participants use the in-page `ParticipantMenuButton` instead
 
 **Theme Toggle:**
 - Switch between light/dark mode
@@ -213,6 +304,10 @@ export function Header() {
 **Requirement ID:** AS-003 (from requirements.md)  
 **Priority:** P0 (Critical)
 
+The collapsible sidebar is **full-layout only**. Participants never receive it; they use the [participant shell](#participant-shell) agent tree instead.
+
+Current top-level items (see `src/components/layout/sidebar.tsx`): Dashboard, Agents, **Tasks**, Conversations, then capability-gated Agent Settings, Knowledge, Performance, Tenant Settings, Developer, and System Admin.
+
 ### Navigation Structure
 
 ```
@@ -257,9 +352,11 @@ export function Header() {
 
 ### Primary Navigation Items
 
-#### 1. Tasks (Home)
-- **Icon:** Checkmark / List
-- **Badge:** Count of pending items
+#### 1. Tasks
+- **Icon:** Checkmark / List (`CheckCircle`)
+- **Route:** `/tasks`
+- **Badge:** Count of the current user's pending HITL requests (`useMyPendingTaskCount`). Hidden when the count is 0.
+- **Behavior:** Full-layout users can switch My requests / Everyone (Everyone requires `settings:view` on the API). Participants reach the same page from the [Tasks node](#tasks-node) in the agent tree, scoped to one activation.
 
 #### 2. Conversations
 - **Icon:** Message bubble
@@ -586,11 +683,15 @@ app/
 │       └── page.tsx
 │
 ├── (dashboard)/                 # Main app (with shell)
-│   ├── layout.tsx              # Dashboard layout wrapper
+│   ├── layout.tsx              # Dashboard layout wrapper (picks sidebar vs participant shell)
+│   ├── layout-client.tsx       # Header, sidebar or ParticipantLayoutShell
 │   ├── page.tsx                # Dashboard home
 │   │
+│   ├── participant/
+│   │   └── _components/       # ParticipantLayoutShell, ParticipantAgentTree, ParticipantChatPage
+│   │
 │   ├── tasks/
-│   │   ├── page.tsx           # /tasks
+│   │   ├── page.tsx           # /tasks (HITL requests; participants: own tasks only)
 │   │   └── [id]/
 │   │       └── page.tsx       # /tasks/:id
 │   │
@@ -802,25 +903,25 @@ RootLayout (app/layout.tsx)
         ├── Header
         │   ├── Logo & Branding
         │   ├── CommandMenu (Global Search)
+        │   ├── PendingTasksNavButton ("My Tasks")
         │   ├── QuickActions
         │   ├── NotificationCenter
         │   ├── ThemeToggle
         │   └── UserButton
         │
-        ├── Main Container
+        ├── Full layout (app:use-full-layout)
         │   ├── Sidebar
-        │   │   └── Navigation Items
-        │   │       └── Sub-items
-        │   │
-        │   ├── Main Content
-        │   │   └── Page content
-        │   │       ├── Page Header
-        │   │       ├── Breadcrumbs
-        │   │       └── Page Body
-        │   │
-        │   └── RightSlider (conditional)
-        │       ├── Slider Header
-        │       └── Slider Content
+        │   │   └── Navigation Items (Dashboard, Agents, Tasks, Conversations, …)
+        │   └── Main Content
+        │
+        └── Participant shell (TenantParticipant)
+            └── ParticipantLayoutShell
+                ├── Left Sheet (Agents / topics / Tasks node)
+                │   └── ParticipantAgentTree
+                └── Main Content
+                    ├── ParticipantChatPage (/dashboard)
+                    ├── Conversation (chat)
+                    └── Tasks page (own HITL requests)
 ```
 
 ### State Management
@@ -1073,5 +1174,5 @@ viewports.forEach(({ name, width, height }) => {
 ---
 
 **Status:** ✅ Complete  
-**Last Updated:** 2026-01-15  
+**Last Updated:** 2026-09-16  
 **Next Review:** After MVP implementation
