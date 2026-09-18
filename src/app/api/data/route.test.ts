@@ -105,12 +105,31 @@ describe('POST /api/data', () => {
     expect(body.error).toBe('Invalid JSON body')
   })
 
-  it('rejects missing agentName/dataType/key', async () => {
+  it('rejects missing agentName/dataType/key/activationName together', async () => {
     const { status, body } = await read(
-      await POST(jsonRequest({ content: {}, activationName: 'act-a' }))
+      await POST(jsonRequest({ content: {} }))
     )
     expect(status).toBe(400)
-    expect(body.error).toMatch(/agentName, dataType, and key are required/)
+    expect(body.error).toBe(
+      'agentName, dataType, key, and activationName are required'
+    )
+  })
+
+  it('rejects when only activationName is omitted', async () => {
+    const { status, body } = await read(
+      await POST(
+        jsonRequest({
+          agentName: 'support',
+          dataType: 'preference',
+          key: 'k',
+          content: { note: 'ok' },
+        })
+      )
+    )
+    expect(status).toBe(400)
+    expect(body.error).toBe(
+      'agentName, dataType, key, and activationName are required'
+    )
   })
 
   it('rejects when content is omitted', async () => {

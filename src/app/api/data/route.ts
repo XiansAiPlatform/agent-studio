@@ -114,9 +114,12 @@ export const POST = withParticipantAdmin(
       const agentName = trimRequired(body.agentName);
       const dataType = trimRequired(body.dataType);
       const key = trimRequired(body.key);
+      const activationName = trimRequired(body.activationName);
 
-      if (!agentName || !dataType || !key) {
-        return validationError('agentName, dataType, and key are required');
+      if (!agentName || !dataType || !key || !activationName) {
+        return validationError(
+          'agentName, dataType, key, and activationName are required'
+        );
       }
 
       if (body.content === undefined) {
@@ -131,11 +134,6 @@ export const POST = withParticipantAdmin(
         return validationError(
           `content must be at most ${ADMIN_DATA_JSON_MAX_BYTES} bytes`
         );
-      }
-
-      const activationName = trimRequired(body.activationName);
-      if (!activationName) {
-        return validationError('activationName is required');
       }
 
       const denied = await assertCanEditAgent(session, tenantId, agentName);

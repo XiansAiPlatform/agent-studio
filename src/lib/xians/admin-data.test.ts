@@ -83,6 +83,16 @@ describe('loadRecordIfEditable', () => {
     expect(denied).toBeNull()
     expect(item).toEqual(record)
   })
+
+  it('rethrows non-404 AdminAPI errors instead of treating them as not-found', async () => {
+    const client = mockXiansClient({
+      get: vi.fn().mockRejectedValue(new XiansApiError('Server error', 500)),
+    })
+
+    await expect(
+      loadRecordIfEditable(client, session, 'tenant-1', 'rec-1')
+    ).rejects.toThrow('Server error')
+  })
 })
 
 describe('assertActivationOwnedByAgent', () => {
@@ -141,8 +151,9 @@ describe('assertActivationOwnedByAgent', () => {
   it('denies when the activation is not found on any page', async () => {
     const get = vi
       .fn()
-      .mockResolvedValueOnce(page([{ name: 'other', agentName: 'support' }], 2, 1))
-      .mockResolvedValueOnce(page([{ name: 'still-other', agentName: 'support' }], 2, 2))
+      .mockResolvedValueOnce(page([{ name: 'other', agentName: 'support' }], 3, 1))
+      .mockResolvedValueOnce(page([{ name: 'still-other', agentName: 'support' }], 3, 2))
+      .mockResolvedValueOnce(page([{ name: 'also-other', agentName: 'support' }], 3, 3))
 
     const denied = await assertActivationOwnedByAgent(
       mockXiansClient({ get }),
@@ -152,7 +163,7 @@ describe('assertActivationOwnedByAgent', () => {
     )
 
     expect(denied).toMatchObject({ status: 400 })
-    expect(get).toHaveBeenCalledTimes(2)
+    expect(get).toHaveBeenCalledTimes(3)
   })
 
   it('does not cache activation-not-owned denials', async () => {

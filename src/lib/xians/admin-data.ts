@@ -86,8 +86,9 @@ function pageOwnsActivation(
 
 /**
  * Look up one activation on one agent. Sends `name` in case AdminAPI filters
- * by it (O(1)); if it ignores the param we still walk pages and stop as soon
- * as the target is found.
+ * by it (O(1)). Page 1 is fetched first (common hit); any remaining pages
+ * load concurrently so a miss is one extra round trip, not 19 sequential ones.
+ * Misses are still not TTL-cached (a reassigned activation must fail closed).
  */
 async function findActivationOwnedByAgent(
   client: XiansClient,
@@ -117,11 +118,14 @@ async function findActivationOwnedByAgent(
 
   const reportedPages = Array.isArray(first) ? 1 : first?.pagination?.totalPages ?? 1
   const totalPages = Math.min(Math.max(reportedPages, 1), maxPages)
-  for (let page = 2; page <= totalPages; page += 1) {
-    const result = await fetchPage(page)
-    if (pageOwnsActivation(result, canonicalAgent, canonicalActivation)) return true
-  }
-  return false
+  if (totalPages <= 1) return false
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2))
+  )
+  return rest.some((result) =>
+    pageOwnsActivation(result, canonicalAgent, canonicalActivation)
+  )
 }
 
 class ActivationNotOwnedError extends Error {
