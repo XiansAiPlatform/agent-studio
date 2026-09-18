@@ -58,29 +58,44 @@ export async function assertActivationOwnedByAgent(
   const canonicalActivation = decodeAgentNameParam(activationName)
   const pageSize = 100
   const maxPages = 20
-  let page = 1
-  let totalPages = 1
+  const tenantHeader = { headers: { 'X-Tenant-Id': tenantId } }
 
-  while (page <= totalPages && page <= maxPages) {
+  const fetchPage = (page: number) => {
     const params = new URLSearchParams({
       agentName: canonicalAgent,
       page: String(page),
       pageSize: String(pageSize),
     })
-    const result = await client.get<PaginatedResponse<XiansAgentActivation>>(
+    return client.get<PaginatedResponse<XiansAgentActivation>>(
       `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations?${params.toString()}`,
-      { headers: { 'X-Tenant-Id': tenantId } }
+      tenantHeader
     )
+  }
+
+  const pageOwnsActivation = (
+    result: PaginatedResponse<XiansAgentActivation> | XiansAgentActivation[] | null
+  ) => {
     const items = Array.isArray(result) ? result : result?.data ?? []
-    const owned = items.some(
+    return items.some(
       (item) =>
         agentNamesEqual(item.name, canonicalActivation) &&
         agentNamesEqual(item.agentName, canonicalAgent)
     )
-    if (owned) return null
-    totalPages = Array.isArray(result) ? 1 : result?.pagination?.totalPages ?? 1
-    page += 1
   }
+
+  const first = await fetchPage(1)
+  if (pageOwnsActivation(first)) return null
+
+  const reportedPages = Array.isArray(first) ? 1 : first?.pagination?.totalPages ?? 1
+  const totalPages = Math.min(Math.max(reportedPages, 1), maxPages)
+  if (totalPages <= 1) {
+    return validationError('activationName does not belong to this agent')
+  }
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2))
+  )
+  if (rest.some(pageOwnsActivation)) return null
 
   return validationError('activationName does not belong to this agent')
 }
@@ -100,6 +115,10 @@ export function adminDataSchemaPath(tenantId: string): string {
 /**
  * Load a data record and confirm the caller may edit its owning agent.
  * Missing / cross-tenant records are 404, matching AdminAPI.
+ *
+ * The extra GET-by-id before PUT/DELETE is intentional: Studio calls AdminAPI
+ * with a service key, so we must not trust a client-supplied agentName.
+ * A lighter ownership lookup belongs in AdminAPI, not a removal of this gate.
  */
 export async function loadRecordIfEditable(
   client: XiansClient,

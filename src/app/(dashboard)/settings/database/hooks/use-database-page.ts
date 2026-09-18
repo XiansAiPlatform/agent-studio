@@ -11,7 +11,7 @@ import {
   type CreateDataRecordInput,
   type UpdateDataRecordInput,
 } from '../types';
-import { formatDateFromInput } from '../utils';
+import { formatDateFromInput, toDataRecord } from '../utils';
 import { showToast } from '@/lib/toast';
 import { useTenant } from '@/hooks/use-tenant';
 
@@ -45,12 +45,10 @@ export interface UseDatabasePageReturn {
   pageSize: number;
   hoveredDataType: string | null;
   deletingDataType: string | null;
-  hoveredRecord: string | null;
   deletingRecord: string | null;
   isSavingRecord: boolean;
 
   setHoveredDataType: (type: string | null) => void;
-  setHoveredRecord: (id: string | null) => void;
   handleDateRangeChange: (value: string) => void;
   handleCustomDateChange: (startDate: string, endDate: string) => void;
   handleDataTypeSelect: (type: string) => void;
@@ -76,7 +74,6 @@ export function useDatabasePage({
   const [currentPage, setCurrentPage] = useState(0);
   const [hoveredDataType, setHoveredDataType] = useState<string | null>(null);
   const [deletingDataType, setDeletingDataType] = useState<string | null>(null);
-  const [hoveredRecord, setHoveredRecord] = useState<string | null>(null);
   const [deletingRecord, setDeletingRecord] = useState<string | null>(null);
   const [isSavingRecord, setIsSavingRecord] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
@@ -104,6 +101,7 @@ export function useDatabasePage({
     isLoading: recordsLoading,
     error: recordsError,
     refetch: refetchRecords,
+    replaceRecord,
   } = useDataRecords(
     agentName,
     activationName,
@@ -117,7 +115,7 @@ export function useDatabasePage({
   );
 
   // Schema + records. Only for mutations that can change the type list
-  // (create, delete type, delete record). Updates call refetchRecords() instead.
+  // (create, delete type, delete record). Updates patch the list from the PUT body.
   const refetchAll = useCallback(() => {
     const now = new Date().toISOString();
     if (new Date(customEndDate).getTime() < Date.now()) {
@@ -328,7 +326,13 @@ export function useDatabasePage({
           throw new Error(await readErrorMessage(response, 'Failed to update record'));
         }
 
-        await refetchRecords();
+        const body: unknown = await response.json().catch(() => null);
+        const updated = toDataRecord(body, recordId);
+        if (updated) {
+          replaceRecord(updated);
+        } else {
+          await refetchRecords();
+        }
         showToast.success({
           title: 'Record updated',
           description: 'The data record has been saved.',
@@ -347,7 +351,7 @@ export function useDatabasePage({
         setIsSavingRecord(false);
       }
     },
-    [currentTenantId, refetchRecords]
+    [currentTenantId, refetchRecords, replaceRecord]
   );
 
   return {
@@ -366,11 +370,9 @@ export function useDatabasePage({
     pageSize: PAGE_SIZE,
     hoveredDataType,
     deletingDataType,
-    hoveredRecord,
     deletingRecord,
     isSavingRecord,
     setHoveredDataType,
-    setHoveredRecord,
     handleDateRangeChange,
     handleCustomDateChange,
     handleDataTypeSelect,

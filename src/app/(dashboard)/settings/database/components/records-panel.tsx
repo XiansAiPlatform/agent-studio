@@ -22,12 +22,10 @@ interface RecordsPanelProps {
   currentPage: number;
   pageSize: number;
   expandedRecords: Set<string>;
-  hoveredRecord: string | null;
   deletingRecord: string | null;
   onPreviousPage: () => void;
   onNextPage: () => void;
   onToggleRecord: (recordId: string) => void;
-  onHoverRecord: (recordId: string | null) => void;
   onAddRecord: () => void;
   onEditRecord: (record: DataRecord) => void;
   onDeleteRecord: (recordId: string) => Promise<void>;
@@ -41,12 +39,10 @@ export function RecordsPanel({
   currentPage,
   pageSize,
   expandedRecords,
-  hoveredRecord,
   deletingRecord,
   onPreviousPage,
   onNextPage,
   onToggleRecord,
-  onHoverRecord,
   onAddRecord,
   onEditRecord,
   onDeleteRecord,
@@ -160,10 +156,8 @@ export function RecordsPanel({
                     key={record.id}
                     record={record}
                     isExpanded={expandedRecords.has(record.id)}
-                    isHovered={hoveredRecord === record.id}
                     isDeleting={deletingRecord === record.id}
                     onToggle={() => onToggleRecord(record.id)}
-                    onHoverChange={(hovered) => onHoverRecord(hovered ? record.id : null)}
                     onEdit={() => onEditRecord(record)}
                     onDelete={() => onDeleteRecord(record.id)}
                   />

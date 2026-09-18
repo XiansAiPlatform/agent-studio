@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DataResponse } from '../types';
+import { type DataRecord, type DataResponse } from '../types';
 import { showErrorToast } from '@/lib/utils/error-handler';
 
 export function useDataRecords(
@@ -100,5 +100,15 @@ export function useDataRecords(
     refreshNonce,
   ]);
 
-  return { data, isLoading, error, refetch: fetchRecords };
+  const replaceRecord = useCallback((record: DataRecord) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        data: prev.data.map((item) => (item.id === record.id ? { ...item, ...record } : item)),
+      };
+    });
+  }, []);
+
+  return { data, isLoading, error, refetch: fetchRecords, replaceRecord };
 }

@@ -27,10 +27,8 @@ import { formatDate, formatContentKey } from '../utils';
 interface RecordCardProps {
   record: DataRecord;
   isExpanded: boolean;
-  isHovered: boolean;
   isDeleting: boolean;
   onToggle: () => void;
-  onHoverChange: (hovered: boolean) => void;
   onEdit: () => void;
   onDelete: () => Promise<void>;
 }
@@ -68,7 +66,6 @@ export function RecordCard({
   isExpanded,
   isDeleting,
   onToggle,
-  onHoverChange,
   onEdit,
   onDelete,
 }: RecordCardProps) {
@@ -77,11 +74,7 @@ export function RecordCard({
       ? Object.keys(record.content).length
       : 0;
   return (
-    <div
-      className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/30 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1"
-      onMouseEnter={() => onHoverChange(true)}
-      onMouseLeave={() => onHoverChange(false)}
-    >
+    <div className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/30 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1">
       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/[0.02] pointer-events-none" />
 
       <div

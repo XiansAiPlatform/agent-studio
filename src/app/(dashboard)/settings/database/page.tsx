@@ -151,12 +151,10 @@ function DatabaseContent() {
                 currentPage={page.currentPage}
                 pageSize={page.pageSize}
                 expandedRecords={page.expandedRecords}
-                hoveredRecord={page.hoveredRecord}
                 deletingRecord={page.deletingRecord}
                 onPreviousPage={page.handlePreviousPage}
                 onNextPage={page.handleNextPage}
                 onToggleRecord={page.toggleRecordExpansion}
-                onHoverRecord={page.setHoveredRecord}
                 onAddRecord={() => setEditor({ mode: 'create' })}
                 onEditRecord={(record) => setEditor({ mode: 'edit', record })}
                 onDeleteRecord={page.handleDeleteRecord}
