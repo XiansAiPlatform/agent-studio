@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
-import { createXiansClient } from '@/lib/xians/client';
 import { assertCanEditAgent } from '@/lib/auth/agent-access';
+import { handleApiError, validationError } from '@/lib/api/error-handler';
+import {
+  adminDataCollectionPath,
+  createAdminDataClient,
+  isPlainObject,
+} from '@/lib/xians/admin-data';
+
+function trimRequired(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function trimOptional(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
 /**
  * GET /api/data
@@ -22,9 +39,8 @@ export const GET = withParticipantAdmin(
       const limit = searchParams.get('limit') || '100';
 
       if (!startDate || !endDate || !agentName || !dataType) {
-        return NextResponse.json(
-          { error: 'Missing required parameters: startDate, endDate, agentName, dataType' },
-          { status: 400 }
+        return validationError(
+          'Missing required parameters: startDate, endDate, agentName, dataType'
         );
       }
 
@@ -35,20 +51,12 @@ export const GET = withParticipantAdmin(
       const limitNum = parseInt(limit, 10);
 
       if (isNaN(skipNum) || skipNum < 0) {
-        return NextResponse.json(
-          { error: 'Invalid skip parameter. Must be a non-negative integer.' },
-          { status: 400 }
-        );
+        return validationError('Invalid skip parameter. Must be a non-negative integer.');
       }
 
       if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
-        return NextResponse.json(
-          { error: 'Invalid limit parameter. Must be between 1 and 1000.' },
-          { status: 400 }
-        );
+        return validationError('Invalid limit parameter. Must be between 1 and 1000.');
       }
-
-      const xiansClient = createXiansClient((session as any)?.accessToken);
 
       const xiansParams = new URLSearchParams({
         startDate,
@@ -63,32 +71,94 @@ export const GET = withParticipantAdmin(
         xiansParams.set('activationName', activationName);
       }
 
-      const response = await xiansClient.get(
-        `/api/v1/admin/tenants/${tenantId}/data?${xiansParams.toString()}`
+      const response = await createAdminDataClient().get(
+        `${adminDataCollectionPath(tenantId)}?${xiansParams.toString()}`
       );
 
       return NextResponse.json(response);
-    } catch (error: any) {
-      console.error('[Data Records API] Error:', error);
+    } catch (error) {
+      return handleApiError(error, 'data GET', {
+        fallbackMessage: 'Failed to fetch data records',
+      });
+    }
+  }
+);
 
-      if (error.status === 404) {
-        return NextResponse.json(
-          { error: 'Data records not found' },
-          { status: 404 }
-        );
+/**
+ * POST /api/data
+ * Create a data record. Tenant is stamped server-side; body tenantId is rejected
+ * by withParticipantAdmin. Duplicate dataType + key returns 409 from AdminAPI.
+ */
+export const POST = withParticipantAdmin(
+  async (request: NextRequest, { session, tenantId }: ApiContext) => {
+    try {
+      let body: Record<string, unknown>;
+      try {
+        body = await request.json();
+      } catch {
+        return validationError('Invalid JSON body');
       }
 
-      if (error.status === 403) {
-        return NextResponse.json(
-          { error: 'Access denied' },
-          { status: 403 }
-        );
+      if (!isPlainObject(body)) {
+        return validationError('Request body must be a JSON object');
       }
 
-      return NextResponse.json(
-        { error: error.message || 'Failed to fetch data records' },
-        { status: error.status || 500 }
+      const agentName = trimRequired(body.agentName);
+      const dataType = trimRequired(body.dataType);
+      const key = trimRequired(body.key);
+
+      if (!agentName || !dataType || !key) {
+        return validationError('agentName, dataType, and key are required');
+      }
+
+      if (body.content === undefined) {
+        return validationError('content is required');
+      }
+
+      if (!isPlainObject(body.content)) {
+        return validationError('content must be a JSON object');
+      }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName);
+      if (denied) return denied;
+
+      const payload: Record<string, unknown> = {
+        agentName,
+        dataType,
+        key,
+        content: body.content,
+      };
+
+      const activationName = trimOptional(body.activationName);
+      if (activationName) payload.activationName = activationName;
+
+      const participantId = trimOptional(body.participantId);
+      if (participantId) payload.participantId = participantId;
+
+      if (body.metadata !== undefined) {
+        if (body.metadata !== null && !isPlainObject(body.metadata)) {
+          return validationError('metadata must be a JSON object');
+        }
+        payload.metadata = body.metadata;
+      }
+
+      if (body.expiresAt !== undefined) {
+        if (body.expiresAt !== null && typeof body.expiresAt !== 'string') {
+          return validationError('expiresAt must be an ISO date-time string');
+        }
+        payload.expiresAt = body.expiresAt;
+      }
+
+      const response = await createAdminDataClient().post(
+        adminDataCollectionPath(tenantId),
+        payload
       );
+
+      return NextResponse.json(response, { status: 201 });
+    } catch (error) {
+      return handleApiError(error, 'data POST', {
+        fallbackMessage: 'Failed to create data record',
+      });
     }
   }
 );
@@ -107,18 +177,16 @@ export const DELETE = withParticipantAdmin(
       const endDate = searchParams.get('endDate');
       const agentName = searchParams.get('agentName');
       const dataType = searchParams.get('dataType');
+      const activationName = searchParams.get('activationName');
 
       if (!startDate || !endDate || !agentName || !dataType) {
-        return NextResponse.json(
-          { error: 'Missing required parameters: startDate, endDate, agentName, dataType' },
-          { status: 400 }
+        return validationError(
+          'Missing required parameters: startDate, endDate, agentName, dataType'
         );
       }
 
       const denied = await assertCanEditAgent(session, tenantId, agentName);
       if (denied) return denied;
-
-      const xiansClient = createXiansClient((session as any)?.accessToken);
 
       const xiansParams = new URLSearchParams({
         startDate,
@@ -127,32 +195,19 @@ export const DELETE = withParticipantAdmin(
         dataType,
       });
 
-      const response = await xiansClient.delete(
-        `/api/v1/admin/tenants/${tenantId}/data?${xiansParams.toString()}`
+      if (activationName) {
+        xiansParams.set('activationName', activationName);
+      }
+
+      const response = await createAdminDataClient().delete(
+        `${adminDataCollectionPath(tenantId)}?${xiansParams.toString()}`
       );
 
       return NextResponse.json(response);
-    } catch (error: any) {
-      console.error('[Data Delete API] Error:', error);
-
-      if (error.status === 404) {
-        return NextResponse.json(
-          { error: 'Data not found' },
-          { status: 404 }
-        );
-      }
-
-      if (error.status === 403) {
-        return NextResponse.json(
-          { error: 'Access denied' },
-          { status: 403 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: error.message || 'Failed to delete data' },
-        { status: error.status || 500 }
-      );
+    } catch (error) {
+      return handleApiError(error, 'data DELETE', {
+        fallbackMessage: 'Failed to delete data',
+      });
     }
   }
 );

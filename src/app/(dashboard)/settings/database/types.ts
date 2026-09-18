@@ -14,10 +14,30 @@ export interface DataRecord {
   id: string;
   key: string;
   participantId: string;
-  content: Record<string, any>;
-  metadata?: Record<string, any> | null;
+  content: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt?: string | null;
+  expiresAt?: string | null;
+  type?: string | null;
+  agentName?: string | null;
+  activationName?: string | null;
+}
+
+export interface CreateDataRecordInput {
+  dataType: string;
+  key: string;
+  content: Record<string, unknown>;
+  participantId?: string;
+  metadata?: Record<string, unknown> | null;
+  expiresAt?: string | null;
+}
+
+export interface UpdateDataRecordInput {
+  key: string;
+  content: Record<string, unknown>;
+  participantId?: string | null;
+  metadata?: Record<string, unknown> | null;
   expiresAt?: string | null;
 }
 

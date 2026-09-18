@@ -1,62 +1,193 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
-import { createXiansClient } from '@/lib/xians/client';
-import { assertCanEditAgent } from '@/lib/auth/agent-access';
+import { handleApiError, validationError } from '@/lib/api/error-handler';
+import {
+  adminDataRecordPath,
+  createAdminDataClient,
+  isPlainObject,
+  loadRecordIfEditable,
+} from '@/lib/xians/admin-data';
 
-function extractRecordIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/\/api\/data\/([^/]+)/);
-  return match ? match[1] : null;
+async function recordIdFrom(
+  context: { params: Promise<{ recordId: string }> }
+): Promise<string | null> {
+  const { recordId } = await context.params;
+  const trimmed = recordId?.trim();
+  return trimmed ? trimmed : null;
+}
+
+/**
+ * GET /api/data/[recordId]
+ * Fetch a single data record. Owning agent is loaded from AdminAPI, then gated.
+ */
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ recordId: string }> }
+) {
+  const handler = withParticipantAdmin(
+    async (_req: NextRequest, { session, tenantId }: ApiContext) => {
+      const recordId = await recordIdFrom(context);
+      if (!recordId) return validationError('Record ID is required');
+
+      try {
+        const client = createAdminDataClient();
+        const [item, denied] = await loadRecordIfEditable(
+          client,
+          session,
+          tenantId,
+          recordId
+        );
+        if (denied) return denied;
+        return NextResponse.json(item);
+      } catch (error) {
+        return handleApiError(error, 'data GET by id', {
+          fallbackMessage: 'Failed to fetch record',
+        });
+      }
+    }
+  );
+  return handler(request);
+}
+
+/**
+ * PUT /api/data/[recordId]
+ * Partial update. Identity fields (id, tenantId, agentName, createdAt, createdBy)
+ * are never forwarded. Missing / cross-tenant records are 404.
+ */
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ recordId: string }> }
+) {
+  const handler = withParticipantAdmin(
+    async (req: NextRequest, { session, tenantId }: ApiContext) => {
+      const recordId = await recordIdFrom(context);
+      if (!recordId) return validationError('Record ID is required');
+
+      try {
+        let body: Record<string, unknown>;
+        try {
+          body = await req.json();
+        } catch {
+          return validationError('Invalid JSON body');
+        }
+
+        if (!isPlainObject(body)) {
+          return validationError('Request body must be a JSON object');
+        }
+
+        const client = createAdminDataClient();
+        const [, denied] = await loadRecordIfEditable(
+          client,
+          session,
+          tenantId,
+          recordId
+        );
+        if (denied) return denied;
+
+        const payload: Record<string, unknown> = {};
+
+        if (body.dataType !== undefined) {
+          if (typeof body.dataType !== 'string' || !body.dataType.trim()) {
+            return validationError('dataType must be a non-empty string');
+          }
+          payload.dataType = body.dataType.trim();
+        }
+
+        if (body.key !== undefined) {
+          if (typeof body.key !== 'string' || !body.key.trim()) {
+            return validationError('key must be a non-empty string');
+          }
+          payload.key = body.key.trim();
+        }
+
+        if (body.content !== undefined) {
+          if (!isPlainObject(body.content)) {
+            return validationError('content must be a JSON object');
+          }
+          payload.content = body.content;
+        }
+
+        if (body.metadata !== undefined) {
+          if (body.metadata !== null && !isPlainObject(body.metadata)) {
+            return validationError('metadata must be a JSON object');
+          }
+          payload.metadata = body.metadata;
+        }
+
+        if (body.participantId !== undefined) {
+          if (body.participantId !== null && typeof body.participantId !== 'string') {
+            return validationError('participantId must be a string');
+          }
+          payload.participantId =
+            typeof body.participantId === 'string'
+              ? body.participantId.trim()
+              : body.participantId;
+        }
+
+        if (body.activationName !== undefined) {
+          if (body.activationName !== null && typeof body.activationName !== 'string') {
+            return validationError('activationName must be a string');
+          }
+          payload.activationName =
+            typeof body.activationName === 'string'
+              ? body.activationName.trim()
+              : body.activationName;
+        }
+
+        if (body.expiresAt !== undefined) {
+          if (body.expiresAt !== null && typeof body.expiresAt !== 'string') {
+            return validationError('expiresAt must be an ISO date-time string');
+          }
+          payload.expiresAt = body.expiresAt;
+        }
+
+        if (Object.keys(payload).length === 0) {
+          return validationError('No updatable fields were provided');
+        }
+
+        const response = await client.put(adminDataRecordPath(tenantId, recordId), payload);
+        return NextResponse.json(response);
+      } catch (error) {
+        return handleApiError(error, 'data PUT', {
+          fallbackMessage: 'Failed to update record',
+        });
+      }
+    }
+  );
+  return handler(request);
 }
 
 /**
  * DELETE /api/data/[recordId]
- * Delete a single data record.
- * Tenant is resolved from server-side session (httpOnly cookie), never from client.
+ * Delete a single data record. Owning agent is loaded from AdminAPI, then gated.
  */
-export const DELETE = withParticipantAdmin(
-  async (request: NextRequest, { session, tenantId }: ApiContext) => {
-    const recordId = extractRecordIdFromPath(new URL(request.url).pathname);
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ recordId: string }> }
+) {
+  const handler = withParticipantAdmin(
+    async (_req: NextRequest, { session, tenantId }: ApiContext) => {
+      const recordId = await recordIdFrom(context);
+      if (!recordId) return validationError('Record ID is required');
 
-    if (!recordId) {
-      return NextResponse.json(
-        { error: 'Record ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const agentName = new URL(request.url).searchParams.get('agentName');
-    const denied = await assertCanEditAgent(session, tenantId, agentName);
-    if (denied) return denied;
-
-    try {
-      const xiansClient = createXiansClient((session as any)?.accessToken);
-
-      const response = await xiansClient.delete(
-        `/api/v1/admin/tenants/${tenantId}/data/${recordId}`
-      );
-
-      return NextResponse.json(response);
-    } catch (error: any) {
-      console.error('[Individual Data Delete API] Error:', error);
-
-      if (error.status === 404) {
-        return NextResponse.json(
-          { error: 'Record not found' },
-          { status: 404 }
+      try {
+        const client = createAdminDataClient();
+        const [, denied] = await loadRecordIfEditable(
+          client,
+          session,
+          tenantId,
+          recordId
         );
-      }
+        if (denied) return denied;
 
-      if (error.status === 403) {
-        return NextResponse.json(
-          { error: 'Access denied' },
-          { status: 403 }
-        );
+        const response = await client.delete(adminDataRecordPath(tenantId, recordId));
+        return NextResponse.json(response);
+      } catch (error) {
+        return handleApiError(error, 'data DELETE by id', {
+          fallbackMessage: 'Failed to delete record',
+        });
       }
-
-      return NextResponse.json(
-        { error: error.message || 'Failed to delete record' },
-        { status: error.status || 500 }
-      );
     }
-  }
-);
+  );
+  return handler(request);
+}
