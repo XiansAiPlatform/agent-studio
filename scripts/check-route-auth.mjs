@@ -12,6 +12,10 @@
  *   - performs a manual session check (getServerSession), nor
  *   - is on the explicit public allowlist.
  *
+ * It also fails if a route calls the Admin API without binding the signed-in
+ * user, which would make the backend record the API-key owner as `LoggedInUser`
+ * instead of the person using the Studio (see docs/auth/authorization-model.md).
+ *
  * It is a coarse guardrail, not a substitute for review: it confirms a route
  * has *some* gate, not that the gate is the correct strength.
  *
@@ -41,6 +45,21 @@ const AUTH_SIGNALS = [
   'getServerSession', // manual guard (must still check the result)
 ]
 
+// Ways a route reaches the Xians Admin API with the service credential.
+const ADMIN_CALL_SIGNALS = ['createXiansClient', 'createXiansSDK', 'xiansAdminHeaders']
+
+// Ways a route binds the signed-in user so `X-On-Behalf-Of` is sent. The auth
+// wrappers bind the session themselves; routes guarded by a manual
+// getServerSession check must bind explicitly.
+const ATTRIBUTION_SIGNALS = [
+  'withTenantFromSession',
+  'withParticipantAdmin',
+  'withTenantAdmin',
+  'withSystemAdmin', // also matches withSystemAdminTenant
+  'runWithOnBehalfOf',
+  'runWithSessionOnBehalfOf',
+]
+
 function walk(dir) {
   const out = []
   for (const entry of readdirSync(dir)) {
@@ -52,12 +71,19 @@ function walk(dir) {
 }
 
 const offenders = []
+const unattributed = []
 for (const file of walk(apiRoot)) {
   const rel = relative(apiRoot, file)
   if (PUBLIC_ALLOWLIST.has(rel)) continue
   const src = readFileSync(file, 'utf8')
   if (!AUTH_SIGNALS.some((signal) => src.includes(signal))) {
     offenders.push(rel)
+  }
+  if (
+    ADMIN_CALL_SIGNALS.some((signal) => src.includes(signal)) &&
+    !ATTRIBUTION_SIGNALS.some((signal) => src.includes(signal))
+  ) {
+    unattributed.push(rel)
   }
 }
 
@@ -70,7 +96,22 @@ if (offenders.length > 0) {
       '\nintentionally public, add it to PUBLIC_ALLOWLIST in scripts/check-route-auth.mjs with a' +
       '\njustifying comment.\n'
   )
+}
+
+if (unattributed.length > 0) {
+  console.error('\n[check-route-auth] API routes calling the Admin API with no bound UI user:\n')
+  for (const o of unattributed) console.error(`  - src/app/api/${o}`)
+  console.error(
+    '\nThese calls would be audited as the API-key owner rather than the signed-in user.' +
+      '\nUse an auth wrapper, or wrap the handler body in runWithSessionOnBehalfOf(session, ...)' +
+      '\nfrom @/lib/xians/on-behalf-of.\n'
+  )
+}
+
+if (offenders.length > 0 || unattributed.length > 0) {
   process.exit(1)
 }
 
-console.log('[check-route-auth] OK — all API routes have an authorization gate.')
+console.log(
+  '[check-route-auth] OK — all API routes have an authorization gate and attribute Admin calls.'
+)

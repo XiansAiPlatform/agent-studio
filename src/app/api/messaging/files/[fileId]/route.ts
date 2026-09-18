@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { handleApiError } from '@/lib/api/error-handler'
+import { xiansAdminHeaders } from '@/lib/xians/client'
 
 /**
  * GET /api/messaging/files/[fileId]
@@ -21,8 +22,7 @@ export const GET = withTenantFromSession(
       }
 
       const baseUrl = process.env.XIANS_SERVER_URL
-      const apiKey = process.env.XIANS_APIKEY
-      if (!baseUrl || !apiKey) {
+      if (!baseUrl || !process.env.XIANS_APIKEY) {
         return NextResponse.json(
           { error: 'Server messaging configuration is missing' },
           { status: 500 }
@@ -35,7 +35,7 @@ export const GET = withTenantFromSession(
 
       const upstream = await fetch(url, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${apiKey}` },
+        headers: xiansAdminHeaders(),
       })
 
       if (!upstream.ok || !upstream.body) {

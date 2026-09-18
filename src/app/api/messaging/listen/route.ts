@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { xiansAdminHeaders } from '@/lib/xians/client'
 
 /**
  * GET /api/messaging/listen
@@ -58,12 +59,11 @@ export async function GET(request: NextRequest) {
         // reconnect.
         xiansResponse = await fetch(xiansUrl, {
           method: 'GET',
-          headers: {
-            Authorization: `Bearer ${xiansApiKey}`,
+          headers: xiansAdminHeaders({
             Accept: 'text/event-stream',
             'Cache-Control': 'no-cache',
             Connection: 'keep-alive',
-          },
+          }),
           signal: req.signal,
         })
       } catch (error) {

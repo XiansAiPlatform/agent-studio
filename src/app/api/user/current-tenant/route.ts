@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { useTenantProvider } from '@/lib/tenant'
 import { CURRENT_TENANT_COOKIE } from '@/lib/api/with-tenant'
+import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
 
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 // 30 days
 
@@ -21,47 +22,50 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  try {
-    const body = await request.json()
-    const tenantId = body?.tenantId
+  const tenantProvider = useTenantProvider()
 
-    if (!tenantId || typeof tenantId !== 'string') {
+  return runWithSessionOnBehalfOf(session, async () => {
+    try {
+      const body = await request.json()
+      const tenantId = body?.tenantId
+
+      if (!tenantId || typeof tenantId !== 'string') {
+        return NextResponse.json(
+          { error: 'tenantId is required' },
+          { status: 400 }
+        )
+      }
+
+      const tenantContext = await tenantProvider.getTenantContext(
+        session.user.id,
+        tenantId,
+        (session as any).accessToken,
+        session.user.email ?? undefined
+      )
+
+      if (!tenantContext) {
+        return NextResponse.json(
+          { error: 'Access denied to this tenant' },
+          { status: 403 }
+        )
+      }
+
+      const response = NextResponse.json({ success: true })
+      response.cookies.set(CURRENT_TENANT_COOKIE, tenantId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: COOKIE_MAX_AGE,
+      })
+
+      return response
+    } catch (error) {
+      console.error('[Current Tenant API] Error:', error)
       return NextResponse.json(
-        { error: 'tenantId is required' },
-        { status: 400 }
+        { error: 'Internal server error' },
+        { status: 500 }
       )
     }
-
-    const tenantProvider = useTenantProvider()
-    const tenantContext = await tenantProvider.getTenantContext(
-      session.user.id,
-      tenantId,
-      (session as any).accessToken,
-      session.user.email
-    )
-
-    if (!tenantContext) {
-      return NextResponse.json(
-        { error: 'Access denied to this tenant' },
-        { status: 403 }
-      )
-    }
-
-    const response = NextResponse.json({ success: true })
-    response.cookies.set(CURRENT_TENANT_COOKIE, tenantId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: COOKIE_MAX_AGE,
-    })
-
-    return response
-  } catch (error) {
-    console.error('[Current Tenant API] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  })
 }

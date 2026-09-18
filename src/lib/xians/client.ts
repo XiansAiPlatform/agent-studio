@@ -1,8 +1,12 @@
 /**
  * Xians Server API Client
- * 
- * Centralized HTTP client for all Xians server API calls
+ *
+ * Centralized HTTP client for all Xians server API calls.
+ * Authenticates with the service API key. When a Studio UI user is in scope,
+ * also sends `X-On-Behalf-Of` for audit attribution (not authorization).
  */
+
+import { applyOnBehalfOfHeader, getOnBehalfOf } from './on-behalf-of'
 
 export class XiansApiError extends Error {
   constructor(
@@ -19,17 +23,21 @@ export interface XiansClientConfig {
   baseUrl: string
   apiKey?: string
   authToken?: string
+  /** Studio UI user email for `X-On-Behalf-Of` (used when request scope is unavailable). */
+  onBehalfOf?: string
 }
 
 export class XiansClient {
   private baseUrl: string
   private authToken?: string
   private apiKey: string
+  private onBehalfOf?: string
 
   constructor(config: XiansClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '') // Remove trailing slash
     this.authToken = config.authToken
     this.apiKey = config.apiKey || ''
+    this.onBehalfOf = config.onBehalfOf
   }
 
   /**
@@ -64,6 +72,8 @@ export class XiansClient {
     if (this.apiKey) {
       headers['Authorization'] = `Bearer ${this.apiKey}`
     }
+
+    applyOnBehalfOfHeader(headers, this.onBehalfOf)
 
     try {
       const response = await fetch(url, {
@@ -187,9 +197,30 @@ export class XiansClient {
 }
 
 /**
+ * Headers for Admin API fetches that bypass {@link XiansClient} (SSE, binary).
+ * Always sends the service API key; adds `X-On-Behalf-Of` when a UI user is in scope.
+ */
+export function xiansAdminHeaders(extra?: HeadersInit): Record<string, string> {
+  const headers: Record<string, string> = {}
+
+  if (extra) {
+    new Headers(extra).forEach((value, key) => {
+      headers[key] = value
+    })
+  }
+
+  if (process.env.XIANS_APIKEY) {
+    headers['Authorization'] = `Bearer ${process.env.XIANS_APIKEY}`
+  }
+
+  applyOnBehalfOfHeader(headers)
+  return headers
+}
+
+/**
  * Create a new Xians client instance
  */
-export function createXiansClient(authToken?: string): XiansClient {
+export function createXiansClient(authToken?: string, onBehalfOf?: string): XiansClient {
   const baseUrl = process.env.XIANS_SERVER_URL
   const apiKey = process.env.XIANS_APIKEY
   
@@ -205,5 +236,6 @@ export function createXiansClient(authToken?: string): XiansClient {
     baseUrl,
     apiKey,
     authToken,
+    onBehalfOf: onBehalfOf ?? getOnBehalfOf(),
   })
 }

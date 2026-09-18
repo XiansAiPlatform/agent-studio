@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { requireParticipantAdmin } from '@/lib/api/auth'
 import { getTenantIdFromCookie } from '@/lib/api/with-tenant'
+import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
 
 /**
  * GET /api/can-access-settings
@@ -12,10 +13,12 @@ import { getTenantIdFromCookie } from '@/lib/api/with-tenant'
  */
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
-  const tenantId = getTenantIdFromCookie(request)
-  const authError = await requireParticipantAdmin(session, tenantId)
-  if (authError) {
-    return authError
-  }
-  return NextResponse.json({ ok: true })
+  return runWithSessionOnBehalfOf(session, async () => {
+    const tenantId = getTenantIdFromCookie(request)
+    const authError = await requireParticipantAdmin(session, tenantId)
+    if (authError) {
+      return authError
+    }
+    return NextResponse.json({ ok: true })
+  })
 }

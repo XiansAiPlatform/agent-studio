@@ -1,7 +1,7 @@
 # Authorization Model
 
 > **Status**: Complete
-> **Last Updated**: 2026-07-04
+> **Last Updated**: 2026-09-18
 > **Audience**: Developers, DevOps
 
 ## Overview
@@ -26,9 +26,9 @@ and the invariants that keep it safe.
 ## The Trust Model
 
 ```
-Browser ──(NextAuth session cookie)──▶ Next.js API route ──(XIANS_APIKEY)──▶ Xians AdminApi
-   user identity + current tenant        AUTHORIZATION GATE        trusts the key, runs as
-   (httpOnly cookies)                     (per-user checks)         the key creator's identity
+Browser ──(NextAuth session cookie)──▶ Next.js API route ──(XIANS_APIKEY + X-On-Behalf-Of)──▶ Xians AdminApi
+   user identity + current tenant        AUTHORIZATION GATE        trusts the key; audit
+   (httpOnly cookies)                     (per-user checks)         attributes the UI user
 ```
 
 ### Why the backend is not a per-user gate
@@ -41,9 +41,13 @@ When a request arrives with `Authorization: Bearer sk-Xnai-...`, the backend:
 2. Resolves roles for the **key creator**, not for the person using Agent Studio.
 3. **Denies the request unless the key creator is `SysAdmin` or `TenantAdmin`.**
 
-The end user's email and OAuth token are **never transmitted to the backend** and
-play no part in backend authorization. (Agent Studio does pass an `authToken` into
-its Xians client wrapper, but the AdminApi ignores it — it only reads the API key.)
+The end user's OAuth token is **never used as the Admin API Bearer credential**.
+Agent Studio sends the signed-in user's email as `X-On-Behalf-Of` on Admin API
+requests so the backend can attribute audit rows to the UI user. That header is
+attribution, not impersonation: it does not change permissions and is not a
+substitute for the user's OIDC token on WebAPI. The BFF remains the per-user
+authorization gate. (Agent Studio does pass an `authToken` into its Xians client
+wrapper, but the AdminApi ignores it — it only authenticates the API key.)
 
 ### Consequence: `XIANS_APIKEY` is a platform superuser credential
 
@@ -233,10 +237,9 @@ still needs review. Run it in CI and before merging any change that adds routes.
 
 - **No backend *role* backstop for the end user.** The AdminApi authorizes the API
   **key creator** (a SysAdmin) and never resolves the Agent Studio end user's role,
-  so the BFF remains the authoritative gate for *who may perform an operation*. A
-  future improvement would have Agent Studio forward the authenticated end user's
-  identity and the AdminApi resolve *that user's* role for the target tenant. This
-  is an architectural change spanning both repositories.
+  so the BFF remains the authoritative gate for *who may perform an operation*.
+  Agent Studio does forward the signed-in user's email as `X-On-Behalf-Of` so
+  audit logs can record the UI user; that header does not change permissions.
 - **Per-*resource*-owner checks DO exist on the backend for the credential
   endpoints** (verified in `XiansAi.Server` `Features/AdminApi`). This is a genuine
   second line of defense for those routes, so the BFF is not the *only* thing

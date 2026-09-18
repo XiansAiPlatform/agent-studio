@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { forbiddenError, unauthorizedError } from '@/lib/api/error-handler'
 import { useTenantProvider } from '@/lib/tenant'
+import { xiansAdminHeaders } from '@/lib/xians/client'
+import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
 
 /**
  * GET /api/tenants/[tenantId]/logo
@@ -89,72 +91,74 @@ export async function GET(
     return unauthorizedError()
   }
 
-  const { tenantId } = await context.params
-  if (!tenantId) {
-    return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
-  }
-
-  // `tenantId` comes from the client-controlled URL path. Verify the caller is a
-  // member of (or system admin for) this tenant before proxying its logo, so a
-  // logged-in user can't enumerate/fetch other tenants' logos by guessing IDs.
   const tenantProvider = useTenantProvider()
-  const tenantContext = await tenantProvider.getTenantContext(
-    session.user.id,
-    tenantId,
-    (session as { accessToken?: string }).accessToken,
-    session.user.email
-  )
-  if (!tenantContext) {
-    return forbiddenError('Access denied to this tenant')
-  }
 
-  const ifNoneMatch = request.headers.get('if-none-match')
-
-  const cached = getFreshCached(tenantId)
-  if (cached) {
-    return buildImageResponse(cached, ifNoneMatch)
-  }
-
-  const baseUrl = process.env.XIANS_SERVER_URL
-  const apiKey = process.env.XIANS_APIKEY
-  if (!baseUrl || !apiKey) {
-    console.error('[Tenant Logo Proxy] Missing XIANS_SERVER_URL or XIANS_APIKEY')
-    return NextResponse.json({ error: 'Server is misconfigured' }, { status: 500 })
-  }
-
-  const upstreamUrl = `${baseUrl.replace(/\/$/, '')}/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/logo`
-
-  try {
-    const upstream = await fetch(upstreamUrl, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      // External-URL logos are served by the backend as a redirect to the source
-      // image; follow it so we always return image bytes from this origin.
-      redirect: 'follow',
-      cache: 'no-store',
-    })
-
-    if (!upstream.ok) {
-      return NextResponse.json(
-        { error: 'Logo not found' },
-        { status: upstream.status === 404 ? 404 : 502 }
-      )
+  return runWithSessionOnBehalfOf(session, async () => {
+    const { tenantId } = await context.params
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
     }
 
-    const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream'
-    const body = Buffer.from(await upstream.arrayBuffer())
-    const etag = `"${createHash('sha1').update(body).digest('hex')}"`
-
-    const entry: CachedLogo = {
-      body,
-      contentType,
-      etag,
-      expiresAt: Date.now() + LOGO_CACHE_TTL_MS,
+    // `tenantId` comes from the client-controlled URL path. Verify the caller is a
+    // member of (or system admin for) this tenant before proxying its logo, so a
+    // logged-in user can't enumerate/fetch other tenants' logos by guessing IDs.
+    const tenantContext = await tenantProvider.getTenantContext(
+      session.user.id,
+      tenantId,
+      (session as { accessToken?: string }).accessToken,
+      session.user.email ?? undefined
+    )
+    if (!tenantContext) {
+      return forbiddenError('Access denied to this tenant')
     }
-    setCached(tenantId, entry)
 
-    return buildImageResponse(entry, ifNoneMatch)
-  } catch (error) {
-    console.error('[Tenant Logo Proxy] Failed to fetch logo for tenant', tenantId, error)
-    return NextResponse.json({ error: 'Failed to fetch logo' }, { status: 502 })
-  }
+    const ifNoneMatch = request.headers.get('if-none-match')
+
+    const cached = getFreshCached(tenantId)
+    if (cached) {
+      return buildImageResponse(cached, ifNoneMatch)
+    }
+
+    const baseUrl = process.env.XIANS_SERVER_URL
+    if (!baseUrl || !process.env.XIANS_APIKEY) {
+      console.error('[Tenant Logo Proxy] Missing XIANS_SERVER_URL or XIANS_APIKEY')
+      return NextResponse.json({ error: 'Server is misconfigured' }, { status: 500 })
+    }
+
+    const upstreamUrl = `${baseUrl.replace(/\/$/, '')}/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/logo`
+
+    try {
+      const upstream = await fetch(upstreamUrl, {
+        headers: xiansAdminHeaders(),
+        // External-URL logos are served by the backend as a redirect to the source
+        // image; follow it so we always return image bytes from this origin.
+        redirect: 'follow',
+        cache: 'no-store',
+      })
+
+      if (!upstream.ok) {
+        return NextResponse.json(
+          { error: 'Logo not found' },
+          { status: upstream.status === 404 ? 404 : 502 }
+        )
+      }
+
+      const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream'
+      const body = Buffer.from(await upstream.arrayBuffer())
+      const etag = `"${createHash('sha1').update(body).digest('hex')}"`
+
+      const entry: CachedLogo = {
+        body,
+        contentType,
+        etag,
+        expiresAt: Date.now() + LOGO_CACHE_TTL_MS,
+      }
+      setCached(tenantId, entry)
+
+      return buildImageResponse(entry, ifNoneMatch)
+    } catch (error) {
+      console.error('[Tenant Logo Proxy] Failed to fetch logo for tenant', tenantId, error)
+      return NextResponse.json({ error: 'Failed to fetch logo' }, { status: 502 })
+    }
+  })
 }
