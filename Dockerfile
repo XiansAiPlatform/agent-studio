@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 # Agent Studio Dockerfile
 # Multi-stage build for Next.js application following best practices
 
@@ -12,8 +14,11 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies needed for build)
-RUN npm ci
+# Install all dependencies (including devDependencies needed for build).
+# The cache mount only survives on a long-lived builder (local builds); on CI
+# the registry/GHA layer cache is what skips this step.
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --fund=false
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -43,8 +48,10 @@ ENV AZURE_AD_CLIENT_ID=build-time-placeholder
 ENV AZURE_AD_CLIENT_SECRET=build-time-placeholder
 ENV AZURE_AD_TENANT_ID=build-time-placeholder
 
-# Build application
-RUN npm run build
+# Build application. Only .next/standalone and .next/static are copied into the
+# runner stage, so keeping .next/cache out of the layer costs nothing.
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 # Production image, copy all files and run next
 FROM base AS runner
