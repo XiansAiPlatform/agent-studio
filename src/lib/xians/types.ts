@@ -189,6 +189,21 @@ export interface XiansAgentDeployment {
   config?: Record<string, any>
 }
 
+/** A single agent access level. Mirrors the server's PermissionLevel (minus None). */
+export type AgentAccessLevel = 'Read' | 'Write' | 'Owner'
+
+/** Response of the AdminApi agent-access endpoints (`.../agents/{agentObjectId}/access`). */
+export interface AgentAccess {
+  agentId: string
+  agentName: string
+  tenantId: string
+  /** The user id auto-added as owner when the agent was registered. */
+  createdBy: string
+  ownerAccess: string[]
+  writeAccess: string[]
+  readAccess: string[]
+}
+
 export interface XiansAgentDeploymentsResponse {
   agents: XiansAgentDeployment[]
   pagination: {

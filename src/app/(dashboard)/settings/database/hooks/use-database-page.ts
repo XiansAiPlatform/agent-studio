@@ -193,7 +193,8 @@ export function useDatabasePage({
 
       setDeletingRecord(recordId);
       try {
-        const response = await fetch(`/api/data/${recordId}`, {
+        const qs = agentName ? `?agentName=${encodeURIComponent(agentName)}` : '';
+        const response = await fetch(`/api/data/${recordId}${qs}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
         });
@@ -219,7 +220,7 @@ export function useDatabasePage({
         setDeletingRecord(null);
       }
     },
-    [currentTenantId, triggerRefetch]
+    [currentTenantId, agentName, triggerRefetch]
   );
 
   return {

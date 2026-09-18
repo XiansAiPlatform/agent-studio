@@ -37,6 +37,7 @@ import { Agent, SliderType } from '../types';
 interface AgentActionsSliderProps {
   agent: Agent;
   sliderType: SliderType;
+  canEdit?: boolean;
   onSliderTypeChange: (type: SliderType) => void;
   onActivateClick: () => void;
   onDeactivateClick: () => void;
@@ -98,9 +99,10 @@ export function AgentActionsSlider({
   onRestartClick,
   onRedeployClick,
   onDeleteClick,
+  canEdit = true,
 }: AgentActionsSliderProps) {
   const { isParticipantMode } = useParticipantLayout();
-  const canAccessSettings = !isParticipantMode;
+  const canAccessSettings = !isParticipantMode && canEdit;
 
   if (sliderType === 'actions' && agent.status === 'active') {
     return (
@@ -165,6 +167,8 @@ export function AgentActionsSlider({
               </Link>
             </div>
 
+            {canEdit && (
+            <>
             <Separator className="opacity-40" />
 
             {/* Secondary menus — 2 columns */}
@@ -183,11 +187,13 @@ export function AgentActionsSlider({
                   label="Explore Data"
                 />
               )}
-              <MenuLink
-                href={`/knowledge?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
-                icon={BookOpen}
-                label="Knowledge"
-              />
+              {canAccessSettings && (
+                <MenuLink
+                  href={`/knowledge?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
+                  icon={BookOpen}
+                  label="Knowledge"
+                />
+              )}
               {canAccessSettings && (
                 <MenuLink
                   href={`/settings/connections?agentName=${encodeURIComponent(agent.template)}&activationName=${encodeURIComponent(agent.name)}`}
@@ -296,6 +302,8 @@ export function AgentActionsSlider({
                 </div>
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       </SheetContent>
@@ -345,6 +353,8 @@ export function AgentActionsSlider({
               </p>
             </div>
 
+            {canEdit && (
+            <>
             <Button
               size="lg"
               variant="default"
@@ -392,6 +402,8 @@ export function AgentActionsSlider({
                 </div>
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       </SheetContent>

@@ -209,7 +209,7 @@ function ConnectionsContent() {
         console.log('[Page] Returning result to wizard...')
         
         // Show success message (wizard continues to next step)
-        showSuccessToast('Slack integration created successfully');
+        showSuccessToast('Teams integration created successfully');
         
         // IMPORTANT: Return the result so wizard can access webhookUrl and advance
         // DO NOT refetch or close anything - wizard handles the flow

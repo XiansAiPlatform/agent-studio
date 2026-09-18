@@ -157,16 +157,16 @@ function TasksContent() {
         );
 
         if (!response.ok) {
-          // Try to get the actual error message from the server
           let errorMessage = 'Failed to fetch activations';
           try {
             const errorData = await response.json();
             errorMessage = errorData.error || errorData.message || errorMessage;
           } catch {
-            // If parsing fails, use status text
             errorMessage = `Failed to fetch activations: ${response.status} ${response.statusText}`;
           }
-          throw new Error(errorMessage);
+          console.warn('[TasksPage] Activations request failed:', errorMessage);
+          setAllActivations([]);
+          return;
         }
 
         const data = await response.json();
@@ -190,7 +190,7 @@ function TasksContent() {
           return;
         }
         
-        console.error('[TasksPage] Error fetching activations:', error);
+        console.warn('[TasksPage] Error fetching activations:', error);
         // Fallback: use empty array instead of extracting from tasks
         // to avoid creating a dependency cycle
         setAllActivations([]);
@@ -266,16 +266,16 @@ function TasksContent() {
       });
 
       if (!response.ok) {
-        // Try to get the actual error message from the server
         let errorMessage = 'Failed to fetch tasks';
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch {
-          // If parsing fails, use status text
           errorMessage = `Failed to fetch tasks: ${response.status} ${response.statusText}`;
         }
-        throw new Error(errorMessage);
+        showErrorToast(errorMessage, 'Failed to load tasks');
+        setTasks([]);
+        return;
       }
 
       const data: XiansTasksResponse = await response.json();
@@ -347,7 +347,7 @@ function TasksContent() {
         return;
       }
       
-      console.error('[TasksPage] Error fetching tasks:', error);
+      console.warn('[TasksPage] Error fetching tasks:', error);
       showErrorToast(error, 'Failed to load tasks');
       setTasks([]);
     } finally {
@@ -716,8 +716,10 @@ function TasksContent() {
 
 export default function TasksPage() {
   return (
-    <Suspense fallback={<PageLoader label="Loading tasks..." />}>
-      <TasksContent />
-    </Suspense>
+    <div className="h-full min-h-0 overflow-x-hidden overflow-y-auto">
+      <Suspense fallback={<PageLoader label="Loading tasks..." className="h-full" />}>
+        <TasksContent />
+      </Suspense>
+    </div>
   );
 }

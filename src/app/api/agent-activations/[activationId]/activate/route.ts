@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
+import { assertCanEditActivation } from '@/lib/auth/agent-access'
 
 /**
  * POST /api/agent-activations/{activationId}/activate
@@ -24,6 +25,8 @@ export async function POST(
       }
 
       const tenantId = apiContext.tenantContext.tenant.id
+      const denied = await assertCanEditActivation(apiContext.session, tenantId, activationId)
+      if (denied) return denied
       const client = createXiansClient((apiContext.session as any)?.accessToken)
       const result = await client.post<any>(
         `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/activate`,

@@ -41,13 +41,13 @@ interface ConnectionCardProps {
 }
 
 const statusText: Record<ConnectionStatus, { text: string; color: string }> = {
-  connected: { text: 'active', color: 'text-emerald-600' },
-  expired: { text: 'expired', color: 'text-amber-600' },
-  error: { text: 'error', color: 'text-red-600' },
-  pending: { text: 'pending', color: 'text-slate-500' },
-  authorizing: { text: 'authorizing', color: 'text-blue-600' },
-  disabled: { text: 'disabled', color: 'text-slate-400' },
-  draft: { text: 'draft', color: 'text-slate-500' }
+  connected: { text: 'active', color: 'text-emerald-600 dark:text-emerald-400' },
+  expired: { text: 'expired', color: 'text-amber-600 dark:text-amber-400' },
+  error: { text: 'error', color: 'text-red-600 dark:text-red-400' },
+  pending: { text: 'pending', color: 'text-muted-foreground' },
+  authorizing: { text: 'authorizing', color: 'text-blue-600 dark:text-blue-400' },
+  disabled: { text: 'disabled', color: 'text-muted-foreground' },
+  draft: { text: 'draft', color: 'text-muted-foreground' }
 }
 
 export function ConnectionCard({ 
@@ -94,7 +94,7 @@ export function ConnectionCard({
           !connection.isActive && "opacity-50 grayscale"
         )}>
           {connection.providerId === 'builtin_webhook' ? (
-            <Webhook className="h-10 w-10 text-slate-500" />
+            <Webhook className="h-10 w-10 text-muted-foreground" />
           ) : (
             <Image 
               src={iconUrl} 
@@ -143,7 +143,7 @@ export function ConnectionCard({
         {/* Actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-400 hover:text-slate-600 transition-all p-1 flex-shrink-0">
+            <button className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-all p-1 flex-shrink-0">
               <MoreHorizontal className="h-5 w-5" />
             </button>
           </DropdownMenuTrigger>

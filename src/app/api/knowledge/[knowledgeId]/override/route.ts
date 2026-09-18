@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
 import { KnowledgeItem } from '@/lib/xians/knowledge';
+import { assertCanEditAgent } from '@/lib/auth/agent-access';
 
 function extractKnowledgeIdFromPath(pathname: string): string | null {
   const match = pathname.match(/\/api\/knowledge\/([^/]+)\/override/);
@@ -14,7 +15,7 @@ function extractKnowledgeIdFromPath(pathname: string): string | null {
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
  */
 export const POST = withParticipantAdmin(
-  async (request: NextRequest, { tenantId }: ApiContext) => {
+  async (request: NextRequest, { session, tenantId }: ApiContext) => {
     const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
     if (!knowledgeId) {
       return NextResponse.json(
@@ -42,6 +43,13 @@ export const POST = withParticipantAdmin(
       }
 
       const client = createXiansClient();
+
+      const item = await client.get<KnowledgeItem>(
+        `/api/v1/admin/tenants/${tenantId}/knowledge/${knowledgeId}`
+      );
+      const denied = await assertCanEditAgent(session, tenantId, item?.agent);
+      if (denied) return denied;
+
       let overrideUrl = `/api/v1/admin/tenants/${tenantId}/knowledge/${knowledgeId}/override/${targetLevel}`;
       if (targetLevel === 'activation' && activationName) {
         overrideUrl += `?activationName=${encodeURIComponent(activationName)}`;

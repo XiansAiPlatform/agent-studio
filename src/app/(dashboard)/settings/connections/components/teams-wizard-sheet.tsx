@@ -390,9 +390,9 @@ export function TeamsWizardSheet({
                 <li>Wait a few minutes for permissions to propagate</li>
               </ol>
 
-              <Alert className="bg-blue-50 border-blue-200">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-900">
+              <Alert className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-900 dark:text-blue-100">
                   <strong>Benefits:</strong> With this permission, the bot can fetch user email addresses for better participant identification. Without it, the bot will use Azure AD user IDs instead.
                 </AlertDescription>
               </Alert>
@@ -443,7 +443,7 @@ export function TeamsWizardSheet({
                 
                 <div className="space-y-3 text-sm">
                   <div>
-                    <h4 className="font-medium text-xs text-slate-600 mb-2">Azure Credentials</h4>
+                    <h4 className="font-medium text-xs text-muted-foreground mb-2">Azure Credentials</h4>
                     <div className="space-y-2">
                       <div className="grid grid-cols-3 gap-2">
                         <span className="text-muted-foreground">App ID:</span>
@@ -465,7 +465,7 @@ export function TeamsWizardSheet({
                   <Separator />
                   
                   <div>
-                    <h4 className="font-medium text-xs text-slate-600 mb-2">Mapping Configuration</h4>
+                    <h4 className="font-medium text-xs text-muted-foreground mb-2">Mapping Configuration</h4>
                     <div className="space-y-2">
                       <div className="grid grid-cols-3 gap-2">
                         <span className="text-muted-foreground">Participant ID:</span>
@@ -566,9 +566,9 @@ export function TeamsWizardSheet({
                 <li>Teams channel will be added and enabled automatically</li>
               </ol>
 
-              <Alert className="bg-blue-50 border-blue-200">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-900">
+              <Alert className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-900 dark:text-blue-100">
                   The Teams channel connects your Azure Bot to Microsoft Teams, allowing users to interact with your bot.
                 </AlertDescription>
               </Alert>

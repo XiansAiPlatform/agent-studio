@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
+import { assertCanEditAgent } from '@/lib/auth/agent-access';
 
 /**
  * GET /api/data
@@ -26,6 +27,9 @@ export const GET = withParticipantAdmin(
           { status: 400 }
         );
       }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName);
+      if (denied) return denied;
 
       const skipNum = parseInt(skip, 10);
       const limitNum = parseInt(limit, 10);
@@ -110,6 +114,9 @@ export const DELETE = withParticipantAdmin(
           { status: 400 }
         );
       }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName);
+      if (denied) return denied;
 
       const xiansClient = createXiansClient((session as any)?.accessToken);
 

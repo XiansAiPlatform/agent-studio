@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { createXiansClient } from '@/lib/xians/client';
 import { KnowledgeApiResponse } from '@/lib/xians/knowledge';
+import { assertCanEditAgent } from '@/lib/auth/agent-access';
 
 /**
  * GET /api/knowledge
@@ -11,7 +12,7 @@ import { KnowledgeApiResponse } from '@/lib/xians/knowledge';
  * Settings access (excludes plain participants).
  */
 export const GET = withParticipantAdmin(
-  async (request: NextRequest, { tenantId }: ApiContext) => {
+  async (request: NextRequest, { session, tenantId }: ApiContext) => {
     try {
       const { searchParams } = new URL(request.url);
       const agentName = searchParams.get('agentName');
@@ -30,6 +31,9 @@ export const GET = withParticipantAdmin(
           { status: 400 }
         );
       }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName);
+      if (denied) return denied;
 
       const client = createXiansClient();
       const queryParams = new URLSearchParams({ agentName, activationName });

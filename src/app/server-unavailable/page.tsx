@@ -6,6 +6,7 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { decodeAgentNameParam } from '@/lib/xians/agent-name'
 import { Suspense } from 'react'
 
 const RETRY_INTERVAL_MS = 15_000
@@ -21,8 +22,8 @@ function parseMessagingParamsFromReturnUrl(returnUrl: string): {
     const match = url.pathname.match(/^\/conversations\/([^/]+)\/([^/]+)$/)
     if (!match) return null
     return {
-      agentName: decodeURIComponent(match[1]),
-      activationName: decodeURIComponent(match[2]),
+      agentName: decodeAgentNameParam(match[1]),
+      activationName: decodeAgentNameParam(match[2]),
       workflowType: url.searchParams.get('workflow')?.trim() || null,
     }
   } catch {

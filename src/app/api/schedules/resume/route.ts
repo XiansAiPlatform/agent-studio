@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
+import { encodeAgentNamePath } from '@/lib/xians/agent-name'
 
 function schedulesBasePath(tenantId: string, agentName: string): string {
-  return `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeURIComponent(agentName)}/schedules`
+  return `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentName)}/schedules`
 }
 
 /**
@@ -25,6 +27,9 @@ export const POST = withParticipantAdmin(
           { status: 400 }
         )
       }
+
+      const denied = await assertCanEditAgent(session, tenantId, agentName)
+      if (denied) return denied
 
       const params = new URLSearchParams({ scheduleId })
       if (note) params.set('note', note)

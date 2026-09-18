@@ -5,7 +5,8 @@
  */
 
 import { XiansClient } from './client'
-import { XiansAgent, CreateAgentRequest, PaginatedResponse, XiansAgentTemplate, XiansAgentDeployment, XiansAgentDeploymentsResponse, XiansAgentActivation, CreateAgentActivationRequest, XiansAgentDeploymentDetail } from './types'
+import { decodeAgentNameParam, encodeAgentNamePath, normalizeAgentName } from './agent-name'
+import { XiansAgent, CreateAgentRequest, PaginatedResponse, XiansAgentTemplate, XiansAgentDeployment, XiansAgentDeploymentsResponse, XiansAgentActivation, CreateAgentActivationRequest, XiansAgentDeploymentDetail, AgentAccess, AgentAccessLevel } from './types'
 
 export class XiansAgentsApi {
   constructor(private client: XiansClient) {}
@@ -28,7 +29,7 @@ export class XiansAgentsApi {
     if (params?.status) query.set('status', params.status)
 
     const queryString = query.toString()
-    const path = `/api/v1/admin/tenants/${tenantId}/agents${queryString ? `?${queryString}` : ''}`
+    const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents${queryString ? `?${queryString}` : ''}`
     
     return this.client.get<PaginatedResponse<XiansAgent>>(path)
   }
@@ -39,7 +40,7 @@ export class XiansAgentsApi {
    */
   async getAgent(tenantId: string, agentId: string): Promise<XiansAgent> {
     return this.client.get<XiansAgent>(
-      `/api/v1/admin/tenants/${tenantId}/agents/${agentId}`
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentId)}`
     )
   }
 
@@ -52,7 +53,7 @@ export class XiansAgentsApi {
     data: CreateAgentRequest
   ): Promise<XiansAgent> {
     return this.client.post<XiansAgent>(
-      `/api/v1/admin/tenants/${tenantId}/agents`,
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents`,
       data
     )
   }
@@ -67,7 +68,7 @@ export class XiansAgentsApi {
     data: Partial<CreateAgentRequest>
   ): Promise<XiansAgent> {
     return this.client.patch<XiansAgent>(
-      `/api/v1/admin/tenants/${tenantId}/agents/${agentId}`,
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentId)}`,
       data
     )
   }
@@ -78,7 +79,7 @@ export class XiansAgentsApi {
    */
   async deleteAgent(tenantId: string, agentId: string): Promise<void> {
     return this.client.delete<void>(
-      `/api/v1/admin/tenants/${tenantId}/agents/${agentId}`
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentId)}`
     )
   }
 
@@ -120,7 +121,7 @@ export class XiansAgentsApi {
       pageSize: String(params?.pageSize ?? 100),
     })
     if (params?.status) searchParams.set('status', params.status)
-    const path = `/api/v1/admin/tenants/${tenantId}/agentDeployments?${searchParams.toString()}`
+    const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentDeployments?${searchParams.toString()}`
     return this.client.get<XiansAgentDeploymentsResponse>(path)
   }
 
@@ -133,7 +134,7 @@ export class XiansAgentsApi {
     agentName: string
   ): Promise<XiansAgentDeploymentDetail> {
     return this.client.get<XiansAgentDeploymentDetail>(
-      `/api/v1/admin/tenants/${tenantId}/agentDeployments/${agentName}`
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentDeployments/${encodeAgentNamePath(agentName)}`
     )
   }
 
@@ -145,7 +146,7 @@ export class XiansAgentsApi {
     templateObjectId: string,
     tenantId: string
   ): Promise<any> {
-    const path = `/api/v1/admin/agentTemplates/${templateObjectId}/deploy?tenantId=${tenantId}`
+    const path = `/api/v1/admin/agentTemplates/${encodeURIComponent(templateObjectId)}/deploy?tenantId=${encodeURIComponent(tenantId)}`
     return this.client.post<any>(path)
   }
 
@@ -160,7 +161,7 @@ export class XiansAgentsApi {
   ): Promise<void> {
     const query = options?.forceDelete ? '?forceDelete=true' : ''
     return this.client.delete<void>(
-      `/api/v1/admin/tenants/${tenantId}/agentDeployments/${agentName}${query}`
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentDeployments/${encodeAgentNamePath(agentName)}${query}`
     )
   }
 
@@ -175,7 +176,63 @@ export class XiansAgentsApi {
     agentName: string
   ): Promise<XiansAgent> {
     return this.client.post<XiansAgent>(
-      `/api/v1/admin/tenants/${tenantId}/agentDeployments/${agentName}/promote-to-template`
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentDeployments/${encodeAgentNamePath(agentName)}/promote-to-template`
+    )
+  }
+
+  /**
+   * Get an agent's owner / write / read access lists.
+   * GET /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access
+   */
+  async getAgentAccess(tenantId: string, agentId: string): Promise<AgentAccess> {
+    return this.client.get<AgentAccess>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentId)}/access`
+    )
+  }
+
+  /**
+   * Add a user to an agent's access at the given level (moving them if already present).
+   * POST /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access/users
+   */
+  async addAgentAccessUser(
+    tenantId: string,
+    agentId: string,
+    userId: string,
+    level: AgentAccessLevel
+  ): Promise<AgentAccess> {
+    return this.client.post<AgentAccess>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentId)}/access/users`,
+      { userId, level }
+    )
+  }
+
+  /**
+   * Change an existing user's access level for an agent.
+   * PATCH /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access/users/{userId}
+   */
+  async updateAgentAccessUser(
+    tenantId: string,
+    agentId: string,
+    userId: string,
+    level: AgentAccessLevel
+  ): Promise<AgentAccess> {
+    return this.client.patch<AgentAccess>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentId)}/access/users/${encodeURIComponent(userId)}`,
+      { level }
+    )
+  }
+
+  /**
+   * Remove a user from every access level for an agent.
+   * DELETE /api/v1/admin/tenants/{tenantId}/agents/{agentId}/access/users/{userId}
+   */
+  async removeAgentAccessUser(
+    tenantId: string,
+    agentId: string,
+    userId: string
+  ): Promise<AgentAccess> {
+    return this.client.delete<AgentAccess>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agents/${encodeAgentNamePath(agentId)}/access/users/${encodeURIComponent(userId)}`
     )
   }
 
@@ -193,7 +250,7 @@ export class XiansAgentsApi {
     }
   ): Promise<XiansAgentDeployment> {
     return this.client.post<XiansAgentDeployment>(
-      `/api/v1/admin/tenants/${tenantId}/agentDeployments`,
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentDeployments`,
       data
     )
   }
@@ -207,8 +264,12 @@ export class XiansAgentsApi {
     data: CreateAgentActivationRequest
   ): Promise<XiansAgentActivation> {
     return this.client.post<XiansAgentActivation>(
-      `/api/v1/admin/tenants/${tenantId}/agentActivations`,
-      data
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations`,
+      {
+        ...data,
+        name: normalizeAgentName(data.name),
+        agentName: normalizeAgentName(data.agentName),
+      }
     )
   }
 
@@ -228,11 +289,11 @@ export class XiansAgentsApi {
     const query = new URLSearchParams()
     if (params?.page) query.set('page', params.page.toString())
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString())
-    if (params?.agentName) query.set('agentName', params.agentName)
+    if (params?.agentName) query.set('agentName', decodeAgentNameParam(params.agentName))
     if (params?.status) query.set('status', params.status)
 
     const queryString = query.toString()
-    const path = `/api/v1/admin/tenants/${tenantId}/agentActivations${queryString ? `?${queryString}` : ''}`
+    const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations${queryString ? `?${queryString}` : ''}`
     
     return this.client.get<PaginatedResponse<XiansAgentActivation>>(path)
   }
@@ -247,7 +308,7 @@ export class XiansAgentsApi {
     workflowConfiguration?: any
   ): Promise<void> {
     return this.client.post<void>(
-      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/activate`,
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations/${encodeURIComponent(activationId)}/activate`,
       { workflowConfiguration }
     )
   }
@@ -261,7 +322,7 @@ export class XiansAgentsApi {
     activationId: string
   ): Promise<void> {
     return this.client.post<void>(
-      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}/deactivate`
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations/${encodeURIComponent(activationId)}/deactivate`
     )
   }
 
@@ -280,8 +341,11 @@ export class XiansAgentsApi {
     }
   ): Promise<XiansAgentActivation> {
     return this.client.put<XiansAgentActivation>(
-      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}`,
-      data
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations/${encodeURIComponent(activationId)}`,
+      {
+        ...data,
+        name: data.name != null ? normalizeAgentName(data.name) : data.name,
+      }
     )
   }
 
@@ -294,7 +358,7 @@ export class XiansAgentsApi {
     activationId: string
   ): Promise<void> {
     return this.client.delete<void>(
-      `/api/v1/admin/tenants/${tenantId}/agentActivations/${activationId}`
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations/${encodeURIComponent(activationId)}`
     )
   }
 }

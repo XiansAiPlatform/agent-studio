@@ -44,6 +44,7 @@ import { toast } from 'sonner'
 import { showErrorToast } from '@/lib/utils/error-handler'
 import { resolveWorkflowName } from '@/lib/xians/built-in-workflows'
 import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability'
+import { decodeAgentNameParam, agentNamesEqual } from '@/lib/xians/agent-name'
 
 const TOPICS_PAGE_SIZE = 10
 
@@ -143,15 +144,15 @@ export function ParticipantAgentTree({
     useActivations(currentTenantId)
   const activations = allActivations.filter((a) => a.status === 'active')
 
-  const routeAgentName = params.agentName as string | undefined
-  const routeActivationName = params.activationName as string | undefined
+  const routeAgentName = decodeAgentNameParam(params.agentName as string | undefined)
+  const routeActivationName = decodeAgentNameParam(params.activationName as string | undefined)
   const routeTopicId = searchParams.get('topic') || 'general-discussions'
   const workflowParam = searchParams.get('workflow')?.trim() || null
 
   const [expandedActivations, setExpandedActivations] = useState<Set<string>>(
     () =>
       routeAgentName && routeActivationName
-        ? new Set([`${decodeURIComponent(routeAgentName)}|${decodeURIComponent(routeActivationName)}`])
+        ? new Set([`${routeAgentName}|${routeActivationName}`])
         : new Set()
   )
   const [topicsByActivation, setTopicsByActivation] = useState<
@@ -182,14 +183,14 @@ export function ParticipantAgentTree({
     (name: string) => {
       const available = workflowsByAgent[name] ?? []
       const isCurrent =
-        !!routeAgentName && decodeURIComponent(routeAgentName) === name
+        !!routeAgentName && agentNamesEqual(routeAgentName, name)
       return resolveWorkflowName(isCurrent ? workflowParam : null, available)
     },
     [workflowsByAgent, routeAgentName, workflowParam]
   )
 
   const selectedWorkflowType = routeAgentName
-    ? workflowForAgent(decodeURIComponent(routeAgentName))
+    ? workflowForAgent(routeAgentName)
     : null
 
   useEffect(() => {
@@ -206,8 +207,8 @@ export function ParticipantAgentTree({
   // Auto-expand and fetch topics for the currently selected activation
   useEffect(() => {
     if (!routeAgentName || !routeActivationName) return
-    const decodedAgent = decodeURIComponent(routeAgentName)
-    const decodedActivation = decodeURIComponent(routeActivationName)
+    const decodedAgent = routeAgentName
+    const decodedActivation = routeActivationName
     if (!(decodedAgent in workflowsByAgent)) return
     const workflow = workflowForAgent(decodedAgent)
     if (!workflow) return
@@ -290,8 +291,8 @@ export function ParticipantAgentTree({
         const isViewingDeletedTopic =
           routeAgentName &&
           routeActivationName &&
-          decodeURIComponent(routeAgentName) === agentName &&
-          decodeURIComponent(routeActivationName) === activationName &&
+          agentNamesEqual(routeAgentName, agentName) &&
+          agentNamesEqual(routeActivationName, activationName) &&
           routeTopicId === topicId
         if (isViewingDeletedTopic && topicId !== 'general-discussions') {
           onTopicSelect(agentName, activationName, GENERAL_TOPIC, workflow)
@@ -394,8 +395,8 @@ export function ParticipantAgentTree({
         const isSelectedActivation =
           routeAgentName &&
           routeActivationName &&
-          decodeURIComponent(routeAgentName) === agentName &&
-          decodeURIComponent(routeActivationName) === activationName
+          agentNamesEqual(routeAgentName, agentName) &&
+          agentNamesEqual(routeActivationName, activationName)
 
         return (
           <div key={key} className="flex flex-col">

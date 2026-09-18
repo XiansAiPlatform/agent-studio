@@ -9,6 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Power, ChevronLeft, ChevronRight, CheckCircle, RefreshCw, Sparkles, Play, Lock } from 'lucide-react';
+import {
+  AGENT_NAME_MAX_LENGTH,
+  AGENT_NAME_MIN_LENGTH,
+  AGENT_NAME_PATTERN,
+  AGENT_NAME_VALIDATION_MESSAGE,
+  normalizeAgentName,
+} from '@/lib/xians/agent-name';
 
 // Utility function to format parameter names into human-readable format
 const formatParameterName = (name: string): string => {
@@ -192,18 +199,19 @@ export function ActivationConfigWizard({
     const errors: { name?: string; description?: string } = {};
     let isValid = true;
 
-    // Validate instance name
-    if (!metadata.name || metadata.name.trim().length === 0) {
+    // Validate instance name (Unicode-safe: æ, ø, å and other letters are allowed)
+    const name = normalizeAgentName(metadata.name);
+    if (!name) {
       errors.name = 'Instance name is required';
       isValid = false;
-    } else if (metadata.name.trim().length < 3) {
-      errors.name = 'Instance name must be at least 3 characters';
+    } else if (name.length < AGENT_NAME_MIN_LENGTH) {
+      errors.name = `Instance name must be at least ${AGENT_NAME_MIN_LENGTH} characters`;
       isValid = false;
-    } else if (metadata.name.trim().length > 100) {
-      errors.name = 'Instance name must be less than 100 characters';
+    } else if (name.length > AGENT_NAME_MAX_LENGTH) {
+      errors.name = `Instance name must be less than ${AGENT_NAME_MAX_LENGTH} characters`;
       isValid = false;
-    } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(metadata.name)) {
-      errors.name = 'Only letters, numbers, spaces, hyphens, and underscores allowed';
+    } else if (!AGENT_NAME_PATTERN.test(name)) {
+      errors.name = AGENT_NAME_VALIDATION_MESSAGE;
       isValid = false;
     }
 
@@ -316,7 +324,10 @@ export function ActivationConfigWizard({
     }
 
     if (includeMetadataStep) {
-      onComplete(workflowInputs, metadata);
+      onComplete(workflowInputs, {
+        ...metadata,
+        name: normalizeAgentName(metadata.name),
+      });
     } else {
       onComplete(workflowInputs);
     }
@@ -475,7 +486,7 @@ export function ActivationConfigWizard({
                               setMetadata({ ...metadata, name: e.target.value });
                               setMetadataErrors({ ...metadataErrors, name: undefined });
                             }}
-                            maxLength={100}
+                            maxLength={AGENT_NAME_MAX_LENGTH}
                             className={metadataErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                           />
                           {onGenerateInstanceName && (

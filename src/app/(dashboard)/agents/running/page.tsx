@@ -11,6 +11,7 @@ import { Bot, Play, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
+import { useEditableAgents, canEditAgent } from '@/hooks/use-editable-agents';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { ActivationConfigWizard } from '@/components/features/agents/activation-config-wizard';
 
@@ -98,6 +99,9 @@ function AgentsPageContent() {
 
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [sliderType, setSliderType] = useState<SliderType>(null);
+  const editableAgents = useEditableAgents();
+  const selectedAgentEditable =
+    !!selectedAgent && canEditAgent(editableAgents, selectedAgent.template);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
@@ -722,9 +726,10 @@ function AgentsPageContent() {
             onRestartClick={() => handleRestartClick(selectedAgent)}
             onRedeployClick={() => handleRedeployClick(selectedAgent)}
             onDeleteClick={() => handleDeleteClick(selectedAgent)}
+            canEdit={selectedAgentEditable}
           />
         )}
-        {selectedAgent && sliderType === 'configure' && (
+        {selectedAgent && sliderType === 'configure' && selectedAgentEditable && (
           <ConfigurePanel 
             agent={selectedAgent} 
             tenantId={currentTenantId}

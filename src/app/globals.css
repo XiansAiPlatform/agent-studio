@@ -156,7 +156,7 @@ html.dark[data-theme="fjord"] {
   --background: oklch(0.22 0.02 250);
   --card: oklch(0.28 0.03 250);
   --muted: oklch(0.35 0.04 250);
-  --muted-foreground: oklch(0.65 0 0);
+  --muted-foreground: oklch(0.75 0.02 250);
   --border: oklch(0.42 0.04 250);
   --input: oklch(0.42 0.04 250);
 
@@ -775,7 +775,7 @@ html.dark[data-theme="gaia"] {
   --background: #0D1E28;  /* deep ocean night */
   --card: #122736;
   --muted: #1A3A50;
-  --muted-foreground: #6F7687;
+  --muted-foreground: #B0B8C4;
   --border: #2A5570;
   --input: #2A5570;
   --sidebar: #0D1E28;
@@ -1041,7 +1041,7 @@ html.dark[data-theme="gaia"] .agent-card--inactive {
   --secondary: oklch(0.32 0.012 30);
   --secondary-foreground: oklch(0.93 0.005 85);
   --muted: oklch(0.32 0.012 30);
-  --muted-foreground: oklch(0.58 0 0);
+  --muted-foreground: oklch(0.72 0.01 85); /* readable secondary text, same hierarchy as light */
   --accent: oklch(0.35 0.015 30);
   --accent-foreground: oklch(0.93 0.005 85);
 
@@ -1099,7 +1099,7 @@ html.dark[data-theme="zenith"] {
   --popover-foreground: #E5E7EB;
 
   --sidebar-foreground: #E5E7EB;
-  --muted-foreground: #6A7282;
+  --muted-foreground: #A8B0BC;
 
   --primary: #E57373;
   --color-primary: #E57373;
@@ -1134,7 +1134,7 @@ html.dark[data-theme="skog"] {
   --background: oklch(0.17 0.04 152);      /* #0D2118 — deep forest night */
   --card: oklch(0.22 0.045 152);           /* #132A1E — dark forest card */
   --muted: oklch(0.27 0.04 152);           /* slightly lighter forest */
-  --muted-foreground: oklch(0.60 0.04 152);
+  --muted-foreground: oklch(0.74 0.04 152);
   --border: oklch(0.33 0.06 152);          /* visible but subtle green border */
   --input: oklch(0.33 0.06 152);
   --sidebar: oklch(0.20 0.042 152);        /* sidebar slightly distinct */
