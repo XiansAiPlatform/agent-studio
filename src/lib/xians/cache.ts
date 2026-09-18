@@ -14,6 +14,8 @@
  *     single upstream promise (the dominant win during a refresh burst).
  *  2. Short TTL caching: results are reused for `ttlMs` so back-to-back
  *     requests don't re-hit upstream.
+ *  3. Active eviction: expired keys are swept about once a second on `get`,
+ *     so unused tenant/agent entries do not stay in the Map for process life.
  *
  * The TTL is intentionally short because these lookups back the authorization
  * gate; a revoked role/permission becomes visible after at most `ttlMs`.
@@ -35,10 +37,21 @@ export interface TtlCache<T> {
 
 export function createTtlCache<T>(ttlMs: number): TtlCache<T> {
   const store = new Map<string, CacheEntry<T>>()
+  let lastSweepAt = 0
+
+  const sweepExpired = (now: number) => {
+    // Avoid O(n) on every hit; unused keys still leave the Map within ~1s.
+    if (now - lastSweepAt < 1_000) return
+    lastSweepAt = now
+    for (const [key, entry] of store) {
+      if (entry.expiresAt <= now) store.delete(key)
+    }
+  }
 
   return {
     get(key, loader) {
       const now = Date.now()
+      sweepExpired(now)
       const existing = store.get(key)
       if (existing && existing.expiresAt > now) {
         return existing.promise

@@ -3,12 +3,8 @@ import type { Session } from 'next-auth'
 import { validationError } from '@/lib/api/error-handler'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
 import { agentNamesEqual, decodeAgentNameParam } from '@/lib/xians/agent-name'
-import { createTtlCache, TENANT_LOOKUP_TTL_MS } from '@/lib/xians/cache'
 import { createXiansClient, XiansApiError, type XiansClient } from '@/lib/xians/client'
 import type { PaginatedResponse, XiansAgentActivation } from '@/lib/xians/types'
-
-/** Same short TTL as other auth lookups — collapses back-to-back POSTs for one agent. */
-const activationNamesByAgent = createTtlCache<Set<string>>(TENANT_LOOKUP_TTL_MS)
 
 /** Cap on JSON document fields forwarded to AdminAPI (content / metadata). */
 export const ADMIN_DATA_JSON_MAX_BYTES = 256 * 1024
@@ -100,13 +96,34 @@ async function loadActivationNamesForAgent(
   return names
 }
 
+/** In-flight only — this gates a write, so we do not TTL-cache the name set. */
+const inFlightActivationNames = new Map<string, Promise<Set<string>>>()
+
+function activationNamesForAgent(
+  client: XiansClient,
+  tenantId: string,
+  canonicalAgent: string
+): Promise<Set<string>> {
+  const key = `${tenantId}|${canonicalAgent}`
+  const existing = inFlightActivationNames.get(key)
+  if (existing) return existing
+
+  const promise = loadActivationNamesForAgent(client, tenantId, canonicalAgent).finally(() => {
+    if (inFlightActivationNames.get(key) === promise) {
+      inFlightActivationNames.delete(key)
+    }
+  })
+  inFlightActivationNames.set(key, promise)
+  return promise
+}
+
 /**
  * Confirm activationName is a real activation of agentName in this tenant.
  * Used on POST so a Write/Owner caller cannot stamp an arbitrary activation tag.
  *
- * Activation names are cached per tenant+agent for TENANT_LOOKUP_TTL_MS so
- * back-to-back creates do not re-list AdminAPI. There is no by-name lookup
- * on this client; a filtered AdminAPI query would be the O(1) follow-up.
+ * Concurrent POSTs for the same agent share one in-flight list; the result is
+ * not TTL-cached because this check gates a write. A by-name AdminAPI lookup
+ * would be the O(1) follow-up.
  */
 export async function assertActivationOwnedByAgent(
   client: XiansClient,
@@ -116,10 +133,7 @@ export async function assertActivationOwnedByAgent(
 ): Promise<NextResponse | null> {
   const canonicalAgent = decodeAgentNameParam(agentName)
   const canonicalActivation = decodeAgentNameParam(activationName)
-  const names = await activationNamesByAgent.get(
-    `${tenantId}|${canonicalAgent}`,
-    () => loadActivationNamesForAgent(client, tenantId, canonicalAgent)
-  )
+  const names = await activationNamesForAgent(client, tenantId, canonicalAgent)
   if (names.has(canonicalActivation)) return null
   return validationError('activationName does not belong to this agent')
 }
