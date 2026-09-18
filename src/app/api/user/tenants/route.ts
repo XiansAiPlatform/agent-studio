@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { useTenantProvider } from "@/lib/tenant"
 import { handleApiError, unauthorizedError } from "@/lib/api/error-handler"
+import { runWithSessionOnBehalfOf } from "@/lib/xians/on-behalf-of"
 
 /**
  * GET /api/user/tenants
@@ -17,32 +18,35 @@ export async function GET() {
     return unauthorizedError()
   }
   
-  try {
-    console.log('[User Tenants API] Fetching tenants from Xians for user:', (session as any)?.user?.email)
-    
-    const tenantProvider = useTenantProvider()
-    const userTenants = await tenantProvider.getUserTenants(
-      (session as any)?.user?.id,
-      (session as any)?.accessToken,
-      (session as any)?.user?.email || undefined
-    )
-    
-    console.log('[User Tenants API] Found', userTenants.length, 'tenant(s) in Xians')
-    
-    if (userTenants.length === 0) {
-      console.warn('[User Tenants API] No tenants found for user - user needs to be granted access by admin')
-    }
+  const tenantProvider = useTenantProvider()
 
-    // Strip participantRole - never expose to client
-    const tenants = userTenants.map(({ tenant, role }) => ({ tenant, role }))
-    
-    return NextResponse.json({
-      tenants,
-      userId: (session as any)?.user?.id,
-      userEmail: (session as any)?.user?.email,
-      count: userTenants.length
-    })
-  } catch (error) {
-    return handleApiError(error, 'Get User Tenants')
-  }
+  return runWithSessionOnBehalfOf(session, async () => {
+    try {
+      console.log('[User Tenants API] Fetching tenants from Xians for user:', (session as any)?.user?.email)
+      
+      const userTenants = await tenantProvider.getUserTenants(
+        (session as any)?.user?.id,
+        (session as any)?.accessToken,
+        (session as any)?.user?.email || undefined
+      )
+      
+      console.log('[User Tenants API] Found', userTenants.length, 'tenant(s) in Xians')
+      
+      if (userTenants.length === 0) {
+        console.warn('[User Tenants API] No tenants found for user - user needs to be granted access by admin')
+      }
+
+      // Strip participantRole - never expose to client
+      const tenants = userTenants.map(({ tenant, role }) => ({ tenant, role }))
+      
+      return NextResponse.json({
+        tenants,
+        userId: (session as any)?.user?.id,
+        userEmail: (session as any)?.user?.email,
+        count: userTenants.length
+      })
+    } catch (error) {
+      return handleApiError(error, 'Get User Tenants')
+    }
+  })
 }

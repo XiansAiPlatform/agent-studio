@@ -11,6 +11,7 @@
 import type { Session } from 'next-auth'
 import { createXiansClient } from '@/lib/xians/client'
 import { XiansTenantsApi } from '@/lib/xians/tenants'
+import { runWithOnBehalfOf } from '@/lib/xians/on-behalf-of'
 import { getCapabilities, type Capability } from './capabilities'
 
 interface ResolveInput {
@@ -25,28 +26,31 @@ interface ResolveInput {
  * user cannot be identified or the backend lookup fails (fail closed).
  */
 export async function resolveCapabilities(input: ResolveInput): Promise<Capability[]> {
-  if (!input.email) return []
+  const email = input.email?.trim()
+  if (!email) return []
 
-  try {
-    const client = createXiansClient(input.accessToken ?? undefined)
-    const tenantsApi = new XiansTenantsApi(client)
-    const response = await tenantsApi.getParticipantTenants(input.email)
+  return runWithOnBehalfOf(email, async () => {
+    try {
+      const client = createXiansClient(input.accessToken ?? undefined, email)
+      const tenantsApi = new XiansTenantsApi(client)
+      const response = await tenantsApi.getParticipantTenants(email)
 
-    if (response.isSystemAdmin) {
-      return getCapabilities({ isSystemAdmin: true })
-    }
+      if (response.isSystemAdmin) {
+        return getCapabilities({ isSystemAdmin: true })
+      }
 
-    if (!input.tenantId) {
-      // No tenant context and not a system admin: nothing tenant-scoped to grant.
+      if (!input.tenantId) {
+        // No tenant context and not a system admin: nothing tenant-scoped to grant.
+        return []
+      }
+
+      const participant = response.tenants.find((t) => t.tenantId === input.tenantId)
+      return getCapabilities({ participantRole: participant?.role })
+    } catch (error) {
+      console.error('[Auth] Failed to resolve capabilities:', error)
       return []
     }
-
-    const participant = response.tenants.find((t) => t.tenantId === input.tenantId)
-    return getCapabilities({ participantRole: participant?.role })
-  } catch (error) {
-    console.error('[Auth] Failed to resolve capabilities:', error)
-    return []
-  }
+  })
 }
 
 /** Resolve capabilities from a NextAuth session (server components / API routes). */

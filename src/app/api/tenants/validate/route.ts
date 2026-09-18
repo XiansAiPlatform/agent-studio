@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { useTenantProvider } from '@/lib/tenant'
+import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
 
 /**
  * POST /api/tenants/validate
@@ -18,56 +19,59 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const body = await request.json().catch(() => ({}))
-  const tenantId = body?.tenantId
+  const tenantProvider = useTenantProvider()
 
-  if (!tenantId || typeof tenantId !== 'string') {
-    return NextResponse.json(
-      { error: 'tenantId is required in request body', exists: false, enabled: false },
-      { status: 400 }
-    )
-  }
+  return runWithSessionOnBehalfOf(session, async () => {
+    const body = await request.json().catch(() => ({}))
+    const tenantId = body?.tenantId
 
-  try {
-    const tenantProvider = useTenantProvider()
-    const tenantContext = await tenantProvider.getTenantContext(
-      session.user.id,
-      tenantId,
-      (session as any).accessToken,
-      session.user.email
-    )
+    if (!tenantId || typeof tenantId !== 'string') {
+      return NextResponse.json(
+        { error: 'tenantId is required in request body', exists: false, enabled: false },
+        { status: 400 }
+      )
+    }
 
-    if (!tenantContext) {
+    try {
+      const tenantContext = await tenantProvider.getTenantContext(
+        session.user.id,
+        tenantId,
+        (session as any).accessToken,
+        session.user.email ?? undefined
+      )
+
+      if (!tenantContext) {
+        return NextResponse.json({
+          exists: false,
+          enabled: false,
+          error: 'Access denied or tenant does not exist',
+        })
+      }
+
+      // getTenantContext already fetched (and mapped) the tenant — including the
+      // same-origin proxied logo used for the header/favicon — so reuse it rather
+      // than issuing a second identical upstream lookup.
+      const { tenant } = tenantContext
+
+      return NextResponse.json({
+        exists: true,
+        enabled: true,
+        tenant: {
+          id: tenant.id,
+          name: tenant.name,
+          theme: tenant.theme,
+          logo: tenant.metadata?.logo,
+        },
+      })
+    } catch (error: any) {
+      const isNotFound = error.status === 404
       return NextResponse.json({
         exists: false,
         enabled: false,
-        error: 'Access denied or tenant does not exist',
+        error: isNotFound
+          ? `Tenant "${tenantId}" does not exist or is disabled`
+          : error.message || 'Failed to validate tenant',
       })
     }
-
-    // getTenantContext already fetched (and mapped) the tenant — including the
-    // same-origin proxied logo used for the header/favicon — so reuse it rather
-    // than issuing a second identical upstream lookup.
-    const { tenant } = tenantContext
-
-    return NextResponse.json({
-      exists: true,
-      enabled: true,
-      tenant: {
-        id: tenant.id,
-        name: tenant.name,
-        theme: tenant.theme,
-        logo: tenant.metadata?.logo,
-      },
-    })
-  } catch (error: any) {
-    const isNotFound = error.status === 404
-    return NextResponse.json({
-      exists: false,
-      enabled: false,
-      error: isNotFound
-        ? `Tenant "${tenantId}" does not exist or is disabled`
-        : error.message || 'Failed to validate tenant',
-    })
-  }
+  })
 }

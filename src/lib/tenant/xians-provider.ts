@@ -2,6 +2,7 @@ import { TenantProvider } from "./provider"
 import { Tenant, TenantContext } from "@/types/tenant"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
+import { runWithOnBehalfOf } from "@/lib/xians/on-behalf-of"
 import { XiansTenant, XiansAdminTenant, XiansParticipantTenant, XiansParticipantRole } from "@/lib/xians/types"
 import { COLOR_THEMES, type ColorThemeId } from "@/lib/themes"
 import { proxyTenantLogo } from "@/lib/tenant/logo"
@@ -55,44 +56,46 @@ export class XiansTenantProvider implements TenantProvider {
       return null
     }
 
-    const client = createXiansClient(authToken)
-    const tenantsApi = new XiansTenantsApi(client)
+    return runWithOnBehalfOf(userEmail, async () => {
+      const client = createXiansClient(authToken)
+      const tenantsApi = new XiansTenantsApi(client)
 
-    // Look up the user's actual participant role for this tenant.
-    // System-admin status does NOT auto-grant tenant access here; users must be
-    // an explicit participant of the requested tenant.
-    let participantResponse
-    try {
-      participantResponse = await tenantsApi.getParticipantTenants(userEmail)
-    } catch (error) {
-      console.error('[XiansTenantProvider] Failed to fetch participant tenants:', error)
-      return null
-    }
+      // Look up the user's actual participant role for this tenant.
+      // System-admin status does NOT auto-grant tenant access here; users must be
+      // an explicit participant of the requested tenant.
+      let participantResponse
+      try {
+        participantResponse = await tenantsApi.getParticipantTenants(userEmail)
+      } catch (error) {
+        console.error('[XiansTenantProvider] Failed to fetch participant tenants:', error)
+        return null
+      }
 
-    const participant = participantResponse.tenants.find(t => t.tenantId === tenantId)
-    const isSystemAdmin = participantResponse.isSystemAdmin
+      const participant = participantResponse.tenants.find(t => t.tenantId === tenantId)
+      const isSystemAdmin = participantResponse.isSystemAdmin
 
-    // System admins get full admin access to any tenant even without an explicit participant role
-    if (!participant && !isSystemAdmin) {
-      return null
-    }
+      // System admins get full admin access to any tenant even without an explicit participant role
+      if (!participant && !isSystemAdmin) {
+        return null
+      }
 
-    const tenant = await this.getTenant(tenantId, authToken)
-    if (!tenant) return null
+      const tenant = await this.getTenant(tenantId, authToken)
+      if (!tenant) return null
 
-    // Agent-level admin permissions map to the `settings:view` capability
-    // (TenantAdmin, TenantParticipantAdmin, TenantUser, and system admins).
-    // Tenant management operations (user/tenant settings) are further gated by
-    // withTenantAdmin which requires `tenant:manage-users`.
-    const capabilities = getCapabilities({ participantRole: participant?.role, isSystemAdmin })
-    const isAdmin = hasCapability(capabilities, 'settings:view')
-    return {
-      tenant,
-      userRole: isAdmin ? 'admin' : 'member',
-      permissions: isAdmin
-        ? ['read', 'write', 'delete', 'admin']
-        : ['read'],
-    }
+      // Agent-level admin permissions map to the `settings:view` capability
+      // (TenantAdmin, TenantParticipantAdmin, TenantUser, and system admins).
+      // Tenant management operations (user/tenant settings) are further gated by
+      // withTenantAdmin which requires `tenant:manage-users`.
+      const capabilities = getCapabilities({ participantRole: participant?.role, isSystemAdmin })
+      const isAdmin = hasCapability(capabilities, 'settings:view')
+      return {
+        tenant,
+        userRole: isAdmin ? 'admin' : 'member',
+        permissions: isAdmin
+          ? ['read', 'write', 'delete', 'admin']
+          : ['read'],
+      }
+    })
   }
 
   /**
@@ -227,37 +230,39 @@ export class XiansTenantProvider implements TenantProvider {
       console.warn('[XiansTenantProvider] No email provided, cannot fetch participant tenants')
       return []
     }
-    
-    // Get participant tenants using the new API
-    // This returns tenant IDs and names where user has TenantParticipant role
-    const response = await tenantsApi.getParticipantTenants(userEmail)
 
-    // System admins get access to EVERY tenant on the platform via the tenant
-    // switcher, regardless of explicit participation.
-    if (response.isSystemAdmin) {
-      return this.getSystemAdminTenants(tenantsApi, response.tenants)
-    }
+    return runWithOnBehalfOf(userEmail, async () => {
+      // Get participant tenants using the new API
+      // This returns tenant IDs and names where user has TenantParticipant role
+      const response = await tenantsApi.getParticipantTenants(userEmail)
 
-    if (response.tenants.length === 0) {
-      console.log('[XiansTenantProvider] User has no tenant access')
-      return []
-    }
+      // System admins get access to EVERY tenant on the platform via the tenant
+      // switcher, regardless of explicit participation.
+      if (response.isSystemAdmin) {
+        return this.getSystemAdminTenants(tenantsApi, response.tenants)
+      }
 
-    const tenants = this.mapParticipantTenants(response.tenants)
+      if (response.tenants.length === 0) {
+        console.log('[XiansTenantProvider] User has no tenant access')
+        return []
+      }
 
-    if (tenants.length === 0) {
-      console.log('[XiansTenantProvider] User has no approved tenant access')
-      return []
-    }
+      const tenants = this.mapParticipantTenants(response.tenants)
 
-    console.log(
-      '[XiansTenantProvider] User has access to',
-      tenants.length,
-      '/',
-      response.tenants.length,
-      'approved tenant(s)'
-    )
+      if (tenants.length === 0) {
+        console.log('[XiansTenantProvider] User has no approved tenant access')
+        return []
+      }
 
-    return tenants
+      console.log(
+        '[XiansTenantProvider] User has access to',
+        tenants.length,
+        '/',
+        response.tenants.length,
+        'approved tenant(s)'
+      )
+
+      return tenants
+    })
   }
 }

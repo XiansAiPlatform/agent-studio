@@ -3,6 +3,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { useTenantProvider } from '@/lib/tenant'
 import { XiansApiError } from '@/lib/xians/client'
 import { describeXiansError, isBackendUnreachableError, isServiceApiKeyError } from '@/lib/xians/errors'
+import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
 
 export type UserTenantsResult = 
   | { success: true; tenants: any[]; session: any }
@@ -23,58 +24,61 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
     return { success: false, error: 'no_session' }
   }
 
-  try {
-    const tenantProvider = useTenantProvider()
-    const userTenants = await tenantProvider.getUserTenants(
-      session.user.id,
-      session.accessToken,
-      session.user.email ?? undefined
-    )
-    
-    console.log('[Server] Fetched', userTenants.length, 'tenant(s) for user:', session.user.email)
-    
-    return {
-      success: true,
-      tenants: userTenants,
-      session
-    }
-  } catch (error) {
-    console.error('[Server] Error fetching tenants:', describeXiansError(error))
-    
-    // Check if it's a network/backend unavailable error
-    if (isBackendUnreachableError(error)) {
-      return {
-        success: false,
-        error: 'backend_unavailable',
-        message: error.message
-      }
-    }
+  const tenantProvider = useTenantProvider()
 
-    // 401 here is a service-to-service auth failure: Agent Studio's XIANS_APIKEY
-    // is invalid / revoked / not registered in the backend. This is a deployment
-    // configuration problem, not a user-facing auth or connectivity issue.
-    if (isServiceApiKeyError(error)) {
+  return runWithSessionOnBehalfOf(session, async () => {
+    try {
+      const userTenants = await tenantProvider.getUserTenants(
+        session.user.id,
+        session.accessToken,
+        session.user.email ?? undefined
+      )
+      
+      console.log('[Server] Fetched', userTenants.length, 'tenant(s) for user:', session.user.email)
+      
       return {
-        success: false,
-        error: 'config_error',
-        message: error.message
+        success: true,
+        tenants: userTenants,
+        session
       }
-    }
+    } catch (error) {
+      console.error('[Server] Error fetching tenants:', describeXiansError(error))
+      
+      // Check if it's a network/backend unavailable error
+      if (isBackendUnreachableError(error)) {
+        return {
+          success: false,
+          error: 'backend_unavailable',
+          message: error.message
+        }
+      }
 
-    // 403 means the user exists but is blocked from accessing the system
-    if (error instanceof XiansApiError && error.status === 403) {
+      // 401 here is a service-to-service auth failure: Agent Studio's XIANS_APIKEY
+      // is invalid / revoked / not registered in the backend. This is a deployment
+      // configuration problem, not a user-facing auth or connectivity issue.
+      if (isServiceApiKeyError(error)) {
+        return {
+          success: false,
+          error: 'config_error',
+          message: error.message
+        }
+      }
+
+      // 403 means the user exists but is blocked from accessing the system
+      if (error instanceof XiansApiError && error.status === 403) {
+        return {
+          success: false,
+          error: 'access_denied',
+          message: error.message
+        }
+      }
+      
+      // Other errors
       return {
         success: false,
-        error: 'access_denied',
-        message: error.message
+        error: 'unknown',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       }
     }
-    
-    // Other errors
-    return {
-      success: false,
-      error: 'unknown',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
-    }
-  }
+  })
 }

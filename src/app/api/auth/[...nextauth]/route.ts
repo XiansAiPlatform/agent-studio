@@ -9,6 +9,7 @@ import { AzureADB2CProvider } from "@/lib/auth-providers/azure-ad-b2c"
 import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
 import { describeXiansError, isServiceApiKeyError } from "@/lib/xians/errors"
+import { runWithOnBehalfOf } from "@/lib/xians/on-behalf-of"
 
 /** Default OpenID scopes when no resource scope is configured. */
 const DEFAULT_AZURE_SCOPES = "openid profile email offline_access"
@@ -362,15 +363,17 @@ export const authOptions: NextAuthOptions = {
       // Check if user has tenant access
       if (user.email) {
         try {
-          const client = createXiansClient()
-          const tenantsApi = new XiansTenantsApi(client)
-          const response = await tenantsApi.getParticipantTenants(user.email)
-          
-          // Store tenant check result and system admin flag in user object (temporary)
-          user.hasTenantAccess = response.tenants.length > 0
-          user.isSystemAdmin = response.isSystemAdmin
-          
-          console.log(`[Auth] User ${user.email} has access to ${response.tenants.length} tenant(s), isSystemAdmin: ${response.isSystemAdmin}`)
+          await runWithOnBehalfOf(user.email, async () => {
+            const client = createXiansClient()
+            const tenantsApi = new XiansTenantsApi(client)
+            const response = await tenantsApi.getParticipantTenants(user.email!)
+
+            // Store tenant check result and system admin flag in user object (temporary)
+            user.hasTenantAccess = response.tenants.length > 0
+            user.isSystemAdmin = response.isSystemAdmin
+
+            console.log(`[Auth] User ${user.email} has access to ${response.tenants.length} tenant(s), isSystemAdmin: ${response.isSystemAdmin}`)
+          })
         } catch (error) {
           if (isServiceApiKeyError(error)) {
             console.error(
@@ -439,14 +442,16 @@ export const authOptions: NextAuthOptions = {
 
       if ((trigger === 'update' || isStale) && token.email) {
         try {
-          const client = createXiansClient()
-          const tenantsApi = new XiansTenantsApi(client)
-          const response = await tenantsApi.getParticipantTenants(
-            token.email as string
-          )
-          token.hasTenantAccess = response.tenants.length > 0
-          token.isSystemAdmin = response.isSystemAdmin
-          token.tenantAccessCheckedAt = Date.now()
+          await runWithOnBehalfOf(token.email as string, async () => {
+            const client = createXiansClient()
+            const tenantsApi = new XiansTenantsApi(client)
+            const response = await tenantsApi.getParticipantTenants(
+              token.email as string
+            )
+            token.hasTenantAccess = response.tenants.length > 0
+            token.isSystemAdmin = response.isSystemAdmin
+            token.tenantAccessCheckedAt = Date.now()
+          })
         } catch (error) {
           // Don't fail the request on a transient backend issue; just keep the
           // existing claims and try again on the next refresh cycle.

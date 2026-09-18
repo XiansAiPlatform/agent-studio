@@ -6,11 +6,12 @@
  *
  * Important: every admin API call authenticates with the service credential
  * (XIANS_APIKEY) — see `XiansClient.request`, which only ever sends that key as
- * the Bearer token. An end-user token is never used for these calls. Therefore a
- * 401 from the backend always means the *service credential* was rejected (e.g.
- * the key is wrong, revoked, rotated, or not registered), which is a deployment
- * configuration problem rather than an end-user authentication or connectivity
- * issue.
+ * the Bearer token. `X-On-Behalf-Of` (when present) is audit attribution for the
+ * Studio UI user and does not authorize the call. An end-user token is never
+ * used as the Admin API Bearer credential. Therefore a 401 from the backend
+ * always means the *service credential* was rejected (e.g. the key is wrong,
+ * revoked, rotated, or not registered), which is a deployment configuration
+ * problem rather than an end-user authentication or connectivity issue.
  */
 
 import { XiansApiError } from './client'

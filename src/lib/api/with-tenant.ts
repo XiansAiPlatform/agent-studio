@@ -12,6 +12,7 @@ import { getServerSession, Session } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { useTenantProvider, TenantContext } from "@/lib/tenant"
 import { requireParticipantAdmin, requireTenantAdmin, requireSystemAdmin } from "@/lib/api/auth"
+import { runWithSessionOnBehalfOf } from "@/lib/xians/on-behalf-of"
 
 /**
  * API Context provided to route handlers
@@ -136,32 +137,35 @@ export function withTenantFromSession(handler: ApiHandler) {
           { status: 401 }
         )
       }
-      
-      const tenantId = getTenantIdFromCookie(request)
-      
-      if (!tenantId) {
-        return NextResponse.json(
-          { error: 'No tenant selected. Please select a tenant in the dashboard.' },
-          { status: 400 }
-        )
-      }
-      
+
       const tenantProvider = useTenantProvider()
-      const tenantContext = await tenantProvider.getTenantContext(
-        session.user.id,
-        tenantId,
-        session.accessToken,
-        session.user.email
-      )
-      
-      if (!tenantContext) {
-        return NextResponse.json(
-          { error: 'Access denied to this tenant' },
-          { status: 403 }
+
+      return runWithSessionOnBehalfOf(session, async () => {
+        const tenantId = getTenantIdFromCookie(request)
+
+        if (!tenantId) {
+          return NextResponse.json(
+            { error: 'No tenant selected. Please select a tenant in the dashboard.' },
+            { status: 400 }
+          )
+        }
+
+        const tenantContext = await tenantProvider.getTenantContext(
+          session.user.id,
+          tenantId,
+          session.accessToken,
+          session.user.email ?? undefined
         )
-      }
-      
-      return handler(request, { session, tenantContext, tenantId })
+
+        if (!tenantContext) {
+          return NextResponse.json(
+            { error: 'Access denied to this tenant' },
+            { status: 403 }
+          )
+        }
+
+        return handler(request, { session, tenantContext, tenantId })
+      })
     } catch (error) {
       console.error('[withTenantFromSession] Error:', error)
       return NextResponse.json(
@@ -206,30 +210,33 @@ export function withParticipantAdmin(handler: ApiHandler) {
         )
       }
 
-      const tenantId = getTenantIdFromCookie(request)
-
-      const authError = await requireParticipantAdmin(session, tenantId)
-      if (authError) return authError
-
       const tenantProvider = useTenantProvider()
-      const tenantContext = await tenantProvider.getTenantContext(
-        session.user.id,
-        tenantId!,
-        session.accessToken,
-        session.user.email
-      )
 
-      if (!tenantContext) {
-        return NextResponse.json(
-          { error: 'Access denied to this tenant' },
-          { status: 403 }
+      return runWithSessionOnBehalfOf(session, async () => {
+        const tenantId = getTenantIdFromCookie(request)
+
+        const authError = await requireParticipantAdmin(session, tenantId)
+        if (authError) return authError
+
+        const tenantContext = await tenantProvider.getTenantContext(
+          session.user.id,
+          tenantId!,
+          session.accessToken,
+          session.user.email ?? undefined
         )
-      }
 
-      return handler(request, {
-        session,
-        tenantContext,
-        tenantId: tenantId!,
+        if (!tenantContext) {
+          return NextResponse.json(
+            { error: 'Access denied to this tenant' },
+            { status: 403 }
+          )
+        }
+
+        return handler(request, {
+          session,
+          tenantContext,
+          tenantId: tenantId!,
+        })
       })
     } catch (error) {
       console.error('[withParticipantAdmin] Error:', error)
@@ -263,27 +270,30 @@ export function withTenantAdmin(handler: ApiHandler) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      const tenantId = getTenantIdFromCookie(request)
-
-      const authError = await requireTenantAdmin(session, tenantId)
-      if (authError) return authError
-
       const tenantProvider = useTenantProvider()
-      const tenantContext = await tenantProvider.getTenantContext(
-        session.user.id,
-        tenantId!,
-        session.accessToken,
-        session.user.email
-      )
 
-      if (!tenantContext) {
-        return NextResponse.json(
-          { error: 'Access denied to this tenant' },
-          { status: 403 }
+      return runWithSessionOnBehalfOf(session, async () => {
+        const tenantId = getTenantIdFromCookie(request)
+
+        const authError = await requireTenantAdmin(session, tenantId)
+        if (authError) return authError
+
+        const tenantContext = await tenantProvider.getTenantContext(
+          session.user.id,
+          tenantId!,
+          session.accessToken,
+          session.user.email ?? undefined
         )
-      }
 
-      return handler(request, { session, tenantContext, tenantId: tenantId! })
+        if (!tenantContext) {
+          return NextResponse.json(
+            { error: 'Access denied to this tenant' },
+            { status: 403 }
+          )
+        }
+
+        return handler(request, { session, tenantContext, tenantId: tenantId! })
+      })
     } catch (error) {
       console.error('[withTenantAdmin] Error:', error)
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -324,10 +334,12 @@ export function withSystemAdmin(
     try {
       const session = await getServerSession(authOptions)
 
-      const authError = await requireSystemAdmin(session)
-      if (authError) return authError
+      return runWithSessionOnBehalfOf(session, async () => {
+        const authError = await requireSystemAdmin(session)
+        if (authError) return authError
 
-      return handler(request, { session: session! })
+        return handler(request, { session: session! })
+      })
     } catch (error) {
       console.error('[withSystemAdmin] Error:', error)
       return NextResponse.json(
@@ -358,33 +370,36 @@ export function withSystemAdminTenant(handler: ApiHandler) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      const authError = await requireSystemAdmin(session)
-      if (authError) return authError
-
-      const tenantId = getTenantIdFromCookie(request)
-      if (!tenantId) {
-        return NextResponse.json(
-          { error: 'No tenant selected. Please select a tenant in the dashboard.' },
-          { status: 400 }
-        )
-      }
-
       const tenantProvider = useTenantProvider()
-      const tenantContext = await tenantProvider.getTenantContext(
-        session.user.id,
-        tenantId,
-        session.accessToken,
-        session.user.email
-      )
 
-      if (!tenantContext) {
-        return NextResponse.json(
-          { error: 'Access denied to this tenant' },
-          { status: 403 }
+      return runWithSessionOnBehalfOf(session, async () => {
+        const authError = await requireSystemAdmin(session)
+        if (authError) return authError
+
+        const tenantId = getTenantIdFromCookie(request)
+        if (!tenantId) {
+          return NextResponse.json(
+            { error: 'No tenant selected. Please select a tenant in the dashboard.' },
+            { status: 400 }
+          )
+        }
+
+        const tenantContext = await tenantProvider.getTenantContext(
+          session.user.id,
+          tenantId,
+          session.accessToken,
+          session.user.email ?? undefined
         )
-      }
 
-      return handler(request, { session, tenantContext, tenantId })
+        if (!tenantContext) {
+          return NextResponse.json(
+            { error: 'Access denied to this tenant' },
+            { status: 403 }
+          )
+        }
+
+        return handler(request, { session, tenantContext, tenantId })
+      })
     } catch (error) {
       console.error('[withSystemAdminTenant] Error:', error)
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
