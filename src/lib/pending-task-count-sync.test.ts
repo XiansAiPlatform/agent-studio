@@ -16,7 +16,7 @@ describe('pending-task-count-sync', () => {
     refreshMyPendingTaskCounts()
     refreshMyPendingTaskCounts()
 
-    await new Promise((resolve) => queueMicrotask(resolve))
+    await new Promise<void>((resolve) => queueMicrotask(() => resolve()))
     assert.equal(calls, 1)
     unsubscribe()
   })
@@ -29,7 +29,7 @@ describe('pending-task-count-sync', () => {
     unsubscribe()
 
     refreshMyPendingTaskCounts()
-    await new Promise((resolve) => queueMicrotask(resolve))
+    await new Promise<void>((resolve) => queueMicrotask(() => resolve()))
     assert.equal(calls, 0)
   })
 })
