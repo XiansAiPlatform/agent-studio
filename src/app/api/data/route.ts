@@ -10,6 +10,7 @@ import {
   isIsoDateTime,
   isPlainObject,
   jsonExceedsByteLimit,
+  oversizedRequestError,
 } from '@/lib/xians/admin-data';
 
 function trimRequired(value: unknown): string | null {
@@ -96,6 +97,9 @@ export const GET = withParticipantAdmin(
 export const POST = withParticipantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {
     try {
+      const tooLarge = oversizedRequestError(request);
+      if (tooLarge) return tooLarge;
+
       let body: Record<string, unknown>;
       try {
         body = await request.json();

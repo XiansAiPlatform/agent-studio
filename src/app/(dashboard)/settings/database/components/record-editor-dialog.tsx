@@ -24,6 +24,7 @@ import {
 } from '../types';
 import {
   datetimeLocalToIso,
+  expiresAtIsInvalid,
   isoToDatetimeLocal,
   parseJsonObject,
   stringifyJson,
@@ -63,8 +64,8 @@ function buildDefaults(
       dataType: record.type ?? defaultDataType ?? '',
       key: record.key,
       participantId: record.participantId ?? '',
-      contentJson: stringifyJson(record.content),
-      metadataJson: stringifyJson(record.metadata, ''),
+      contentJson: stringifyJson(record.content, '{}', 'content'),
+      metadataJson: stringifyJson(record.metadata, '', 'metadata'),
       expiresAtLocal: isoToDatetimeLocal(record.expiresAt),
     };
   }
@@ -175,6 +176,11 @@ function RecordEditorForm({
             disabled={isSubmitting}
             {...register('expiresAtLocal')}
           />
+          {isEdit && expiresAtIsInvalid(record?.expiresAt) && (
+            <p className="text-xs text-destructive">
+              Stored expiration is invalid and was not loaded into this field.
+            </p>
+          )}
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import {
   isPlainObject,
   jsonExceedsByteLimit,
   loadRecordIfEditable,
+  oversizedRequestError,
 } from '@/lib/xians/admin-data';
 
 async function recordIdFrom(
@@ -70,6 +71,9 @@ export async function PUT(
       if (!recordId) return validationError('Record ID is required');
 
       try {
+        const tooLarge = oversizedRequestError(req);
+        if (tooLarge) return tooLarge;
+
         let body: Record<string, unknown>;
         try {
           body = await req.json();

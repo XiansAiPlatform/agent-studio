@@ -3,11 +3,22 @@ import type { Session } from 'next-auth'
 import { validationError } from '@/lib/api/error-handler'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
 import { agentNamesEqual, decodeAgentNameParam } from '@/lib/xians/agent-name'
+import { createTtlCache } from '@/lib/xians/cache'
 import { createXiansClient, XiansApiError, type XiansClient } from '@/lib/xians/client'
 import type { PaginatedResponse, XiansAgentActivation } from '@/lib/xians/types'
 
 /** Cap on JSON document fields forwarded to AdminAPI (content / metadata). */
 export const ADMIN_DATA_JSON_MAX_BYTES = 256 * 1024
+
+/** Whole-request ceiling checked via Content-Length before JSON.parse. */
+export const ADMIN_DATA_BODY_MAX_BYTES = 512 * 1024
+
+/**
+ * Positive activation-ownership hits only. Short enough that a reassigned
+ * activation cannot gate a write for long; long enough that back-to-back
+ * creates skip a full AdminAPI list. Misses are not stored (loader throws).
+ */
+export const ACTIVATION_OWNERSHIP_TTL_MS = 2_000
 
 export interface AdminDataItem {
   id?: string | null
@@ -44,25 +55,54 @@ export function isIsoDateTime(value: string): boolean {
   return !Number.isNaN(Date.parse(trimmed))
 }
 
+export function oversizedRequestError(request: Request): NextResponse | null {
+  const raw = request.headers.get('content-length')
+  if (raw == null || raw === '') return null
+  const length = Number(raw)
+  if (!Number.isFinite(length) || length < 0) return null
+  if (length > ADMIN_DATA_BODY_MAX_BYTES) {
+    return validationError(`Request body must be at most ${ADMIN_DATA_BODY_MAX_BYTES} bytes`)
+  }
+  return null
+}
+
 function activationItemsFrom(
   result: PaginatedResponse<XiansAgentActivation> | XiansAgentActivation[] | null
 ): XiansAgentActivation[] {
   return Array.isArray(result) ? result : result?.data ?? []
 }
 
-async function loadActivationNamesForAgent(
+function pageOwnsActivation(
+  result: PaginatedResponse<XiansAgentActivation> | XiansAgentActivation[] | null,
+  canonicalAgent: string,
+  canonicalActivation: string
+): boolean {
+  return activationItemsFrom(result).some(
+    (item) =>
+      agentNamesEqual(item.name, canonicalActivation) &&
+      agentNamesEqual(item.agentName, canonicalAgent)
+  )
+}
+
+/**
+ * Look up one activation on one agent. Sends `name` in case AdminAPI filters
+ * by it (O(1)); if it ignores the param we still walk pages and stop as soon
+ * as the target is found.
+ */
+async function findActivationOwnedByAgent(
   client: XiansClient,
   tenantId: string,
-  canonicalAgent: string
-): Promise<Set<string>> {
+  canonicalAgent: string,
+  canonicalActivation: string
+): Promise<boolean> {
   const pageSize = 100
   const maxPages = 20
   const tenantHeader = { headers: { 'X-Tenant-Id': tenantId } }
-  const names = new Set<string>()
 
   const fetchPage = (page: number) => {
     const params = new URLSearchParams({
       agentName: canonicalAgent,
+      name: canonicalActivation,
       page: String(page),
       pageSize: String(pageSize),
     })
@@ -72,58 +112,34 @@ async function loadActivationNamesForAgent(
     )
   }
 
-  const collect = (
-    result: PaginatedResponse<XiansAgentActivation> | XiansAgentActivation[] | null
-  ) => {
-    for (const item of activationItemsFrom(result)) {
-      if (item.name && agentNamesEqual(item.agentName, canonicalAgent)) {
-        names.add(decodeAgentNameParam(item.name))
-      }
-    }
-  }
-
   const first = await fetchPage(1)
-  collect(first)
+  if (pageOwnsActivation(first, canonicalAgent, canonicalActivation)) return true
+
   const reportedPages = Array.isArray(first) ? 1 : first?.pagination?.totalPages ?? 1
   const totalPages = Math.min(Math.max(reportedPages, 1), maxPages)
-  if (totalPages > 1) {
-    const rest = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2))
-    )
-    for (const page of rest) collect(page)
+  for (let page = 2; page <= totalPages; page += 1) {
+    const result = await fetchPage(page)
+    if (pageOwnsActivation(result, canonicalAgent, canonicalActivation)) return true
   }
-
-  return names
+  return false
 }
 
-/** In-flight only — this gates a write, so we do not TTL-cache the name set. */
-const inFlightActivationNames = new Map<string, Promise<Set<string>>>()
-
-function activationNamesForAgent(
-  client: XiansClient,
-  tenantId: string,
-  canonicalAgent: string
-): Promise<Set<string>> {
-  const key = `${tenantId}|${canonicalAgent}`
-  const existing = inFlightActivationNames.get(key)
-  if (existing) return existing
-
-  const promise = loadActivationNamesForAgent(client, tenantId, canonicalAgent).finally(() => {
-    if (inFlightActivationNames.get(key) === promise) {
-      inFlightActivationNames.delete(key)
-    }
-  })
-  inFlightActivationNames.set(key, promise)
-  return promise
+class ActivationNotOwnedError extends Error {
+  constructor() {
+    super('activationName does not belong to this agent')
+    this.name = 'ActivationNotOwnedError'
+  }
 }
+
+const activationOwnedCache = createTtlCache<true>(ACTIVATION_OWNERSHIP_TTL_MS)
 
 /**
  * Confirm activationName is a real activation of agentName in this tenant.
  * Used on POST so a Write/Owner caller cannot stamp an arbitrary activation tag.
  *
- * Concurrent POSTs for the same agent share one in-flight list; the result is
- * not TTL-cached because this check gates a write. A by-name AdminAPI lookup
- * would be the O(1) follow-up.
+ * Positive hits are cached 2s per tenant+agent+activation so sequential creates
+ * do not re-list AdminAPI. Misses are not cached. The extra GET-by-id on
+ * PUT/DELETE is a separate, intentional authz trade-off.
  */
 export async function assertActivationOwnedByAgent(
   client: XiansClient,
@@ -133,9 +149,31 @@ export async function assertActivationOwnedByAgent(
 ): Promise<NextResponse | null> {
   const canonicalAgent = decodeAgentNameParam(agentName)
   const canonicalActivation = decodeAgentNameParam(activationName)
-  const names = await activationNamesForAgent(client, tenantId, canonicalAgent)
-  if (names.has(canonicalActivation)) return null
-  return validationError('activationName does not belong to this agent')
+  const cacheKey = `${tenantId}|${canonicalAgent}|${canonicalActivation}`
+
+  try {
+    await activationOwnedCache.get(cacheKey, async () => {
+      const owned = await findActivationOwnedByAgent(
+        client,
+        tenantId,
+        canonicalAgent,
+        canonicalActivation
+      )
+      if (!owned) throw new ActivationNotOwnedError()
+      return true as const
+    })
+    return null
+  } catch (error) {
+    if (error instanceof ActivationNotOwnedError) {
+      return validationError('activationName does not belong to this agent')
+    }
+    throw error
+  }
+}
+
+/** Test helper: drop positive ownership hits so cases don't leak across tests. */
+export function resetActivationOwnershipCacheForTests(): void {
+  activationOwnedCache.clear()
 }
 
 export function adminDataCollectionPath(tenantId: string): string {

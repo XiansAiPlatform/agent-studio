@@ -298,11 +298,7 @@ export function useDatabasePage({
           error instanceof Error
             ? error.message
             : 'An unexpected error occurred while creating the record.';
-        showToast.error({
-          title: 'Failed to create record',
-          description: message,
-        });
-        throw error;
+        throw new Error(message);
       } finally {
         setIsSavingRecord(false);
       }
@@ -342,11 +338,7 @@ export function useDatabasePage({
           error instanceof Error
             ? error.message
             : 'An unexpected error occurred while updating the record.';
-        showToast.error({
-          title: 'Failed to update record',
-          description: message,
-        });
-        throw error;
+        throw new Error(message);
       } finally {
         setIsSavingRecord(false);
       }

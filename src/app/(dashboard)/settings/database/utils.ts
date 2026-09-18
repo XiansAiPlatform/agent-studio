@@ -28,12 +28,13 @@ export function formatContentKey(key: string): string {
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
 }
 
-export function stringifyJson(value: unknown, fallback = '{}'): string {
+export function stringifyJson(value: unknown, fallback = '{}', fieldName = 'value'): string {
   if (value === undefined || value === null) return fallback;
   try {
     return JSON.stringify(value, null, 2);
   } catch {
-    return fallback;
+    console.warn(`[stringifyJson] Could not serialize ${fieldName}; using placeholder`);
+    return `{\n  /* stored ${fieldName} could not be serialized */\n}`;
   }
 }
 
@@ -62,6 +63,11 @@ export function isoToDatetimeLocal(iso?: string | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+export function expiresAtIsInvalid(iso?: string | null): boolean {
+  if (!iso) return false;
+  return Number.isNaN(new Date(iso).getTime());
+}
+
 export function toDataRecord(raw: unknown, fallbackId: string): DataRecord | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const item = raw as Record<string, unknown>;
@@ -73,10 +79,24 @@ export function toDataRecord(raw: unknown, fallbackId: string): DataRecord | nul
     typeof nested.id === 'string' && nested.id.trim() ? nested.id.trim() : fallbackId;
   const key = typeof nested.key === 'string' ? nested.key : '';
   if (!id || !key) return null;
+  if (
+    nested.content !== undefined &&
+    nested.content !== null &&
+    (typeof nested.content !== 'object' || Array.isArray(nested.content))
+  ) {
+    console.warn('[toDataRecord] content is not a JSON object; coercing to {}', nested.content);
+  }
   const content =
     nested.content && typeof nested.content === 'object' && !Array.isArray(nested.content)
       ? (nested.content as Record<string, unknown>)
       : {};
+  if (
+    nested.metadata !== undefined &&
+    nested.metadata !== null &&
+    (typeof nested.metadata !== 'object' || Array.isArray(nested.metadata))
+  ) {
+    console.warn('[toDataRecord] metadata is not a JSON object; ignoring', nested.metadata);
+  }
   const metadata =
     nested.metadata && typeof nested.metadata === 'object' && !Array.isArray(nested.metadata)
       ? (nested.metadata as Record<string, unknown>)
