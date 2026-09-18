@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { XiansApiError, type XiansClient } from '@/lib/xians/client'
+import { XiansApiError } from '@/lib/xians/client'
+import { mockXiansClient } from '@/lib/xians/mock-xians-client'
 
 vi.mock('next/server', () => ({
   NextResponse: {
@@ -25,8 +26,15 @@ import {
 
 const mockedAssertCanEditAgent = vi.mocked(assertCanEditAgent)
 
-function mockClient(getImpl: XiansClient['get']): XiansClient {
-  return { get: getImpl } as unknown as XiansClient
+function page(
+  data: Array<{ name: string; agentName: string }>,
+  totalPages = 1,
+  pageNumber = 1
+) {
+  return {
+    data,
+    pagination: { page: pageNumber, pageSize: 100, total: data.length, totalPages },
+  }
 }
 
 describe('loadRecordIfEditable', () => {
@@ -37,9 +45,9 @@ describe('loadRecordIfEditable', () => {
   })
 
   it('returns 404 when AdminAPI has no record', async () => {
-    const client = mockClient(
-      vi.fn().mockRejectedValue(new XiansApiError('missing', 404))
-    )
+    const client = mockXiansClient({
+      get: vi.fn().mockRejectedValue(new XiansApiError('missing', 404)),
+    })
 
     const [item, denied] = await loadRecordIfEditable(client, session, 'tenant-1', 'rec-1')
 
@@ -54,9 +62,9 @@ describe('loadRecordIfEditable', () => {
   it('returns the agent-access denial when the caller cannot edit the owning agent', async () => {
     const forbidden = { status: 403, body: { error: 'forbidden' } }
     mockedAssertCanEditAgent.mockResolvedValue(forbidden as never)
-    const client = mockClient(
-      vi.fn().mockResolvedValue({ id: 'rec-1', agentName: 'other-agent' })
-    )
+    const client = mockXiansClient({
+      get: vi.fn().mockResolvedValue({ id: 'rec-1', agentName: 'other-agent' }),
+    })
 
     const [item, denied] = await loadRecordIfEditable(client, session, 'tenant-1', 'rec-1')
 
@@ -68,7 +76,7 @@ describe('loadRecordIfEditable', () => {
   it('returns the record when the caller may edit the owning agent', async () => {
     mockedAssertCanEditAgent.mockResolvedValue(null)
     const record = { id: 'rec-1', agentName: 'support', key: 'k' }
-    const client = mockClient(vi.fn().mockResolvedValue(record))
+    const client = mockXiansClient({ get: vi.fn().mockResolvedValue(record) })
 
     const [item, denied] = await loadRecordIfEditable(client, session, 'tenant-1', 'rec-1')
 
@@ -83,12 +91,9 @@ describe('assertActivationOwnedByAgent', () => {
   })
 
   it('denies when the activation belongs to a different agent', async () => {
-    const get = vi.fn().mockResolvedValue({
-      data: [{ name: 'act-a', agentName: 'other-agent' }],
-      pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
-    })
+    const get = vi.fn().mockResolvedValue(page([{ name: 'act-a', agentName: 'other-agent' }]))
     const denied = await assertActivationOwnedByAgent(
-      mockClient(get),
+      mockXiansClient({ get }),
       'tenant-1',
       'support',
       'act-a'
@@ -101,13 +106,12 @@ describe('assertActivationOwnedByAgent', () => {
   })
 
   it('stops paging once the target activation is found', async () => {
-    const get = vi.fn().mockResolvedValue({
-      data: [{ name: 'act-a', agentName: 'support' }],
-      pagination: { page: 1, pageSize: 100, total: 500, totalPages: 5 },
-    })
+    const get = vi.fn().mockResolvedValue(
+      page([{ name: 'act-a', agentName: 'support' }], 5)
+    )
 
     const denied = await assertActivationOwnedByAgent(
-      mockClient(get),
+      mockXiansClient({ get }),
       'tenant-1',
       'support',
       'act-a'
@@ -117,13 +121,61 @@ describe('assertActivationOwnedByAgent', () => {
     expect(get).toHaveBeenCalledTimes(1)
   })
 
+  it('finds the activation on a later page', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce(page([{ name: 'other', agentName: 'support' }], 2, 1))
+      .mockResolvedValueOnce(page([{ name: 'act-a', agentName: 'support' }], 2, 2))
+
+    const denied = await assertActivationOwnedByAgent(
+      mockXiansClient({ get }),
+      'tenant-1',
+      'support',
+      'act-a'
+    )
+
+    expect(denied).toBeNull()
+    expect(get).toHaveBeenCalledTimes(2)
+  })
+
+  it('denies when the activation is not found on any page', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce(page([{ name: 'other', agentName: 'support' }], 2, 1))
+      .mockResolvedValueOnce(page([{ name: 'still-other', agentName: 'support' }], 2, 2))
+
+    const denied = await assertActivationOwnedByAgent(
+      mockXiansClient({ get }),
+      'tenant-1',
+      'support',
+      'act-missing'
+    )
+
+    expect(denied).toMatchObject({ status: 400 })
+    expect(get).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not cache activation-not-owned denials', async () => {
+    const get = vi.fn().mockResolvedValue(page([], 1))
+    const client = mockXiansClient({ get })
+
+    await assertActivationOwnedByAgent(client, 'tenant-1', 'support', 'act-a')
+    await assertActivationOwnedByAgent(client, 'tenant-1', 'support', 'act-a')
+
+    expect(get).toHaveBeenCalledTimes(2)
+  })
+
+  it('rethrows unexpected AdminAPI errors instead of masking them as denial', async () => {
+    const get = vi.fn().mockRejectedValue(new Error('AdminAPI unavailable'))
+    await expect(
+      assertActivationOwnedByAgent(mockXiansClient({ get }), 'tenant-1', 'support', 'act-a')
+    ).rejects.toThrow('AdminAPI unavailable')
+  })
+
   it('reuses a positive hit within the short TTL and refetches after it expires', async () => {
     vi.useFakeTimers()
-    const get = vi.fn().mockResolvedValue({
-      data: [{ name: 'act-a', agentName: 'support' }],
-      pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
-    })
-    const client = mockClient(get)
+    const get = vi.fn().mockResolvedValue(page([{ name: 'act-a', agentName: 'support' }]))
+    const client = mockXiansClient({ get })
 
     await expect(
       assertActivationOwnedByAgent(client, 'tenant-1', 'support', 'act-a')
