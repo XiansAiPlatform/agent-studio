@@ -269,7 +269,7 @@ if (!hasCapability(capabilities, 'knowledge:write')) {
 All API requests should include:
 
 ```http
-Cookie: next-auth.session-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; current-tenant-id=tenant-123
+Cookie: next-auth.session-token=<SESSION_TOKEN>; current-tenant-id=<TENANT_ID>
 Content-Type: application/json
 Accept: application/json
 ```
