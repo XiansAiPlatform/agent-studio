@@ -25,7 +25,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         # Full history needed so we can determine whether the tagged commit
         # is reachable from main (see "Check if tag is releasable as latest" step).
@@ -77,7 +77,7 @@ jobs:
           org.opencontainers.image.vendor=${{ env.DOCKERHUB_ORG }}
           
     - name: Build and push Docker image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: ./Dockerfile
