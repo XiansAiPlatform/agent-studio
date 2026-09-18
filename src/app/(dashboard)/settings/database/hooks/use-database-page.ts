@@ -3,12 +3,24 @@
 import { useState, useCallback } from 'react';
 import { useDataSchema } from './use-data-schema';
 import { useDataRecords } from './use-data-records';
-import { DATE_RANGES, type DateRange, type DataSchemaResponse, type DataResponse } from '../types';
-import { formatDateFromInput } from '../utils';
+import {
+  DATE_RANGES,
+  type DateRange,
+  type DataSchemaResponse,
+  type DataResponse,
+  type CreateDataRecordInput,
+  type UpdateDataRecordInput,
+} from '../types';
+import { formatDateFromInput, toDataRecord } from '../utils';
 import { showToast } from '@/lib/toast';
 import { useTenant } from '@/hooks/use-tenant';
 
 const PAGE_SIZE = 50;
+
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  const errorData = await response.json().catch(() => ({} as { error?: string }));
+  return errorData.error || `${fallback} (${response.status})`;
+}
 
 export interface UseDatabasePageParams {
   agentName: string | null;
@@ -16,7 +28,6 @@ export interface UseDatabasePageParams {
 }
 
 export interface UseDatabasePageReturn {
-  // Data
   schemaData: DataSchemaResponse | null;
   schemaLoading: boolean;
   schemaError: string | null;
@@ -24,24 +35,20 @@ export interface UseDatabasePageReturn {
   recordsLoading: boolean;
   recordsError: string | null;
 
-  // Filter state
   selectedDateRange: DateRange;
   customStartDate: string;
   customEndDate: string;
   selectedDataType: string | null;
 
-  // UI state
   expandedRecords: Set<string>;
   currentPage: number;
   pageSize: number;
   hoveredDataType: string | null;
   deletingDataType: string | null;
-  hoveredRecord: string | null;
   deletingRecord: string | null;
+  isSavingRecord: boolean;
 
-  // Handlers
   setHoveredDataType: (type: string | null) => void;
-  setHoveredRecord: (id: string | null) => void;
   handleDateRangeChange: (value: string) => void;
   handleCustomDateChange: (startDate: string, endDate: string) => void;
   handleDataTypeSelect: (type: string) => void;
@@ -50,14 +57,14 @@ export interface UseDatabasePageReturn {
   handleNextPage: () => void;
   handleDeleteDataType: (dataType: string) => Promise<void>;
   handleDeleteRecord: (recordId: string) => Promise<void>;
+  handleCreateRecord: (input: CreateDataRecordInput) => Promise<void>;
+  handleUpdateRecord: (recordId: string, input: UpdateDataRecordInput) => Promise<void>;
 }
 
 export function useDatabasePage({
   agentName,
   activationName,
 }: UseDatabasePageParams): UseDatabasePageReturn {
-  // Tenant is resolved server-side from the session cookie. We read the current
-  // selection here only to gate fetches and mutations client-side.
   const { currentTenantId, isLoading: tenantLoading } = useTenant();
   const [selectedDateRange, setSelectedDateRange] = useState(DATE_RANGES[4]);
   const [customStartDate, setCustomStartDate] = useState(DATE_RANGES[4].startDate);
@@ -67,21 +74,35 @@ export function useDatabasePage({
   const [currentPage, setCurrentPage] = useState(0);
   const [hoveredDataType, setHoveredDataType] = useState<string | null>(null);
   const [deletingDataType, setDeletingDataType] = useState<string | null>(null);
-  const [hoveredRecord, setHoveredRecord] = useState<string | null>(null);
   const [deletingRecord, setDeletingRecord] = useState<string | null>(null);
+  const [isSavingRecord, setIsSavingRecord] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   const schemaEnabled = !!(currentTenantId && agentName && activationName && !tenantLoading);
-  const recordsEnabled = !!(selectedDataType && currentTenantId && agentName && activationName && !tenantLoading);
+  const recordsEnabled = !!(
+    selectedDataType &&
+    currentTenantId &&
+    agentName &&
+    activationName &&
+    !tenantLoading
+  );
 
   const { data: schemaData, isLoading: schemaLoading, error: schemaError } = useDataSchema(
     agentName,
     activationName,
     customStartDate,
     customEndDate,
-    schemaEnabled
+    schemaEnabled,
+    refreshNonce
   );
 
-  const { data: recordsData, isLoading: recordsLoading, error: recordsError } = useDataRecords(
+  const {
+    data: recordsData,
+    isLoading: recordsLoading,
+    error: recordsError,
+    refetch: refetchRecords,
+    replaceRecord,
+  } = useDataRecords(
     agentName,
     activationName,
     selectedDataType,
@@ -89,14 +110,19 @@ export function useDatabasePage({
     customEndDate,
     currentPage * PAGE_SIZE,
     PAGE_SIZE,
-    recordsEnabled
+    recordsEnabled,
+    refreshNonce
   );
 
-  const triggerRefetch = useCallback(() => {
-    const currentStart = customStartDate;
-    setCustomStartDate(new Date(new Date(currentStart).getTime() + 1).toISOString());
-    setTimeout(() => setCustomStartDate(currentStart), 100);
-  }, [customStartDate]);
+  // Schema + records. Only for mutations that can change the type list
+  // (create, delete type, delete record). Updates patch the list from the PUT body.
+  const refetchAll = useCallback(() => {
+    const now = new Date().toISOString();
+    if (new Date(customEndDate).getTime() < Date.now()) {
+      setCustomEndDate(now);
+    }
+    setRefreshNonce((n) => n + 1);
+  }, [customEndDate]);
 
   const handleDateRangeChange = useCallback((value: string) => {
     const range = DATE_RANGES.find((r) => r.value === value);
@@ -154,28 +180,31 @@ export function useDatabasePage({
           endDate: customEndDate,
           agentName,
           dataType,
+          activationName,
         });
 
-        const response = await fetch(
-          `/api/data?${searchParams.toString()}`,
-          { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }
-        );
+        const response = await fetch(`/api/data?${searchParams.toString()}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to delete data (${response.status})`);
+          throw new Error(await readErrorMessage(response, 'Failed to delete data'));
         }
 
         if (selectedDataType === dataType) {
           setSelectedDataType(null);
         }
-        triggerRefetch();
+        refetchAll();
         showToast.success({
           title: 'Data type deleted',
           description: `All data for "${dataType}" has been successfully deleted.`,
         });
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'An unexpected error occurred while deleting the data type.';
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred while deleting the data type.';
         showToast.error({
           title: 'Failed to delete data',
           description: message,
@@ -184,7 +213,15 @@ export function useDatabasePage({
         setDeletingDataType(null);
       }
     },
-    [currentTenantId, agentName, activationName, customStartDate, customEndDate, selectedDataType, triggerRefetch]
+    [
+      currentTenantId,
+      agentName,
+      activationName,
+      customStartDate,
+      customEndDate,
+      selectedDataType,
+      refetchAll,
+    ]
   );
 
   const handleDeleteRecord = useCallback(
@@ -193,25 +230,25 @@ export function useDatabasePage({
 
       setDeletingRecord(recordId);
       try {
-        const qs = agentName ? `?agentName=${encodeURIComponent(agentName)}` : '';
-        const response = await fetch(`/api/data/${recordId}${qs}`, {
+        const response = await fetch(`/api/data/${encodeURIComponent(recordId)}`, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to delete record (${response.status})`);
+          throw new Error(await readErrorMessage(response, 'Failed to delete record'));
         }
 
         setCurrentPage(0);
-        triggerRefetch();
+        refetchAll();
         showToast.success({
           title: 'Record deleted',
           description: 'The data record has been successfully deleted.',
         });
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'An unexpected error occurred while deleting the record.';
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred while deleting the record.';
         showToast.error({
           title: 'Failed to delete record',
           description: message,
@@ -220,7 +257,93 @@ export function useDatabasePage({
         setDeletingRecord(null);
       }
     },
-    [currentTenantId, agentName, triggerRefetch]
+    [currentTenantId, refetchAll]
+  );
+
+  const handleCreateRecord = useCallback(
+    async (input: CreateDataRecordInput) => {
+      if (!currentTenantId || !agentName || !activationName) return;
+
+      setIsSavingRecord(true);
+      try {
+        const response = await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentName,
+            activationName,
+            dataType: input.dataType,
+            key: input.key,
+            content: input.content,
+            participantId: input.participantId,
+            metadata: input.metadata,
+            expiresAt: input.expiresAt,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(await readErrorMessage(response, 'Failed to create record'));
+        }
+
+        setSelectedDataType(input.dataType);
+        setCurrentPage(0);
+        setExpandedRecords(new Set());
+        refetchAll();
+        showToast.success({
+          title: 'Record created',
+          description: `Saved "${input.key}" in ${input.dataType}.`,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred while creating the record.';
+        throw new Error(message);
+      } finally {
+        setIsSavingRecord(false);
+      }
+    },
+    [currentTenantId, agentName, activationName, refetchAll]
+  );
+
+  const handleUpdateRecord = useCallback(
+    async (recordId: string, input: UpdateDataRecordInput) => {
+      if (!currentTenantId) return;
+
+      setIsSavingRecord(true);
+      try {
+        const response = await fetch(`/api/data/${encodeURIComponent(recordId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        });
+
+        if (!response.ok) {
+          throw new Error(await readErrorMessage(response, 'Failed to update record'));
+        }
+
+        const body: unknown = await response.json().catch(() => null);
+        const updated = toDataRecord(body, recordId);
+        if (updated) {
+          replaceRecord(updated);
+        } else {
+          await refetchRecords();
+        }
+        showToast.success({
+          title: 'Record updated',
+          description: 'The data record has been saved.',
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred while updating the record.';
+        throw new Error(message);
+      } finally {
+        setIsSavingRecord(false);
+      }
+    },
+    [currentTenantId, refetchRecords, replaceRecord]
   );
 
   return {
@@ -239,10 +362,9 @@ export function useDatabasePage({
     pageSize: PAGE_SIZE,
     hoveredDataType,
     deletingDataType,
-    hoveredRecord,
     deletingRecord,
+    isSavingRecord,
     setHoveredDataType,
-    setHoveredRecord,
     handleDateRangeChange,
     handleCustomDateChange,
     handleDataTypeSelect,
@@ -251,5 +373,7 @@ export function useDatabasePage({
     handleNextPage,
     handleDeleteDataType,
     handleDeleteRecord,
+    handleCreateRecord,
+    handleUpdateRecord,
   };
 }
