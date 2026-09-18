@@ -99,7 +99,12 @@ export function useDatabasePage({
     refreshNonce
   );
 
-  const { data: recordsData, isLoading: recordsLoading, error: recordsError } = useDataRecords(
+  const {
+    data: recordsData,
+    isLoading: recordsLoading,
+    error: recordsError,
+    refetch: refetchRecords,
+  } = useDataRecords(
     agentName,
     activationName,
     selectedDataType,
@@ -321,7 +326,7 @@ export function useDatabasePage({
           throw new Error(await readErrorMessage(response, 'Failed to update record'));
         }
 
-        refetchAll();
+        await refetchRecords();
         showToast.success({
           title: 'Record updated',
           description: 'The data record has been saved.',
@@ -340,7 +345,7 @@ export function useDatabasePage({
         setIsSavingRecord(false);
       }
     },
-    [currentTenantId, refetchAll]
+    [currentTenantId, refetchRecords]
   );
 
   return {

@@ -111,7 +111,7 @@ export function RecordsPanel({
                   variant="outline"
                   size="sm"
                   onClick={onNextPage}
-                  disabled={!recordsData || recordsData.data.length < pageSize || recordsLoading}
+                  disabled={recordsData.data.length < pageSize || recordsLoading}
                   className="h-8 px-3"
                 >
                   {recordsLoading && <Loader2 className="h-3 w-3 animate-spin mr-1" />}

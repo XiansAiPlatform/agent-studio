@@ -245,6 +245,8 @@ export function RecordEditorDialog({
   onCreate,
   onUpdate,
 }: RecordEditorDialogProps) {
+  // Include open/closed so the form remounts each time the dialog opens and
+  // picks up current defaults (react-hook-form only applies defaultValues once).
   const formKey = `${mode}-${record?.id ?? 'new'}-${defaultDataType ?? ''}-${open ? 'open' : 'closed'}`;
 
   return (

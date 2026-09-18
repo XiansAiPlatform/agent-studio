@@ -51,8 +51,11 @@ export async function GET(
 
 /**
  * PUT /api/data/[recordId]
- * Partial update. Identity fields (id, tenantId, agentName, createdAt, createdBy)
- * are never forwarded. Missing / cross-tenant records are 404.
+ * Partial update. Identity fields (id, tenantId, agentName, activationName,
+ * dataType, createdAt, createdBy) are never forwarded — treating them as
+ * immutable keeps records in the activation/type views that list and bulk
+ * delete use, and keeps duplicate-key checks (dataType + key) stable.
+ * Missing / cross-tenant records are 404.
  */
 export async function PUT(
   request: NextRequest,
@@ -86,13 +89,6 @@ export async function PUT(
 
         const payload: Record<string, unknown> = {};
 
-        if (body.dataType !== undefined) {
-          if (typeof body.dataType !== 'string' || !body.dataType.trim()) {
-            return validationError('dataType must be a non-empty string');
-          }
-          payload.dataType = body.dataType.trim();
-        }
-
         if (body.key !== undefined) {
           if (typeof body.key !== 'string' || !body.key.trim()) {
             return validationError('key must be a non-empty string');
@@ -122,16 +118,6 @@ export async function PUT(
             typeof body.participantId === 'string'
               ? body.participantId.trim()
               : body.participantId;
-        }
-
-        if (body.activationName !== undefined) {
-          if (body.activationName !== null && typeof body.activationName !== 'string') {
-            return validationError('activationName must be a string');
-          }
-          payload.activationName =
-            typeof body.activationName === 'string'
-              ? body.activationName.trim()
-              : body.activationName;
         }
 
         if (body.expiresAt !== undefined) {
