@@ -153,6 +153,7 @@ export function mapXiansMessageToMessage(xiansMsg: XiansMessage): Message {
     role,
     timestamp: xiansMsg.createdAt,
     status: 'delivered',
+    readStatus: xiansMsg.status,
     taskId: xiansMsg.taskId ?? undefined,
     threadId: xiansMsg.threadId,
     workflowId: xiansMsg.workflowId,

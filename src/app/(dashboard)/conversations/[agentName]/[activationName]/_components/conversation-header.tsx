@@ -1,15 +1,22 @@
-import { AlertTriangle, Bot, Loader2, PanelLeft, ListTodo } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Bot, CheckCheck, Loader2, PanelLeft, ListTodo } from 'lucide-react';
+import { toast } from 'sonner';
 import { ParticipantMenuButton } from './participant-menu-bar';
 import { cn } from '@/lib/utils';
 import { Topic } from '@/types/conversation';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useMyPendingTaskCount } from '@/app/(dashboard)/dashboard/hooks/use-my-pending-task-count';
 
 interface ConversationHeaderProps {
   activationName: string;
   topic?: Topic;
+  /** Tenant id, used to call the mark-thread-read Admin API. */
+  tenantId?: string;
+  /** Conversation thread id (server-persisted; spans all topics), derived from a loaded message. */
+  threadId?: string;
   /** Built-in workflow name shown before the discussion name. */
   workflowName?: string;
   /** How many built-in workflows this agent has. Used to hint that the user can switch. */
@@ -43,6 +50,8 @@ interface ConversationHeaderProps {
 export function ConversationHeader({
   activationName,
   topic,
+  tenantId,
+  threadId,
   workflowName,
   workflowCount = 0,
   isConnected,
@@ -62,6 +71,59 @@ export function ConversationHeader({
   });
   // In admin mode (no participant menu), expose a topics drawer button on mobile.
   const showAdminTopicsBtn = !onOpenMenu && Boolean(onOpenTopics);
+
+  // Server-persisted unread tracking (ConversationMessage.status), distinct from the
+  // ephemeral per-topic SSE badge shown in the topic sidebar. `readCutoff` optimistically
+  // treats everything up to the last successful mark-as-read call as read, until the next
+  // history fetch confirms it server-side. It resets when the thread itself changes.
+  const [readCutoff, setReadCutoff] = useState<string | null>(null);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
+  // Reset the optimistic cutoff when the thread itself changes (React's
+  // "adjust state during render" pattern, avoiding an extra effect-driven render).
+  const [cutoffForThread, setCutoffForThread] = useState(threadId);
+  if (threadId !== cutoffForThread) {
+    setCutoffForThread(threadId);
+    setReadCutoff(null);
+  }
+
+  const unreadCount = topic
+    ? topic.messages.filter(
+        (m) => m.readStatus !== 'Read' && (!readCutoff || m.timestamp > readCutoff)
+      ).length
+    : 0;
+
+  const handleMarkThreadRead = async () => {
+    if (!tenantId || !threadId || isMarkingRead) return;
+    setIsMarkingRead(true);
+    const cutoff = new Date().toISOString();
+    try {
+      const res = await fetch(`/api/messaging/threads/${threadId}/read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: cutoff }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
+      }
+
+      const result = (await res.json()) as { markedCount: number; unreadCount: number };
+      setReadCutoff(cutoff);
+      toast.success(
+        result.markedCount > 0
+          ? `Marked ${result.markedCount} message${result.markedCount === 1 ? '' : 's'} as read`
+          : 'Thread already up to date',
+        { description: `${result.unreadCount} unread remaining in thread`, duration: 3000 }
+      );
+    } catch (error) {
+      toast.error('Failed to mark thread as read', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsMarkingRead(false);
+    }
+  };
 
   const showLive = workerAvailable === true && isConnected && isAgentActive;
   const showWorkerWarning = workerAvailable === false && !serverUnavailable;
@@ -154,6 +216,34 @@ export function ConversationHeader({
 
         {/* Worker Status: Live, Checking, or Warning */}
         <div className="flex items-center gap-2 shrink-0">
+          {topic && tenantId && threadId && (
+            <>
+              {unreadCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="text-xs"
+                  title="Persisted unread count (ConversationMessage.status)"
+                >
+                  {unreadCount} unread
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkThreadRead}
+                disabled={isMarkingRead || unreadCount === 0}
+                className="h-8 px-2 text-xs gap-1.5"
+                title="Mark all messages in this thread as read"
+              >
+                {isMarkingRead ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCheck className="h-3.5 w-3.5" />
+                )}
+                Mark read
+              </Button>
+            </>
+          )}
           {pendingCount > 0 && agentName && (
             <Link
               href={`/tasks?status=pending&agent=${encodeURIComponent(agentName)}&activation=${encodeURIComponent(activationName)}`}
