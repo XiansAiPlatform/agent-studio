@@ -3,8 +3,12 @@ import type { Session } from 'next-auth'
 import { validationError } from '@/lib/api/error-handler'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
 import { agentNamesEqual, decodeAgentNameParam } from '@/lib/xians/agent-name'
+import { createTtlCache, TENANT_LOOKUP_TTL_MS } from '@/lib/xians/cache'
 import { createXiansClient, XiansApiError, type XiansClient } from '@/lib/xians/client'
 import type { PaginatedResponse, XiansAgentActivation } from '@/lib/xians/types'
+
+/** Same short TTL as other auth lookups — collapses back-to-back POSTs for one agent. */
+const activationNamesByAgent = createTtlCache<Set<string>>(TENANT_LOOKUP_TTL_MS)
 
 /** Cap on JSON document fields forwarded to AdminAPI (content / metadata). */
 export const ADMIN_DATA_JSON_MAX_BYTES = 256 * 1024
@@ -44,21 +48,21 @@ export function isIsoDateTime(value: string): boolean {
   return !Number.isNaN(Date.parse(trimmed))
 }
 
-/**
- * Confirm activationName is a real activation of agentName in this tenant.
- * Used on POST so a Write/Owner caller cannot stamp an arbitrary activation tag.
- */
-export async function assertActivationOwnedByAgent(
+function activationItemsFrom(
+  result: PaginatedResponse<XiansAgentActivation> | XiansAgentActivation[] | null
+): XiansAgentActivation[] {
+  return Array.isArray(result) ? result : result?.data ?? []
+}
+
+async function loadActivationNamesForAgent(
   client: XiansClient,
   tenantId: string,
-  agentName: string,
-  activationName: string
-): Promise<NextResponse | null> {
-  const canonicalAgent = decodeAgentNameParam(agentName)
-  const canonicalActivation = decodeAgentNameParam(activationName)
+  canonicalAgent: string
+): Promise<Set<string>> {
   const pageSize = 100
   const maxPages = 20
   const tenantHeader = { headers: { 'X-Tenant-Id': tenantId } }
+  const names = new Set<string>()
 
   const fetchPage = (page: number) => {
     const params = new URLSearchParams({
@@ -72,31 +76,51 @@ export async function assertActivationOwnedByAgent(
     )
   }
 
-  const pageOwnsActivation = (
+  const collect = (
     result: PaginatedResponse<XiansAgentActivation> | XiansAgentActivation[] | null
   ) => {
-    const items = Array.isArray(result) ? result : result?.data ?? []
-    return items.some(
-      (item) =>
-        agentNamesEqual(item.name, canonicalActivation) &&
-        agentNamesEqual(item.agentName, canonicalAgent)
-    )
+    for (const item of activationItemsFrom(result)) {
+      if (item.name && agentNamesEqual(item.agentName, canonicalAgent)) {
+        names.add(decodeAgentNameParam(item.name))
+      }
+    }
   }
 
   const first = await fetchPage(1)
-  if (pageOwnsActivation(first)) return null
-
+  collect(first)
   const reportedPages = Array.isArray(first) ? 1 : first?.pagination?.totalPages ?? 1
   const totalPages = Math.min(Math.max(reportedPages, 1), maxPages)
-  if (totalPages <= 1) {
-    return validationError('activationName does not belong to this agent')
+  if (totalPages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2))
+    )
+    for (const page of rest) collect(page)
   }
 
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2))
-  )
-  if (rest.some(pageOwnsActivation)) return null
+  return names
+}
 
+/**
+ * Confirm activationName is a real activation of agentName in this tenant.
+ * Used on POST so a Write/Owner caller cannot stamp an arbitrary activation tag.
+ *
+ * Activation names are cached per tenant+agent for TENANT_LOOKUP_TTL_MS so
+ * back-to-back creates do not re-list AdminAPI. There is no by-name lookup
+ * on this client; a filtered AdminAPI query would be the O(1) follow-up.
+ */
+export async function assertActivationOwnedByAgent(
+  client: XiansClient,
+  tenantId: string,
+  agentName: string,
+  activationName: string
+): Promise<NextResponse | null> {
+  const canonicalAgent = decodeAgentNameParam(agentName)
+  const canonicalActivation = decodeAgentNameParam(activationName)
+  const names = await activationNamesByAgent.get(
+    `${tenantId}|${canonicalAgent}`,
+    () => loadActivationNamesForAgent(client, tenantId, canonicalAgent)
+  )
+  if (names.has(canonicalActivation)) return null
   return validationError('activationName does not belong to this agent')
 }
 
