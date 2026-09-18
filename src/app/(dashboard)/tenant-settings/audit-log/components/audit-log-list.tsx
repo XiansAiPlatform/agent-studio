@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { cn } from '@/lib/utils';
@@ -28,21 +27,44 @@ function formatDateTime(value: string): string {
   });
 }
 
+const DETAIL_KEY_LABELS: Record<string, string> = {
+  Name: 'Activation Name',
+};
+
+function formatDetailKey(key: string): string {
+  return DETAIL_KEY_LABELS[key] ?? key;
+}
+
+function isEmptyWorkflowIds(value: unknown): boolean {
+  if (value == null || value === '') return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === 'object' && value !== null && '_v' in value) {
+    const items = (value as { _v?: unknown })._v;
+    return Array.isArray(items) && items.length === 0;
+  }
+  return false;
+}
+
 function formatDetailValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'object' && value !== null && '_v' in value) {
+    return JSON.stringify((value as { _v: unknown })._v);
+  }
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
 
 function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
   const [expanded, setExpanded] = useState(false);
-  const detailEntries = entry.details ? Object.entries(entry.details) : [];
+  const detailEntries = Object.entries(entry.details ?? {}).filter(
+    ([key, value]) => !(key === 'Workflow Ids' && isEmptyWorkflowIds(value))
+  );
   const hasDetails = detailEntries.length > 0;
 
   return (
     <div>
       <div className="grid w-full grid-cols-12 items-center gap-3 px-4 py-3 text-left text-sm">
-        <div className="col-span-6 min-w-0 sm:col-span-3">
+        <div className="col-span-12 min-w-0 sm:col-span-3">
           <div className="truncate font-medium" title={entry.action}>
             {entry.action}
           </div>
@@ -55,17 +77,21 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
             </div>
           )}
         </div>
-        <div className="col-span-6 min-w-0 truncate text-muted-foreground sm:col-span-3" title={entry.participantId}>
-          {entry.participantId}
+        <div className="col-span-6 min-w-0 sm:col-span-3">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground/60 sm:hidden">
+            Performed by
+          </div>
+          <div className="truncate text-muted-foreground" title={entry.participantId}>
+            {entry.participantId}
+          </div>
         </div>
-        <div className="col-span-4 min-w-0 sm:col-span-2">
-          {entry.activationName ? (
-            <Badge variant="secondary" className="max-w-full truncate font-normal">
-              {entry.activationName}
-            </Badge>
-          ) : (
-            <span className="text-muted-foreground/60">—</span>
-          )}
+        <div className="col-span-6 min-w-0 sm:col-span-3">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground/60 sm:hidden">
+            Key user
+          </div>
+          <div className="truncate text-muted-foreground" title={entry.loggedInUser || undefined}>
+            {entry.loggedInUser || <span className="text-muted-foreground/60">—</span>}
+          </div>
         </div>
         <div className="col-span-2 flex items-center sm:col-span-1">
           {hasDetails && (
@@ -82,7 +108,10 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
             </button>
           )}
         </div>
-        <div className="col-span-12 truncate text-xs text-muted-foreground sm:col-span-3 sm:text-right">
+        <div
+          className="col-span-10 truncate text-xs text-muted-foreground sm:col-span-2 sm:text-right"
+          title={formatDateTime(entry.createdAt)}
+        >
           {formatDateTime(entry.createdAt)}
         </div>
       </div>
@@ -92,7 +121,7 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
           <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
             {detailEntries.map(([key, value]) => (
               <div key={key} className="flex min-w-0 items-baseline gap-2 text-xs">
-                <dt className="shrink-0 font-medium text-muted-foreground">{key}</dt>
+                <dt className="shrink-0 font-medium text-muted-foreground">{formatDetailKey(key)}</dt>
                 <dd className="min-w-0 truncate text-foreground" title={formatDetailValue(value)}>
                   {formatDetailValue(value)}
                 </dd>
@@ -146,9 +175,9 @@ export function AuditLogList({ data, loading, error, onPageChange }: AuditLogLis
         <div className="hidden grid-cols-12 gap-3 border-b border-border/60 bg-muted/30 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:grid">
           <div className="col-span-3">Action</div>
           <div className="col-span-3">Performed By</div>
-          <div className="col-span-2">Activation</div>
+          <div className="col-span-3">Key User</div>
           <div className="col-span-1"></div>
-          <div className="col-span-3 text-right">When</div>
+          <div className="col-span-2 text-right">When</div>
         </div>
 
         <div className="divide-y divide-border/50">

@@ -20,9 +20,17 @@ export interface AuditLogFilters {
 export interface AuditLogEntry {
   id: string;
   tenantId: string;
-  /** Conversation-participant identity of the actor; what the performedBy filter matches against. */
+  /**
+   * Who performed the action. On Admin API calls this is the Studio UI user asserted via
+   * `X-On-Behalf-Of`; it falls back to the key owner when that header is absent. This is what
+   * the performedBy filter matches against.
+   */
   participantId: string;
-  /** The actor's logged-in user identity. */
+  /**
+   * The authenticated caller the server authorized the request as — for Agent Studio traffic
+   * that is the owner of the shared `XIANS_APIKEY`, not the person in the UI. Differs from
+   * `participantId` whenever attribution was asserted.
+   */
   loggedInUser: string;
   action: string;
   activationName?: string | null;
