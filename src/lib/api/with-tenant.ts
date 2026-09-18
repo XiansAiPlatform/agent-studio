@@ -140,7 +140,7 @@ export function withTenantFromSession(handler: ApiHandler) {
 
       const tenantProvider = useTenantProvider()
 
-      return runWithSessionOnBehalfOf(session, async () => {
+      return await runWithSessionOnBehalfOf(session, async () => {
         const tenantId = getTenantIdFromCookie(request)
 
         if (!tenantId) {
@@ -212,7 +212,7 @@ export function withParticipantAdmin(handler: ApiHandler) {
 
       const tenantProvider = useTenantProvider()
 
-      return runWithSessionOnBehalfOf(session, async () => {
+      return await runWithSessionOnBehalfOf(session, async () => {
         const tenantId = getTenantIdFromCookie(request)
 
         const authError = await requireParticipantAdmin(session, tenantId)
@@ -272,7 +272,7 @@ export function withTenantAdmin(handler: ApiHandler) {
 
       const tenantProvider = useTenantProvider()
 
-      return runWithSessionOnBehalfOf(session, async () => {
+      return await runWithSessionOnBehalfOf(session, async () => {
         const tenantId = getTenantIdFromCookie(request)
 
         const authError = await requireTenantAdmin(session, tenantId)
@@ -334,7 +334,7 @@ export function withSystemAdmin(
     try {
       const session = await getServerSession(authOptions)
 
-      return runWithSessionOnBehalfOf(session, async () => {
+      return await runWithSessionOnBehalfOf(session, async () => {
         const authError = await requireSystemAdmin(session)
         if (authError) return authError
 
@@ -372,7 +372,7 @@ export function withSystemAdminTenant(handler: ApiHandler) {
 
       const tenantProvider = useTenantProvider()
 
-      return runWithSessionOnBehalfOf(session, async () => {
+      return await runWithSessionOnBehalfOf(session, async () => {
         const authError = await requireSystemAdmin(session)
         if (authError) return authError
 

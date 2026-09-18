@@ -7,6 +7,10 @@
  *
  * This is attribution, not impersonation: it does not change permissions and
  * is not a substitute for the user's OIDC token on WebAPI.
+ *
+ * The identity is always the user's email — the same value the BFF already
+ * sends as `participantId` and as the `userId` that backend ownership checks
+ * are keyed on — so audit rows correlate with the rest of the platform.
  */
 
 import { AsyncLocalStorage } from 'async_hooks'
@@ -15,20 +19,12 @@ export const ON_BEHALF_OF_HEADER = 'X-On-Behalf-Of'
 
 const onBehalfOfStore = new AsyncLocalStorage<string>()
 
-/** Signed-in user's platform identity (email), if present. */
-export function onBehalfOfFromUser(
-  user?: { email?: string | null; id?: string | null } | null
-): string | undefined {
-  const email = user?.email?.trim()
-  if (email) return email
-  const id = user?.id?.trim()
-  if (id) return id
-  return undefined
-}
-
 /**
  * Run `fn` with the UI user bound for nested Admin API calls.
- * An outer identity (already in scope) is left unchanged.
+ *
+ * The outermost identity wins: a nested scope for a *different* user (e.g. a
+ * system admin resolving another user's roles) must not overwrite the actor who
+ * actually made the request.
  */
 export function runWithOnBehalfOf<T>(
   userId: string | null | undefined,
@@ -41,19 +37,31 @@ export function runWithOnBehalfOf<T>(
 }
 
 export function runWithSessionOnBehalfOf<T>(
-  session: { user?: { email?: string | null; id?: string | null } } | null | undefined,
+  session: { user?: { email?: string | null } } | null | undefined,
   fn: () => T
 ): T {
-  return runWithOnBehalfOf(onBehalfOfFromUser(session?.user), fn)
+  return runWithOnBehalfOf(session?.user?.email, fn)
 }
 
 export function getOnBehalfOf(): string | undefined {
   return onBehalfOfStore.getStore()
 }
 
-/** Set `X-On-Behalf-Of` from the current request scope, overwriting any prior value. */
-export function applyOnBehalfOfHeader(headers: Record<string, string>): void {
-  const userId = getOnBehalfOf()
+/**
+ * Set `X-On-Behalf-Of` on an outgoing Admin API request.
+ *
+ * Any value already on `headers` is discarded first, so attribution can never be
+ * spoofed by a call site passing its own header. `fallback` is used only when no
+ * request scope is available (e.g. Edge middleware).
+ */
+export function applyOnBehalfOfHeader(
+  headers: Record<string, string>,
+  fallback?: string
+): void {
+  delete headers['x-on-behalf-of']
+  delete headers[ON_BEHALF_OF_HEADER]
+
+  const userId = getOnBehalfOf() ?? fallback
   if (userId) {
     headers[ON_BEHALF_OF_HEADER] = userId
   }

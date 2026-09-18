@@ -6,7 +6,7 @@
  * also sends `X-On-Behalf-Of` for audit attribution (not authorization).
  */
 
-import { applyOnBehalfOfHeader, getOnBehalfOf, ON_BEHALF_OF_HEADER } from './on-behalf-of'
+import { applyOnBehalfOfHeader, getOnBehalfOf } from './on-behalf-of'
 
 export class XiansApiError extends Error {
   constructor(
@@ -73,7 +73,7 @@ export class XiansClient {
       headers['Authorization'] = `Bearer ${this.apiKey}`
     }
 
-    setAttributionHeader(headers, this.onBehalfOf)
+    applyOnBehalfOfHeader(headers, this.onBehalfOf)
 
     try {
       const response = await fetch(url, {
@@ -213,21 +213,8 @@ export function xiansAdminHeaders(extra?: HeadersInit): Record<string, string> {
     headers['Authorization'] = `Bearer ${process.env.XIANS_APIKEY}`
   }
 
-  setAttributionHeader(headers)
-  return headers
-}
-
-/**
- * Attribution only — does not change Admin API permissions.
- * Request-scoped identity wins; `fallback` covers Edge/middleware clients.
- */
-function setAttributionHeader(headers: Record<string, string>, fallback?: string) {
-  delete headers['x-on-behalf-of']
-  delete headers[ON_BEHALF_OF_HEADER]
   applyOnBehalfOfHeader(headers)
-  if (!headers[ON_BEHALF_OF_HEADER] && fallback) {
-    headers[ON_BEHALF_OF_HEADER] = fallback
-  }
+  return headers
 }
 
 /**

@@ -5,6 +5,7 @@ import { requireParticipantAdmin } from '@/lib/api/auth'
 import { getTenantIdFromCookie } from '@/lib/api/with-tenant'
 import { createXiansClient, XiansApiError } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
+import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
 
 /**
  * TEMPORARY FALLBACK: Integration types to use when backend endpoint is not available
@@ -95,22 +96,25 @@ const FALLBACK_INTEGRATION_TYPES = [
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const tenantId = getTenantIdFromCookie(request)
-    const authError = await requireParticipantAdmin(session, tenantId)
-    if (authError) return authError
-    const endpoint = '/api/v1/admin/integrations/metadata/types'
-    console.log('[API /integrations/types] Fetching integration types from backend')
-    console.log('[API /integrations/types] Full URL:', `${process.env.XIANS_SERVER_URL}${endpoint}`)
-    
-    // Use Xians SDK client which handles authentication automatically
-    const client = createXiansClient()
-    
-    // Call the backend API endpoint
-    const data = await client.get<any>(endpoint)
-    
-    console.log('[API /integrations/types] ✅ Successfully fetched', Array.isArray(data) ? data.length : 0, 'integration types from backend')
-    
-    return NextResponse.json(data)
+
+    return await runWithSessionOnBehalfOf(session, async () => {
+      const tenantId = getTenantIdFromCookie(request)
+      const authError = await requireParticipantAdmin(session, tenantId)
+      if (authError) return authError
+      const endpoint = '/api/v1/admin/integrations/metadata/types'
+      console.log('[API /integrations/types] Fetching integration types from backend')
+      console.log('[API /integrations/types] Full URL:', `${process.env.XIANS_SERVER_URL}${endpoint}`)
+
+      // Use Xians SDK client which handles authentication automatically
+      const client = createXiansClient()
+
+      // Call the backend API endpoint
+      const data = await client.get<any>(endpoint)
+
+      console.log('[API /integrations/types] ✅ Successfully fetched', Array.isArray(data) ? data.length : 0, 'integration types from backend')
+
+      return NextResponse.json(data)
+    })
   } catch (error) {
     console.error('[API /integrations/types] ❌ Error:', error)
     
