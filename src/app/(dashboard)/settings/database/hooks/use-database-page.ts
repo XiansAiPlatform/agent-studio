@@ -116,6 +116,8 @@ export function useDatabasePage({
     refreshNonce
   );
 
+  // Schema + records. Only for mutations that can change the type list
+  // (create, delete type, delete record). Updates call refetchRecords() instead.
   const refetchAll = useCallback(() => {
     const now = new Date().toISOString();
     if (new Date(customEndDate).getTime() < Date.now()) {

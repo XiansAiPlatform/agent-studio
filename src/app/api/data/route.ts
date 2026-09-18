@@ -3,9 +3,13 @@ import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { assertCanEditAgent } from '@/lib/auth/agent-access';
 import { handleApiError, validationError } from '@/lib/api/error-handler';
 import {
+  ADMIN_DATA_JSON_MAX_BYTES,
   adminDataCollectionPath,
+  assertActivationOwnedByAgent,
   createAdminDataClient,
+  isIsoDateTime,
   isPlainObject,
+  jsonExceedsByteLimit,
 } from '@/lib/xians/admin-data';
 
 function trimRequired(value: unknown): string | null {
@@ -119,18 +123,36 @@ export const POST = withParticipantAdmin(
         return validationError('content must be a JSON object');
       }
 
+      if (jsonExceedsByteLimit(body.content)) {
+        return validationError(
+          `content must be at most ${ADMIN_DATA_JSON_MAX_BYTES} bytes`
+        );
+      }
+
+      const activationName = trimRequired(body.activationName);
+      if (!activationName) {
+        return validationError('activationName is required');
+      }
+
       const denied = await assertCanEditAgent(session, tenantId, agentName);
       if (denied) return denied;
+
+      const client = createAdminDataClient();
+      const activationDenied = await assertActivationOwnedByAgent(
+        client,
+        tenantId,
+        agentName,
+        activationName
+      );
+      if (activationDenied) return activationDenied;
 
       const payload: Record<string, unknown> = {
         agentName,
         dataType,
         key,
         content: body.content,
+        activationName,
       };
-
-      const activationName = trimOptional(body.activationName);
-      if (activationName) payload.activationName = activationName;
 
       const participantId = trimOptional(body.participantId);
       if (participantId) payload.participantId = participantId;
@@ -139,6 +161,11 @@ export const POST = withParticipantAdmin(
         if (body.metadata !== null && !isPlainObject(body.metadata)) {
           return validationError('metadata must be a JSON object');
         }
+        if (body.metadata !== null && jsonExceedsByteLimit(body.metadata)) {
+          return validationError(
+            `metadata must be at most ${ADMIN_DATA_JSON_MAX_BYTES} bytes`
+          );
+        }
         payload.metadata = body.metadata;
       }
 
@@ -146,13 +173,13 @@ export const POST = withParticipantAdmin(
         if (body.expiresAt !== null && typeof body.expiresAt !== 'string') {
           return validationError('expiresAt must be an ISO date-time string');
         }
+        if (typeof body.expiresAt === 'string' && !isIsoDateTime(body.expiresAt)) {
+          return validationError('expiresAt must be an ISO date-time string');
+        }
         payload.expiresAt = body.expiresAt;
       }
 
-      const response = await createAdminDataClient().post(
-        adminDataCollectionPath(tenantId),
-        payload
-      );
+      const response = await client.post(adminDataCollectionPath(tenantId), payload);
 
       return NextResponse.json(response, { status: 201 });
     } catch (error) {

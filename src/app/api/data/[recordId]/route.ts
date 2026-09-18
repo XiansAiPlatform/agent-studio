@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { handleApiError, validationError } from '@/lib/api/error-handler';
 import {
+  ADMIN_DATA_JSON_MAX_BYTES,
   adminDataRecordPath,
   createAdminDataClient,
+  isIsoDateTime,
   isPlainObject,
+  jsonExceedsByteLimit,
   loadRecordIfEditable,
 } from '@/lib/xians/admin-data';
 
@@ -100,12 +103,22 @@ export async function PUT(
           if (!isPlainObject(body.content)) {
             return validationError('content must be a JSON object');
           }
+          if (jsonExceedsByteLimit(body.content)) {
+            return validationError(
+              `content must be at most ${ADMIN_DATA_JSON_MAX_BYTES} bytes`
+            );
+          }
           payload.content = body.content;
         }
 
         if (body.metadata !== undefined) {
           if (body.metadata !== null && !isPlainObject(body.metadata)) {
             return validationError('metadata must be a JSON object');
+          }
+          if (body.metadata !== null && jsonExceedsByteLimit(body.metadata)) {
+            return validationError(
+              `metadata must be at most ${ADMIN_DATA_JSON_MAX_BYTES} bytes`
+            );
           }
           payload.metadata = body.metadata;
         }
@@ -122,6 +135,9 @@ export async function PUT(
 
         if (body.expiresAt !== undefined) {
           if (body.expiresAt !== null && typeof body.expiresAt !== 'string') {
+            return validationError('expiresAt must be an ISO date-time string');
+          }
+          if (typeof body.expiresAt === 'string' && !isIsoDateTime(body.expiresAt)) {
             return validationError('expiresAt must be an ISO date-time string');
           }
           payload.expiresAt = body.expiresAt;

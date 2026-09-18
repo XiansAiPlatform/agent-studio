@@ -27,7 +27,6 @@ export function useDataRecords(
 
     setIsLoading(true);
     setError(null);
-    setData(null);
 
     try {
       const params = new URLSearchParams({
