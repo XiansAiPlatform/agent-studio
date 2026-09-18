@@ -11,6 +11,8 @@ export interface Message {
   messageType?: MessageType;
   timestamp: string;
   status?: 'sent' | 'delivered' | 'read';
+  /** Server-persisted read status ('Unread' | 'Read'), from ConversationMessage.status. Distinct from `status` above. */
+  readStatus?: string | null;
   taskId?: string; // Associated task ID for the message
   /** Routing context for feedback API (from Xians history) */
   threadId?: string;

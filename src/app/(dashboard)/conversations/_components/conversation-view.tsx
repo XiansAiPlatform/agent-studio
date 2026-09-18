@@ -106,6 +106,11 @@ export function ConversationView({
   const { workflowsByAgent } = useBuiltInWorkflows(agentName ? [agentName] : []);
   const workflowCount = agentName ? (workflowsByAgent[agentName]?.length ?? 0) : 0;
   const selectedTopic = conversation.topics.find(t => t.id === selectedTopicId);
+  // threadId is the same across every topic in this conversation; pull it from
+  // whichever loaded topic has a message, since the thread itself carries no id.
+  const threadId = conversation.topics
+    .flatMap((t) => t.messages)
+    .find((m) => m.threadId)?.threadId;
 
   // Find the current activation to check if it's active
   const currentActivation = activations.find(
@@ -237,6 +242,8 @@ export function ConversationView({
             <ConversationHeader
               activationName={selectedActivationName || 'No Activation'}
               topic={selectedTopic}
+              tenantId={conversation.tenantId}
+              threadId={threadId}
               workflowName={selectedWorkflow}
               workflowCount={workflowCount}
               isConnected={isConnected}
