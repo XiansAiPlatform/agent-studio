@@ -66,7 +66,7 @@ export default function SettingsPage() {
     },
     {
       title: 'Secrets',
-      description: 'Securely store API keys and credentials for this tenant',
+      description: 'Securely store API keys and credentials for this tenant or a user',
       href: '/settings/secrets',
       icon: KeyRound,
       color: 'text-primary',

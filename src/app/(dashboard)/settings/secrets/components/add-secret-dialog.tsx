@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useMemo, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
@@ -15,31 +15,68 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react'
-import { CreateSecretRequest } from '../types'
+import { CreateSecretRequest, CreateSecretScope } from '../types'
 
 const KEY_PATTERN = /^[A-Za-z0-9._-]+$/
 
 // Server-side AdditionalData enforces a per-value max of 2048 chars.
 const DESCRIPTION_MAX = 500
 
-const schema = z.object({
-  key: z
-    .string()
-    .min(1, 'Key is required')
-    .max(128, 'Key is too long')
-    .regex(
-      KEY_PATTERN,
-      'Key may only contain letters, numbers, dots, dashes, and underscores'
-    ),
-  value: z.string().min(1, 'Value is required'),
-  description: z
-    .string()
-    .max(DESCRIPTION_MAX, `Description must be ${DESCRIPTION_MAX} characters or less`)
-    .optional(),
-})
+const schema = z
+  .object({
+    key: z
+      .string()
+      .min(1, 'Key is required')
+      .max(128, 'Key is too long')
+      .regex(
+        KEY_PATTERN,
+        'Key may only contain letters, numbers, dots, dashes, and underscores'
+      ),
+    value: z.string().min(1, 'Value is required'),
+    description: z
+      .string()
+      .max(DESCRIPTION_MAX, `Description must be ${DESCRIPTION_MAX} characters or less`)
+      .optional(),
+    scope: z.enum(['tenant', 'user']),
+    userId: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.scope === 'user' && !data.userId?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['userId'],
+        message: 'Participant is required for user-scoped secrets',
+      })
+    }
+  })
 
 type FormValues = z.infer<typeof schema>
+
+type DirectoryUser = {
+  userId: string
+  name?: string
+  email?: string
+}
+
+function participantIdFromUser(user: DirectoryUser): string {
+  return (user.email || user.userId).trim().toLowerCase()
+}
+
+function userLabel(user: DirectoryUser): string {
+  const participantId = participantIdFromUser(user)
+  if (user.name && user.name.trim() && user.name.trim().toLowerCase() !== participantId) {
+    return `${user.name.trim()} (${participantId})`
+  }
+  return participantId
+}
 
 interface AddSecretDialogProps {
   open: boolean
@@ -50,19 +87,76 @@ interface AddSecretDialogProps {
 export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showValue, setShowValue] = useState(false)
+  const [directory, setDirectory] = useState<DirectoryUser[]>([])
+  const [isLoadingDirectory, setIsLoadingDirectory] = useState(false)
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { key: '', value: '', description: '' },
+    defaultValues: { key: '', value: '', description: '', scope: 'tenant', userId: '' },
   })
 
   const descriptionValue = watch('description') ?? ''
+  const scope = watch('scope')
+  const uniqueDirectory = useMemo(() => {
+    const seen = new Set<string>()
+    return directory.filter((user) => {
+      const participantId = participantIdFromUser(user)
+      if (!participantId || seen.has(participantId)) return false
+      seen.add(participantId)
+      return true
+    })
+  }, [directory])
+  const useDirectoryPicker = uniqueDirectory.length > 0
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setIsLoadingDirectory(true)
+
+    ;(async () => {
+      try {
+        const res = await fetch('/api/settings/secrets/participants')
+        if (cancelled) return
+        const data = (await res.json()) as {
+          participants?: Array<{
+            userId?: string
+            user_id?: string
+            name?: string
+            email?: string
+          }>
+        }
+        if (res.ok && Array.isArray(data.participants)) {
+          setDirectory(
+            data.participants
+              .map((u) => ({
+                userId: u.userId ?? u.user_id ?? '',
+                name: u.name,
+                email: u.email,
+              }))
+              .filter((u) => u.userId || u.email)
+          )
+        } else {
+          setDirectory([])
+        }
+      } catch {
+        if (!cancelled) setDirectory([])
+      } finally {
+        if (!cancelled) setIsLoadingDirectory(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [open])
 
   const handleClose = (next: boolean) => {
     if (!next) {
@@ -76,9 +170,14 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
     setIsSubmitting(true)
     try {
       const description = values.description?.trim()
+      const scopeValue: CreateSecretScope = values.scope
       await onSubmit({
         key: values.key.trim(),
         value: values.value,
+        scope: scopeValue,
+        ...(scopeValue === 'user' && values.userId?.trim()
+          ? { userId: values.userId.trim().toLowerCase() }
+          : {}),
         ...(description ? { description } : {}),
       })
       reset()
@@ -100,7 +199,9 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
             <div>
               <SheetTitle className="text-base font-semibold">Add Secret</SheetTitle>
               <SheetDescription className="text-sm mt-0.5">
-                Securely store a secret for this tenant
+                {scope === 'user'
+                  ? 'Store a secret for one participant in this tenant'
+                  : 'Securely store a secret for this tenant'}
               </SheetDescription>
             </div>
           </div>
@@ -111,6 +212,89 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
           onSubmit={handleSubmit(onValid)}
           className="flex-1 overflow-y-auto px-6 py-5 space-y-5"
         >
+          <div className="space-y-2">
+            <Label htmlFor="add-secret-scope">Scope</Label>
+            <Controller
+              name="scope"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(next) => {
+                    field.onChange(next)
+                    if (next !== 'user') {
+                      setValue('userId', '')
+                    }
+                  }}
+                >
+                  <SelectTrigger id="add-secret-scope" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tenant">Tenant</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              {scope === 'user'
+                ? 'Only this participant can fetch the secret. The participant id is usually their email.'
+                : 'Shared across this tenant. Any agent can fetch it.'}
+            </p>
+          </div>
+
+          {scope === 'user' && (
+            <div className="space-y-2">
+              <Label htmlFor="add-secret-user">User</Label>
+              {isLoadingDirectory ? (
+                <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading users…
+                </div>
+              ) : useDirectoryPicker ? (
+                <Controller
+                  name="userId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger id="add-secret-user" className="w-full">
+                        <SelectValue placeholder="Select a user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueDirectory.map((user) => {
+                          const participantId = participantIdFromUser(user)
+                          return (
+                            <SelectItem key={participantId} value={participantId}>
+                              {userLabel(user)}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              ) : (
+                <Input
+                  id="add-secret-user"
+                  placeholder="participant@example.com"
+                  autoComplete="off"
+                  spellCheck={false}
+                  {...register('userId')}
+                />
+              )}
+              {errors.userId ? (
+                <p className="text-xs text-destructive">{errors.userId.message}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {useDirectoryPicker
+                    ? 'The secret is stored for this user. Agents look it up by email.'
+                    : 'Enter the user email agents use as the participant id.'}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="add-secret-key">Key</Label>
             <Input
