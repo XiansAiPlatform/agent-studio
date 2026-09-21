@@ -182,6 +182,7 @@ const navigation: NavigationItem[] = [
     capability: 'developer:access',
     children: [
       { name: 'Secrets', href: '/developer/secrets' },
+      { name: 'MCP Server', href: '/developer/mcp-server' },
     ],
   },
   {

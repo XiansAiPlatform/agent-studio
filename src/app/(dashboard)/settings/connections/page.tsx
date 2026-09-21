@@ -33,7 +33,6 @@ import { IntegrationDetailsSheet } from './components/integration-details-sheet'
 import { SlackWizardSheet } from './components/slack-wizard-sheet';
 import { TeamsWizardSheet } from './components/teams-wizard-sheet';
 import { WebhooksSheet } from './components/webhooks-sheet';
-import { XiansMcpPanel } from './components/xians-mcp-panel';
 
 function ConnectionsContent() {
   const searchParams = useSearchParams();
@@ -348,7 +347,6 @@ function ConnectionsContent() {
 
       {/* Main Content */}
       <div className="container mx-auto p-4 sm:p-6">
-        {agentName && activationName && <XiansMcpPanel key={`${agentName}:${activationName}`} agentName={agentName} activationName={activationName} />}
         {filteredConnections.length === 0 ? (
           /* Empty State */
           <div className="bg-card/60 rounded-xl p-8 sm:p-16 text-center">
