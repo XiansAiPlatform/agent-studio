@@ -56,6 +56,8 @@ interface ConversationViewProps {
   selectedWorkflow?: string;
   /** Hide topics and show the no-capability empty state in the chat panel. */
   noConversationalCapability?: boolean;
+  /** Admin view-as: read-only chat (no send, delete, feedback). */
+  readOnly?: boolean;
 }
 
 /**
@@ -99,6 +101,7 @@ export function ConversationView({
   onMessageFeedbackSubmitted,
   selectedWorkflow,
   noConversationalCapability = false,
+  readOnly = false,
 }: ConversationViewProps) {
   const { isParticipantMode } = useParticipantLayout();
   const isMobile = useIsMobile();
@@ -123,15 +126,18 @@ export function ConversationView({
     onTopicSelect(id);
     setTopicsDrawerOpen(false);
   };
-  const handleCreateTopicMobile = onCreateTopic
+  const effectiveOnCreateTopic = readOnly ? undefined : onCreateTopic;
+  const effectiveOnDeleteTopic = readOnly ? undefined : onDeleteTopic;
+
+  const handleCreateTopicMobile = effectiveOnCreateTopic
     ? (name: string) => {
-        onCreateTopic(name);
+        effectiveOnCreateTopic(name);
         setTopicsDrawerOpen(false);
       }
     : undefined;
-  const handleDeleteTopicMobile = onDeleteTopic
+  const handleDeleteTopicMobile = effectiveOnDeleteTopic
     ? async (id: string, name: string) => {
-        await onDeleteTopic(id, name);
+        await effectiveOnDeleteTopic(id, name);
       }
     : undefined;
 
@@ -143,8 +149,8 @@ export function ConversationView({
           topics={conversation.topics}
           selectedTopicId={selectedTopicId}
           onSelectTopic={onTopicSelect}
-          onCreateTopic={onCreateTopic}
-          onDeleteTopic={onDeleteTopic}
+          onCreateTopic={effectiveOnCreateTopic}
+          onDeleteTopic={effectiveOnDeleteTopic}
           unreadCounts={unreadCounts}
           activations={activations}
           selectedAgentName={agentName}
@@ -229,6 +235,7 @@ export function ConversationView({
               agentInfo={agentInfo}
               onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
               noConversationalCapability
+              readOnly={readOnly}
             />
           </>
         ) : selectedTopicId && selectedTopic ? (
@@ -259,7 +266,7 @@ export function ConversationView({
               selectedTopic={selectedTopic}
               selectedTopicId={selectedTopicId}
               onSendMessage={onSendMessage}
-              allowFileUpload={allowFileUpload}
+              allowFileUpload={allowFileUpload && !readOnly}
               isLoadingMessages={isLoadingMessages || isLoadingTopics}
               onLoadMoreMessages={onLoadMoreMessages}
               isLoadingMoreMessages={isLoadingMoreMessages}
@@ -269,6 +276,7 @@ export function ConversationView({
               chatInputRef={chatInputRef}
               agentInfo={agentInfo}
               onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+              readOnly={readOnly}
             />
           </>
         ) : (
@@ -277,7 +285,7 @@ export function ConversationView({
             selectedTopic={undefined}
             selectedTopicId={''}
             onSendMessage={onSendMessage}
-            allowFileUpload={allowFileUpload}
+            allowFileUpload={allowFileUpload && !readOnly}
             isLoadingMessages={isLoadingMessages || isLoadingTopics}
             onLoadMoreMessages={onLoadMoreMessages}
             isLoadingMoreMessages={isLoadingMoreMessages}
@@ -287,6 +295,7 @@ export function ConversationView({
             chatInputRef={chatInputRef}
             agentInfo={agentInfo}
             onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+            readOnly={readOnly}
           />
         )}
       </div>

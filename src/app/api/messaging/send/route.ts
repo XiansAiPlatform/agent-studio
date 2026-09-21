@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { rejectClientViewAsParameter } from '@/lib/api/messaging-view-as-guards'
 
 const MAX_FILES = 5
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
@@ -63,7 +64,13 @@ export const POST = withTenantFromSession(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
     try {
       const tenantId = tenantContext.tenant.id
-      const body = await request.json()
+      const body = (await request.json()) as Record<string, unknown>
+
+      const viewAsError = rejectClientViewAsParameter(
+        new URL(request.url).searchParams,
+        body
+      )
+      if (viewAsError) return viewAsError
 
       const {
         agentName,
@@ -76,7 +83,18 @@ export const POST = withTenantFromSession(
         hint,
         origin,
         workflowType,
-      } = body
+      } = body as {
+        agentName?: string
+        activationName?: string
+        text?: string
+        topic?: string
+        data?: unknown
+        type?: string
+        requestId?: string
+        hint?: string
+        origin?: string
+        workflowType?: string
+      }
 
       const isFileUpload = type === 'File'
       const participantId = session.user?.email

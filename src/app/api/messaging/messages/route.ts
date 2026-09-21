@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { rejectClientViewAsParameter } from '@/lib/api/messaging-view-as-guards'
 
 /**
  * DELETE /api/messaging/messages
@@ -12,6 +13,9 @@ export const DELETE = withTenantFromSession(
     try {
       const tenantId = tenantContext.tenant.id
       const { searchParams } = new URL(request.url)
+
+      const viewAsError = rejectClientViewAsParameter(searchParams)
+      if (viewAsError) return viewAsError
 
       const agentName = searchParams.get('agentName')
       const activationName = searchParams.get('activationName')

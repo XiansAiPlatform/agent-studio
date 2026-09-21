@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { resolveMessagingParticipantId } from '@/lib/api/messaging-view-as'
 
 /**
  * GET /api/messaging/history
@@ -22,13 +23,17 @@ export const GET = withTenantFromSession(
       const chatOnly = searchParams.get('chatOnly') || 'false'
       const sortOrder = searchParams.get('sortOrder') || 'asc'
 
-      const participantId = session.user?.email
-      if (!participantId) {
-        return NextResponse.json(
-          { error: 'User email not found in session' },
-          { status: 401 }
-        )
+      const accessToken = (session as { accessToken?: string }).accessToken
+      const resolved = await resolveMessagingParticipantId({
+        session,
+        tenantId,
+        searchParams,
+        accessToken,
+      })
+      if (resolved instanceof NextResponse) {
+        return resolved
       }
+      const { participantId } = resolved
 
       if (!agentName || !activationName) {
         return NextResponse.json(
@@ -49,7 +54,7 @@ export const GET = withTenantFromSession(
       if (topic !== null) queryParams.append('topic', topic ?? '')
       if (workflowType) queryParams.set('workflowType', workflowType)
 
-      const xiansClient = createXiansClient((session as any)?.accessToken)
+      const xiansClient = createXiansClient(accessToken)
       const history = await xiansClient.get(
         `/api/v1/admin/tenants/${tenantId}/messaging/history?${queryParams.toString()}`
       )
