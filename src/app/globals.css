@@ -134,7 +134,7 @@ html[data-theme="fjord"] {
 }
 
 /* Fjord theme - apply light cyan to header, sidebar, and topics panel — light mode only */
-html:not(.dark)[data-theme="fjord"] header,
+html:not(.dark)[data-theme="fjord"] .app-shell-header,
 html:not(.dark)[data-theme="fjord"] aside[class*="border-r"],
 html:not(.dark)[data-theme="fjord"] .conversation-topic-sidebar,
 html:not(.dark)[data-theme="fjord"] .topic-list-menu {
@@ -142,7 +142,7 @@ html:not(.dark)[data-theme="fjord"] .topic-list-menu {
 }
 
 /* Fjord theme - dark mode header/sidebar */
-html.dark[data-theme="fjord"] header,
+html.dark[data-theme="fjord"] .app-shell-header,
 html.dark[data-theme="fjord"] aside[class*="border-r"],
 html.dark[data-theme="fjord"] .conversation-topic-sidebar,
 html.dark[data-theme="fjord"] .topic-list-menu {
@@ -223,7 +223,7 @@ html[data-theme="skog"] {
 }
 
 /* Apply light green-tinted bg to header, sidebar, and topics panel in skog theme — light mode only */
-html:not(.dark)[data-theme="skog"] header,
+html:not(.dark)[data-theme="skog"] .app-shell-header,
 html:not(.dark)[data-theme="skog"] aside[class*="border-r"],
 html:not(.dark)[data-theme="skog"] .conversation-topic-sidebar,
 html:not(.dark)[data-theme="skog"] .topic-list-menu {
@@ -231,7 +231,7 @@ html:not(.dark)[data-theme="skog"] .topic-list-menu {
 }
 
 /* Skog theme - dark mode header/sidebar */
-html.dark[data-theme="skog"] header,
+html.dark[data-theme="skog"] .app-shell-header,
 html.dark[data-theme="skog"] aside[class*="border-r"],
 html.dark[data-theme="skog"] .conversation-topic-sidebar,
 html.dark[data-theme="skog"] .topic-list-menu {
@@ -308,7 +308,7 @@ html[data-theme="zenith"] body {
 }
 
 /* Header + sidebar + topics panel background — light mode (#FAFAFA from SVGs) */
-html:not(.dark)[data-theme="zenith"] header,
+html:not(.dark)[data-theme="zenith"] .app-shell-header,
 html:not(.dark)[data-theme="zenith"] aside[class*="border-r"],
 html:not(.dark)[data-theme="zenith"] .conversation-topic-sidebar,
 html:not(.dark)[data-theme="zenith"] .topic-list-menu {
@@ -316,7 +316,7 @@ html:not(.dark)[data-theme="zenith"] .topic-list-menu {
 }
 
 /* Header + sidebar + topics panel background — dark mode */
-html.dark[data-theme="zenith"] header,
+html.dark[data-theme="zenith"] .app-shell-header,
 html.dark[data-theme="zenith"] aside[class*="border-r"],
 html.dark[data-theme="zenith"] .conversation-topic-sidebar,
 html.dark[data-theme="zenith"] .topic-list-menu {
@@ -753,7 +753,7 @@ html[data-theme="gaia"] body {
 }
 
 /* Header + sidebar + topics panel — light mode */
-html:not(.dark)[data-theme="gaia"] header,
+html:not(.dark)[data-theme="gaia"] .app-shell-header,
 html:not(.dark)[data-theme="gaia"] aside[class*="border-r"],
 html:not(.dark)[data-theme="gaia"] .conversation-topic-sidebar,
 html:not(.dark)[data-theme="gaia"] .topic-list-menu {
@@ -761,7 +761,7 @@ html:not(.dark)[data-theme="gaia"] .topic-list-menu {
 }
 
 /* Header + sidebar + topics panel — dark mode */
-html.dark[data-theme="gaia"] header,
+html.dark[data-theme="gaia"] .app-shell-header,
 html.dark[data-theme="gaia"] aside[class*="border-r"],
 html.dark[data-theme="gaia"] .conversation-topic-sidebar,
 html.dark[data-theme="gaia"] .topic-list-menu {
