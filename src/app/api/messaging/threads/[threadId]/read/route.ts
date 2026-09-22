@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { encodeSafePathSegment } from '@/lib/api/path-segment'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
@@ -11,21 +12,21 @@ import { handleApiError } from '@/lib/api/error-handler'
  * Admin API). Tenant is injected from session (httpOnly cookie).
  */
 export const POST = withTenantFromSession(
-  async (request: NextRequest, { tenantId }: ApiContext) => {
+  async (request: NextRequest, { tenantId, params }: ApiContext<{ threadId: string }>) => {
     try {
-      // Extract the threadId from the path: /api/messaging/threads/{threadId}/read
-      const segments = request.nextUrl.pathname.split('/')
-      const threadId = segments[segments.length - 2]
-
+      const threadId = encodeSafePathSegment(params.threadId)
       if (!threadId) {
-        return NextResponse.json({ error: 'threadId is required' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'threadId is required and must be a valid identifier' },
+          { status: 400 }
+        )
       }
 
       const body = await request.json().catch(() => ({}))
 
       const xiansClient = createXiansClient()
       const result = await xiansClient.post(
-        `/api/v1/admin/tenants/${tenantId}/messaging/threads/${threadId}/read`,
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/messaging/threads/${threadId}/read`,
         body
       )
 
