@@ -153,28 +153,6 @@ function ConversationContent() {
     setMessageStates({});
   }, [viewAsParticipantId]);
 
-  const lastViewAsAuditKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!viewAsParticipantId || !currentTenantId || !agentName || !activationName) {
-      return;
-    }
-    const auditKey = `${currentTenantId}:${viewAsParticipantId}:${agentName}:${activationName}`;
-    if (lastViewAsAuditKeyRef.current === auditKey) return;
-    lastViewAsAuditKeyRef.current = auditKey;
-
-    void fetch('/api/messaging/view-as/audit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        viewAsParticipantId,
-        agentName,
-        activationName,
-      }),
-    }).catch((error) => {
-      console.warn('[ConversationPage] Failed to record view-as audit:', error);
-    });
-  }, [viewAsParticipantId, currentTenantId, agentName, activationName]);
-
   useEffect(() => {
     if (canSystemAdmin || !searchParams.has(VIEW_AS_PARTICIPANT_QUERY_PARAM)) {
       return;
@@ -421,8 +399,10 @@ function ConversationContent() {
 
   // While the stream is down, poll history so replies still show up instead of
   // silently waiting for a connection that may never come back.
+  // View-as is a snapshot (the live listener is the session user, not the target),
+  // so skip this interval — otherwise it re-resolves membership every 10s.
   useEffect(() => {
-    if (isConnected || !selectedTopicId || !isActivationActive) {
+    if (isViewAsReadOnly || isConnected || !selectedTopicId || !isActivationActive) {
       return;
     }
 
@@ -433,7 +413,7 @@ function ConversationContent() {
     }, OFFLINE_POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [isConnected, selectedTopicId, isActivationActive, syncTopicMessages]);
+  }, [isConnected, selectedTopicId, isActivationActive, syncTopicMessages, isViewAsReadOnly]);
 
   // Check agent worker liveness when activation is opened (for Live tag vs warning)
   const {

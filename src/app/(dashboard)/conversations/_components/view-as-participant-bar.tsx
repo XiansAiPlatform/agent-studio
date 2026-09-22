@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Eye, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ interface TenantUserOption {
   email: string;
   name: string;
 }
+
+const USER_SEARCH_DEBOUNCE_MS = 300;
 
 interface ViewAsParticipantBarProps {
   tenantId: string | null;
@@ -39,10 +41,24 @@ export function ViewAsParticipantBar({
   const [users, setUsers] = useState<TenantUserOption[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, USER_SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+  }, [search]);
 
   const fetchUsers = useCallback(async () => {
     if (!tenantId) return;
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoadingUsers(true);
     setLoadError(null);
     try {
@@ -51,13 +67,16 @@ export function ViewAsParticipantBar({
         page: '1',
         pageSize: '100',
       });
-      if (search.trim()) params.set('search', search.trim());
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
 
-      const res = await fetch(`/api/system-admin/users?${params.toString()}`);
+      const res = await fetch(`/api/system-admin/users?${params.toString()}`, {
+        signal: controller.signal,
+      });
       if (!res.ok) {
         throw new Error('Failed to load tenant users');
       }
       const data = (await res.json()) as { users?: TenantUserOption[] };
+      if (controller.signal.aborted) return;
       const list = (data.users ?? []).filter(
         (u) =>
           u.email &&
@@ -65,15 +84,23 @@ export function ViewAsParticipantBar({
       );
       setUsers(list);
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      if (e instanceof Error && e.name === 'AbortError') return;
+      if (controller.signal.aborted) return;
       setLoadError(e instanceof Error ? e.message : 'Failed to load users');
       setUsers([]);
     } finally {
-      setIsLoadingUsers(false);
+      if (!controller.signal.aborted) {
+        setIsLoadingUsers(false);
+      }
     }
-  }, [tenantId, search, sessionEmail]);
+  }, [tenantId, debouncedSearch, sessionEmail]);
 
   useEffect(() => {
     void fetchUsers();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [fetchUsers]);
 
   const isViewingOther = !!currentViewAsEmail;

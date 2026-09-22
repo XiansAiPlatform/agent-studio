@@ -37,6 +37,8 @@ interface MessagesAreaProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  /** Hide the "Rate response" action (e.g. admin view-as). */
+  disableFeedback?: boolean;
 }
 
 export function MessagesArea({
@@ -54,6 +56,7 @@ export function MessagesArea({
   agentInfo,
   onSamplePromptClick,
   onMessageFeedbackSubmitted,
+  disableFeedback = false,
 }: MessagesAreaProps) {
   const groups = groupMessages(messages, isTyping);
   const { currentTenant } = useTenant();
@@ -121,6 +124,7 @@ export function MessagesArea({
                       message={group.message}
                       agentName={agentName}
                       onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+                      disableFeedback={disableFeedback}
                     />
                   );
                 }

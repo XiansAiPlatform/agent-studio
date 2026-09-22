@@ -178,6 +178,7 @@ export function ChatInterface({
         agentInfo={agentInfo}
         onSamplePromptClick={onSamplePromptClick}
         onMessageFeedbackSubmitted={readOnly ? undefined : onMessageFeedbackSubmitted}
+        disableFeedback={readOnly}
       />
 
       {readOnly ? (

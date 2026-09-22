@@ -74,6 +74,7 @@ export function MessageActionsToolbar({
             agentName={agentName ?? 'Agent'}
             onFeedbackSubmitted={onMessageFeedbackSubmitted}
             iconOnly
+            readOnly={disableFeedback}
           />
         )}
       </div>

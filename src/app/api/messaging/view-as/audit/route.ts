@@ -10,6 +10,7 @@ import {
 /**
  * POST /api/messaging/view-as/audit
  * Records that a system admin entered view-as mode for conversations.
+ * The messaging read path also records this (idempotent per admin+target+tenant).
  */
 export const POST = withTenantFromSession(
   async (request: NextRequest, { tenantContext, session }: ApiContext) => {
