@@ -9,8 +9,9 @@ import {
   Loader2,
   Search,
   AlertCircle,
+  Plus,
 } from 'lucide-react';
-import { type DataResponse } from '../types';
+import { type DataRecord, type DataResponse } from '../types';
 import { RecordCard } from './record-card';
 
 interface RecordsPanelProps {
@@ -21,12 +22,12 @@ interface RecordsPanelProps {
   currentPage: number;
   pageSize: number;
   expandedRecords: Set<string>;
-  hoveredRecord: string | null;
   deletingRecord: string | null;
   onPreviousPage: () => void;
   onNextPage: () => void;
   onToggleRecord: (recordId: string) => void;
-  onHoverRecord: (recordId: string | null) => void;
+  onAddRecord: () => void;
+  onEditRecord: (record: DataRecord) => void;
   onDeleteRecord: (recordId: string) => Promise<void>;
 }
 
@@ -38,23 +39,27 @@ export function RecordsPanel({
   currentPage,
   pageSize,
   expandedRecords,
-  hoveredRecord,
   deletingRecord,
   onPreviousPage,
   onNextPage,
   onToggleRecord,
-  onHoverRecord,
+  onAddRecord,
+  onEditRecord,
   onDeleteRecord,
 }: RecordsPanelProps) {
   if (!selectedDataType) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-center py-12">
+        <div className="text-center py-12 px-4">
           <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
           <h3 className="text-lg font-medium text-foreground mb-2">Select a Data Type</h3>
-          <p className="text-muted-foreground">
-            Choose a data type from the left panel to explore its records
+          <p className="text-muted-foreground mb-4">
+            Choose a data type from the left panel, or add a record with a new type
           </p>
+          <Button onClick={onAddRecord}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add record
+          </Button>
         </div>
       </div>
     );
@@ -78,39 +83,45 @@ export function RecordsPanel({
             )}
           </div>
 
-          {recordsData && recordsData.total > pageSize && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onPreviousPage}
-                disabled={currentPage === 0 || recordsLoading}
-                className="h-8 px-3"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground px-2">
-                Page {currentPage + 1}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onNextPage}
-                disabled={!recordsData || recordsData.data.length < pageSize || recordsLoading}
-                className="h-8 px-3"
-              >
-                {recordsLoading && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" onClick={onAddRecord} className="h-8 px-3">
+              <Plus className="h-4 w-4 mr-1" />
+              Add record
+            </Button>
+            {recordsData && recordsData.total > pageSize && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onPreviousPage}
+                  disabled={currentPage === 0 || recordsLoading}
+                  className="h-8 px-3"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage + 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onNextPage}
+                  disabled={recordsData.data.length < pageSize || recordsLoading}
+                  className="h-8 px-3"
+                >
+                  {recordsLoading && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto">
-        {recordsLoading && (
+        {recordsLoading && !recordsData && (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
             <p className="text-sm text-muted-foreground">Loading records...</p>
@@ -130,7 +141,13 @@ export function RecordsPanel({
             {recordsData.data.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">No records found for the selected criteria</p>
+                <p className="text-muted-foreground mb-4">
+                  No records found for the selected criteria
+                </p>
+                <Button onClick={onAddRecord}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add record
+                </Button>
               </div>
             ) : (
               <div className="space-y-6">
@@ -139,10 +156,9 @@ export function RecordsPanel({
                     key={record.id}
                     record={record}
                     isExpanded={expandedRecords.has(record.id)}
-                    isHovered={hoveredRecord === record.id}
                     isDeleting={deletingRecord === record.id}
                     onToggle={() => onToggleRecord(record.id)}
-                    onHoverChange={(hovered) => onHoverRecord(hovered ? record.id : null)}
+                    onEdit={() => onEditRecord(record)}
                     onDelete={() => onDeleteRecord(record.id)}
                   />
                 ))}

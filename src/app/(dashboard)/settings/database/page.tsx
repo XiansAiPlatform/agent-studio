@@ -1,7 +1,8 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Database, Bot, Loader2 } from 'lucide-react';
@@ -10,6 +11,13 @@ import { useDatabasePage } from './hooks/use-database-page';
 import { FiltersSection } from './components/filters-section';
 import { DataTypesPanel } from './components/data-types-panel';
 import { RecordsPanel } from './components/records-panel';
+import { RecordEditorDialog } from './components/record-editor-dialog';
+import { type DataRecord } from './types';
+
+const PAGE_COPY = {
+  title: 'Database',
+  subtitle: 'View, add, and edit data records for your agents',
+};
 
 function DatabasePageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -25,10 +33,7 @@ function DatabasePageHeader({ title, subtitle }: { title: string; subtitle?: str
 function LoadingState() {
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DatabasePageHeader
-        title="Database"
-        subtitle="View and explore data records for your agents"
-      />
+      <DatabasePageHeader title={PAGE_COPY.title} subtitle={PAGE_COPY.subtitle} />
       <div className="flex items-center justify-center py-12">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -42,16 +47,13 @@ function LoadingState() {
 function SelectAgentState() {
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DatabasePageHeader
-        title="Database"
-        subtitle="View and explore data records for your agents"
-      />
+      <DatabasePageHeader title={PAGE_COPY.title} subtitle={PAGE_COPY.subtitle} />
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Database className="h-12 w-12 text-muted-foreground mb-4" />
           <CardTitle className="text-lg mb-2">Select an Agent</CardTitle>
           <CardDescription className="text-center">
-            Use the sidebar to select an agent to view its data records and activity
+            Use the sidebar to select an agent to view and edit its data records
           </CardDescription>
         </CardContent>
       </Card>
@@ -62,8 +64,13 @@ function SelectAgentState() {
 function DatabaseContent() {
   const searchParams = useSearchParams();
   const { isLoading: tenantLoading } = useTenant();
+  const { data: session } = useSession();
   const agentName = searchParams.get('agentName');
   const activationName = searchParams.get('activationName');
+  const [editor, setEditor] = useState<{
+    mode: 'create' | 'edit';
+    record?: DataRecord | null;
+  } | null>(null);
 
   const page = useDatabasePage({
     agentName,
@@ -89,7 +96,9 @@ function DatabaseContent() {
                 Data Explorer
               </h1>
               <div className="flex items-center gap-2 sm:gap-3 mt-2 flex-wrap">
-                <span className="text-xs sm:text-sm text-muted-foreground">Exploring data for</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  Viewing and editing data for
+                </span>
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <Badge variant="secondary" className="flex items-center gap-1.5 px-2 sm:px-3 py-1 max-w-full">
                     <Bot className="h-3 w-3 shrink-0" />
@@ -128,6 +137,7 @@ function DatabaseContent() {
               onDataTypeSelect={page.handleDataTypeSelect}
               onHoverChange={page.setHoveredDataType}
               onDeleteDataType={page.handleDeleteDataType}
+              onAddRecord={() => setEditor({ mode: 'create' })}
             />
           </div>
 
@@ -141,18 +151,39 @@ function DatabaseContent() {
                 currentPage={page.currentPage}
                 pageSize={page.pageSize}
                 expandedRecords={page.expandedRecords}
-                hoveredRecord={page.hoveredRecord}
                 deletingRecord={page.deletingRecord}
                 onPreviousPage={page.handlePreviousPage}
                 onNextPage={page.handleNextPage}
                 onToggleRecord={page.toggleRecordExpansion}
-                onHoverRecord={page.setHoveredRecord}
+                onAddRecord={() => setEditor({ mode: 'create' })}
+                onEditRecord={(record) => setEditor({ mode: 'edit', record })}
                 onDeleteRecord={page.handleDeleteRecord}
               />
             </div>
           </div>
         </div>
       </div>
+
+      <RecordEditorDialog
+        open={!!editor}
+        mode={editor?.mode ?? 'create'}
+        record={editor?.record}
+        defaultDataType={
+          editor?.mode === 'edit'
+            ? editor.record?.type ?? page.selectedDataType
+            : page.selectedDataType
+        }
+        defaultParticipantId={session?.user?.email ?? null}
+        isSubmitting={page.isSavingRecord}
+        onOpenChange={(open) => {
+          if (!open) setEditor(null);
+        }}
+        onCreate={page.handleCreateRecord}
+        onUpdate={async (input) => {
+          if (!editor?.record?.id) return;
+          await page.handleUpdateRecord(editor.record.id, input);
+        }}
+      />
     </div>
   );
 }
@@ -162,10 +193,7 @@ export default function DatabasePage() {
     <Suspense
       fallback={
         <div className="container mx-auto p-6 space-y-6">
-          <DatabasePageHeader
-            title="Database"
-            subtitle="View and explore data records for your agents"
-          />
+          <DatabasePageHeader title={PAGE_COPY.title} subtitle={PAGE_COPY.subtitle} />
           <div className="flex items-center justify-center py-12">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

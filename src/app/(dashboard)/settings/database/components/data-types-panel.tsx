@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Loader2, AlertCircle, FileText, Layers, Trash2 } from 'lucide-react';
+import { Loader2, AlertCircle, FileText, Layers, Trash2, Plus } from 'lucide-react';
 
 interface DataTypesPanelProps {
   types: string[];
@@ -27,6 +27,7 @@ interface DataTypesPanelProps {
   onDataTypeSelect: (type: string) => void;
   onHoverChange: (type: string | null) => void;
   onDeleteDataType: (type: string) => Promise<void>;
+  onAddRecord: () => void;
 }
 
 export function DataTypesPanel({
@@ -42,17 +43,26 @@ export function DataTypesPanel({
   onDataTypeSelect,
   onHoverChange,
   onDeleteDataType,
+  onAddRecord,
 }: DataTypesPanelProps) {
   return (
     <div className="bg-card/90 backdrop-blur-sm rounded-xl border shadow-sm">
       <div className="p-6 border-b border-border/50">
-        <h2 className="text-lg font-medium flex items-center gap-2 text-foreground">
-          <Layers className="h-5 w-5 text-primary" />
-          Data Types
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Select a data type to explore its records
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-medium flex items-center gap-2 text-foreground">
+              <Layers className="h-5 w-5 text-primary" />
+              Data Types
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Select a data type to explore its records
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={onAddRecord} className="shrink-0">
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </div>
       </div>
 
       <div className="p-6">
@@ -171,6 +181,19 @@ export function DataTypesPanel({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {!isLoading && !error && types.length === 0 && (
+          <div className="text-center py-6">
+            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+            <p className="text-sm text-muted-foreground mb-3">
+              No data types in this date range
+            </p>
+            <Button size="sm" onClick={onAddRecord}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add record
+            </Button>
           </div>
         )}
       </div>

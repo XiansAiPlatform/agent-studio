@@ -44,6 +44,7 @@ Thumbs.db
 # Git
 .git
 .gitignore
+.github/
 
 # Docker
 Dockerfile*

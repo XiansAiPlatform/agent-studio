@@ -63,57 +63,54 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
 
   return (
     <div>
-      <div className="grid w-full grid-cols-12 items-center gap-3 px-4 py-3 text-left text-sm">
-        <div className="col-span-12 min-w-0 sm:col-span-3">
-          <div className="truncate font-medium" title={entry.action}>
+      <div className="px-4 py-3">
+        <div className="grid w-full grid-cols-12 items-center gap-3 text-left text-sm">
+          <div className="col-span-12 min-w-0 truncate font-medium sm:col-span-3" title={entry.action}>
             {entry.action}
           </div>
-          {entry.description && (
-            <div
-              className="mt-0.5 truncate text-xs text-muted-foreground"
-              title={entry.description}
-            >
-              {entry.description}
+          <div className="col-span-6 min-w-0 sm:col-span-3">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground/60 sm:hidden">
+              Performed by
             </div>
-          )}
-        </div>
-        <div className="col-span-6 min-w-0 sm:col-span-3">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground/60 sm:hidden">
-            Performed by
+            <div className="truncate text-muted-foreground" title={entry.participantId}>
+              {entry.participantId}
+            </div>
           </div>
-          <div className="truncate text-muted-foreground" title={entry.participantId}>
-            {entry.participantId}
+          <div className="col-span-6 min-w-0 sm:col-span-3">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground/60 sm:hidden">
+              Key user
+            </div>
+            <div className="truncate text-muted-foreground" title={entry.loggedInUser || undefined}>
+              {entry.loggedInUser || <span className="text-muted-foreground/60">—</span>}
+            </div>
+          </div>
+          <div className="col-span-2 flex items-center sm:col-span-1">
+            {hasDetails && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                aria-expanded={expanded}
+              >
+                Details
+                <ChevronDown
+                  className={cn('h-3.5 w-3.5 transition-transform', expanded && 'rotate-180')}
+                />
+              </button>
+            )}
+          </div>
+          <div
+            className="col-span-10 truncate text-xs text-muted-foreground sm:col-span-2 sm:text-right"
+            title={formatDateTime(entry.createdAt)}
+          >
+            {formatDateTime(entry.createdAt)}
           </div>
         </div>
-        <div className="col-span-6 min-w-0 sm:col-span-3">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground/60 sm:hidden">
-            Key user
-          </div>
-          <div className="truncate text-muted-foreground" title={entry.loggedInUser || undefined}>
-            {entry.loggedInUser || <span className="text-muted-foreground/60">—</span>}
-          </div>
-        </div>
-        <div className="col-span-2 flex items-center sm:col-span-1">
-          {hasDetails && (
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              aria-expanded={expanded}
-            >
-              Details
-              <ChevronDown
-                className={cn('h-3.5 w-3.5 transition-transform', expanded && 'rotate-180')}
-              />
-            </button>
-          )}
-        </div>
-        <div
-          className="col-span-10 truncate text-xs text-muted-foreground sm:col-span-2 sm:text-right"
-          title={formatDateTime(entry.createdAt)}
-        >
-          {formatDateTime(entry.createdAt)}
-        </div>
+        {entry.description ? (
+          <p className="mt-2 max-w-3xl text-xs leading-relaxed break-words text-muted-foreground">
+            {entry.description}
+          </p>
+        ) : null}
       </div>
 
       {expanded && hasDetails && (

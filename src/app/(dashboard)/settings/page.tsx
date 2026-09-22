@@ -34,7 +34,7 @@ export default function SettingsPage() {
     },
     {
       title: 'Database',
-      description: 'View and manage your database schema and records',
+      description: 'View, add, and edit data records for your agents',
       href: '/settings/database',
       icon: Database,
       color: 'text-primary',

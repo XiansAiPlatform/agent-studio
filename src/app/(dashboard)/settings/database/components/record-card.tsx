@@ -1,7 +1,6 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +19,7 @@ import {
   ChevronRight,
   Clock,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { type DataRecord } from '../types';
 import { formatDate, formatContentKey } from '../utils';
@@ -27,10 +27,9 @@ import { formatDate, formatContentKey } from '../utils';
 interface RecordCardProps {
   record: DataRecord;
   isExpanded: boolean;
-  isHovered: boolean;
   isDeleting: boolean;
   onToggle: () => void;
-  onHoverChange: (hovered: boolean) => void;
+  onEdit: () => void;
   onDelete: () => Promise<void>;
 }
 
@@ -65,18 +64,17 @@ function ContentSection({ content }: { content: Record<string, unknown> }) {
 export function RecordCard({
   record,
   isExpanded,
-  isHovered,
   isDeleting,
   onToggle,
-  onHoverChange,
+  onEdit,
   onDelete,
 }: RecordCardProps) {
+  const fieldCount =
+    record.content && typeof record.content === 'object' && !Array.isArray(record.content)
+      ? Object.keys(record.content).length
+      : 0;
   return (
-    <div
-      className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/30 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1"
-      onMouseEnter={() => onHoverChange(true)}
-      onMouseLeave={() => onHoverChange(false)}
-    >
+    <div className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/30 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1">
       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/[0.02] pointer-events-none" />
 
       <div
@@ -107,7 +105,7 @@ export function RecordCard({
                 variant="secondary"
                 className="ml-3 bg-muted text-muted-foreground border-border font-normal px-2 py-1 text-xs"
               >
-                {Object.keys(record.content).length} fields
+                {fieldCount} fields
               </Badge>
             </div>
 
@@ -122,9 +120,20 @@ export function RecordCard({
               <div className="flex items-center gap-1.5 text-xs text-slate-400">
                 <Clock className="h-3 w-3" />
                 <span>{formatDate(record.createdAt)}</span>
-                {isHovered && (
-                  <>
-                    <span className="text-slate-300">•</span>
+                <span className="text-slate-300">•</span>
+                <button
+                  className="text-xs text-primary hover:text-primary/80 underline transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <Pencil className="h-3 w-3" />
+                    edit
+                  </span>
+                </button>
+                <span className="text-slate-300">•</span>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
@@ -177,8 +186,6 @@ export function RecordCard({
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -194,7 +201,15 @@ export function RecordCard({
                 <span className="text-sm font-medium text-slate-600">Content</span>
               </div>
               <div className="bg-muted/50 rounded-lg p-4 space-y-2 border border-border">
-                <ContentSection content={record.content} />
+                {record.content &&
+                typeof record.content === 'object' &&
+                !Array.isArray(record.content) ? (
+                  <ContentSection content={record.content} />
+                ) : (
+                  <pre className="whitespace-pre-wrap text-xs text-slate-500">
+                    {JSON.stringify(record.content, null, 2)}
+                  </pre>
+                )}
               </div>
             </div>
 

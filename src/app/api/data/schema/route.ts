@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
-import { createXiansClient } from '@/lib/xians/client';
 import { assertCanEditAgent } from '@/lib/auth/agent-access';
+import { handleApiError, validationError } from '@/lib/api/error-handler';
+import { adminDataSchemaPath, createAdminDataClient } from '@/lib/xians/admin-data';
 
 /**
  * GET /api/data/schema
@@ -19,19 +20,13 @@ export const GET = withParticipantAdmin(
       const activationName = searchParams.get('activationName');
 
       if (!startDate || !endDate || !agentName || !activationName) {
-        return NextResponse.json(
-          {
-            error:
-              'Missing required parameters: startDate, endDate, agentName, activationName',
-          },
-          { status: 400 }
+        return validationError(
+          'Missing required parameters: startDate, endDate, agentName, activationName'
         );
       }
 
       const denied = await assertCanEditAgent(session, tenantId, agentName);
       if (denied) return denied;
-
-      const xiansClient = createXiansClient((session as any)?.accessToken);
 
       const xiansParams = new URLSearchParams({
         startDate,
@@ -40,32 +35,15 @@ export const GET = withParticipantAdmin(
         activationName,
       });
 
-      const response = await xiansClient.get(
-        `/api/v1/admin/tenants/${tenantId}/data/schema?${xiansParams.toString()}`
+      const response = await createAdminDataClient().get(
+        `${adminDataSchemaPath(tenantId)}?${xiansParams.toString()}`
       );
 
       return NextResponse.json(response);
-    } catch (error: any) {
-      console.error('[Data Schema API] Error:', error);
-
-      if (error.status === 404) {
-        return NextResponse.json(
-          { error: 'Data schema not found' },
-          { status: 404 }
-        );
-      }
-
-      if (error.status === 403) {
-        return NextResponse.json(
-          { error: 'Access denied' },
-          { status: 403 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: error.message || 'Failed to fetch data schema' },
-        { status: error.status || 500 }
-      );
+    } catch (error) {
+      return handleApiError(error, 'data schema GET', {
+        fallbackMessage: 'Failed to fetch data schema',
+      });
     }
   }
 );

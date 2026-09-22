@@ -17,6 +17,18 @@ Automatically builds and publishes Docker images to DockerHub when version tags 
 - GitHub Actions cache optimization
 - Comprehensive build summaries
 
+**Structure:**
+
+The workflow runs as two jobs. `build` is a matrix that compiles each
+architecture on a runner of that architecture — AMD64 on `ubuntu-latest`,
+ARM64 on `ubuntu-24.04-arm` — and pushes each result to DockerHub by digest.
+`publish` then assembles those digests into a single multi-arch manifest and
+applies the version tags.
+
+The architectures must not be combined into one buildx invocation. Doing so
+emulates ARM64 through QEMU on an AMD64 runner, which reliably hangs during
+`npm ci` and burns the job timeout.
+
 ## Setup Instructions
 
 ### 1. Configure DockerHub Organization
