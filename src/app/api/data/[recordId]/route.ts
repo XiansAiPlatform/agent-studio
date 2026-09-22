@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
+import { encodeSafePathSegment } from '@/lib/api/path-segment';
 import { createXiansClient } from '@/lib/xians/client';
 import { assertCanEditAgent } from '@/lib/auth/agent-access';
-
-function extractRecordIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/\/api\/data\/([^/]+)/);
-  return match ? match[1] : null;
-}
 
 /**
  * DELETE /api/data/[recordId]
@@ -14,17 +10,17 @@ function extractRecordIdFromPath(pathname: string): string | null {
  * Tenant is resolved from server-side session (httpOnly cookie), never from client.
  */
 export const DELETE = withParticipantAdmin(
-  async (request: NextRequest, { session, tenantId }: ApiContext) => {
-    const recordId = extractRecordIdFromPath(new URL(request.url).pathname);
+  async (request: NextRequest, { session, tenantId, params }: ApiContext<{ recordId: string }>) => {
+    const recordId = encodeSafePathSegment(params.recordId);
 
     if (!recordId) {
       return NextResponse.json(
-        { error: 'Record ID is required' },
+        { error: 'recordId is required and must be a valid identifier' },
         { status: 400 }
       );
     }
 
-    const agentName = new URL(request.url).searchParams.get('agentName');
+    const agentName = request.nextUrl.searchParams.get('agentName');
     const denied = await assertCanEditAgent(session, tenantId, agentName);
     if (denied) return denied;
 
@@ -32,7 +28,7 @@ export const DELETE = withParticipantAdmin(
       const xiansClient = createXiansClient((session as any)?.accessToken);
 
       const response = await xiansClient.delete(
-        `/api/v1/admin/tenants/${tenantId}/data/${recordId}`
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/data/${recordId}`
       );
 
       return NextResponse.json(response);

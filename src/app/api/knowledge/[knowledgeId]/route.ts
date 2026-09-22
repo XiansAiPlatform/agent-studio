@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
+import { encodeSafePathSegment } from '@/lib/api/path-segment';
 import { createXiansClient, XiansClient } from '@/lib/xians/client';
 import { KnowledgeItem } from '@/lib/xians/knowledge';
 import { assertCanEditAgent } from '@/lib/auth/agent-access';
 import type { Session } from 'next-auth';
 
-function extractKnowledgeIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/\/api\/knowledge\/([^/]+)/);
-  return match ? match[1] : null;
+function requireKnowledgeId(raw: string | undefined): string | NextResponse {
+  const knowledgeId = encodeSafePathSegment(raw);
+  if (!knowledgeId) {
+    return NextResponse.json(
+      { error: 'knowledgeId is required and must be a valid identifier' },
+      { status: 400 }
+    );
+  }
+  return knowledgeId;
 }
 
 /**
@@ -22,7 +29,7 @@ async function loadItemIfEditable(
   knowledgeId: string
 ): Promise<[KnowledgeItem, null] | [null, NextResponse]> {
   const item = await client.get<KnowledgeItem>(
-    `/api/v1/admin/tenants/${tenantId}/knowledge/${knowledgeId}`
+    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/knowledge/${knowledgeId}`
   );
   const denied = await assertCanEditAgent(session, tenantId, item?.agent);
   if (denied) return [null, denied];
@@ -35,14 +42,9 @@ async function loadItemIfEditable(
  * Restricted to users with Agent Settings access (excludes plain participants).
  */
 export const GET = withParticipantAdmin(
-  async (request: NextRequest, { session, tenantId }: ApiContext) => {
-    const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
-    if (!knowledgeId) {
-      return NextResponse.json(
-        { error: 'Knowledge ID is required' },
-        { status: 400 }
-      );
-    }
+  async (_request: NextRequest, { session, tenantId, params }: ApiContext<{ knowledgeId: string }>) => {
+    const knowledgeId = requireKnowledgeId(params.knowledgeId);
+    if (knowledgeId instanceof NextResponse) return knowledgeId;
 
     try {
       const client = createXiansClient();
@@ -69,14 +71,9 @@ export const GET = withParticipantAdmin(
  * Restricted to users with Agent Settings access (excludes plain participants).
  */
 export const PATCH = withParticipantAdmin(
-  async (request: NextRequest, { session, tenantId }: ApiContext) => {
-    const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
-    if (!knowledgeId) {
-      return NextResponse.json(
-        { error: 'Knowledge ID is required' },
-        { status: 400 }
-      );
-    }
+  async (request: NextRequest, { session, tenantId, params }: ApiContext<{ knowledgeId: string }>) => {
+    const knowledgeId = requireKnowledgeId(params.knowledgeId);
+    if (knowledgeId instanceof NextResponse) return knowledgeId;
 
     try {
       const body = await request.json();
@@ -94,7 +91,7 @@ export const PATCH = withParticipantAdmin(
       if (denied) return denied;
 
       const response = await client.patch<KnowledgeItem>(
-        `/api/v1/admin/tenants/${tenantId}/knowledge/${knowledgeId}`,
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/knowledge/${knowledgeId}`,
         { content, type, version }
       );
       return NextResponse.json(response);
@@ -118,14 +115,9 @@ export const PATCH = withParticipantAdmin(
  * Restricted to users with Agent Settings access (excludes plain participants).
  */
 export const DELETE = withParticipantAdmin(
-  async (request: NextRequest, { session, tenantId }: ApiContext) => {
-    const knowledgeId = extractKnowledgeIdFromPath(new URL(request.url).pathname);
-    if (!knowledgeId) {
-      return NextResponse.json(
-        { error: 'Knowledge ID is required' },
-        { status: 400 }
-      );
-    }
+  async (_request: NextRequest, { session, tenantId, params }: ApiContext<{ knowledgeId: string }>) => {
+    const knowledgeId = requireKnowledgeId(params.knowledgeId);
+    if (knowledgeId instanceof NextResponse) return knowledgeId;
 
     try {
       const client = createXiansClient();
@@ -133,7 +125,7 @@ export const DELETE = withParticipantAdmin(
       if (denied) return denied;
 
       await client.delete(
-        `/api/v1/admin/tenants/${tenantId}/knowledge/${knowledgeId}`
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/knowledge/${knowledgeId}`
       );
       return NextResponse.json({ success: true });
     } catch (error: unknown) {

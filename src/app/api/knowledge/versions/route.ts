@@ -17,9 +17,9 @@ export const DELETE = withParticipantAdmin(
       const agentName = searchParams.get('agentName');
       const activationName = searchParams.get('activationName');
 
-      if (!name) {
+      if (!name || name === '.' || name === '..') {
         return NextResponse.json(
-          { error: 'name query parameter is required' },
+          { error: 'name query parameter is required and must be a valid identifier' },
           { status: 400 }
         );
       }
@@ -55,7 +55,7 @@ export const DELETE = withParticipantAdmin(
       }
 
       const response = await client.delete(
-        `/api/v1/admin/tenants/${tenantId}/knowledge/${encodeURIComponent(name)}/${level}/versions?${params}`
+        `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/knowledge/${encodeURIComponent(name)}/${level}/versions?${params}`
       );
 
       return NextResponse.json(response || { success: true, deletedCount: 0 });
