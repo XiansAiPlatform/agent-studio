@@ -14,27 +14,54 @@ import { useTenantProvider, TenantContext } from "@/lib/tenant"
 import { requireParticipantAdmin, requireTenantAdmin, requireSystemAdmin } from "@/lib/api/auth"
 import { runWithSessionOnBehalfOf } from "@/lib/xians/on-behalf-of"
 
+/** Dynamic segments from the Next.js App Router route context. */
+export type RouteParams = Record<string, string>
+
+/**
+ * Next.js App Router context passed as the second argument to route handlers.
+ * Optional so existing wrappers that call `handler(request)` without forwarding
+ * context continue to work (they typically close over `context.params` instead).
+ */
+export interface AppRouteContext<P extends RouteParams = RouteParams> {
+  params?: Promise<P>
+}
+
 /**
  * API Context provided to route handlers
  * Contains authenticated session and tenant information
  */
-export interface ApiContext {
+export interface ApiContext<P extends RouteParams = RouteParams> {
   /** NextAuth session with augmented user properties */
   session: Session
   /** Validated tenant context */
   tenantContext: TenantContext
-  /** Tenant ID from route parameters */
+  /** Tenant ID from the httpOnly current-tenant-id cookie */
   tenantId: string
+  /**
+   * Decoded dynamic route params from Next.js (`[threadId]`, `[fileId]`, …).
+   * Empty object when the route has no dynamic segments, or when the wrapper
+   * was invoked without the App Router context.
+   */
+  params: P
 }
 
 /**
  * API Route Handler type
  * Handlers receive request and context, return a Response
  */
-export type ApiHandler = (
-  request: NextRequest, 
-  context: ApiContext
+export type ApiHandler<P extends RouteParams = RouteParams> = (
+  request: NextRequest,
+  context: ApiContext<P>
 ) => Promise<Response>
+
+async function resolveRouteParams<P extends RouteParams>(
+  routeContext?: AppRouteContext<P>
+): Promise<P> {
+  if (!routeContext?.params) {
+    return {} as P
+  }
+  return (await routeContext.params) ?? ({} as P)
+}
 
 /** Cookie name for current tenant (server-side only, httpOnly) */
 export const CURRENT_TENANT_COOKIE = 'current-tenant-id'
@@ -122,8 +149,10 @@ export async function rejectClientTenantId(
  * @param handler - API route handler function
  * @returns Wrapped route handler with tenant from session
  */
-export function withTenantFromSession(handler: ApiHandler) {
-  return async (request: NextRequest) => {
+export function withTenantFromSession<P extends RouteParams = RouteParams>(
+  handler: ApiHandler<P>
+) {
+  return async (request: NextRequest, routeContext?: AppRouteContext<P>) => {
     try {
       // Tenant is resolved server-side only — reject any client-supplied identity.
       const identityError = await rejectClientTenantId(request)
@@ -164,7 +193,8 @@ export function withTenantFromSession(handler: ApiHandler) {
           )
         }
 
-        return handler(request, { session, tenantContext, tenantId })
+        const params = await resolveRouteParams(routeContext)
+        return handler(request, { session, tenantContext, tenantId, params })
       })
     } catch (error) {
       console.error('[withTenantFromSession] Error:', error)
@@ -193,8 +223,10 @@ export function withTenantFromSession(handler: ApiHandler) {
  * @param handler - API route handler function
  * @returns Wrapped route handler with tenant and participant admin validation
  */
-export function withParticipantAdmin(handler: ApiHandler) {
-  return async (request: NextRequest) => {
+export function withParticipantAdmin<P extends RouteParams = RouteParams>(
+  handler: ApiHandler<P>
+) {
+  return async (request: NextRequest, routeContext?: AppRouteContext<P>) => {
     try {
       // Reject any client-supplied tenantId (query/header/body) — tenant must come
       // from the server-side cookie only.
@@ -232,10 +264,12 @@ export function withParticipantAdmin(handler: ApiHandler) {
           )
         }
 
+        const params = await resolveRouteParams(routeContext)
         return handler(request, {
           session,
           tenantContext,
           tenantId: tenantId!,
+          params,
         })
       })
     } catch (error) {
@@ -258,8 +292,10 @@ export function withParticipantAdmin(handler: ApiHandler) {
  * @param handler - API route handler function
  * @returns Wrapped route handler with strict tenant admin validation
  */
-export function withTenantAdmin(handler: ApiHandler) {
-  return async (request: NextRequest) => {
+export function withTenantAdmin<P extends RouteParams = RouteParams>(
+  handler: ApiHandler<P>
+) {
+  return async (request: NextRequest, routeContext?: AppRouteContext<P>) => {
     try {
       const identityError = await rejectClientTenantId(request)
       if (identityError) return identityError
@@ -292,7 +328,8 @@ export function withTenantAdmin(handler: ApiHandler) {
           )
         }
 
-        return handler(request, { session, tenantContext, tenantId: tenantId! })
+        const params = await resolveRouteParams(routeContext)
+        return handler(request, { session, tenantContext, tenantId: tenantId!, params })
       })
     } catch (error) {
       console.error('[withTenantAdmin] Error:', error)
@@ -358,8 +395,10 @@ export function withSystemAdmin(
  * SECURITY: Same cookie-only tenant resolution as withTenantAdmin. TenantAdmin
  * and other participant roles are NOT allowed here.
  */
-export function withSystemAdminTenant(handler: ApiHandler) {
-  return async (request: NextRequest) => {
+export function withSystemAdminTenant<P extends RouteParams = RouteParams>(
+  handler: ApiHandler<P>
+) {
+  return async (request: NextRequest, routeContext?: AppRouteContext<P>) => {
     try {
       const identityError = await rejectClientTenantId(request)
       if (identityError) return identityError
@@ -398,7 +437,8 @@ export function withSystemAdminTenant(handler: ApiHandler) {
           )
         }
 
-        return handler(request, { session, tenantContext, tenantId })
+        const params = await resolveRouteParams(routeContext)
+        return handler(request, { session, tenantContext, tenantId, params })
       })
     } catch (error) {
       console.error('[withSystemAdminTenant] Error:', error)

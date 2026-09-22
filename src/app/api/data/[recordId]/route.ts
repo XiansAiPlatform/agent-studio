@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant';
 import { handleApiError, validationError } from '@/lib/api/error-handler';
+import { isSafePathSegment } from '@/lib/api/path-segment';
 import {
   ADMIN_DATA_JSON_MAX_BYTES,
   adminDataRecordPath,
@@ -17,7 +18,8 @@ async function recordIdFrom(
 ): Promise<string | null> {
   const { recordId } = await context.params;
   const trimmed = recordId?.trim();
-  return trimmed ? trimmed : null;
+  // Reject traversal / encoded separators; adminDataRecordPath encodes the rest.
+  return isSafePathSegment(trimmed) ? trimmed : null;
 }
 
 /**
@@ -31,7 +33,9 @@ export async function GET(
   const handler = withParticipantAdmin(
     async (_req: NextRequest, { session, tenantId }: ApiContext) => {
       const recordId = await recordIdFrom(context);
-      if (!recordId) return validationError('Record ID is required');
+      if (!recordId) {
+        return validationError('Record ID is required and must be a valid identifier');
+      }
 
       try {
         const client = createAdminDataClient();
@@ -68,7 +72,9 @@ export async function PUT(
   const handler = withParticipantAdmin(
     async (req: NextRequest, { session, tenantId }: ApiContext) => {
       const recordId = await recordIdFrom(context);
-      if (!recordId) return validationError('Record ID is required');
+      if (!recordId) {
+        return validationError('Record ID is required and must be a valid identifier');
+      }
 
       try {
         const tooLarge = oversizedRequestError(req);
@@ -174,7 +180,9 @@ export async function DELETE(
   const handler = withParticipantAdmin(
     async (_req: NextRequest, { session, tenantId }: ApiContext) => {
       const recordId = await recordIdFrom(context);
-      if (!recordId) return validationError('Record ID is required');
+      if (!recordId) {
+        return validationError('Record ID is required and must be a valid identifier');
+      }
 
       try {
         const client = createAdminDataClient();

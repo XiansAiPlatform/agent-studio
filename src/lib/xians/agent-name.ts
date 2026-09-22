@@ -51,17 +51,45 @@ export function decodeAgentNameParam(
 }
 
 /**
+ * WHATWG special path segments. `encodeURIComponent` leaves these unchanged,
+ * and `new URL(path, base)` then resolves them as relative segments — so a
+ * param of `..` (or `%2e%2e`) can escape a tenant-scoped Admin API path.
+ */
+export function isDotPathSegment(value: string): boolean {
+  return value === '.' || value === '..'
+}
+
+export class InvalidAgentNamePathError extends Error {
+  readonly status = 400
+  constructor(
+    message = 'Agent or activation name is not a valid path segment'
+  ) {
+    super(message)
+    this.name = 'InvalidAgentNamePathError'
+  }
+}
+
+/**
  * Encode a name for use as a URL path segment (`Kjøpsassistent` →
  * `Kj%C3%B8psassistent`). Decodes first so already-encoded params are not
- * double-encoded.
+ * double-encoded. Rejects `.` / `..` / empty after decode so the result
+ * cannot change the upstream path.
  */
 export function encodeAgentNamePath(name: string): string {
-  return encodeURIComponent(decodeAgentNameParam(name))
+  const decoded = decodeAgentNameParam(name)
+  if (!decoded || isDotPathSegment(decoded)) {
+    throw new InvalidAgentNamePathError()
+  }
+  return encodeURIComponent(decoded)
 }
 
 export function isValidAgentName(name: string): boolean {
   const normalized = normalizeAgentName(name)
-  return normalized.length > 0 && AGENT_NAME_PATTERN.test(normalized)
+  return (
+    normalized.length > 0 &&
+    !isDotPathSegment(normalized) &&
+    AGENT_NAME_PATTERN.test(normalized)
+  )
 }
 
 export function agentNamesEqual(

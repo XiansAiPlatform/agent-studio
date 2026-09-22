@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
+import { encodeSafePathSegment } from '@/lib/api/path-segment'
 import { handleApiError } from '@/lib/api/error-handler'
 import { xiansAdminHeaders } from '@/lib/xians/client'
 
@@ -11,14 +12,14 @@ import { xiansAdminHeaders } from '@/lib/xians/client'
  * (which enforces tenant isolation on the stored GridFS metadata).
  */
 export const GET = withTenantFromSession(
-  async (request: NextRequest, { tenantId }: ApiContext) => {
+  async (_request: NextRequest, { tenantId, params }: ApiContext<{ fileId: string }>) => {
     try {
-      // Extract the fileId from the path: /api/messaging/files/{fileId}
-      const segments = request.nextUrl.pathname.split('/')
-      const fileId = segments[segments.length - 1]
-
+      const fileId = encodeSafePathSegment(params.fileId)
       if (!fileId) {
-        return NextResponse.json({ error: 'fileId is required' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'fileId is required and must be a valid identifier' },
+          { status: 400 }
+        )
       }
 
       const baseUrl = process.env.XIANS_SERVER_URL
@@ -31,7 +32,7 @@ export const GET = withTenantFromSession(
 
       const url = `${baseUrl.replace(/\/$/, '')}/api/v1/admin/tenants/${encodeURIComponent(
         tenantId
-      )}/messaging/files/${encodeURIComponent(fileId)}`
+      )}/messaging/files/${fileId}`
 
       const upstream = await fetch(url, {
         method: 'GET',
