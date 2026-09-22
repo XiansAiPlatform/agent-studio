@@ -20,7 +20,7 @@ interface TenantUserOption {
   name: string;
 }
 
-const USER_SEARCH_DEBOUNCE_MS = 300;
+export const USER_SEARCH_DEBOUNCE_MS = 300;
 
 interface ViewAsParticipantBarProps {
   tenantId: string | null;
