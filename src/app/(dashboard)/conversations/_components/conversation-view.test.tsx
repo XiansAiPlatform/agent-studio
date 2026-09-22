@@ -102,6 +102,7 @@ function renderConversationView(readOnly: boolean) {
         isConnected
         onCreateTopic={() => {}}
         onDeleteTopic={async () => {}}
+        allowFileUpload
         readOnly={readOnly}
       />
     </ParticipantLayoutProvider>
@@ -196,6 +197,7 @@ describe('view-as read-only UI', () => {
     expect(screen.getByRole('button', { name: 'Rate response' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Create topic' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Topic actions' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Attach files' })).toBeTruthy()
 
     rerender(
       <ParticipantLayoutProvider isParticipantMode={false}>
@@ -221,6 +223,7 @@ describe('view-as read-only UI', () => {
           isConnected
           onCreateTopic={() => {}}
           onDeleteTopic={async () => {}}
+          allowFileUpload
           readOnly
         />
       </ParticipantLayoutProvider>
@@ -231,6 +234,7 @@ describe('view-as read-only UI', () => {
     expect(screen.queryByRole('button', { name: 'Rate response' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Create topic' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Topic actions' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /attach file/i })).toBeNull()
     expect(
       screen.getByText(/Read-only: you are viewing another user's conversation/)
     ).toBeTruthy()

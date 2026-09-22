@@ -68,15 +68,25 @@ describe('ViewAsParticipantBar', () => {
 
   it('aborts the in-flight request when the search term changes again', async () => {
     vi.useFakeTimers()
-    const signals: AbortSignal[] = []
-    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
-      const signal = init?.signal
-      if (signal) signals.push(signal)
-      return new Promise((_resolve, reject) => {
+    const requests: Array<{ signal?: AbortSignal; promise: Promise<unknown> }> = []
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      const signal = init?.signal ?? undefined
+      const promise = new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+          reject(new DOMException('Aborted', 'AbortError'))
+          return
+        }
         signal?.addEventListener('abort', () => {
-          reject(new DOMException('The operation was aborted.', 'AbortError'))
+          reject(new DOMException('Aborted', 'AbortError'))
         })
+        if (String(url).includes('search=bob')) {
+          resolve(
+            jsonResponse({ users: [{ email: 'bob@example.com', name: 'Bob' }] })
+          )
+        }
       })
+      requests.push({ signal, promise })
+      return promise
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -93,7 +103,7 @@ describe('ViewAsParticipantBar', () => {
       await Promise.resolve()
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(signals[0]?.aborted).toBe(false)
+    expect(requests[0]?.signal?.aborted).toBe(false)
 
     fireEvent.change(screen.getByLabelText('Search tenant users'), {
       target: { value: 'bob' },
@@ -104,8 +114,10 @@ describe('ViewAsParticipantBar', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(signals[0]?.aborted).toBe(true)
-    expect(signals[1]?.aborted).toBe(false)
+    expect(requests[0]?.signal?.aborted).toBe(true)
+    expect(requests[1]?.signal?.aborted).toBe(false)
+    await expect(requests[0]?.promise).rejects.toMatchObject({ name: 'AbortError' })
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('renders the load error and does not list users', async () => {
