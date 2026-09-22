@@ -471,12 +471,19 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const effectiveCollapsed = mobile ? false : collapsed;
   const activePanelConfig = activePanelMode ? findPanelConfig(activePanelMode) : null;
 
-  // The settings panels (Knowledge / Data / Schedules / Connections) should only
-  // offer agents the user may edit. The Conversations panel is unrestricted.
+  // Settings panels (Knowledge / Data / Schedules / Connections) list every
+  // active agent, then deny on select when the user lacks Write/Owner. Conversations
+  // has no edit gate.
   const editableAgents = useEditableAgents();
-  const panelEditableAgentNames =
-    activePanelConfig && activePanelConfig.basePath !== '/conversations' && !editableAgents.canEditAll
-      ? editableAgents.editable
+  const panelEditAccessCheck =
+    activePanelConfig && activePanelConfig.basePath !== '/conversations'
+      ? {
+          canEditAll: editableAgents.canEditAll,
+          roleDefaultWrite: editableAgents.roleDefaultWrite,
+          levels: editableAgents.levels,
+          editable: editableAgents.editable,
+          isLoading: editableAgents.isLoading,
+        }
       : null;
 
   const handlePanelTriggerClick = (itemName: string) => {
@@ -577,7 +584,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           <AgentSelectionContent
-            editableAgentNames={panelEditableAgentNames}
+            editAccessCheck={panelEditAccessCheck}
             onActivationSelect={(activationName, agentName) => {
               const url = buildPanelDestinationUrl(activePanelConfig, agentName, activationName);
               router.push(url);
@@ -623,7 +630,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
           title={activePanelConfig.title}
           description={activePanelConfig.description}
           icon={activePanelConfig.icon}
-          editableAgentNames={panelEditableAgentNames}
+          editAccessCheck={panelEditAccessCheck}
           onActivationSelect={(activationName, agentName) => {
             const url = buildPanelDestinationUrl(activePanelConfig, agentName, activationName);
             router.push(url);

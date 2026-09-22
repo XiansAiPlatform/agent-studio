@@ -2,30 +2,32 @@
 
 import { useEffect, useState } from 'react'
 import { useTenant } from '@/hooks/use-tenant'
-import { decodeAgentNameParam } from '@/lib/xians/agent-name'
+import {
+  mayEditAgent,
+  type AgentLevel,
+  type AgentEditPolicy,
+} from '@/lib/auth/agent-edit-policy'
 
-export type AgentLevel = 'Read' | 'Write' | 'Owner'
+export type { AgentLevel }
 
-export interface EditableAgents {
-  /** TenantAdmin / SysAdmin — may edit every agent in the tenant. */
-  canEditAll: boolean
-  /** Agent names the user may edit (Write/Owner). Empty when `canEditAll`. */
+export interface EditableAgents extends AgentEditPolicy {
+  /** Agent names with an explicit Write/Owner grant. Empty when `canEditAll`. */
   editable: string[]
-  /** Raw per-agent grant level, by agent name. */
-  levels: Record<string, AgentLevel>
   isLoading: boolean
 }
 
 const EMPTY: Omit<EditableAgents, 'isLoading'> = {
   canEditAll: false,
+  roleDefaultWrite: false,
   editable: [],
   levels: {},
 }
 
 /**
  * Which agents the signed-in user may open/edit in the settings area, from
- * `GET /api/agent-access`. Use it to filter agent pickers and guard pages.
- * Authorization is always re-checked server-side; this is for UX only.
+ * `GET /api/agent-access`. Settings pickers list all active agents and use this
+ * to deny navigation when the user cannot edit. Authorization is always
+ * re-checked server-side; this is for UX only.
  */
 export function useEditableAgents(): EditableAgents {
   const { currentTenantId } = useTenant()
@@ -43,6 +45,7 @@ export function useEditableAgents(): EditableAgents {
         if (res.ok && data) {
           setState({
             canEditAll: !!data.canEditAll,
+            roleDefaultWrite: !!data.roleDefaultWrite,
             editable: Array.isArray(data.editable) ? data.editable : [],
             levels: data.levels ?? {},
             isLoading: false,
@@ -63,10 +66,10 @@ export function useEditableAgents(): EditableAgents {
   return state
 }
 
-/** Whether `agentName` is editable given a resolved `EditableAgents`. */
-export function canEditAgent(access: EditableAgents, agentName: string | null | undefined): boolean {
-  if (!agentName) return false
-  if (access.canEditAll) return true
-  const canonical = decodeAgentNameParam(agentName)
-  return access.editable.some((name) => decodeAgentNameParam(name) === canonical)
+/** Whether `agentName` is editable given a resolved edit-access snapshot. */
+export function canEditAgent(
+  access: Pick<EditableAgents, 'canEditAll' | 'roleDefaultWrite' | 'levels' | 'editable'>,
+  agentName: string | null | undefined
+): boolean {
+  return mayEditAgent(access, agentName)
 }

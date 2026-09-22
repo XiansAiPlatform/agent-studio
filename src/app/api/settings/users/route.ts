@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withParticipantAdmin, withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { TENANT_ROLES } from '@/app/(dashboard)/system-admin/users/types'
@@ -8,9 +8,10 @@ import { normalizeTenantUser } from '@/app/(dashboard)/tenant-settings/users/typ
 /**
  * GET /api/settings/users
  * List tenant users (paginated). Tenant is resolved from the httpOnly cookie.
- * Only accessible by TenantParticipantAdmin.
+ * Accessible by anyone with settings:view (Participant Admin / Developer /
+ * Tenant Admin / SysAdmin) so Manage access can show every tenant member.
  */
-export const GET = withTenantAdmin(
+export const GET = withParticipantAdmin(
   async (request: NextRequest, { tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     const { searchParams } = new URL(request.url)
