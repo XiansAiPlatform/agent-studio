@@ -2,20 +2,29 @@ import { NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { resolveSecretAccess } from '@/lib/api/secret-access'
 import { normalizeTenantUser } from '@/app/(dashboard)/tenant-settings/users/types'
 
 /**
  * GET /api/settings/secrets/participants
  * Directory of tenant users for the user-scoped secret picker.
- * Gated by settings:view (TenantParticipantAdmin, TenantUser, TenantAdmin, SysAdmin)
- * rather than tenant:manage-users, so SysAdmin and Participant Admin both get a
- * dropdown. Returns only identity fields (no roles or lockout data).
+ * Requires secrets:manage-user-scoped (TenantParticipantAdmin, SysAdmin): only
+ * callers who may create secrets for other members need the member directory.
+ * Returns only identity fields (no roles or lockout data).
  */
 export const GET = withParticipantAdmin(
-  async (_request, { tenantContext }: ApiContext) => {
+  async (_request, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
     try {
+      const access = await resolveSecretAccess(session, tenantId)
+      if (!access.canManageOtherUsers) {
+        return NextResponse.json(
+          { error: 'Not authorized to list tenant participants' },
+          { status: 403 }
+        )
+      }
+
       const client = createXiansClient()
       const participants: Array<{ userId: string; name: string; email: string }> = []
       let page = 1

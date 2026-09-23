@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useSession } from 'next-auth/react'
 import { z } from 'zod'
 import {
   Sheet,
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react'
+import { useCan } from '@/hooks/use-permissions'
 import { CreateSecretRequest, CreateSecretScope } from '../types'
 
 const KEY_PATTERN = /^[A-Za-z0-9._-]+$/
@@ -89,6 +91,11 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
   const [showValue, setShowValue] = useState(false)
   const [directory, setDirectory] = useState<DirectoryUser[]>([])
   const [isLoadingDirectory, setIsLoadingDirectory] = useState(false)
+  // Without this capability the caller may only create user-scoped secrets for
+  // themselves (enforced server-side too), so the member directory isn't loaded.
+  const canManageOtherUsers = useCan('secrets:manage-user-scoped')
+  const { data: session } = useSession()
+  const selfUserId = session?.user?.email?.trim().toLowerCase() ?? ''
 
   const {
     register,
@@ -117,7 +124,12 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
   const useDirectoryPicker = uniqueDirectory.length > 0
 
   useEffect(() => {
-    if (!open) return
+    if (!open || scope !== 'user' || canManageOtherUsers) return
+    setValue('userId', selfUserId)
+  }, [open, scope, canManageOtherUsers, selfUserId, setValue])
+
+  useEffect(() => {
+    if (!open || !canManageOtherUsers) return
     let cancelled = false
     setIsLoadingDirectory(true)
 
@@ -156,7 +168,7 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
     return () => {
       cancelled = true
     }
-  }, [open])
+  }, [open, canManageOtherUsers])
 
   const handleClose = (next: boolean) => {
     if (!next) {
@@ -247,7 +259,14 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
           {scope === 'user' && (
             <div className="space-y-2">
               <Label htmlFor="add-secret-user">User</Label>
-              {isLoadingDirectory ? (
+              {!canManageOtherUsers ? (
+                <Input
+                  id="add-secret-user"
+                  value={selfUserId}
+                  readOnly
+                  disabled
+                />
+              ) : isLoadingDirectory ? (
                 <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading users…
@@ -287,7 +306,9 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
                 <p className="text-xs text-destructive">{errors.userId.message}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  {useDirectoryPicker
+                  {!canManageOtherUsers
+                    ? 'You can only create user-scoped secrets for yourself.'
+                    : useDirectoryPicker
                     ? 'The secret is stored for this user. Agents look it up by email.'
                     : 'Enter the user email agents use as the participant id.'}
                 </p>
