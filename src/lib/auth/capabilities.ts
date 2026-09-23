@@ -30,6 +30,13 @@ export type Capability =
   | 'developer:access'
   /** Manage tenant users (`/tenant-settings/*`). */
   | 'tenant:manage-users'
+  /**
+   * Create, delete and list user-scoped secrets that belong to OTHER tenant
+   * members, and browse the tenant member directory for the secret picker.
+   * Without it, `settings:view` holders only manage tenant-scoped secrets and
+   * their own user-scoped secrets.
+   */
+  | 'secrets:manage-user-scoped'
   /** Customize the tenant theme. */
   | 'theme:customize'
   /** Platform-wide system administration (`/system-admin/*`). */
@@ -41,6 +48,7 @@ export const ALL_CAPABILITIES: Capability[] = [
   'settings:view',
   'developer:access',
   'tenant:manage-users',
+  'secrets:manage-user-scoped',
   'theme:customize',
   'system:admin',
 ]
@@ -60,6 +68,7 @@ const ROLE_CAPABILITIES: Record<XiansParticipantRole, Capability[]> = {
     'settings:view',
     'developer:access',
     'theme:customize',
+    'secrets:manage-user-scoped',
   ],
   TenantUser: [
     'app:use-full-layout',

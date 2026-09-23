@@ -23,9 +23,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { useSecrets } from './hooks/use-secrets'
-import { CreateSecretRequest, TenantSecret, getSecretDescription } from './types'
+import {
+  CreateSecretRequest,
+  TenantSecret,
+  getSecretDescription,
+  getSecretScopeLabel,
+} from './types'
 import { AddSecretDialog } from './components/add-secret-dialog'
 import { DeleteSecretDialog } from './components/delete-secret-dialog'
+import { SecretScopeBadge } from './components/secret-scope-badge'
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '—'
@@ -59,6 +65,7 @@ export default function SecretsPage() {
     const list = q
       ? secrets.filter((s) => {
           if (s.key.toLowerCase().includes(q)) return true
+          if (getSecretScopeLabel(s).toLowerCase().includes(q)) return true
           const desc = getSecretDescription(s)
           return desc ? desc.toLowerCase().includes(q) : false
         })
@@ -119,7 +126,7 @@ export default function SecretsPage() {
                 Secrets
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Manage tenant-scoped secrets used by your agents and integrations
+                Manage secrets used by your agents and integrations
               </p>
             </div>
             <Button onClick={() => setShowAdd(true)} className="gap-2 w-full sm:w-auto">
@@ -251,6 +258,7 @@ export default function SecretsPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
+                  <SecretScopeBadge secret={secret} />
                   {description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">
                       {description}
@@ -279,6 +287,9 @@ export default function SecretsPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Key
                 </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Scope
+                </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">
                   Created
                 </th>
@@ -293,14 +304,14 @@ export default function SecretsPage() {
             <tbody>
               {isLoading && secrets.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-16 text-center text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                     Loading secrets…
                   </td>
                 </tr>
               ) : filteredSecrets.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-16 text-center text-muted-foreground">
                     <KeyRound className="h-8 w-8 mx-auto mb-3 opacity-30" />
                     <p className="font-medium text-foreground">
                       {search ? 'No matching secrets' : 'No secrets yet'}
@@ -348,6 +359,9 @@ export default function SecretsPage() {
                         <div className="text-xs text-muted-foreground mt-1 md:hidden">
                           {formatDate(secret.createdAt)}
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <SecretScopeBadge secret={secret} />
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         {formatDate(secret.createdAt)}

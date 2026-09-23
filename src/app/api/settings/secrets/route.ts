@@ -2,26 +2,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { canManageSecretOwner, resolveSecretAccess } from '@/lib/api/secret-access'
+import {
+  buildAdminSecretCreatePayload,
+  type CreateSecretBody,
+} from '@/app/(dashboard)/settings/secrets/types'
 
 /**
  * GET /api/settings/secrets
- * List secrets scoped to the current tenant. Tenant is resolved from the httpOnly cookie.
- * Only accessible by TenantParticipantAdmin.
+ * List secrets for the current tenant (all stored scopes). Tenant comes from
+ * the httpOnly cookie. Accessible by anyone with settings:view
+ * (TenantParticipantAdmin, TenantUser, TenantAdmin, SysAdmin).
  *
- * Note: Secrets are intentionally restricted to tenant scope only — agent-level,
- * user-level, and activation-level scoping are not exposed in this UI.
+ * Callers without secrets:manage-user-scoped only see tenant/agent/activation
+ * secrets plus their own user-scoped secrets.
  */
 export const GET = withParticipantAdmin(
-  async (_request: NextRequest, { tenantContext }: ApiContext) => {
+  async (_request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
     try {
+      const access = await resolveSecretAccess(session, tenantId)
       const client = createXiansClient()
-      const data = await client.get<unknown[]>(
+      const data = await client.get<Array<{ userId?: string | null }>>(
         `/api/v1/admin/secrets?tenantId=${encodeURIComponent(tenantId)}`,
         { headers: { 'X-Tenant-Id': tenantId } }
       )
-      return NextResponse.json(data ?? [])
+      const visible = (data ?? []).filter((secret) =>
+        canManageSecretOwner(access, secret?.userId)
+      )
+      return NextResponse.json(visible)
     } catch (error) {
       return handleApiError(error, 'settings/secrets GET', {
         fallbackMessage: 'Failed to list secrets',
@@ -32,59 +42,51 @@ export const GET = withParticipantAdmin(
 
 /**
  * POST /api/settings/secrets
- * Create a new tenant-scoped secret.
- * Only accessible by TenantParticipantAdmin.
+ * Create a tenant- or user-scoped secret. Tenant is always the cookie tenant.
  *
- * Request body: { key: string, value: string, additionalData?: Record<string, string|number|boolean> }
- * The secret is always scoped to the current tenant — agentId / userId / activationName
- * are intentionally never sent.
+ * Request body: {
+ *   key: string
+ *   value: string
+ *   scope?: 'tenant' | 'user'  // default tenant
+ *   userId?: string            // required when scope is user (participant id)
+ *   description?: string
+ *   additionalData?: Record<string, string|number|boolean>
+ * }
+ *
+ * Agent and activation scopes are not accepted from this UI. A user-scoped
+ * secret for anyone other than the caller requires secrets:manage-user-scoped.
  */
 export const POST = withParticipantAdmin(
-  async (request: NextRequest, { tenantContext }: ApiContext) => {
+  async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
-    let body: {
-      key?: string
-      value?: string
-      description?: string
-      additionalData?: Record<string, string | number | boolean>
-    }
+    let body: CreateSecretBody
     try {
       body = await request.json()
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const key = body.key?.trim()
-    const value = body.value
-    if (!key) {
-      return NextResponse.json({ error: 'Key is required' }, { status: 400 })
-    }
-    if (!value || value.length === 0) {
-      return NextResponse.json({ error: 'Value is required' }, { status: 400 })
-    }
-
-    // Compose AdditionalData. The description is stored in the
-    // server-validated AdditionalData blob (string values, max ~2KB each).
-    const description = body.description?.trim()
-    const additionalData: Record<string, string | number | boolean> = {
-      ...(body.additionalData ?? {}),
-    }
-    if (description) {
-      additionalData.description = description
+    const result = buildAdminSecretCreatePayload(tenantId, body)
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 })
     }
 
     try {
+      if (result.payload.userId) {
+        const access = await resolveSecretAccess(session, tenantId)
+        if (!canManageSecretOwner(access, result.payload.userId)) {
+          return NextResponse.json(
+            { error: 'You can only create user-scoped secrets for yourself' },
+            { status: 403 }
+          )
+        }
+      }
+
       const client = createXiansClient()
       const data = await client.post<unknown>(
         `/api/v1/admin/secrets`,
-        {
-          key,
-          value,
-          tenantId,
-          additionalData:
-            Object.keys(additionalData).length > 0 ? additionalData : undefined,
-        },
+        result.payload,
         { headers: { 'X-Tenant-Id': tenantId } }
       )
       return NextResponse.json(data, { status: 201 })

@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-react'
-import { TenantSecret } from '../types'
+import { TenantSecret, getSecretScopeLabel } from '../types'
 
 interface DeleteSecretDialogProps {
   secret: TenantSecret | null
@@ -35,7 +35,13 @@ export function DeleteSecretDialog({
           <AlertDialogTitle>Delete this secret?</AlertDialogTitle>
           <AlertDialogDescription>
             The secret{' '}
-            <span className="font-mono font-medium text-foreground">{secret?.key}</span>{' '}
+            <span className="font-mono font-medium text-foreground">{secret?.key}</span>
+            {secret ? (
+              <>
+                {' '}
+                ({getSecretScopeLabel(secret)})
+              </>
+            ) : null}{' '}
             will be permanently removed from the vault. Any agent or integration that
             relies on this key will stop working. This action cannot be undone.
           </AlertDialogDescription>
