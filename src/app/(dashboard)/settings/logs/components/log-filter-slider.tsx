@@ -18,9 +18,11 @@ import {
   Info,
   Bug,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LogLevel, ActivationWithAgent, SelectedActivation } from '../types';
+import { LogLevel, ActivationWithAgent, SelectedActivation, shortWorkflowName } from '../types';
+import { useAgentWorkflows } from '../hooks/use-agent-workflows';
 
 const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { value: 'Error', label: 'Error', icon: AlertCircle },
@@ -42,11 +44,13 @@ interface LogFilterSliderProps {
   onClose: () => void;
   activations: ActivationWithAgent[];
   selectedActivation: SelectedActivation | null;
+  selectedWorkflowType: string | null;
   selectedLogLevels: LogLevel[];
   startDate: string | null;
   endDate: string | null;
   onFiltersChange: (
     activation: SelectedActivation | null,
+    workflowType: string | null,
     logLevels: LogLevel[],
     startDate: string | null,
     endDate: string | null
@@ -58,6 +62,7 @@ export function LogFilterSlider({
   onClose,
   activations,
   selectedActivation,
+  selectedWorkflowType,
   selectedLogLevels,
   startDate,
   endDate,
@@ -65,6 +70,7 @@ export function LogFilterSlider({
 }: LogFilterSliderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [localSelectedActivation, setLocalSelectedActivation] = useState<SelectedActivation | null>(selectedActivation);
+  const [localWorkflowType, setLocalWorkflowType] = useState<string | null>(selectedWorkflowType);
   const [localLogLevels, setLocalLogLevels] = useState<LogLevel[]>(selectedLogLevels);
   const [localStartDate, setLocalStartDate] = useState<string>(startDate || '');
   const [localEndDate, setLocalEndDate] = useState<string>(endDate || '');
@@ -72,10 +78,32 @@ export function LogFilterSlider({
   // Sync local state when props change
   useEffect(() => {
     setLocalSelectedActivation(selectedActivation);
+    setLocalWorkflowType(selectedWorkflowType);
     setLocalLogLevels(selectedLogLevels);
     setLocalStartDate(startDate || '');
     setLocalEndDate(endDate || '');
-  }, [selectedActivation, selectedLogLevels, startDate, endDate]);
+  }, [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate]);
+
+  // Workflows of the selected activation's agent (third level of the tree)
+  const { workflows: agentWorkflows, isLoading: isLoadingWorkflows } = useAgentWorkflows(
+    localSelectedActivation?.agentName
+  );
+
+  // Always list the selected workflow type (e.g. arriving from a Temporal Workflows "Logs" link),
+  // even when it isn't among the agent's loaded definitions, so the current filter stays visible
+  // and highlighted.
+  const workflowOptions = useMemo(() => {
+    if (!localWorkflowType || agentWorkflows.some((w) => w.workflowType === localWorkflowType)) {
+      return agentWorkflows;
+    }
+    return [
+      ...agentWorkflows,
+      {
+        workflowType: localWorkflowType,
+        name: shortWorkflowName(localWorkflowType, localSelectedActivation?.agentName),
+      },
+    ];
+  }, [agentWorkflows, localWorkflowType, localSelectedActivation?.agentName]);
 
   // Helper function to check if an activation is selected
   const isActivationSelected = (activationName: string, agentName: string): boolean => {
@@ -143,6 +171,7 @@ export function LogFilterSlider({
   const toggleActivation = (activationName: string, agentName: string) => {
     const isSelected = isActivationSelected(activationName, agentName);
     setLocalSelectedActivation(isSelected ? null : { activationName, agentName });
+    setLocalWorkflowType(null);
   };
 
   const toggleLogLevel = (level: LogLevel) => {
@@ -175,6 +204,7 @@ export function LogFilterSlider({
 
   const clearFilters = () => {
     setLocalSelectedActivation(null);
+    setLocalWorkflowType(null);
     setLocalLogLevels([]);
     setLocalStartDate('');
     setLocalEndDate('');
@@ -184,6 +214,7 @@ export function LogFilterSlider({
   const applyFilters = () => {
     onFiltersChange(
       localSelectedActivation,
+      localSelectedActivation ? localWorkflowType : null,
       localLogLevels,
       localStartDate || null,
       localEndDate || null
@@ -203,6 +234,7 @@ export function LogFilterSlider({
 
   const hasActiveFilters = 
     localSelectedActivation !== null ||
+    localWorkflowType !== null ||
     localLogLevels.length > 0 ||
     localStartDate !== '' ||
     localEndDate !== '';
@@ -325,13 +357,27 @@ export function LogFilterSlider({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Agent Activation</Label>
                 {localSelectedActivation && (
-                  <button
-                    onClick={() => setLocalSelectedActivation(null)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
-                  >
-                    {localSelectedActivation.activationName}
-                    <X className="h-3 w-3" />
-                  </button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setLocalSelectedActivation(null);
+                        setLocalWorkflowType(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                    >
+                      {localSelectedActivation.activationName}
+                      <X className="h-3 w-3" />
+                    </button>
+                    {localWorkflowType && (
+                      <button
+                        onClick={() => setLocalWorkflowType(null)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                      >
+                        {shortWorkflowName(localWorkflowType, localSelectedActivation.agentName)}
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -383,26 +429,64 @@ export function LogFilterSlider({
                             {activationList.map((activation) => {
                               const isSelected = isActivationSelected(activation.name, agentName);
                               return (
-                                <button
-                                  key={activation.name}
-                                  onClick={() => toggleActivation(activation.name, agentName)}
-                                  className={cn(
-                                    'w-full text-left px-3 py-2 text-xs rounded-lg transition-all duration-200 flex items-center justify-between gap-2',
-                                    isSelected
-                                      ? 'text-primary font-semibold bg-primary/10 shadow-sm'
-                                      : 'text-foreground/70 hover:text-foreground hover:bg-muted/50 font-medium'
+                                <div key={activation.name} className="space-y-1">
+                                  <button
+                                    onClick={() => toggleActivation(activation.name, agentName)}
+                                    className={cn(
+                                      'w-full text-left px-3 py-2 text-xs rounded-lg transition-all duration-200 flex items-center justify-between gap-2',
+                                      isSelected
+                                        ? 'text-primary font-semibold bg-primary/10 shadow-sm'
+                                        : 'text-foreground/70 hover:text-foreground hover:bg-muted/50 font-medium'
+                                    )}
+                                  >
+                                    <span className="flex-1 truncate">{activation.name}</span>
+                                    {activation.isActive && (
+                                      <Badge 
+                                        variant="default" 
+                                        className="text-[9px] h-4 px-1.5 bg-green-500 hover:bg-green-500 shrink-0 rounded-md"
+                                      >
+                                        Active
+                                      </Badge>
+                                    )}
+                                  </button>
+
+                                  {/* Workflow List (third level) */}
+                                  {isSelected && (
+                                    <div className="ml-4 pl-3 border-l border-dashed border-border/60 space-y-1">
+                                      {isLoadingWorkflows ? (
+                                        <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                          Loading workflows...
+                                        </div>
+                                      ) : workflowOptions.length === 0 ? (
+                                        <p className="px-3 py-2 text-xs text-muted-foreground/70 italic">
+                                          No workflows registered
+                                        </p>
+                                      ) : (
+                                        [{ workflowType: null, name: 'All workflows' }, ...workflowOptions].map(
+                                          (workflow) => {
+                                            const isWorkflowSelected = localWorkflowType === workflow.workflowType;
+                                            return (
+                                              <button
+                                                key={workflow.workflowType ?? '__all__'}
+                                                onClick={() => setLocalWorkflowType(workflow.workflowType)}
+                                                title={workflow.workflowType ?? undefined}
+                                                className={cn(
+                                                  'w-full text-left px-3 py-1.5 text-xs rounded-lg transition-all duration-200 truncate',
+                                                  isWorkflowSelected
+                                                    ? 'text-primary font-semibold bg-primary/10'
+                                                    : 'text-foreground/70 hover:text-foreground hover:bg-muted/50 font-medium'
+                                                )}
+                                              >
+                                                {workflow.name}
+                                              </button>
+                                            );
+                                          }
+                                        )
+                                      )}
+                                    </div>
                                   )}
-                                >
-                                  <span className="flex-1 truncate">{activation.name}</span>
-                                  {activation.isActive && (
-                                    <Badge 
-                                      variant="default" 
-                                      className="text-[9px] h-4 px-1.5 bg-green-500 hover:bg-green-500 shrink-0 rounded-md"
-                                    >
-                                      Active
-                                    </Badge>
-                                  )}
-                                </button>
+                                </div>
                               );
                             })}
                           </div>

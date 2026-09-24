@@ -1,20 +1,22 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import { SelectedActivation, LogLevel } from '../types';
+import { SelectedActivation, LogLevel, shortWorkflowName } from '../types';
 
 interface ActiveFiltersBarProps {
   selectedActivation: SelectedActivation | null;
+  selectedWorkflowType: string | null;
   selectedLogLevels: LogLevel[];
   startDate: string | null;
   endDate: string | null;
-  onClearFilter: (type: 'activation' | 'logLevel' | 'dateRange') => void;
+  onClearFilter: (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange') => void;
   onClearAll: () => void;
 }
 
 /** Row of removable chips summarizing the currently applied log filters. */
 export function ActiveFiltersBar({
   selectedActivation,
+  selectedWorkflowType,
   selectedLogLevels,
   startDate,
   endDate,
@@ -32,6 +34,18 @@ export function ActiveFiltersBar({
           onClick={() => onClearFilter('activation')}
         >
           {selectedActivation.activationName}
+          <X className="ml-1.5 h-3 w-3" />
+        </Badge>
+      )}
+
+      {selectedWorkflowType && (
+        <Badge
+          variant="secondary"
+          className="cursor-pointer hover:bg-secondary/80 transition-colors rounded-lg pl-2.5 pr-1.5 py-1"
+          onClick={() => onClearFilter('workflowType')}
+          title={selectedWorkflowType}
+        >
+          {shortWorkflowName(selectedWorkflowType, selectedActivation?.agentName)}
           <X className="ml-1.5 h-3 w-3" />
         </Badge>
       )}

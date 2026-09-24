@@ -48,7 +48,8 @@ Filters apply to **both** the streams list and the drilled-in logs list.
 
 Primary filter: **Activation Name** (grouped by agent)
 
-- Collapsible tree structure
+- Collapsible tree structure: Agent → Activation → Workflow
+- Selecting an activation reveals the agent's registered workflows (from `/api/agents/{agentName}` definitions, including non-activable child/task workflows). Picking one narrows streams and logs to that workflow type (`workflowType` URL param, full `Agent:Flow` value). The workflow selection is cleared when the activation changes or is removed.
 - Search functionality
 - Shows active/inactive status
 
