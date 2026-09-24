@@ -6,6 +6,7 @@ export function appendViewAsParticipantId(
   viewAsParticipantId: string | null | undefined
 ): void {
   const trimmed = viewAsParticipantId?.trim()
+  // Blank/null is a no-op so callers can pass an unset view-as without branching.
   if (!trimmed) return
   params.set(VIEW_AS_PARTICIPANT_QUERY_PARAM, trimmed)
 }

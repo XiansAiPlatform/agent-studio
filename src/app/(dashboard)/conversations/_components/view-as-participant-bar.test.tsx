@@ -139,6 +139,43 @@ describe('ViewAsParticipantBar', () => {
     expect(screen.queryByText('alice@example.com')).toBeNull()
   })
 
+  it('drops tenant users whose email or name is not a string', async () => {
+    polyfillPointerCapture()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          users: [
+            { email: 'alice@example.com', name: 'Alice' },
+            { email: 123, name: 'Bad' },
+            { email: 'bob@example.com', name: null },
+            { name: 'NoEmail' },
+          ],
+        })
+      )
+    )
+
+    render(
+      <ViewAsParticipantBar
+        tenantId="tenant-1"
+        currentViewAsEmail={null}
+        sessionEmail="admin@example.com"
+        onViewAsChange={() => {}}
+      />
+    )
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    fireEvent.click(screen.getByRole('combobox'))
+
+    expect(
+      await screen.findByRole('option', { name: 'Alice (alice@example.com)' })
+    ).toBeTruthy()
+    expect(screen.queryByText('bob@example.com')).toBeNull()
+    expect(screen.queryByText('NoEmail')).toBeNull()
+  })
+
   it('renders the empty-user and privacy banner when viewing another user', async () => {
     vi.stubGlobal(
       'fetch',

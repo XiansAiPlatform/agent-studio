@@ -30,6 +30,27 @@ interface TenantUserOption {
   name: string;
 }
 
+function parseTenantUserOptions(
+  data: unknown,
+  sessionEmail: string | null | undefined
+): TenantUserOption[] {
+  if (!data || typeof data !== 'object' || !('users' in data)) return [];
+  const users = (data as { users?: unknown }).users;
+  if (!Array.isArray(users)) return [];
+  const self = sessionEmail?.trim().toLowerCase();
+  const parsed: TenantUserOption[] = [];
+  for (const entry of users) {
+    if (!entry || typeof entry !== 'object') continue;
+    const email =
+      'email' in entry && typeof entry.email === 'string' ? entry.email.trim() : '';
+    if (!email) continue;
+    if (self && email.toLowerCase() === self) continue;
+    if (!('name' in entry) || typeof entry.name !== 'string') continue;
+    parsed.push({ email, name: entry.name });
+  }
+  return parsed;
+}
+
 export const USER_SEARCH_DEBOUNCE_MS = 300;
 export const USER_SEARCH_TIMEOUT_MS = 8000;
 
@@ -97,14 +118,9 @@ export function ViewAsParticipantBar({
       if (!res.ok) {
         throw new Error('Failed to load tenant users');
       }
-      const data = (await res.json()) as { users?: TenantUserOption[] };
+      const data: unknown = await res.json();
       if (controller.signal.aborted) return;
-      const list = (data.users ?? []).filter(
-        (u) =>
-          u.email &&
-          u.email.trim().toLowerCase() !== sessionEmail?.trim().toLowerCase()
-      );
-      setUsers(list);
+      setUsers(parseTenantUserOptions(data, sessionEmail));
     } catch (e) {
       if (timedOut) {
         setLoadError('Timed out loading tenant users');
@@ -118,9 +134,10 @@ export function ViewAsParticipantBar({
       setUsers([]);
     } finally {
       window.clearTimeout(timeoutId);
-      if (!controller.signal.aborted || timedOut) {
-        setIsLoadingUsers(false);
+      if (controller.signal.aborted && !timedOut) {
+        return;
       }
+      setIsLoadingUsers(false);
     }
   }, [tenantId, debouncedSearch, sessionEmail]);
 

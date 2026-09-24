@@ -44,6 +44,7 @@ export function resetMessagingViewAsCachesForTests(): void {
   viewAsAuditCache.clear()
 }
 
+/** Defensive/idempotent trim — callers may already have trimmed. */
 function normalizeParticipantEmail(value: string): string {
   return value.trim()
 }
@@ -83,6 +84,7 @@ type TenantUsersPage = {
   pageSize?: number
 }
 
+/** Case-insensitive match after tenant-user email normalization. */
 function tenantUsersPageContainsEmail(data: TenantUsersPage, needle: string): boolean {
   return (data.users ?? [])
     .map((u) => normalizeTenantUser(u))
