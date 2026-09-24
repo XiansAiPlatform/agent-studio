@@ -23,14 +23,22 @@ import {
 /** Collapse repeated membership lookups (history + topics + polls) for the same pair. */
 export const TENANT_MEMBERSHIP_TTL_MS = 10_000
 
+/** Collapse repeated system-admin checks (history + topics share the same session). */
+export const SYSTEM_ADMIN_CHECK_TTL_MS = 10_000
+
 /** One audit record per admin+target+tenant; long enough to cover a view-as session. */
 export const VIEW_AS_AUDIT_IDEMPOTENCY_TTL_MS = 60 * 60 * 1000
 
+const MEMBERSHIP_PAGE_SIZE = 100
+const MEMBERSHIP_MAX_PAGES = 10
+
 const tenantMembershipCache = createTtlCache<boolean>(TENANT_MEMBERSHIP_TTL_MS)
+const systemAdminCache = createTtlCache<boolean>(SYSTEM_ADMIN_CHECK_TTL_MS)
 const viewAsAuditCache = createTtlCache<true>(VIEW_AS_AUDIT_IDEMPOTENCY_TTL_MS)
 
 export function resetMessagingViewAsCachesForTests(): void {
   tenantMembershipCache.clear()
+  systemAdminCache.clear()
   viewAsAuditCache.clear()
 }
 
@@ -63,19 +71,58 @@ async function fetchIsEmailTenantMember(
   accessToken?: string
 ): Promise<boolean> {
   const client = createXiansClient(accessToken)
-  const params = new URLSearchParams({
-    page: '1',
-    pageSize: '50',
-    search: email,
-  })
+  const needle = email.toLowerCase()
+  let page = 1
+  let totalPages = 1
 
-  const data = await client.get<{ users?: unknown[] }>(
-    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users?${params.toString()}`
-  )
-  const users = (data.users ?? []).map((u) => normalizeTenantUser(u))
-  return users.some(
-    (u) => u.email.trim().toLowerCase() === email.toLowerCase()
-  )
+  do {
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(MEMBERSHIP_PAGE_SIZE),
+      search: email,
+    })
+    const data = await client.get<{
+      users?: unknown[]
+      totalCount?: number
+      page?: number
+      pageSize?: number
+    }>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users?${params.toString()}`
+    )
+    const users = (data.users ?? []).map((u) => normalizeTenantUser(u))
+    if (users.some((u) => u.email.trim().toLowerCase() === needle)) {
+      return true
+    }
+
+    const pageSize = data.pageSize ?? MEMBERSHIP_PAGE_SIZE
+    if (typeof data.totalCount === 'number' && pageSize > 0) {
+      totalPages = Math.max(1, Math.ceil(data.totalCount / pageSize))
+    } else if (users.length < pageSize) {
+      totalPages = page
+    } else {
+      totalPages = page + 1
+    }
+    page += 1
+  } while (page <= totalPages && page <= MEMBERSHIP_MAX_PAGES)
+
+  return false
+}
+
+async function requireCachedSystemAdmin(
+  session: Session
+): Promise<NextResponse | null> {
+  const email = session.user?.email?.trim().toLowerCase()
+  if (!email) {
+    return unauthorizedError('User email not found in session')
+  }
+
+  const allowed = await systemAdminCache.get(email, async () => {
+    return (await requireSystemAdmin(session)) === null
+  })
+  if (!allowed) {
+    return forbiddenError('System administrator access required')
+  }
+  return null
 }
 
 export async function isEmailTenantMember(
@@ -114,6 +161,7 @@ export type ResolveMessagingParticipantResult =
  * Resolve which participant's messaging data to read.
  * Default: session email. With view-as: system admin + tenant member target.
  * Honoring view-as records an audit entry first (idempotent per admin+target+tenant).
+ * If the upstream write is unavailable, the attempt is logged and the read still proceeds.
  */
 export async function resolveMessagingParticipantId(options: {
   session: Session
@@ -136,7 +184,7 @@ export async function resolveMessagingParticipantId(options: {
     return { participantId: sessionEmail, viewAsActive: false }
   }
 
-  const authError = await requireSystemAdmin(options.session)
+  const authError = await requireCachedSystemAdmin(options.session)
   if (authError) return authError
 
   if (!isPlausibleParticipantEmail(viewAsTarget)) {
@@ -179,7 +227,11 @@ export interface ConversationViewAsAuditPayload {
   activationName?: string | null
 }
 
-/** Audit record when an admin enters view-as mode. Idempotent per admin+target+tenant. */
+/**
+ * Audit record when an admin enters view-as mode. Idempotent per admin+target+tenant.
+ * Upstream may not expose audit creation; console.error is the durable fallback so
+ * the read is not blocked when the write is unavailable.
+ */
 export async function recordConversationViewAsAudit(
   payload: ConversationViewAsAuditPayload,
   accessToken?: string
@@ -219,8 +271,12 @@ export async function recordConversationViewAsAudit(
       )
       return true as const
     })
-  } catch {
-    // Upstream may not expose audit creation; console log remains the fallback.
-    // Failures are not cached so a later read can retry the upstream write.
+  } catch (error) {
+    console.error('[Audit] conversation.view_as write failed', {
+      tenantId: payload.tenantId,
+      performedBy: payload.adminEmail,
+      targetParticipantId: payload.viewAsParticipantId,
+      error,
+    })
   }
 }

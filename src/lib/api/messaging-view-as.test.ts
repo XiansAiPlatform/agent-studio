@@ -273,6 +273,26 @@ describe('resolveMessagingParticipantId', () => {
     expect(second).toMatchObject({ viewAsActive: true, participantId: 'target@example.com' })
     expect(get).toHaveBeenCalledTimes(1)
     expect(post).toHaveBeenCalledTimes(1)
+    expect(requireSystemAdmin).toHaveBeenCalledTimes(1)
+  })
+
+  it('still honors view-as when the upstream audit write fails', async () => {
+    const get = vi.fn().mockResolvedValue(memberList(['target@example.com']))
+    const post = vi.fn().mockRejectedValue(new Error('no audit endpoint'))
+    createXiansClient.mockReturnValue(mockXiansClient({ get, post }))
+
+    const res = await resolveMessagingParticipantId({
+      session: makeSession('admin@example.com'),
+      tenantId,
+      searchParams: viewAsParams('target@example.com'),
+      accessToken,
+    })
+
+    expect(res).toMatchObject({
+      viewAsActive: true,
+      participantId: 'target@example.com',
+    })
+    expect(console.error).toHaveBeenCalled()
   })
 })
 
@@ -297,6 +317,35 @@ describe('isEmailTenantMember', () => {
     ).resolves.toBe(true)
   })
 
+  it('pages through tenant users when the first page does not include the target', async () => {
+    const firstPage = {
+      users: Array.from({ length: 100 }, (_, i) => ({
+        email: `u${i}@example.com`,
+        name: `U${i}`,
+        roles: [],
+        isApproved: true,
+      })),
+      totalCount: 101,
+      page: 1,
+      pageSize: 100,
+    }
+    const secondPage = {
+      users: [{ email: 'target@example.com', name: 'Target', roles: [], isApproved: true }],
+      totalCount: 101,
+      page: 2,
+      pageSize: 100,
+    }
+    const get = vi.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage)
+    createXiansClient.mockReturnValue(mockXiansClient({ get }))
+
+    await expect(
+      isEmailTenantMember('tenant-1', 'target@example.com')
+    ).resolves.toBe(true)
+    expect(get).toHaveBeenCalledTimes(2)
+    expect(String(get.mock.calls[0]?.[0])).toContain('page=1')
+    expect(String(get.mock.calls[1]?.[0])).toContain('page=2')
+  })
+
   it('returns false when upstream lookup fails, without caching the failure', async () => {
     const get = vi
       .fn()
@@ -319,6 +368,7 @@ describe('recordConversationViewAsAudit', () => {
     resetMessagingViewAsCachesForTests()
     createXiansClient.mockReset()
     vi.spyOn(console, 'info').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   it('is idempotent per admin+target+tenant', async () => {
@@ -354,5 +404,6 @@ describe('recordConversationViewAsAudit', () => {
     await recordConversationViewAsAudit(payload, 'tok')
 
     expect(post).toHaveBeenCalledTimes(2)
+    expect(console.error).toHaveBeenCalled()
   })
 })

@@ -161,4 +161,81 @@ describe('ViewAsParticipantBar', () => {
     expect(screen.queryByRole('status')).toBeNull()
     expect(screen.getByRole('combobox')).toBeTruthy()
   })
+
+  it('asks for consent before applying view-as, and cancel leaves the admin on their own chats', async () => {
+    polyfillPointerCapture()
+    const onViewAsChange = vi.fn()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({ users: [{ email: 'alice@example.com', name: 'Alice' }] })
+      )
+    )
+
+    render(
+      <ViewAsParticipantBar
+        tenantId="tenant-1"
+        currentViewAsEmail={null}
+        sessionEmail="admin@example.com"
+        onViewAsChange={onViewAsChange}
+      />
+    )
+
+    await chooseViewAsUser('Alice (alice@example.com)')
+
+    expect(
+      await screen.findByRole('alertdialog', {
+        name: /view another user's conversations/i,
+      })
+    ).toBeTruthy()
+    expect(screen.getByText(/recorded in the audit log/i)).toBeTruthy()
+    expect(screen.getByText(/get consent from/i)).toBeTruthy()
+    expect(onViewAsChange).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(onViewAsChange).not.toHaveBeenCalled()
+  })
+
+  it('applies view-as only after Continue', async () => {
+    polyfillPointerCapture()
+    const onViewAsChange = vi.fn()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({ users: [{ email: 'alice@example.com', name: 'Alice' }] })
+      )
+    )
+
+    render(
+      <ViewAsParticipantBar
+        tenantId="tenant-1"
+        currentViewAsEmail={null}
+        sessionEmail="admin@example.com"
+        onViewAsChange={onViewAsChange}
+      />
+    )
+
+    await chooseViewAsUser('Alice (alice@example.com)')
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+
+    expect(onViewAsChange).toHaveBeenCalledTimes(1)
+    expect(onViewAsChange).toHaveBeenCalledWith('alice@example.com')
+  })
 })
+
+function polyfillPointerCapture() {
+  HTMLElement.prototype.hasPointerCapture = () => false
+  HTMLElement.prototype.setPointerCapture = () => {}
+  HTMLElement.prototype.releasePointerCapture = () => {}
+  HTMLElement.prototype.scrollIntoView = () => {}
+}
+
+async function chooseViewAsUser(optionName: string) {
+  await act(async () => {
+    await Promise.resolve()
+  })
+  fireEvent.click(screen.getByRole('combobox'))
+  fireEvent.click(await screen.findByRole('option', { name: optionName }))
+}

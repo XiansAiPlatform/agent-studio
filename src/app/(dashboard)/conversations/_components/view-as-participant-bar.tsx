@@ -13,6 +13,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { VIEW_AS_PARTICIPANT_QUERY_PARAM } from '@/lib/messaging/view-as-constants';
 
 interface TenantUserOption {
@@ -43,6 +53,7 @@ export function ViewAsParticipantBar({
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [pendingViewAsEmail, setPendingViewAsEmail] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -105,6 +116,31 @@ export function ViewAsParticipantBar({
 
   const isViewingOther = !!currentViewAsEmail;
 
+  const handleSelectChange = (value: string) => {
+    if (value === '__self__') {
+      setPendingViewAsEmail(null);
+      onViewAsChange(null);
+      return;
+    }
+    if (
+      currentViewAsEmail &&
+      value.trim().toLowerCase() === currentViewAsEmail.trim().toLowerCase()
+    ) {
+      return;
+    }
+    setPendingViewAsEmail(value);
+  };
+
+  const handleConfirmViewAs = () => {
+    if (!pendingViewAsEmail) return;
+    onViewAsChange(pendingViewAsEmail);
+    setPendingViewAsEmail(null);
+  };
+
+  const handleCancelViewAs = () => {
+    setPendingViewAsEmail(null);
+  };
+
   return (
     <div className="shrink-0 border-b border-border/60 bg-muted/30 px-4 py-3 space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -127,9 +163,7 @@ export function ViewAsParticipantBar({
           </div>
           <Select
             value={currentViewAsEmail ?? '__self__'}
-            onValueChange={(value) => {
-              onViewAsChange(value === '__self__' ? null : value);
-            }}
+            onValueChange={handleSelectChange}
             disabled={!tenantId || isLoadingUsers}
           >
             <SelectTrigger className="h-9 w-full sm:w-[280px]">
@@ -181,6 +215,34 @@ export function ViewAsParticipantBar({
           </AlertDescription>
         </Alert>
       )}
+
+      <AlertDialog
+        open={!!pendingViewAsEmail}
+        onOpenChange={(open) => {
+          if (!open) handleCancelViewAs();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              View another user&apos;s conversations?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This access will be recorded in the audit log. Get consent from{' '}
+              <strong>{pendingViewAsEmail}</strong> before you continue. The
+              view is read-only.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelViewAs}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmViewAs}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
