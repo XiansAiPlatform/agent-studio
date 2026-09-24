@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import {
   USER_SEARCH_DEBOUNCE_MS,
+  USER_SEARCH_TIMEOUT_MS,
   ViewAsParticipantBar,
 } from './view-as-participant-bar'
 
@@ -160,6 +161,47 @@ describe('ViewAsParticipantBar', () => {
     expect(screen.getByRole('button', { name: /exit view-as/i })).toBeTruthy()
     expect(screen.queryByRole('status')).toBeNull()
     expect(screen.getByRole('combobox')).toBeTruthy()
+  })
+
+  it('surfaces an error when the user search request times out', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          const signal = init?.signal
+          if (signal?.aborted) {
+            reject(new DOMException('Aborted', 'AbortError'))
+            return
+          }
+          signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'))
+          })
+        })
+      })
+    )
+
+    render(
+      <ViewAsParticipantBar
+        tenantId="tenant-1"
+        currentViewAsEmail={null}
+        sessionEmail="admin@example.com"
+        onViewAsChange={() => {}}
+      />
+    )
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(USER_SEARCH_TIMEOUT_MS)
+      await Promise.resolve()
+    })
+
+    expect(screen.getByRole('status').textContent).toMatch(
+      /Timed out loading tenant users/
+    )
   })
 
   it('asks for consent before applying view-as, and cancel leaves the admin on their own chats', async () => {

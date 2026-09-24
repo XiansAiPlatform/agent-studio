@@ -31,6 +31,8 @@ export const VIEW_AS_AUDIT_IDEMPOTENCY_TTL_MS = 60 * 60 * 1000
 
 const MEMBERSHIP_PAGE_SIZE = 100
 const MEMBERSHIP_MAX_PAGES = 10
+/** When totalCount is missing, fetch remaining pages in small parallel batches. */
+const MEMBERSHIP_PAGE_BATCH = 3
 
 const tenantMembershipCache = createTtlCache<boolean>(TENANT_MEMBERSHIP_TTL_MS)
 const systemAdminCache = createTtlCache<boolean>(SYSTEM_ADMIN_CHECK_TTL_MS)
@@ -46,6 +48,7 @@ function normalizeParticipantEmail(value: string): string {
   return value.trim()
 }
 
+/** Shape check only; tenant membership is the real validation boundary. */
 function isPlausibleParticipantEmail(value: string): boolean {
   const trimmed = value.trim()
   if (!trimmed || trimmed.length > 320) return false
@@ -60,9 +63,17 @@ function tenantMembershipCacheKey(tenantId: string, email: string): string {
 function viewAsAuditCacheKey(
   tenantId: string,
   adminEmail: string,
-  viewAsParticipantId: string
+  viewAsParticipantId: string,
+  agentName?: string | null,
+  activationName?: string | null
 ): string {
-  return `${tenantId}:${adminEmail.trim().toLowerCase()}:${viewAsParticipantId.trim().toLowerCase()}`
+  return [
+    tenantId,
+    adminEmail.trim().toLowerCase(),
+    viewAsParticipantId.trim().toLowerCase(),
+    (agentName ?? '').trim().toLowerCase(),
+    (activationName ?? '').trim().toLowerCase(),
+  ].join(':')
 }
 
 type TenantUsersPage = {
@@ -78,14 +89,22 @@ function tenantUsersPageContainsEmail(data: TenantUsersPage, needle: string): bo
     .some((u) => u.email.trim().toLowerCase() === needle)
 }
 
-function membershipTotalPages(first: TenantUsersPage): number {
-  const pageSize = first.pageSize ?? MEMBERSHIP_PAGE_SIZE
-  const firstCount = (first.users ?? []).length
+function pageSizeOf(page: TenantUsersPage): number {
+  return page.pageSize ?? MEMBERSHIP_PAGE_SIZE
+}
+
+function isShortUsersPage(page: TenantUsersPage): boolean {
+  return (page.users ?? []).length < pageSizeOf(page)
+}
+
+/** Known last page from totalCount, or 1 when page 1 is short. Null = keep paging in batches. */
+function knownLastMembershipPage(first: TenantUsersPage): number | null {
+  const pageSize = pageSizeOf(first)
   if (typeof first.totalCount === 'number' && pageSize > 0) {
-    return Math.max(1, Math.ceil(first.totalCount / pageSize))
+    return Math.min(Math.max(1, Math.ceil(first.totalCount / pageSize)), MEMBERSHIP_MAX_PAGES)
   }
-  if (firstCount < pageSize) return 1
-  return MEMBERSHIP_MAX_PAGES
+  if (isShortUsersPage(first)) return 1
+  return null
 }
 
 async function fetchIsEmailTenantMember(
@@ -112,13 +131,25 @@ async function fetchIsEmailTenantMember(
     return true
   }
 
-  const lastPage = Math.min(membershipTotalPages(first), MEMBERSHIP_MAX_PAGES)
-  if (lastPage <= 1) return false
+  const knownLast = knownLastMembershipPage(first)
+  if (knownLast !== null && knownLast <= 1) return false
 
-  const rest = await Promise.all(
-    Array.from({ length: lastPage - 1 }, (_, i) => fetchPage(i + 2))
-  )
-  return rest.some((page) => tenantUsersPageContainsEmail(page, needle))
+  const cap = knownLast ?? MEMBERSHIP_MAX_PAGES
+  let next = 2
+  while (next <= cap) {
+    const batchEnd = Math.min(next + MEMBERSHIP_PAGE_BATCH - 1, cap)
+    const pages = await Promise.all(
+      Array.from({ length: batchEnd - next + 1 }, (_, i) => fetchPage(next + i))
+    )
+    if (pages.some((page) => tenantUsersPageContainsEmail(page, needle))) {
+      return true
+    }
+    if (knownLast === null && pages.some(isShortUsersPage)) {
+      return false
+    }
+    next = batchEnd + 1
+  }
+  return false
 }
 
 async function requireCachedSystemAdmin(
@@ -138,6 +169,16 @@ async function requireCachedSystemAdmin(
   return null
 }
 
+export class TenantMembershipLookupError extends Error {
+  readonly cause: unknown
+
+  constructor(cause: unknown) {
+    super('Failed to verify tenant membership')
+    this.name = 'TenantMembershipLookupError'
+    this.cause = cause
+  }
+}
+
 export async function isEmailTenantMember(
   tenantId: string,
   email: string,
@@ -153,7 +194,7 @@ export async function isEmailTenantMember(
     )
   } catch (error) {
     console.error('[messaging-view-as] Failed to verify tenant membership:', error)
-    return false
+    throw new TenantMembershipLookupError(error)
   }
 }
 
@@ -206,11 +247,25 @@ export async function resolveMessagingParticipantId(options: {
     return validationError('viewAsParticipantId must be a valid email address')
   }
 
-  const isMember = await isEmailTenantMember(
-    options.tenantId,
-    viewAsTarget,
-    options.accessToken
-  )
+  let isMember: boolean
+  try {
+    isMember = await isEmailTenantMember(
+      options.tenantId,
+      viewAsTarget,
+      options.accessToken
+    )
+  } catch (error) {
+    if (error instanceof TenantMembershipLookupError) {
+      return NextResponse.json(
+        {
+          error: 'Unable to verify tenant membership; try again',
+          code: 'membership_unavailable',
+        },
+        { status: 503 }
+      )
+    }
+    throw error
+  }
   if (!isMember) {
     return forbiddenError('Selected user is not a member of this tenant')
   }
@@ -243,9 +298,10 @@ export interface ConversationViewAsAuditPayload {
 }
 
 /**
- * Audit record when an admin enters view-as mode. Idempotent per admin+target+tenant.
- * Upstream may not expose audit creation; console.error is the durable fallback so
- * the read is not blocked when the write is unavailable.
+ * Audit record when an admin enters view-as mode.
+ * Idempotent per admin+target+tenant+agent+activation.
+ * Studio has no local audit store; fail-open with console.error so a missing
+ * upstream POST does not block the read (topics/history stay usable).
  */
 export async function recordConversationViewAsAudit(
   payload: ConversationViewAsAuditPayload,
@@ -254,7 +310,9 @@ export async function recordConversationViewAsAudit(
   const key = viewAsAuditCacheKey(
     payload.tenantId,
     payload.adminEmail,
-    payload.viewAsParticipantId
+    payload.viewAsParticipantId,
+    payload.agentName,
+    payload.activationName
   )
 
   try {

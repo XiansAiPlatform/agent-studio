@@ -29,6 +29,7 @@ import {
   recordConversationViewAsAudit,
   resetMessagingViewAsCachesForTests,
   resolveMessagingParticipantId,
+  TenantMembershipLookupError,
 } from './messaging-view-as'
 
 function makeSession(email?: string | null): Session {
@@ -294,6 +295,51 @@ describe('resolveMessagingParticipantId', () => {
     })
     expect(console.error).toHaveBeenCalled()
   })
+
+  it('records a separate audit when agent or activation differs', async () => {
+    const get = vi.fn().mockResolvedValue(memberList(['target@example.com']))
+    const post = vi.fn().mockResolvedValue({ id: 'audit-1' })
+    createXiansClient.mockReturnValue(mockXiansClient({ get, post }))
+
+    await resolveMessagingParticipantId({
+      session: makeSession('admin@example.com'),
+      tenantId,
+      searchParams: viewAsParams('target@example.com', {
+        agentName: 'Support',
+        activationName: 'prod',
+      }),
+      accessToken,
+    })
+    await resolveMessagingParticipantId({
+      session: makeSession('admin@example.com'),
+      tenantId,
+      searchParams: viewAsParams('target@example.com', {
+        agentName: 'Billing',
+        activationName: 'prod',
+      }),
+      accessToken,
+    })
+
+    expect(post).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns 503 when tenant membership lookup fails unexpectedly', async () => {
+    const get = vi.fn().mockRejectedValue(new Error('upstream down'))
+    createXiansClient.mockReturnValue(mockXiansClient({ get }))
+
+    const { status, body } = await readError(
+      await resolveMessagingParticipantId({
+        session: makeSession('admin@example.com'),
+        tenantId,
+        searchParams: viewAsParams('target@example.com'),
+        accessToken,
+      })
+    )
+
+    expect(status).toBe(503)
+    expect(body.code).toBe('membership_unavailable')
+    expect(body.error).toMatch(/membership/i)
+  })
 })
 
 describe('isEmailTenantMember', () => {
@@ -384,15 +430,46 @@ describe('isEmailTenantMember', () => {
     expect(requested.slice(1).some((url) => url.includes('page=3'))).toBe(true)
   })
 
-  it('returns false when upstream lookup fails, without caching the failure', async () => {
+  it('does not fan out to max pages when totalCount is missing', async () => {
+    const filler = (prefix: string) =>
+      Array.from({ length: 100 }, (_, i) => ({
+        email: `${prefix}${i}@example.com`,
+        name: `${prefix}${i}`,
+        roles: [],
+        isApproved: true,
+      }))
+    const get = vi.fn().mockImplementation((url: string) => {
+      const page = Number(new URL(url, 'https://xians.example').searchParams.get('page'))
+      if (page === 1) {
+        return Promise.resolve({ users: filler('a'), page: 1, pageSize: 100 })
+      }
+      if (page === 2) {
+        return Promise.resolve({
+          users: [{ email: 'other@example.com', name: 'Other', roles: [], isApproved: true }],
+          page: 2,
+          pageSize: 100,
+        })
+      }
+      return Promise.resolve({ users: filler('x'), page, pageSize: 100 })
+    })
+    createXiansClient.mockReturnValue(mockXiansClient({ get }))
+
+    await expect(
+      isEmailTenantMember('tenant-1', 'target@example.com')
+    ).resolves.toBe(false)
+    expect(get.mock.calls.length).toBeLessThan(10)
+    expect(get).toHaveBeenCalledTimes(4)
+  })
+
+  it('throws TenantMembershipLookupError on unexpected failure, without caching it', async () => {
     const get = vi
       .fn()
       .mockRejectedValueOnce(new Error('upstream down'))
       .mockResolvedValueOnce(memberList(['target@example.com']))
     createXiansClient.mockReturnValue(mockXiansClient({ get }))
 
-    await expect(isEmailTenantMember('tenant-1', 'target@example.com')).resolves.toBe(
-      false
+    await expect(isEmailTenantMember('tenant-1', 'target@example.com')).rejects.toBeInstanceOf(
+      TenantMembershipLookupError
     )
     await expect(isEmailTenantMember('tenant-1', 'target@example.com')).resolves.toBe(
       true
@@ -409,7 +486,7 @@ describe('recordConversationViewAsAudit', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('is idempotent per admin+target+tenant', async () => {
+  it('is idempotent per admin+target+tenant+agent+activation', async () => {
     const post = vi.fn().mockResolvedValue({ id: 'audit-1' })
     createXiansClient.mockReturnValue(mockXiansClient({ post }))
 

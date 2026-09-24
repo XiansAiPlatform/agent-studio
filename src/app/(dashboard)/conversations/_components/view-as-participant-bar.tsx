@@ -31,6 +31,7 @@ interface TenantUserOption {
 }
 
 export const USER_SEARCH_DEBOUNCE_MS = 300;
+export const USER_SEARCH_TIMEOUT_MS = 8000;
 
 interface ViewAsParticipantBarProps {
   tenantId: string | null;
@@ -74,6 +75,11 @@ export function ViewAsParticipantBar({
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, USER_SEARCH_TIMEOUT_MS);
 
     setIsLoadingUsers(true);
     setLoadError(null);
@@ -100,13 +106,19 @@ export function ViewAsParticipantBar({
       );
       setUsers(list);
     } catch (e) {
+      if (timedOut) {
+        setLoadError('Timed out loading tenant users');
+        setUsers([]);
+        return;
+      }
       if (e instanceof DOMException && e.name === 'AbortError') return;
       if (e instanceof Error && e.name === 'AbortError') return;
       if (controller.signal.aborted) return;
       setLoadError(e instanceof Error ? e.message : 'Failed to load users');
       setUsers([]);
     } finally {
-      if (!controller.signal.aborted) {
+      window.clearTimeout(timeoutId);
+      if (!controller.signal.aborted || timedOut) {
         setIsLoadingUsers(false);
       }
     }

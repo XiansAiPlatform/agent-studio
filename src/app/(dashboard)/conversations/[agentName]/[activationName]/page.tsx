@@ -26,7 +26,10 @@ import { ParticipantMenuBar } from './_components';
 import { resolveWorkflowName } from '@/lib/xians/built-in-workflows';
 import { decodeAgentNameParam } from '@/lib/xians/agent-name';
 import { useCan } from '@/hooks/use-permissions';
-import { VIEW_AS_PARTICIPANT_QUERY_PARAM } from '@/lib/messaging/view-as-constants';
+import {
+  VIEW_AS_PARTICIPANT_QUERY_PARAM,
+  isViewAsTopicMutationBlocked,
+} from '@/lib/messaging/view-as-constants';
 import { appendViewAsParticipantId } from '@/lib/messaging/client-query';
 import { ViewAsParticipantBar } from '../../_components/view-as-participant-bar';
 
@@ -148,10 +151,7 @@ function ConversationContent() {
     [searchParams, router, agentName, activationName]
   );
 
-  const prevViewAsRef = useRef<string | null>(null);
   useEffect(() => {
-    if (prevViewAsRef.current === viewAsParticipantId) return;
-    prevViewAsRef.current = viewAsParticipantId;
     setMessageStates({});
   }, [viewAsParticipantId]);
 
@@ -470,7 +470,7 @@ function ConversationContent() {
 
   // Handle topic creation
   const handleCreateTopic = useCallback((topicName: string) => {
-    if (isViewAsReadOnly) return;
+    if (isViewAsTopicMutationBlocked(isViewAsReadOnly)) return;
     // Create new topic with the provided name
     const newTopic: Topic = {
       id: topicName, // Use the topic name as the ID (will be used as scope)
@@ -499,7 +499,7 @@ function ConversationContent() {
 
   // Handle topic deletion
   const handleDeleteTopic = useCallback(async (topicId: string, topicName: string) => {
-    if (isViewAsReadOnly) return;
+    if (isViewAsTopicMutationBlocked(isViewAsReadOnly)) return;
     if (!currentTenantId || !agentName || !activationName || !selectedWorkflowType) {
       showErrorToast(new Error('Missing required parameters'), 'Unable to delete topic');
       return;
@@ -1107,8 +1107,12 @@ function ConversationContent() {
         serverUnavailable={serverUnavailable}
         isHeartbeatLoading={isHeartbeatLoading}
         onRetryHeartbeat={refetchHeartbeat}
-        onCreateTopic={noConversationalCapability ? undefined : handleCreateTopic}
-        onDeleteTopic={noConversationalCapability ? undefined : handleDeleteTopic}
+        onCreateTopic={
+          isViewAsReadOnly || noConversationalCapability ? undefined : handleCreateTopic
+        }
+        onDeleteTopic={
+          isViewAsReadOnly || noConversationalCapability ? undefined : handleDeleteTopic
+        }
         chatInputRef={chatInputRef}
         agentInfo={agentInfo}
         onMessageFeedbackSubmitted={handleMessageFeedbackSubmitted}
