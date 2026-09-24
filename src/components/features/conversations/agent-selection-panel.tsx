@@ -8,13 +8,26 @@ import { useTenant } from '@/hooks/use-tenant';
 import { Button } from '@/components/ui/button';
 import { useActivations } from '@/app/(dashboard)/conversations/hooks';
 import { ActivationFilter, ActivationListItem } from '@/app/(dashboard)/conversations/_components';
+import { canEditAgent, type EditableAgents } from '@/hooks/use-editable-agents';
+import { showErrorToast } from '@/lib/utils/error-handler';
 import { cn } from '@/lib/utils';
+
+/** When set, the picker lists every active agent but blocks navigation for agents the user cannot edit. */
+export type AgentEditAccessCheck = Pick<
+  EditableAgents,
+  'canEditAll' | 'roleDefaultWrite' | 'levels' | 'editable' | 'isLoading'
+>;
 
 interface AgentSelectionContentProps {
   onActivationSelect: (activationName: string, agentName: string) => void;
   /** Optional className for the outer wrapper (e.g. padding overrides). */
   className?: string;
-  editableAgentNames?: string[] | null;
+  /**
+   * Settings panels (Knowledge / Data / Schedules / Connections): list all active
+   * agents, then deny on select when the user lacks Write/Owner (or canEditAll).
+   * Omit for Conversations (no edit gate).
+   */
+  editAccessCheck?: AgentEditAccessCheck | null;
 }
 
 /**
@@ -25,7 +38,7 @@ interface AgentSelectionContentProps {
 export function AgentSelectionContent({
   onActivationSelect,
   className,
-  editableAgentNames,
+  editAccessCheck,
 }: AgentSelectionContentProps) {
   const router = useRouter();
   const { currentTenantId } = useTenant();
@@ -33,10 +46,7 @@ export function AgentSelectionContent({
 
   const { activations, isLoading } = useActivations(currentTenantId);
 
-  const allowed = editableAgentNames ? new Set(editableAgentNames) : null;
-  const activeActivations = activations.filter(
-    (a) => a.status === 'active' && (!allowed || allowed.has(a.agentName))
-  );
+  const activeActivations = activations.filter((a) => a.status === 'active');
 
   const filteredActivations = activeActivations.filter((activation) => {
     const query = searchQuery.toLowerCase();
@@ -53,6 +63,24 @@ export function AgentSelectionContent({
     acc[activation.agentName].push(activation);
     return acc;
   }, {} as Record<string, typeof activations>);
+
+  const handleSelect = (activationName: string, agentName: string) => {
+    if (editAccessCheck) {
+      if (editAccessCheck.isLoading) {
+        showErrorToast(new Error('Checking your access to this agent. Try again in a moment.'));
+        return;
+      }
+      if (!canEditAgent(editAccessCheck, agentName)) {
+        showErrorToast(
+          new Error(
+            'You do not have access to this agent. Ask an owner to grant you Write or Owner access.'
+          )
+        );
+        return;
+      }
+    }
+    onActivationSelect(activationName, agentName);
+  };
 
   if (isLoading || !currentTenantId) {
     return (
@@ -112,7 +140,7 @@ export function AgentSelectionContent({
                       key={activation.id}
                       activation={activation}
                       isSelected={false}
-                      onSelect={onActivationSelect}
+                      onSelect={handleSelect}
                     />
                   ))}
                 </div>
@@ -133,8 +161,8 @@ interface AgentSelectionPanelProps {
   description?: string;
   icon?: React.ComponentType<{ className?: string }>;
   onActivationSelect?: (activationName: string, agentName: string) => void;
-  /** Restrict the list to these agents (settings panels). Omit for Conversations. */
-  editableAgentNames?: string[] | null;
+  /** Settings panels: list all active agents, deny on select when not editable. */
+  editAccessCheck?: AgentEditAccessCheck | null;
 }
 
 /**
@@ -151,7 +179,7 @@ export function AgentSelectionPanel({
   description = 'Choose an activation to start chatting',
   icon: Icon,
   onActivationSelect: externalOnActivationSelect,
-  editableAgentNames,
+  editAccessCheck,
 }: AgentSelectionPanelProps) {
   const router = useRouter();
 
@@ -211,7 +239,7 @@ export function AgentSelectionPanel({
         <div className="p-6 overflow-y-auto h-[calc(100vh-56px-120px)]">
           <AgentSelectionContent
             onActivationSelect={handleActivationSelect}
-            editableAgentNames={editableAgentNames}
+            editAccessCheck={editAccessCheck}
           />
         </div>
       </div>

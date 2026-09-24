@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Trash2, ShieldCheck, Users, CheckCircle2 } from 'lucide-react';
+import { Loader2, Trash2, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,18 +17,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import type { AgentAccess, AgentAccessLevel } from '@/lib/xians/types';
 
 const LEVELS: AgentAccessLevel[] = ['Read', 'Write', 'Owner'];
-
-const LEVEL_HELP: Record<AgentAccessLevel, string> = {
-  Read: 'Can see and use the agent',
-  Write: 'Can also edit the agent, its knowledge and schedules',
-  Owner: 'Full control, including managing access',
-};
 
 interface DirectoryUser {
   userId: string;
@@ -40,18 +32,31 @@ interface DirectoryUser {
 }
 
 /**
- * TenantAdmin / SysAdmin always bypass the per-agent access lists
+ * TenantAdmin / SysAdmin always bypass the per-agent access lists.
  */
 function isAdminUser(u: DirectoryUser | undefined | null): boolean {
   if (!u) return false;
   return u.isSysAdmin === true || u.resolvedAdmin === true || (u.roles ?? []).includes('TenantAdmin');
 }
 
+/**
+ * Participant Admin / Developer get write-level access when no explicit grant exists.
+ */
+function isAgentOperatorUser(u: DirectoryUser | undefined | null): boolean {
+  if (!u || isAdminUser(u)) return false;
+  const roles = u.roles ?? [];
+  return roles.includes('TenantParticipantAdmin') || roles.includes('TenantUser');
+}
+
 interface AccessRow {
   userId: string;
   level: AgentAccessLevel;
-  /** True for a TenantAdmin/SysAdmin shown by default with no explicit grant on this agent. */
+  /**
+   * No explicit grant on this agent — level is implied
+   * (admin → Owner, or role-default / undefined → Write).
+   */
   virtual?: boolean;
+  implicitKind?: 'admin' | 'role-default';
 }
 
 interface ManageAccessDialogProps {
@@ -78,10 +83,6 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
   
   const [resolvedExtras, setResolvedExtras] = useState<Record<string, DirectoryUser>>({});
   const [canListUsers, setCanListUsers] = useState(true);
-
-  const [newUserId, setNewUserId] = useState('');
-  const [newLevel, setNewLevel] = useState<AgentAccessLevel>('Read');
-  const [isAdding, setIsAdding] = useState(false);
 
   const agentId = agent?.id ?? null;
   // Loading is derived: the loaded access object carries its own agentId, so it
@@ -212,19 +213,48 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
     };
   }, [open, agentId, rows, directoryById]);
 
-  // Every current TenantAdmin/SysAdmin in the tenant already has full access to
-  // every agent regardless of any list 
+  // Every tenant member appears here. Explicit grants win; otherwise:
+  // TenantAdmin/SysAdmin → Owner, no grant → Write (role default / undefined).
   const displayRows = useMemo(() => {
+    const explicitById = new Map(rows.map((r) => [r.userId, r.level] as const));
     const byId = new Map<string, AccessRow>();
-    for (const r of rows) {
-      const admin = isAdminUser(directoryById.get(r.userId));
-      byId.set(r.userId, { userId: r.userId, level: admin ? 'Owner' : r.level });
-    }
+
     for (const u of directory) {
-      if (u.userId && isAdminUser(u) && !byId.has(u.userId)) {
-        byId.set(u.userId, { userId: u.userId, level: 'Owner', virtual: true });
+      if (!u.userId) continue;
+      if (isAdminUser(u)) {
+        byId.set(u.userId, {
+          userId: u.userId,
+          level: 'Owner',
+          virtual: !explicitById.has(u.userId),
+          implicitKind: 'admin',
+        });
+        continue;
       }
+      const explicit = explicitById.get(u.userId);
+      if (explicit) {
+        byId.set(u.userId, { userId: u.userId, level: explicit });
+        continue;
+      }
+      byId.set(u.userId, {
+        userId: u.userId,
+        level: 'Write',
+        virtual: true,
+        implicitKind: 'role-default',
+      });
     }
+
+    // Grants for users not in the directory (e.g. removed members) still show.
+    for (const r of rows) {
+      if (byId.has(r.userId)) continue;
+      const admin = isAdminUser(directoryById.get(r.userId));
+      byId.set(r.userId, {
+        userId: r.userId,
+        level: admin ? 'Owner' : r.level,
+        virtual: admin,
+        implicitKind: admin ? 'admin' : undefined,
+      });
+    }
+
     return [...byId.values()].sort((a, b) => LEVELS.indexOf(b.level) - LEVELS.indexOf(a.level));
   }, [rows, directory, directoryById]);
 
@@ -237,24 +267,35 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
     [directoryById]
   );
 
-  const listedIds = useMemo(() => new Set(displayRows.map((r) => r.userId)), [displayRows]);
-  const addableUsers = useMemo(
-    () => directory.filter((u) => u.userId && !listedIds.has(u.userId)),
-    [directory, listedIds]
-  );
-
   const applyResult = (updated: AgentAccess) => setAccess(updated);
 
   const handleChangeLevel = async (userId: string, level: AgentAccessLevel) => {
     if (!agentId || isAdminUser(directoryById.get(userId))) return;
     const currentRow = rows.find((r) => r.userId === userId);
+    const displayRow = displayRows.find((r) => r.userId === userId);
+    // Already at this level (explicit or implied Write default).
     if (currentRow?.level === level) return;
+    if (!currentRow && displayRow?.virtual && displayRow.level === level) return;
     if (currentRow?.level === 'Owner' && level !== 'Owner' && ownerCount <= 1) {
       showErrorToast(new Error('An agent must keep at least one owner.'));
       return;
     }
     setPendingUser(userId);
     try {
+      // No explicit grant yet — create one (turns an implied Write into a real grant).
+      if (!currentRow) {
+        const res = await fetch(`/api/agent-deployments/${encodeURIComponent(agentId)}/access`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, level }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || 'Failed to update access');
+        applyResult(data as AgentAccess);
+        showSuccessToast('Access updated', `${displayName(userId)} is now ${level}`);
+        return;
+      }
+
       const res = await fetch(
         `/api/agent-deployments/${encodeURIComponent(agentId)}/access/users/${encodeURIComponent(userId)}`,
         {
@@ -277,7 +318,9 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
   const handleRemove = async (userId: string) => {
     if (!agentId || isAdminUser(directoryById.get(userId))) return;
     const currentRow = rows.find((r) => r.userId === userId);
-    if (currentRow?.level === 'Owner' && ownerCount <= 1) {
+    // Implied defaults are not stored — nothing to remove.
+    if (!currentRow) return;
+    if (currentRow.level === 'Owner' && ownerCount <= 1) {
       showErrorToast(new Error('An agent must keep at least one owner.'));
       return;
     }
@@ -290,7 +333,7 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message || 'Failed to remove access');
       applyResult(data as AgentAccess);
-      showSuccessToast('Access removed', `${displayName(userId)} can no longer access this agent`);
+      showSuccessToast('Access removed', `${displayName(userId)} returned to the default Write level`);
     } catch (err) {
       showErrorToast(err);
     } finally {
@@ -298,54 +341,21 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
     }
   };
 
-  const handleAdd = async () => {
-    if (!agentId) return;
-    const userId = newUserId.trim();
-    if (!userId) {
-      showErrorToast(new Error('Pick a user to add.'));
-      return;
-    }
-    if (userId.includes('@')) {
-      showErrorToast(new Error('Enter a user id, not an email address.'));
-      return;
-    }
-    if (isAdminUser(directoryById.get(userId))) {
-      showErrorToast(
-        new Error('Tenant/System admins already have full access and always bypass this list.')
-      );
-      return;
-    }
-    setIsAdding(true);
-    try {
-      const res = await fetch(`/api/agent-deployments/${encodeURIComponent(agentId)}/access`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, level: newLevel }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || 'Failed to add user');
-      applyResult(data as AgentAccess);
-      setNewUserId('');
-      setNewLevel('Read');
-      showSuccessToast('Access granted', `${displayName(userId)} is now ${newLevel}`);
-    } catch (err) {
-      showErrorToast(err);
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Manage access{agent ? ` — ${agent.name}` : ''}
+      <DialogContent className="sm:max-w-lg max-h-[min(90dvh,40rem)] overflow-y-auto overflow-x-hidden">
+        <DialogHeader className="min-w-0 pr-6">
+          <DialogTitle className="flex items-center gap-2 min-w-0">
+            <Users className="h-4 w-4 shrink-0" />
+            <span className="truncate">
+              Manage access{agent ? ` — ${agent.name}` : ''}
+            </span>
           </DialogTitle>
           <DialogDescription>
-            Choose who can access this agent and at what level. Tenant and system
-            administrators always have full access.
+            All tenant members are listed. Explicit grants override the default;
+            when none is set, access shows as Write (role default for Participant
+            Admins and Developers). Tenant and system administrators always have
+            full Owner access.
           </DialogDescription>
         </DialogHeader>
 
@@ -354,150 +364,102 @@ export function ManageAccessDialog({ open, onOpenChange, agent }: ManageAccessDi
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             {/* Current access list */}
-            <div className="rounded-lg border divide-y">
+            <div className="rounded-lg border divide-y min-w-0 overflow-hidden">
               {displayRows.length === 0 ? (
                 <p className="px-4 py-6 text-sm text-muted-foreground text-center">
-                  No explicit access yet.
+                  {canListUsers
+                    ? 'No users in this tenant yet.'
+                    : 'No access entries yet. Ask a tenant administrator to list users.'}
                 </p>
               ) : (
                 displayRows.map((row) => {
                   const isCreator = row.userId === access.createdBy;
                   const busy = pendingUser === row.userId;
-                  const rowIsAdmin = isAdminUser(directoryById.get(row.userId));
+                  const rowUser = directoryById.get(row.userId);
+                  const rowIsAdmin = isAdminUser(rowUser);
+                  const isVirtual = !!row.virtual;
                   return (
-                    <div key={row.userId} className="flex items-center gap-3 px-4 py-3">
+                    <div
+                      key={row.userId}
+                      className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4"
+                    >
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                          {displayName(row.userId)}
-                          {isCreator && (
-                            <span className="text-[10px] font-normal text-muted-foreground border rounded px-1 py-0.5">
-                              creator
-                            </span>
-                          )}
-                          {rowIsAdmin && (
-                            <span className="text-[10px] font-normal text-muted-foreground border rounded px-1 py-0.5">
-                              admin — always full access{row.virtual ? ', not explicitly granted' : ''}
-                            </span>
-                          )}
-                        </p>
+                        <p className="text-sm font-medium truncate">{displayName(row.userId)}</p>
+                        {(isCreator || rowIsAdmin || isVirtual) && (
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            {isCreator && (
+                              <span className="shrink-0 text-[10px] font-normal text-muted-foreground border rounded px-1 py-0.5">
+                                creator
+                              </span>
+                            )}
+                            {rowIsAdmin && (
+                              <span
+                                className="shrink-0 text-[10px] font-normal text-muted-foreground border rounded px-1 py-0.5"
+                                title="Admin — always full access"
+                              >
+                                {row.virtual ? 'admin (implicit)' : 'admin'}
+                              </span>
+                            )}
+                            {!rowIsAdmin && row.implicitKind === 'role-default' && (
+                              <span
+                                className="shrink-0 text-[10px] font-normal text-muted-foreground border rounded px-1 py-0.5"
+                                title={
+                                  isAgentOperatorUser(rowUser)
+                                    ? 'No explicit grant — Write by role default'
+                                    : 'No explicit grant — shown as Write'
+                                }
+                              >
+                                default
+                              </span>
+                            )}
+                          </div>
+                        )}
                         {displayName(row.userId) !== row.userId && (
                           <p className="text-xs text-muted-foreground truncate">{row.userId}</p>
                         )}
                       </div>
-                      <Select
-                        value={row.level}
-                        onValueChange={(v) => handleChangeLevel(row.userId, v as AgentAccessLevel)}
-                        disabled={busy || rowIsAdmin}
-                      >
-                        <SelectTrigger className="w-[110px] h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LEVELS.map((lvl) => (
-                            <SelectItem key={lvl} value={lvl}>
-                              {lvl}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleRemove(row.userId)}
-                        disabled={busy || rowIsAdmin}
-                        aria-label={`Remove ${displayName(row.userId)}`}
-                      >
-                        {busy ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        <Select
+                          value={row.level}
+                          onValueChange={(v) => handleChangeLevel(row.userId, v as AgentAccessLevel)}
+                          disabled={busy || rowIsAdmin}
+                        >
+                          <SelectTrigger className="w-[110px] h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LEVELS.map((lvl) => (
+                              <SelectItem key={lvl} value={lvl}>
+                                {lvl}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleRemove(row.userId)}
+                          disabled={busy || rowIsAdmin || isVirtual}
+                          aria-label={`Remove ${displayName(row.userId)}`}
+                          title={
+                            isVirtual
+                              ? 'Default access is not stored — change the level to set an explicit grant'
+                              : undefined
+                          }
+                        >
+                          {busy ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   );
                 })
-              )}
-            </div>
-
-            {/* Add a user */}
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Add a user</Label>
-              <div className="flex items-center gap-2">
-                {canListUsers ? (
-                  <Select value={newUserId} onValueChange={setNewUserId} disabled={isAdding}>
-                    <SelectTrigger className="flex-1 h-9">
-                      <SelectValue placeholder="Select a user…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {addableUsers.length === 0 ? (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                          Everyone is already listed
-                        </div>
-                      ) : (
-                        addableUsers.map((u) => {
-                          const admin = isAdminUser(u);
-                          return (
-                            <SelectItem key={u.userId} value={u.userId} disabled={admin}>
-                              <span className="flex items-center gap-1.5">
-                                {u.name || u.email || u.userId}
-                                {admin && (
-                                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    admin — already has full access
-                                  </span>
-                                )}
-                              </span>
-                            </SelectItem>
-                          );
-                        })
-                      )}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    className="flex-1 h-9"
-                    placeholder="User id"
-                    value={newUserId}
-                    onChange={(e) => setNewUserId(e.target.value)}
-                    disabled={isAdding}
-                  />
-                )}
-                <Select
-                  value={newLevel}
-                  onValueChange={(v) => setNewLevel(v as AgentAccessLevel)}
-                  disabled={isAdding}
-                >
-                  <SelectTrigger className="w-[110px] h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEVELS.map((lvl) => (
-                      <SelectItem key={lvl} value={lvl}>
-                        {lvl}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={handleAdd}
-                  disabled={isAdding || !newUserId.trim() || isAdminUser(directoryById.get(newUserId))}
-                  className="h-9"
-                >
-                  {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Add
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                {LEVEL_HELP[newLevel]}
-              </p>
-              {!canListUsers && (
-                <p className="text-xs text-muted-foreground">
-                  You can add users by id. Ask a tenant administrator if you need to look one up.
-                </p>
               )}
             </div>
           </div>

@@ -19,16 +19,26 @@ import { resolveAgentEditability, resolveAgentEditabilityFor } from '@/lib/auth/
  * more sensitive than what "Manage access" already displays.
  *
  * Tenant comes from the session cookie either way.
- * Response: { canEditAll: boolean, editable: string[], levels: Record<string, 'Read'|'Write'|'Owner'> }
+ * Response: {
+ *   canEditAll: boolean,
+ *   roleDefaultWrite: boolean,
+ *   editable: string[],
+ *   levels: Record<string, 'Read'|'Write'|'Owner'>
+ * }
  */
 export const GET = withParticipantAdmin(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     try {
       const userId = request.nextUrl.searchParams.get('userId')
-      const { canEditAll, levels, editable } = userId
+      const { canEditAll, roleDefaultWrite, levels, editable } = userId
         ? await resolveAgentEditabilityFor(userId, tenantContext.tenant.id)
         : await resolveAgentEditability(session, tenantContext.tenant.id)
-      return NextResponse.json({ canEditAll, editable: [...editable], levels })
+      return NextResponse.json({
+        canEditAll,
+        roleDefaultWrite,
+        editable: [...editable],
+        levels,
+      })
     } catch (error) {
       return handleApiError(error, 'Agent Access')
     }
