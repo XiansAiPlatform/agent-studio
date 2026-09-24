@@ -5,11 +5,15 @@
  * can't per-user gate a Studio request. This module asks the backend "which
  * agents in this tenant can <user> edit?" — resolved by the user's email, the
  * one stable identifier every Studio session carries — and turns the answer
- * into a gate for route handlers and a filter for the settings-page pickers.
+ * into a gate for route handlers and a check for the settings-page agent pickers.
  *
- * Model (product decision): only Write / Owner on an agent, or TenantAdmin /
- * SysAdmin, grants access to that agent's settings. A Read grant or no grant
- * means the agent is invisible on the settings pages and blocked at the API.
+ * Model:
+ * - TenantAdmin / SysAdmin always edit every agent (`canEditAll`).
+ * - Explicit Write/Owner grants allow edit; explicit Read does not.
+ * - Participant Admin / Developer with no grant on an agent fall back to their
+ *   role default (write-level access).
+ * Settings pickers list every active agent; selecting one the user cannot edit
+ * shows an access message. API routes reject the same case.
  */
 
 import type { Session } from 'next-auth'
@@ -18,26 +22,30 @@ import { createXiansClient } from '@/lib/xians/client'
 import { createTtlCache, TENANT_LOOKUP_TTL_MS } from '@/lib/xians/cache'
 import { forbiddenError, validationError } from '@/lib/api/error-handler'
 import { decodeAgentNameParam, normalizeAgentName } from '@/lib/xians/agent-name'
+import { mayEditAgent, type AgentLevel, type AgentEditPolicy } from '@/lib/auth/agent-edit-policy'
 
-export type AgentLevel = 'Read' | 'Write' | 'Owner'
+export type { AgentLevel }
 
 interface AgentAccessResponse {
   user: string
   isSysAdmin: boolean
   isTenantAdmin: boolean
+  /** Participant Admin or Developer in this tenant. */
+  isAgentOperator?: boolean
   agents: Record<string, AgentLevel>
 }
 
-export interface AgentEditability {
-  /** TenantAdmin / SysAdmin — may edit every agent in the tenant. */
-  canEditAll: boolean
-  /** Raw per-agent grant, by agent name. */
-  levels: Record<string, AgentLevel>
-  /** Agent names the user may edit (Write/Owner). Empty when `canEditAll`. */
+export interface AgentEditability extends AgentEditPolicy {
+  /** Agent names with an explicit Write/Owner grant. Empty when `canEditAll`. */
   editable: Set<string>
 }
 
-const EMPTY: AgentEditability = { canEditAll: false, levels: {}, editable: new Set() }
+const EMPTY: AgentEditability = {
+  canEditAll: false,
+  roleDefaultWrite: false,
+  levels: {},
+  editable: new Set(),
+}
 
 // Short TTL: this backs an authorization gate, so a revoked grant becomes
 // visible after at most TENANT_LOOKUP_TTL_MS. Shared across users is fine —
@@ -76,6 +84,7 @@ export async function resolveAgentEditabilityFor(
     }
     return {
       canEditAll: res.isSysAdmin || res.isTenantAdmin,
+      roleDefaultWrite: !!res.isAgentOperator && !(res.isSysAdmin || res.isTenantAdmin),
       levels,
       editable: new Set(
         Object.entries(levels)
@@ -110,9 +119,8 @@ export async function assertCanEditAgent(
 ): Promise<NextResponse | null> {
   if (!agentName) return validationError('Agent name is required')
 
-  const { canEditAll, editable } = await resolveAgentEditability(session, tenantId)
-  const canonicalName = decodeAgentNameParam(agentName)
-  if (canEditAll || editable.has(canonicalName)) return null
+  const access = await resolveAgentEditability(session, tenantId)
+  if (mayEditAgent(access, agentName)) return null
   return forbiddenError('You need write access to this agent to perform this action.')
 }
 
@@ -139,3 +147,5 @@ export async function assertCanEditActivation(
   }
   return assertCanEditAgent(session, tenantId, agentName)
 }
+
+export { mayEditAgent, decodeAgentNameParam }
