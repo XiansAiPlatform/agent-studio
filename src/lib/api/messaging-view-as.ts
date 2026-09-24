@@ -73,7 +73,7 @@ async function fetchIsEmailTenantMember(
   const client = createXiansClient(accessToken)
   const needle = email.toLowerCase()
   let page = 1
-  let totalPages = 1
+  let totalPages: number
 
   do {
     const params = new URLSearchParams({
