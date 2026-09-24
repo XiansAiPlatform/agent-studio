@@ -7,6 +7,7 @@ import { Ban, FileText, Loader2, OctagonX } from 'lucide-react'
 import {
   WorkflowExecution,
   isRunningWorkflow,
+  toShortWorkflowType,
   workflowLogsHref,
 } from '../types'
 import { WorkflowStatusBadge } from './workflow-status-badge'
@@ -67,7 +68,12 @@ export function WorkflowsTable({
                     {id || '—'}
                   </span>
                 </td>
-                <td className="px-4 py-3">{workflow.workflowType || '—'}</td>
+                <td
+                  className="max-w-[200px] truncate px-4 py-3"
+                  title={workflow.workflowType ?? undefined}
+                >
+                  {toShortWorkflowType(workflow.workflowType, agentName) || '—'}
+                </td>
                 <td className="px-4 py-3">
                   <WorkflowStatusBadge status={workflow.status} />
                 </td>
@@ -84,7 +90,7 @@ export function WorkflowsTable({
                   <div className="flex flex-wrap items-center justify-end gap-1">
                     {id && (
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={workflowLogsHref(agentName, activationName, id)}>
+                        <Link href={workflowLogsHref(agentName, activationName, id, workflow.workflowType)}>
                           <FileText className="h-4 w-4" />
                           Logs
                         </Link>

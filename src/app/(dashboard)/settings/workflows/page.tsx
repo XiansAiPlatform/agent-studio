@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -16,13 +15,16 @@ import {
 import {
   Workflow,
   Bot,
-  Search,
   RefreshCw,
   AlertCircle,
 } from 'lucide-react'
 import { PageLoader } from '@/components/ui/page-loader'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
-import { WorkflowExecution, WORKFLOW_STATUS_OPTIONS } from './types'
+import {
+  WorkflowExecution,
+  WORKFLOW_STATUS_OPTIONS,
+  collectWorkflowTypeFilterOptions,
+} from './types'
 import { useWorkflows } from './hooks/use-workflows'
 import { WorkflowsTable } from './components/workflows-table'
 import { WorkflowActionDialog } from './components/workflow-action-dialog'
@@ -33,9 +35,7 @@ function WorkflowsContent() {
   const activationName = searchParams.get('activationName')
 
   const [statusFilter, setStatusFilter] = useState('all')
-  const [workflowTypeFilter, setWorkflowTypeFilter] = useState('')
-  const [userFilter, setUserFilter] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [workflowTypeFilter, setWorkflowTypeFilter] = useState('all')
   const [actionMode, setActionMode] = useState<'cancel' | 'terminate' | null>(null)
   const [target, setTarget] = useState<WorkflowExecution | null>(null)
   const [isWorking, setIsWorking] = useState(false)
@@ -45,15 +45,17 @@ function WorkflowsContent() {
       agentName: agentName ?? undefined,
       activationName: activationName ?? undefined,
       status: statusFilter,
-      workflowType: workflowTypeFilter.trim() || undefined,
-      user: userFilter.trim() || undefined,
+      workflowType:
+        workflowTypeFilter !== 'all' ? workflowTypeFilter : undefined,
     }),
-    [agentName, activationName, statusFilter, workflowTypeFilter, userFilter]
+    [agentName, activationName, statusFilter, workflowTypeFilter]
   )
 
   const {
     workflows,
+    allWorkflows,
     isLoading,
+    isLoadingMore,
     error,
     refetch,
     loadMore,
@@ -61,14 +63,12 @@ function WorkflowsContent() {
     cancelWorkflow,
   } = useWorkflows(options)
 
-  const filteredWorkflows = useMemo(() => {
-    if (!workflows) return []
-    const query = searchQuery.trim().toLowerCase()
-    if (!query) return workflows
-    return workflows.filter((w) =>
-      (w.workflowId ?? '').toLowerCase().includes(query)
-    )
-  }, [workflows, searchQuery])
+  // Built from every fetched row (not the type-filtered ones) so options don't collapse
+  // to the selected type once a filter is applied.
+  const workflowTypeOptions = useMemo(
+    () => collectWorkflowTypeFilterOptions(agentName ?? '', allWorkflows),
+    [agentName, allWorkflows]
+  )
 
   const handleConfirm = async () => {
     if (!target?.workflowId || !actionMode) return
@@ -131,17 +131,8 @@ function WorkflowsContent() {
             </div>
 
             <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Filter by workflow ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full lg:w-48">
+                <SelectTrigger className="w-full lg:w-56">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -153,18 +144,19 @@ function WorkflowsContent() {
                   ))}
                 </SelectContent>
               </Select>
-              <Input
-                placeholder="Workflow type"
-                value={workflowTypeFilter}
-                onChange={(e) => setWorkflowTypeFilter(e.target.value)}
-                className="w-full lg:w-48"
-              />
-              <Input
-                placeholder="Owner / user"
-                value={userFilter}
-                onChange={(e) => setUserFilter(e.target.value)}
-                className="w-full lg:w-48"
-              />
+              <Select value={workflowTypeFilter} onValueChange={setWorkflowTypeFilter}>
+                <SelectTrigger className="w-full lg:w-56">
+                  <SelectValue placeholder="Workflow type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  {workflowTypeOptions.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -181,7 +173,7 @@ function WorkflowsContent() {
             </Card>
           ) : isLoading ? (
             <PageLoader label="Loading workflows..." className="py-24" />
-          ) : filteredWorkflows.length === 0 ? (
+          ) : !workflows || workflows.length === 0 ? (
             <Card>
               <CardContent className="py-16">
                 <div className="flex flex-col items-center gap-4 text-center">
@@ -189,17 +181,28 @@ function WorkflowsContent() {
                     <Workflow className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {workflows && workflows.length > 0
+                    {statusFilter !== 'all' || workflowTypeFilter !== 'all'
                       ? 'No workflows match your filters.'
                       : 'No workflows found for this activation.'}
                   </p>
+                  {hasNextPage && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadMore()}
+                      disabled={isLoadingMore}
+                    >
+                      {isLoadingMore && <RefreshCw className="h-4 w-4 animate-spin" />}
+                      Search older workflows
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ) : (
             <>
               <WorkflowsTable
-                workflows={filteredWorkflows}
+                workflows={workflows}
                 agentName={agentName}
                 activationName={activationName}
                 actionBusyId={isWorking ? target?.workflowId ?? null : null}
@@ -214,7 +217,12 @@ function WorkflowsContent() {
               />
               {hasNextPage && (
                 <div className="flex justify-center">
-                  <Button variant="outline" onClick={() => loadMore()} disabled={isLoading}>
+                  <Button
+                    variant="outline"
+                    onClick={() => loadMore()}
+                    disabled={isLoading || isLoadingMore}
+                  >
+                    {isLoadingMore && <RefreshCw className="h-4 w-4 animate-spin" />}
                     Load more
                   </Button>
                 </div>

@@ -48,6 +48,22 @@ export interface SelectedActivation {
   agentName: string;
 }
 
+/** A workflow registered on an agent, used as the third filter level (agent → activation → workflow). */
+export interface AgentWorkflowOption {
+  /** Full Temporal workflow type, e.g. `Support Bot:Supervisor Workflow`. Sent as the `workflowType` filter. */
+  workflowType: string;
+  /** Display name, e.g. `Supervisor Workflow`. */
+  name: string;
+}
+
+/** Strips the `{agentName}:` prefix from a workflow type for display. */
+export function shortWorkflowName(workflowType: string, agentName?: string): string {
+  if (agentName && workflowType.startsWith(`${agentName}:`)) {
+    return workflowType.slice(agentName.length + 1);
+  }
+  return workflowType;
+}
+
 export interface LogStream {
   workflowId: string;
   workflowType: string | null;
