@@ -30,6 +30,8 @@ interface ChatInterfaceProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  /** Hide input and feedback when admin is viewing another user's thread. */
+  readOnly?: boolean;
 }
 
 function useSamplePromptClick(
@@ -60,6 +62,7 @@ export function ChatInterface({
   inputRef: externalInputRef,
   agentInfo,
   onMessageFeedbackSubmitted,
+  readOnly = false,
 }: ChatInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
   const onSamplePromptClick = useSamplePromptClick(setMessageInput, externalInputRef);
@@ -174,19 +177,26 @@ export function ChatInterface({
         messagesEndRef={messagesEndRef}
         agentInfo={agentInfo}
         onSamplePromptClick={onSamplePromptClick}
-        onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+        onMessageFeedbackSubmitted={readOnly ? undefined : onMessageFeedbackSubmitted}
+        disableFeedback={readOnly}
       />
 
-      <ChatInputArea
-        messageInput={messageInput}
-        onMessageChange={setMessageInput}
-        onSendMessage={handleSendMessage}
-        allowFileUpload={allowFileUpload}
-        selectedTopicId={selectedTopicId}
-        activationName={activationName || 'Agent'}
-        isActivationActive={isActivationActive}
-        inputRef={externalInputRef}
-      />
+      {readOnly ? (
+        <div className="shrink-0 border-t border-border/60 bg-muted/40 px-4 py-3 text-center text-sm text-muted-foreground">
+          Read-only: you are viewing another user&apos;s conversation.
+        </div>
+      ) : (
+        <ChatInputArea
+          messageInput={messageInput}
+          onMessageChange={setMessageInput}
+          onSendMessage={handleSendMessage}
+          allowFileUpload={allowFileUpload}
+          selectedTopicId={selectedTopicId}
+          activationName={activationName || 'Agent'}
+          isActivationActive={isActivationActive}
+          inputRef={externalInputRef}
+        />
+      )}
     </div>
   );
 }

@@ -23,6 +23,7 @@ interface ChatPanelProps {
   ) => void;
   /** Workflow has no OnUserChatMessage (or is not registered for messaging). */
   noConversationalCapability?: boolean;
+  readOnly?: boolean;
 }
 
 /**
@@ -46,6 +47,7 @@ export function ChatPanel({
   agentInfo,
   onMessageFeedbackSubmitted,
   noConversationalCapability = false,
+  readOnly = false,
 }: ChatPanelProps) {
   if (noConversationalCapability) {
     return (
@@ -112,6 +114,7 @@ export function ChatPanel({
         inputRef={chatInputRef}
         agentInfo={agentInfo}
         onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+        readOnly={readOnly}
       />
     </div>
   );

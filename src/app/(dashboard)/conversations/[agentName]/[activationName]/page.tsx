@@ -25,6 +25,13 @@ import { ConversationView } from '../../_components';
 import { ParticipantMenuBar } from './_components';
 import { resolveWorkflowName } from '@/lib/xians/built-in-workflows';
 import { decodeAgentNameParam } from '@/lib/xians/agent-name';
+import { useCan } from '@/hooks/use-permissions';
+import {
+  VIEW_AS_PARTICIPANT_QUERY_PARAM,
+  isViewAsTopicMutationBlocked,
+} from '@/lib/messaging/view-as-constants';
+import { appendViewAsParticipantId } from '@/lib/messaging/client-query';
+import { ViewAsParticipantBar } from '../../_components/view-as-participant-bar';
 
 /** Page size for the paginated message history (initial load and "load more"). */
 const MESSAGE_PAGE_SIZE = 10;
@@ -56,6 +63,17 @@ function ConversationContent() {
   const activationName = decodeAgentNameParam(params.activationName as string);
   const topicParam = searchParams.get('topic');
   const workflowParam = searchParams.get('workflow')?.trim() || null;
+  const canSystemAdmin = useCan('system:admin');
+  const viewAsParam = searchParams.get(VIEW_AS_PARTICIPANT_QUERY_PARAM)?.trim() ?? null;
+  // Query param is the view-as source of truth. The bar dialog is UX only;
+  // GET history/topics still require system-admin + tenant membership + audit.
+  const viewAsParticipantId = useMemo(() => {
+    if (!canSystemAdmin || !viewAsParam) return null;
+    const self = session?.user?.email?.trim();
+    if (self && viewAsParam.toLowerCase() === self.toLowerCase()) return null;
+    return viewAsParam;
+  }, [canSystemAdmin, viewAsParam, session?.user?.email]);
+  const isViewAsReadOnly = !!viewAsParticipantId;
 
   // State
   const [selectedTopicId, setSelectedTopicId] = useState<string>('');
@@ -110,11 +128,44 @@ function ConversationContent() {
     activationName,
     workflowType: activeWorkflowType,
     page: currentPage,
+    viewAsParticipantId,
   });
 
   const markNoConversationalCapability = useCallback(() => {
     setNoConversationalCapability(true);
   }, [setNoConversationalCapability]);
+
+  const handleViewAsChange = useCallback(
+    (email: string | null) => {
+      const urlParams = new URLSearchParams(searchParams.toString());
+      if (email) {
+        urlParams.set(VIEW_AS_PARTICIPANT_QUERY_PARAM, email);
+      } else {
+        urlParams.delete(VIEW_AS_PARTICIPANT_QUERY_PARAM);
+      }
+      router.push(
+        `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${urlParams.toString()}`,
+        { scroll: false }
+      );
+    },
+    [searchParams, router, agentName, activationName]
+  );
+
+  useEffect(() => {
+    setMessageStates({});
+  }, [viewAsParticipantId]);
+
+  useEffect(() => {
+    if (canSystemAdmin || !searchParams.has(VIEW_AS_PARTICIPANT_QUERY_PARAM)) {
+      return;
+    }
+    const urlParams = new URLSearchParams(searchParams.toString());
+    urlParams.delete(VIEW_AS_PARTICIPANT_QUERY_PARAM);
+    router.replace(
+      `/conversations/${encodeURIComponent(agentName)}/${encodeURIComponent(activationName)}?${urlParams.toString()}`,
+      { scroll: false }
+    );
+  }, [canSystemAdmin, searchParams, router, agentName, activationName]);
 
   // Conversation state management
   const {
@@ -208,6 +259,7 @@ function ConversationContent() {
         sortOrder: 'desc',
         workflowType: activeWorkflowType,
       });
+      appendViewAsParticipantId(queryParams, viewAsParticipantId);
 
       const response = await fetch(`/api/messaging/history?${queryParams.toString()}`);
       if (!response.ok) {
@@ -251,7 +303,7 @@ function ConversationContent() {
     } finally {
       syncingTopicsRef.current.delete(topicId);
     }
-  }, [currentTenantId, agentName, activationName, activeWorkflowType, mergeTopicMessages]);
+  }, [currentTenantId, agentName, activationName, activeWorkflowType, mergeTopicMessages, viewAsParticipantId]);
 
   // Keep the topic in a ref so the reconnect handler stays stable — passing an
   // unstable callback into the listener is fine (it stores it in a ref), but the
@@ -331,7 +383,15 @@ function ConversationContent() {
     agentName,
     activationName,
     workflowType: activeWorkflowType,
-    enabled: !!(currentTenantId && agentName && activationName && session?.user?.email && isActivationActive && activeWorkflowType),
+    enabled: !!(
+      currentTenantId &&
+      agentName &&
+      activationName &&
+      session?.user?.email &&
+      isActivationActive &&
+      activeWorkflowType &&
+      !isViewAsReadOnly
+    ),
     onMessage: handleIncomingMessage,
     onError: handleSSEError,
     onConnect: handleSSEConnect,
@@ -341,8 +401,10 @@ function ConversationContent() {
 
   // While the stream is down, poll history so replies still show up instead of
   // silently waiting for a connection that may never come back.
+  // View-as is a snapshot (the live listener is the session user, not the target),
+  // so skip this interval — otherwise it re-resolves membership every 10s.
   useEffect(() => {
-    if (isConnected || !selectedTopicId || !isActivationActive) {
+    if (isViewAsReadOnly || isConnected || !selectedTopicId || !isActivationActive) {
       return;
     }
 
@@ -353,7 +415,7 @@ function ConversationContent() {
     }, OFFLINE_POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [isConnected, selectedTopicId, isActivationActive, syncTopicMessages]);
+  }, [isConnected, selectedTopicId, isActivationActive, syncTopicMessages, isViewAsReadOnly]);
 
   // Check agent worker liveness when activation is opened (for Live tag vs warning)
   const {
@@ -408,6 +470,7 @@ function ConversationContent() {
 
   // Handle topic creation
   const handleCreateTopic = useCallback((topicName: string) => {
+    if (isViewAsTopicMutationBlocked(isViewAsReadOnly)) return;
     // Create new topic with the provided name
     const newTopic: Topic = {
       id: topicName, // Use the topic name as the ID (will be used as scope)
@@ -432,10 +495,11 @@ function ConversationContent() {
     setTimeout(() => {
       chatInputRef.current?.focus();
     }, 100);
-  }, [addTopic, updateTopicInURL]);
+  }, [addTopic, updateTopicInURL, isViewAsReadOnly]);
 
   // Handle topic deletion
   const handleDeleteTopic = useCallback(async (topicId: string, topicName: string) => {
+    if (isViewAsTopicMutationBlocked(isViewAsReadOnly)) return;
     if (!currentTenantId || !agentName || !activationName || !selectedWorkflowType) {
       showErrorToast(new Error('Missing required parameters'), 'Unable to delete topic');
       return;
@@ -505,7 +569,7 @@ function ConversationContent() {
       showErrorToast(error, 'Failed to delete topic messages');
       throw error; // Re-throw to let the component handle the error state
     }
-  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, updateTopicInURL, refetchTopics, notifyTopicDeleted, updateTopicMessages]);
+  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, updateTopicInURL, refetchTopics, notifyTopicDeleted, updateTopicMessages, isViewAsReadOnly]);
 
   // Handle topic selection
   const handleTopicSelect = useCallback((topicId: string) => {
@@ -636,6 +700,7 @@ function ConversationContent() {
           sortOrder: 'desc',
           workflowType: activeWorkflowType,
         });
+        appendViewAsParticipantId(queryParams, viewAsParticipantId);
 
         const response = await fetch(
           `/api/messaging/history?${queryParams.toString()}`
@@ -687,7 +752,7 @@ function ConversationContent() {
     };
     
     fetchMessages();
-  }, [currentTenantId, agentName, activationName, activeWorkflowType, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent]);
+  }, [currentTenantId, agentName, activationName, activeWorkflowType, selectedTopicId, session?.user?.email, updateTopicMessages, topicDeletedEvent, viewAsParticipantId]);
 
   // Handle sending messages
   // Note: we intentionally do not gate on `session.user.email` here. After a period
@@ -698,6 +763,7 @@ function ConversationContent() {
   // email check would cause false-positive failures without protecting anything.
   // A truly unauthenticated request is still caught by the `!response.ok` branch.
   const handleSendMessage = useCallback(async (content: string, topicId: string, files?: FileUploadPayload[]) => {
+    if (isViewAsReadOnly) return;
     if (!currentTenantId || !agentName || !activationName || !selectedWorkflowType) {
       console.error('[ConversationPage] Missing required parameters for sending message', {
         hasTenant: !!currentTenantId,
@@ -818,6 +884,7 @@ function ConversationContent() {
     addMessageToTopic,
     notifyHeartbeatActivity,
     ensureMessageStreamConnected,
+    isViewAsReadOnly,
   ]);
 
   // Handle loading more messages
@@ -853,6 +920,7 @@ function ConversationContent() {
         sortOrder: 'desc',
         workflowType: selectedWorkflowType,
       });
+      appendViewAsParticipantId(queryParams, viewAsParticipantId);
 
       const response = await fetch(
         `/api/messaging/history?${queryParams.toString()}`
@@ -907,7 +975,7 @@ function ConversationContent() {
         },
       }));
     }
-  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, session?.user?.email, messageStates, mergeTopicMessages]);
+  }, [currentTenantId, agentName, activationName, selectedWorkflowType, selectedTopicId, session?.user?.email, messageStates, mergeTopicMessages, viewAsParticipantId]);
 
   const handleMessageFeedbackSubmitted = useCallback(
     (messageId: string, feedback: NonNullable<Message['feedback']>) => {
@@ -1001,13 +1069,23 @@ function ConversationContent() {
   };
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col min-h-0">
+      {canSystemAdmin && (
+        <ViewAsParticipantBar
+          tenantId={currentTenantId}
+          currentViewAsEmail={viewAsParticipantId}
+          sessionEmail={session?.user?.email}
+          onViewAsChange={handleViewAsChange}
+        />
+      )}
+      <div className="flex-1 min-h-0">
       <ConversationView
         conversation={viewConversation}
         selectedTopicId={noConversationalCapability ? '' : selectedTopicId}
         onTopicSelect={handleTopicSelect}
         onSendMessage={handleSendMessage}
-        allowFileUpload
+        allowFileUpload={!isViewAsReadOnly}
+        readOnly={isViewAsReadOnly}
         isLoadingMessages={currentMessageState.isLoading}
         onLoadMoreMessages={handleLoadMoreMessages}
         isLoadingMoreMessages={currentMessageState.isLoadingMore}
@@ -1029,14 +1107,19 @@ function ConversationContent() {
         serverUnavailable={serverUnavailable}
         isHeartbeatLoading={isHeartbeatLoading}
         onRetryHeartbeat={refetchHeartbeat}
-        onCreateTopic={noConversationalCapability ? undefined : handleCreateTopic}
-        onDeleteTopic={noConversationalCapability ? undefined : handleDeleteTopic}
+        onCreateTopic={
+          isViewAsReadOnly || noConversationalCapability ? undefined : handleCreateTopic
+        }
+        onDeleteTopic={
+          isViewAsReadOnly || noConversationalCapability ? undefined : handleDeleteTopic
+        }
         chatInputRef={chatInputRef}
         agentInfo={agentInfo}
         onMessageFeedbackSubmitted={handleMessageFeedbackSubmitted}
         selectedWorkflow={selectedWorkflowType ?? undefined}
         noConversationalCapability={noConversationalCapability}
       />
+      </div>
     </div>
   );
 }

@@ -5,7 +5,8 @@ import {
   ApiContext,
 } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
-import { handleApiError } from '@/lib/api/error-handler'
+import { forbiddenError, handleApiError, unauthorizedError } from '@/lib/api/error-handler'
+import { rejectClientViewAsParameter } from '@/lib/api/messaging-view-as-guards'
 
 /**
  * Append the optional feedback filter query params (rating, agentName, date range)
@@ -55,12 +56,32 @@ export const GET = withParticipantAdmin(
 export const POST = withTenantFromSession(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {
     try {
-      const body = await request.json()
+      const sessionEmail = session.user?.email?.trim()
+      if (!sessionEmail) {
+        return unauthorizedError('User email not found in session')
+      }
 
+      const body = (await request.json()) as Record<string, unknown>
+      const viewAsError = rejectClientViewAsParameter(
+        new URL(request.url).searchParams,
+        body
+      )
+      if (viewAsError) return viewAsError
+
+      const requestedParticipantId =
+        typeof body.participantId === 'string' ? body.participantId.trim() : ''
+      if (
+        requestedParticipantId &&
+        requestedParticipantId.toLowerCase() !== sessionEmail.toLowerCase()
+      ) {
+        return forbiddenError('participantId must match the authenticated user')
+      }
+
+      const payload = { ...body, participantId: sessionEmail }
       const xiansClient = createXiansClient((session as { accessToken?: string })?.accessToken)
       // Admin API (API-key) path resolves the tenant authoritatively from the route.
       const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/feedback`
-      const response = await xiansClient.post<{ id: string }>(path, body)
+      const response = await xiansClient.post<{ id: string }>(path, payload)
 
       return NextResponse.json(response, { status: 201 })
     } catch (error) {

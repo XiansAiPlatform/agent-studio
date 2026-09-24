@@ -79,6 +79,8 @@ export interface MessageFeedbackPromptProps {
   ) => void;
   /** Render the trigger as a tooltip'd icon button instead of the "Rate response" text pill. */
   iconOnly?: boolean;
+  /** Hide the rate-response trigger (e.g. admin view-as). */
+  readOnly?: boolean;
 }
 
 /** Stars + reason after feedback exists; render in the actions row next to Copy (same hover visibility as that row). */
@@ -119,6 +121,7 @@ export function MessageFeedbackPrompt({
   agentName,
   onFeedbackSubmitted,
   iconOnly,
+  readOnly = false,
 }: MessageFeedbackPromptProps) {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
@@ -128,7 +131,7 @@ export function MessageFeedbackPrompt({
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!agentMessageSupportsFeedback(message) || message.feedback) {
+  if (readOnly || !agentMessageSupportsFeedback(message) || message.feedback) {
     return null;
   }
 
@@ -147,6 +150,7 @@ export function MessageFeedbackPrompt({
   };
 
   const handleSubmit = async () => {
+    if (readOnly) return;
     if (starRating < 1 || starRating > 5) {
       showErrorToast(new Error('Pick a star rating'), 'Rating required');
       return;

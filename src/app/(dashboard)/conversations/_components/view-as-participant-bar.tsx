@@ -1,0 +1,282 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Eye, X } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { VIEW_AS_PARTICIPANT_QUERY_PARAM } from '@/lib/messaging/view-as-constants';
+
+interface TenantUserOption {
+  email: string;
+  name: string;
+}
+
+function parseTenantUserOptions(
+  data: unknown,
+  sessionEmail: string | null | undefined
+): TenantUserOption[] {
+  if (!data || typeof data !== 'object' || !('users' in data)) return [];
+  const users = (data as { users?: unknown }).users;
+  if (!Array.isArray(users)) return [];
+  const self = sessionEmail?.trim().toLowerCase();
+  const parsed: TenantUserOption[] = [];
+  for (const entry of users) {
+    if (!entry || typeof entry !== 'object') continue;
+    const email =
+      'email' in entry && typeof entry.email === 'string' ? entry.email.trim() : '';
+    if (!email) continue;
+    if (self && email.toLowerCase() === self) continue;
+    if (!('name' in entry) || typeof entry.name !== 'string') continue;
+    parsed.push({ email, name: entry.name });
+  }
+  return parsed;
+}
+
+export const USER_SEARCH_DEBOUNCE_MS = 300;
+export const USER_SEARCH_TIMEOUT_MS = 8000;
+
+interface ViewAsParticipantBarProps {
+  tenantId: string | null;
+  currentViewAsEmail: string | null;
+  sessionEmail: string | null | undefined;
+  onViewAsChange: (email: string | null) => void;
+}
+
+/**
+ * System-admin control to view another tenant member's conversations (read-only).
+ *
+ * The confirm dialog is a UX acknowledgment only. It is not a server-side
+ * consent token. Authorization is system-admin + tenant membership + audit
+ * on the history/topics routes, including when viewAsParticipantId is already
+ * in the URL (bookmark, shared link, or refresh).
+ */
+export function ViewAsParticipantBar({
+  tenantId,
+  currentViewAsEmail,
+  sessionEmail,
+  onViewAsChange,
+}: ViewAsParticipantBarProps) {
+  const [users, setUsers] = useState<TenantUserOption[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [pendingViewAsEmail, setPendingViewAsEmail] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, USER_SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+  }, [search]);
+
+  const fetchUsers = useCallback(async () => {
+    if (!tenantId) return;
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, USER_SEARCH_TIMEOUT_MS);
+
+    setIsLoadingUsers(true);
+    setLoadError(null);
+    try {
+      const params = new URLSearchParams({
+        tenantId,
+        page: '1',
+        pageSize: '100',
+      });
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+
+      const res = await fetch(`/api/system-admin/users?${params.toString()}`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        throw new Error('Failed to load tenant users');
+      }
+      const data: unknown = await res.json();
+      if (controller.signal.aborted) return;
+      setUsers(parseTenantUserOptions(data, sessionEmail));
+    } catch (e) {
+      if (timedOut) {
+        setLoadError('Timed out loading tenant users');
+        setUsers([]);
+        return;
+      }
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      if (e instanceof Error && e.name === 'AbortError') return;
+      if (controller.signal.aborted) return;
+      setLoadError(e instanceof Error ? e.message : 'Failed to load users');
+      setUsers([]);
+    } finally {
+      window.clearTimeout(timeoutId);
+      if (controller.signal.aborted && !timedOut) {
+        return;
+      }
+      setIsLoadingUsers(false);
+    }
+  }, [tenantId, debouncedSearch, sessionEmail]);
+
+  useEffect(() => {
+    void fetchUsers();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, [fetchUsers]);
+
+  const isViewingOther = !!currentViewAsEmail;
+
+  const handleSelectChange = (value: string) => {
+    if (value === '__self__') {
+      setPendingViewAsEmail(null);
+      onViewAsChange(null);
+      return;
+    }
+    if (
+      currentViewAsEmail &&
+      value.trim().toLowerCase() === currentViewAsEmail.trim().toLowerCase()
+    ) {
+      return;
+    }
+    setPendingViewAsEmail(value);
+  };
+
+  const handleConfirmViewAs = () => {
+    if (!pendingViewAsEmail) return;
+    onViewAsChange(pendingViewAsEmail);
+    setPendingViewAsEmail(null);
+  };
+
+  const handleCancelViewAs = () => {
+    setPendingViewAsEmail(null);
+  };
+
+  return (
+    <div className="shrink-0 border-b border-border/60 bg-muted/30 px-4 py-3 space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground shrink-0">
+            <Eye className="h-4 w-4 text-muted-foreground" aria-hidden />
+            View conversations as
+          </div>
+          <div className="flex flex-col gap-1.5 min-w-0 flex-1 max-w-md">
+            <Label htmlFor="view-as-user-search" className="sr-only">
+              Search tenant users
+            </Label>
+            <Input
+              id="view-as-user-search"
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <Select
+            value={currentViewAsEmail ?? '__self__'}
+            onValueChange={handleSelectChange}
+            disabled={!tenantId || isLoadingUsers}
+          >
+            <SelectTrigger className="h-9 w-full sm:w-[280px]">
+              <SelectValue
+                placeholder={isLoadingUsers ? 'Loading users…' : 'Your conversations'}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__self__">Your conversations</SelectItem>
+              {users.map((user) => (
+                <SelectItem key={user.email} value={user.email}>
+                  {user.name ? `${user.name} (${user.email})` : user.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {isViewingOther && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => onViewAsChange(null)}
+          >
+            <X className="h-4 w-4 mr-1.5" aria-hidden />
+            Exit view-as
+          </Button>
+        )}
+      </div>
+
+      {loadError && (
+        <p className="text-xs text-destructive" role="status">
+          {loadError}
+        </p>
+      )}
+
+      {isViewingOther && (
+        <Alert variant="destructive" className="border-amber-500/50 bg-amber-500/10 text-foreground">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-900 dark:text-amber-100">
+            Privacy: viewing another user&apos;s conversations
+          </AlertTitle>
+          <AlertDescription className="text-sm text-amber-950/90 dark:text-amber-50/90">
+            You are viewing private messages for{' '}
+            <strong>{currentViewAsEmail}</strong>. This mode is read-only. Your
+            access is logged for audit (
+            <code className="text-xs">{VIEW_AS_PARTICIPANT_QUERY_PARAM}</code>).
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <AlertDialog
+        open={!!pendingViewAsEmail}
+        onOpenChange={(open) => {
+          if (!open) handleCancelViewAs();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              View another user&apos;s conversations?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This access will be recorded in the audit log. Get consent from{' '}
+              <strong>{pendingViewAsEmail}</strong> before you continue. The
+              view is read-only.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelViewAs}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmViewAs}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
