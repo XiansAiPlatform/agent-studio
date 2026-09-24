@@ -220,7 +220,7 @@ function WorkflowsContent() {
                   <Button
                     variant="outline"
                     onClick={() => loadMore()}
-                    disabled={isLoading || isLoadingMore}
+                    disabled={isLoadingMore}
                   >
                     {isLoadingMore && <RefreshCw className="h-4 w-4 animate-spin" />}
                     Load more
