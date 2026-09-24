@@ -346,6 +346,44 @@ describe('isEmailTenantMember', () => {
     expect(String(get.mock.calls[1]?.[0])).toContain('page=2')
   })
 
+  it('fetches remaining membership pages concurrently after page 1', async () => {
+    const filler = (prefix: string) =>
+      Array.from({ length: 100 }, (_, i) => ({
+        email: `${prefix}${i}@example.com`,
+        name: `${prefix}${i}`,
+        roles: [],
+        isApproved: true,
+      }))
+    const pages: Record<number, ReturnType<typeof memberList> & {
+      totalCount: number
+      page: number
+      pageSize: number
+    }> = {
+      1: { users: filler('a'), totalCount: 250, page: 1, pageSize: 100 },
+      2: { users: filler('b'), totalCount: 250, page: 2, pageSize: 100 },
+      3: {
+        ...memberList(['target@example.com']),
+        totalCount: 250,
+        page: 3,
+        pageSize: 100,
+      },
+    }
+    const get = vi.fn().mockImplementation((url: string) => {
+      const page = Number(new URL(url, 'https://xians.example').searchParams.get('page'))
+      return Promise.resolve(pages[page])
+    })
+    createXiansClient.mockReturnValue(mockXiansClient({ get }))
+
+    await expect(
+      isEmailTenantMember('tenant-1', 'target@example.com')
+    ).resolves.toBe(true)
+    expect(get).toHaveBeenCalledTimes(3)
+    const requested = get.mock.calls.map((call) => String(call[0]))
+    expect(requested[0]).toContain('page=1')
+    expect(requested.slice(1).some((url) => url.includes('page=2'))).toBe(true)
+    expect(requested.slice(1).some((url) => url.includes('page=3'))).toBe(true)
+  })
+
   it('returns false when upstream lookup fails, without caching the failure', async () => {
     const get = vi
       .fn()

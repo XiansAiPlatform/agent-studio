@@ -62,6 +62,8 @@ function ConversationContent() {
   const workflowParam = searchParams.get('workflow')?.trim() || null;
   const canSystemAdmin = useCan('system:admin');
   const viewAsParam = searchParams.get(VIEW_AS_PARTICIPANT_QUERY_PARAM)?.trim() ?? null;
+  // Query param is the view-as source of truth. The bar dialog is UX only;
+  // GET history/topics still require system-admin + tenant membership + audit.
   const viewAsParticipantId = useMemo(() => {
     if (!canSystemAdmin || !viewAsParam) return null;
     const self = session?.user?.email?.trim();

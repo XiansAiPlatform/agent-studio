@@ -65,6 +65,29 @@ function viewAsAuditCacheKey(
   return `${tenantId}:${adminEmail.trim().toLowerCase()}:${viewAsParticipantId.trim().toLowerCase()}`
 }
 
+type TenantUsersPage = {
+  users?: unknown[]
+  totalCount?: number
+  page?: number
+  pageSize?: number
+}
+
+function tenantUsersPageContainsEmail(data: TenantUsersPage, needle: string): boolean {
+  return (data.users ?? [])
+    .map((u) => normalizeTenantUser(u))
+    .some((u) => u.email.trim().toLowerCase() === needle)
+}
+
+function membershipTotalPages(first: TenantUsersPage): number {
+  const pageSize = first.pageSize ?? MEMBERSHIP_PAGE_SIZE
+  const firstCount = (first.users ?? []).length
+  if (typeof first.totalCount === 'number' && pageSize > 0) {
+    return Math.max(1, Math.ceil(first.totalCount / pageSize))
+  }
+  if (firstCount < pageSize) return 1
+  return MEMBERSHIP_MAX_PAGES
+}
+
 async function fetchIsEmailTenantMember(
   tenantId: string,
   email: string,
@@ -72,40 +95,30 @@ async function fetchIsEmailTenantMember(
 ): Promise<boolean> {
   const client = createXiansClient(accessToken)
   const needle = email.toLowerCase()
-  let page = 1
-  let totalPages: number
 
-  do {
+  const fetchPage = (page: number) => {
     const params = new URLSearchParams({
       page: String(page),
       pageSize: String(MEMBERSHIP_PAGE_SIZE),
       search: email,
     })
-    const data = await client.get<{
-      users?: unknown[]
-      totalCount?: number
-      page?: number
-      pageSize?: number
-    }>(
+    return client.get<TenantUsersPage>(
       `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/users?${params.toString()}`
     )
-    const users = (data.users ?? []).map((u) => normalizeTenantUser(u))
-    if (users.some((u) => u.email.trim().toLowerCase() === needle)) {
-      return true
-    }
+  }
 
-    const pageSize = data.pageSize ?? MEMBERSHIP_PAGE_SIZE
-    if (typeof data.totalCount === 'number' && pageSize > 0) {
-      totalPages = Math.max(1, Math.ceil(data.totalCount / pageSize))
-    } else if (users.length < pageSize) {
-      totalPages = page
-    } else {
-      totalPages = page + 1
-    }
-    page += 1
-  } while (page <= totalPages && page <= MEMBERSHIP_MAX_PAGES)
+  const first = await fetchPage(1)
+  if (tenantUsersPageContainsEmail(first, needle)) {
+    return true
+  }
 
-  return false
+  const lastPage = Math.min(membershipTotalPages(first), MEMBERSHIP_MAX_PAGES)
+  if (lastPage <= 1) return false
+
+  const rest = await Promise.all(
+    Array.from({ length: lastPage - 1 }, (_, i) => fetchPage(i + 2))
+  )
+  return rest.some((page) => tenantUsersPageContainsEmail(page, needle))
 }
 
 async function requireCachedSystemAdmin(
@@ -162,6 +175,8 @@ export type ResolveMessagingParticipantResult =
  * Default: session email. With view-as: system admin + tenant member target.
  * Honoring view-as records an audit entry first (idempotent per admin+target+tenant).
  * If the upstream write is unavailable, the attempt is logged and the read still proceeds.
+ * The Studio confirm dialog is not checked here — viewAsParticipantId in the query
+ * is sufficient after the admin and membership checks below.
  */
 export async function resolveMessagingParticipantId(options: {
   session: Session

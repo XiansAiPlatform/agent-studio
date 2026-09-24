@@ -41,6 +41,11 @@ interface ViewAsParticipantBarProps {
 
 /**
  * System-admin control to view another tenant member's conversations (read-only).
+ *
+ * The confirm dialog is a UX acknowledgment only. It is not a server-side
+ * consent token. Authorization is system-admin + tenant membership + audit
+ * on the history/topics routes, including when viewAsParticipantId is already
+ * in the URL (bookmark, shared link, or refresh).
  */
 export function ViewAsParticipantBar({
   tenantId,
