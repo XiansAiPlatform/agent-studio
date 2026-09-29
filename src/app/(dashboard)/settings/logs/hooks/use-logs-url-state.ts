@@ -25,6 +25,8 @@ export function useLogsUrlState() {
   const searchParams = useSearchParams();
 
   const [selectedActivation, setSelectedActivation] = useState<SelectedActivation | null>(null);
+  // Third filter level under the activation. Only meaningful with an activation selected.
+  const [selectedWorkflowType, setSelectedWorkflowType] = useState<string | null>(null);
   const [selectedLogLevels, setSelectedLogLevels] = useState<LogLevel[]>([]);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
@@ -44,11 +46,14 @@ export function useLogsUrlState() {
     const endDateParam = searchParams.get('endDate');
     const pageParam = searchParams.get('page');
     const workflowIdParam = searchParams.get('workflowId');
+    const workflowTypeParam = searchParams.get('workflowType');
 
     if (agentParam && activationParam) {
       setSelectedActivation({ agentName: agentParam, activationName: activationParam });
+      setSelectedWorkflowType(workflowTypeParam || null);
     } else {
       setSelectedActivation(null);
+      setSelectedWorkflowType(null);
     }
 
     setSelectedLogLevels(
@@ -81,13 +86,14 @@ export function useLogsUrlState() {
     () => ({
       agentName: selectedActivation?.agentName,
       activationName: selectedActivation?.activationName,
+      workflowType: selectedWorkflowType || undefined,
       logLevel: selectedLogLevels.length > 0 ? selectedLogLevels : undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
-    [selectedActivation, selectedLogLevels, startDate, endDate, currentPage]
+    [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, currentPage]
   );
 
   // Filters consumed by the drilled-in stream-logs view
@@ -96,18 +102,20 @@ export function useLogsUrlState() {
       agentName: selectedActivation?.agentName,
       activationName: selectedActivation?.activationName,
       workflowId: selectedWorkflowId || undefined,
+      workflowType: selectedWorkflowType || undefined,
       logLevel: selectedLogLevels.length > 0 ? selectedLogLevels : undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
-    [selectedActivation, selectedWorkflowId, selectedLogLevels, startDate, endDate, currentPage]
+    [selectedActivation, selectedWorkflowId, selectedWorkflowType, selectedLogLevels, startDate, endDate, currentPage]
   );
 
   const updateURL = useCallback(
     (next: {
       activation?: SelectedActivation | null;
+      workflowType?: string | null;
       logLevels?: LogLevel[];
       startDate?: string | null;
       endDate?: string | null;
@@ -115,11 +123,27 @@ export function useLogsUrlState() {
       workflowId?: string | null;
     }) => {
       const newActivation = next.activation !== undefined ? next.activation : selectedActivation;
+      const activationChanged =
+        newActivation?.agentName !== selectedActivation?.agentName ||
+        newActivation?.activationName !== selectedActivation?.activationName;
+      // A workflow type belongs to one agent/activation: drop it when the activation changes
+      // unless the caller sets a new one explicitly.
+      const newWorkflowType = !newActivation
+        ? null
+        : next.workflowType !== undefined
+          ? next.workflowType
+          : activationChanged
+            ? null
+            : selectedWorkflowType;
       const newLogLevels = next.logLevels !== undefined ? next.logLevels : selectedLogLevels;
       const newStartDate = next.startDate !== undefined ? next.startDate : startDate;
       const newEndDate = next.endDate !== undefined ? next.endDate : endDate;
       const newPage = next.page !== undefined ? next.page : currentPage;
-      const newWorkflowId = next.workflowId !== undefined ? next.workflowId : selectedWorkflowId;
+      // Changing the activation or workflow scope leaves a drilled-in stream: the stream belongs to
+      // the old scope, so staying on it would make the new filter look like it had no effect.
+      const scopeChanged = activationChanged || newWorkflowType !== selectedWorkflowType;
+      const newWorkflowId =
+        next.workflowId !== undefined ? next.workflowId : scopeChanged ? null : selectedWorkflowId;
 
       const params = new URLSearchParams();
       if (newWorkflowId) params.set('workflowId', newWorkflowId);
@@ -127,6 +151,7 @@ export function useLogsUrlState() {
         params.set('agent', newActivation.agentName);
         params.set('activation', newActivation.activationName);
       }
+      if (newWorkflowType) params.set('workflowType', newWorkflowType);
       if (newLogLevels.length > 0) params.set('logLevel', newLogLevels.join(','));
       if (newStartDate) params.set('startDate', newStartDate);
       if (newEndDate) params.set('endDate', newEndDate);
@@ -136,13 +161,15 @@ export function useLogsUrlState() {
       router.push(newURL, { scroll: false });
 
       setSelectedActivation(newActivation);
+      setSelectedWorkflowType(newWorkflowType);
       setSelectedLogLevels(newLogLevels);
       setStartDate(newStartDate);
       setEndDate(newEndDate);
       setCurrentPage(newPage);
       setSelectedWorkflowId(newWorkflowId);
+      if (!newWorkflowId) setSelectedStreamMeta(null);
     },
-    [router, selectedActivation, selectedLogLevels, startDate, endDate, currentPage, selectedWorkflowId]
+    [router, selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, currentPage, selectedWorkflowId]
   );
 
   const handlePageChange = useCallback(
@@ -164,8 +191,9 @@ export function useLogsUrlState() {
   }, [updateURL]);
 
   const clearFilter = useCallback(
-    (type: 'activation' | 'logLevel' | 'dateRange') => {
+    (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange') => {
       if (type === 'activation') updateURL({ activation: null, page: 1 });
+      else if (type === 'workflowType') updateURL({ workflowType: null, page: 1 });
       else if (type === 'logLevel') updateURL({ logLevels: [], page: 1 });
       else if (type === 'dateRange') updateURL({ startDate: null, endDate: null, page: 1 });
     },
@@ -179,11 +207,12 @@ export function useLogsUrlState() {
   const applyFilterSliderChanges = useCallback(
     (
       activation: SelectedActivation | null,
+      workflowType: string | null,
       logLevels: LogLevel[],
       start: string | null,
       end: string | null
     ) => {
-      updateURL({ activation, logLevels, startDate: start, endDate: end, page: 1 });
+      updateURL({ activation, workflowType, logLevels, startDate: start, endDate: end, page: 1 });
     },
     [updateURL]
   );
@@ -193,6 +222,7 @@ export function useLogsUrlState() {
 
   const activeFilterCount =
     (selectedActivation ? 1 : 0) +
+    (selectedWorkflowType ? 1 : 0) +
     (selectedLogLevels.length > 0 ? 1 : 0) +
     (startDate || endDate ? 1 : 0);
 
@@ -201,6 +231,7 @@ export function useLogsUrlState() {
     isStreamView,
     currentPage,
     selectedActivation,
+    selectedWorkflowType,
     selectedLogLevels,
     startDate,
     endDate,

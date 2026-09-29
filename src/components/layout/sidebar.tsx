@@ -21,6 +21,7 @@ import {
   Users,
   Code2,
   CalendarClock,
+  Workflow,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -149,6 +150,19 @@ const navigation: NavigationItem[] = [
           basePath: '/settings/schedules',
           useQueryParams: true,
           icon: CalendarClock,
+        },
+      },
+      {
+        name: 'Temporal Workflows',
+        href: '/settings/workflows',
+        capability: 'tenant:manage-users',
+        triggersPanel: true,
+        panelConfig: {
+          title: 'Select an Agent',
+          description: 'Choose an agent to manage its Temporal workflows',
+          basePath: '/settings/workflows',
+          useQueryParams: true,
+          icon: Workflow,
         },
       },
       { name: 'Performance', href: '/settings/performance' },

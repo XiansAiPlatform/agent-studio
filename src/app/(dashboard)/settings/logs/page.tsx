@@ -26,6 +26,7 @@ function LogsContent() {
     isStreamView,
     currentPage,
     selectedActivation,
+    selectedWorkflowType,
     selectedLogLevels,
     startDate,
     endDate,
@@ -80,6 +81,7 @@ function LogsContent() {
           {hasActiveFilters && (
             <ActiveFiltersBar
               selectedActivation={selectedActivation}
+              selectedWorkflowType={selectedWorkflowType}
               selectedLogLevels={selectedLogLevels}
               startDate={startDate}
               endDate={endDate}
@@ -121,6 +123,7 @@ function LogsContent() {
           onClose={() => setIsFilterSliderOpen(false)}
           activations={allActivations}
           selectedActivation={selectedActivation}
+          selectedWorkflowType={selectedWorkflowType}
           selectedLogLevels={selectedLogLevels}
           startDate={startDate}
           endDate={endDate}

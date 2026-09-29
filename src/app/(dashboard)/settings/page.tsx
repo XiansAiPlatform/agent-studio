@@ -1,7 +1,8 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link'
+import { useMemo } from 'react'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Settings2,
   Database,
@@ -12,67 +13,87 @@ import {
   ArrowRight,
   KeyRound,
   CalendarClock,
-} from 'lucide-react';
+  Workflow,
+} from 'lucide-react'
+import { usePermissions } from '@/hooks/use-permissions'
 
 export default function SettingsPage() {
-  const settingsSections = [
-    {
-      title: 'Agent Store',
-      description: 'Manage and deploy agents from the store',
-      href: '/settings/agent-store',
-      icon: Bot,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      title: 'Connections',
-      description: 'Configure external service connections and integrations',
-      href: '/settings/connections',
-      icon: Plug,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      title: 'Database',
-      description: 'View, add, and edit data records for your agents',
-      href: '/settings/database',
-      icon: Database,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      title: 'Schedules',
-      description: 'View and manage scheduled agent workflows',
-      href: '/settings/schedules',
-      icon: CalendarClock,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      title: 'Performance',
-      description: 'Monitor system performance metrics and analytics',
-      href: '/settings/performance',
-      icon: BarChart3,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      title: 'Logs',
-      description: 'View system logs and debug information',
-      href: '/settings/logs',
-      icon: FileText,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      title: 'Secrets',
-      description: 'Securely store API keys and credentials for this tenant or a user',
-      href: '/settings/secrets',
-      icon: KeyRound,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-  ];
+  const { can } = usePermissions()
+  const canManageWorkflows = can('tenant:manage-users')
+
+  const settingsSections = useMemo(() => {
+    const sections = [
+      {
+        title: 'Agent Store',
+        description: 'Manage and deploy agents from the store',
+        href: '/settings/agent-store',
+        icon: Bot,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+      },
+      {
+        title: 'Connections',
+        description: 'Configure external service connections and integrations',
+        href: '/settings/connections',
+        icon: Plug,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+      },
+      {
+        title: 'Database',
+        description: 'View, add, and edit data records for your agents',
+        href: '/settings/database',
+        icon: Database,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+      },
+      {
+        title: 'Schedules',
+        description: 'View and manage scheduled agent workflows',
+        href: '/settings/schedules',
+        icon: CalendarClock,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+      },
+      ...(canManageWorkflows
+        ? [
+            {
+              title: 'Temporal Workflows',
+              description: 'View and manage Temporal workflow executions',
+              href: '/settings/workflows',
+              icon: Workflow,
+              color: 'text-primary',
+              bgColor: 'bg-primary/10',
+            },
+          ]
+        : []),
+      {
+        title: 'Performance',
+        description: 'Monitor system performance metrics and analytics',
+        href: '/settings/performance',
+        icon: BarChart3,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+      },
+      {
+        title: 'Logs',
+        description: 'View system logs and debug information',
+        href: '/settings/logs',
+        icon: FileText,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+      },
+      {
+        title: 'Secrets',
+        description: 'Securely store API keys and credentials for this tenant',
+        href: '/settings/secrets',
+        icon: KeyRound,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+      },
+    ]
+    return sections
+  }, [canManageWorkflows])
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
@@ -90,7 +111,7 @@ export default function SettingsPage() {
       {/* Settings Cards Grid */}
       <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {settingsSections.map((section) => {
-          const Icon = section.icon;
+          const Icon = section.icon
           return (
             <Link key={section.href} href={section.href}>
               <Card className="group h-full transition-all hover:shadow-md hover:border-primary/50 cursor-pointer">
@@ -110,9 +131,9 @@ export default function SettingsPage() {
                 </CardHeader>
               </Card>
             </Link>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }
