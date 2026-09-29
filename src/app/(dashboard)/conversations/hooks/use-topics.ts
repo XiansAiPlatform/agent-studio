@@ -3,6 +3,7 @@ import { Topic } from '@/types/conversation';
 import { XiansTopicsResponse } from '@/lib/xians/types';
 import { showErrorToast } from '@/lib/utils/error-handler';
 import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability';
+import { appendViewAsParticipantId } from '@/lib/messaging/client-query';
 
 interface UseTopicsParams {
   tenantId: string | null;
@@ -11,6 +12,8 @@ interface UseTopicsParams {
   workflowType: string | null;
   page?: number;
   pageSize?: number;
+  /** System admin: read another participant's topic list (read-only). */
+  viewAsParticipantId?: string | null;
 }
 
 export function useTopics({
@@ -20,6 +23,7 @@ export function useTopics({
   workflowType,
   page = 1,
   pageSize = 20,
+  viewAsParticipantId = null,
 }: UseTopicsParams) {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [resolvedKey, setResolvedKey] = useState<string | null>(null);
@@ -31,7 +35,7 @@ export function useTopics({
 
   const fetchKey =
     tenantId && agentName && activationName && workflowType
-      ? `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}`
+      ? `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}:${viewAsParticipantId ?? ''}`
       : null;
 
   // True while params are missing or this activation's fetch has not resolved yet.
@@ -43,7 +47,7 @@ export function useTopics({
       return;
     }
 
-    const key = `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}`;
+    const key = `${tenantId}:${agentName}:${activationName}:${workflowType}:${page}:${pageSize}:${viewAsParticipantId ?? ''}`;
 
     // Cancel any pending request
     if (abortControllerRef.current) {
@@ -63,6 +67,7 @@ export function useTopics({
         pageSize: pageSize.toString(),
         workflowType,
       });
+      appendViewAsParticipantId(queryParams, viewAsParticipantId);
 
       const response = await fetch(
         `/api/messaging/topics?${queryParams.toString()}`,
@@ -156,7 +161,7 @@ export function useTopics({
       }
       setResolvedKey(key);
     }
-  }, [tenantId, agentName, activationName, workflowType, page, pageSize]);
+  }, [tenantId, agentName, activationName, workflowType, page, pageSize, viewAsParticipantId]);
 
   useEffect(() => {
     fetchTopics();

@@ -10,13 +10,19 @@ interface MessageRendererProps {
     messageId: string,
     feedback: NonNullable<Message['feedback']>
   ) => void;
+  disableFeedback?: boolean;
 }
 
 /**
  * Routes messages to the appropriate renderer based on messageType.
  * Add ToolMessageItem and ReasoningMessageItem components when implementing those types.
  */
-export function MessageRenderer({ message, agentName, onMessageFeedbackSubmitted }: MessageRendererProps) {
+export function MessageRenderer({
+  message,
+  agentName,
+  onMessageFeedbackSubmitted,
+  disableFeedback,
+}: MessageRendererProps) {
   const type = message.messageType ?? 'chat';
 
   switch (type) {
@@ -26,6 +32,7 @@ export function MessageRenderer({ message, agentName, onMessageFeedbackSubmitted
           message={message}
           agentName={agentName}
           onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+          disableFeedback={disableFeedback}
         />
       );
     case 'reasoning':
@@ -34,6 +41,7 @@ export function MessageRenderer({ message, agentName, onMessageFeedbackSubmitted
           message={message}
           agentName={agentName}
           onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+          disableFeedback={disableFeedback}
         />
       );
     case 'chat':
@@ -43,6 +51,7 @@ export function MessageRenderer({ message, agentName, onMessageFeedbackSubmitted
           message={message}
           agentName={agentName}
           onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+          disableFeedback={disableFeedback}
         />
       );
   }
@@ -53,6 +62,7 @@ function ToolMessageItem({
   message,
   agentName,
   onMessageFeedbackSubmitted,
+  disableFeedback,
 }: MessageRendererProps) {
   // For now, render as chat message until ToolMessageItem UI is built
   return (
@@ -60,6 +70,7 @@ function ToolMessageItem({
       message={message}
       agentName={agentName}
       onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+      disableFeedback={disableFeedback}
     />
   );
 }
@@ -69,6 +80,7 @@ function ReasoningMessageItem({
   message,
   agentName,
   onMessageFeedbackSubmitted,
+  disableFeedback,
 }: MessageRendererProps) {
   // For now, render as chat message until ReasoningMessageItem UI is built
   return (
@@ -76,6 +88,7 @@ function ReasoningMessageItem({
       message={message}
       agentName={agentName}
       onMessageFeedbackSubmitted={onMessageFeedbackSubmitted}
+      disableFeedback={disableFeedback}
     />
   );
 }

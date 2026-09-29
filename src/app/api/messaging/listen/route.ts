@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { xiansAdminHeaders } from '@/lib/xians/client'
+import { rejectClientViewAsParameter } from '@/lib/api/messaging-view-as-guards'
 
 /**
  * GET /api/messaging/listen
@@ -11,6 +12,9 @@ export async function GET(request: NextRequest) {
     async (req: NextRequest, { tenantContext, session }: ApiContext) => {
       const tenantId = tenantContext.tenant.id
       const { searchParams } = new URL(req.url)
+
+      const viewAsError = rejectClientViewAsParameter(searchParams)
+      if (viewAsError) return viewAsError
 
       const agentName = searchParams.get('agentName')
       const activationName = searchParams.get('activationName')

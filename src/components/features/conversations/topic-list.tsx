@@ -175,6 +175,7 @@ export function TopicList({
               variant="ghost"
               size="sm"
               onClick={handleCreateClick}
+              aria-label="Create topic"
               className="h-7 w-7 p-0 rounded-lg hover:bg-muted transition-all duration-200"
             >
               <Plus className="h-4 w-4 text-muted-foreground" />
@@ -244,6 +245,7 @@ export function TopicList({
                               variant="ghost"
                               size="sm"
                               onClick={(e) => e.stopPropagation()}
+                              aria-label="Topic actions"
                               className="h-6 w-6 p-0 opacity-0 group-hover/topic:opacity-100 transition-opacity hover:bg-muted"
                             >
                               <MoreVertical className="h-4 w-4 text-muted-foreground" />
