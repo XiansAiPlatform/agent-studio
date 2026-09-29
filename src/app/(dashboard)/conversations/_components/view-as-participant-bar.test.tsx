@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ComponentProps } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import {
   USER_SEARCH_DEBOUNCE_MS,
@@ -15,6 +16,10 @@ function jsonResponse(body: unknown, ok = true) {
 }
 
 describe('ViewAsParticipantBar', () => {
+  beforeEach(() => {
+    polyfillPointerCapture()
+  })
+
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
@@ -22,25 +27,43 @@ describe('ViewAsParticipantBar', () => {
     vi.restoreAllMocks()
   })
 
-  it('debounces search so fetch fires at most once per 300ms window', async () => {
-    vi.useFakeTimers()
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({ users: [{ email: 'alice@example.com', name: 'Alice' }] })
-    )
-    vi.stubGlobal('fetch', fetchMock)
-
-    render(
+  function renderBar(
+    props: Partial<ComponentProps<typeof ViewAsParticipantBar>> = {}
+  ) {
+    return render(
       <ViewAsParticipantBar
         tenantId="tenant-1"
         currentViewAsEmail={null}
         sessionEmail="admin@example.com"
         onViewAsChange={() => {}}
+        {...props}
       />
     )
+  }
 
-    await act(async () => {
-      await Promise.resolve()
+  it('debounces search so fetch fires at most once per 300ms window', async () => {
+    vi.useFakeTimers()
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      const term =
+        new URL(String(url), 'http://localhost').searchParams.get('search')?.toLowerCase() ??
+        ''
+      const users = [
+        { email: 'alice@example.com', name: 'Alice' },
+        { email: 'bob@example.com', name: 'Bob' },
+      ].filter(
+        (user) =>
+          !term ||
+          user.name.toLowerCase().includes(term) ||
+          user.email.toLowerCase().includes(term)
+      )
+      return Promise.resolve(jsonResponse({ users }))
     })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderBar()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await openViewAsMenu()
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('search=')
 
@@ -62,9 +85,12 @@ describe('ViewAsParticipantBar', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1)
       await Promise.resolve()
+      await Promise.resolve()
     })
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain('search=alice')
+    expect(screen.getByRole('menuitem', { name: 'Alice (alice@example.com)' })).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: 'Bob (bob@example.com)' })).toBeNull()
   })
 
   it('aborts the in-flight request when the search term changes again', async () => {
@@ -91,18 +117,8 @@ describe('ViewAsParticipantBar', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(
-      <ViewAsParticipantBar
-        tenantId="tenant-1"
-        currentViewAsEmail={null}
-        sessionEmail="admin@example.com"
-        onViewAsChange={() => {}}
-      />
-    )
-
-    await act(async () => {
-      await Promise.resolve()
-    })
+    renderBar()
+    await openViewAsMenu()
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(requests[0]?.signal?.aborted).toBe(false)
 
@@ -124,23 +140,16 @@ describe('ViewAsParticipantBar', () => {
   it('renders the load error and does not list users', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({}, false)))
 
-    render(
-      <ViewAsParticipantBar
-        tenantId="tenant-1"
-        currentViewAsEmail={null}
-        sessionEmail="admin@example.com"
-        onViewAsChange={() => {}}
-      />
-    )
+    renderBar()
+    await openViewAsMenu()
 
     const status = await screen.findByRole('status')
     expect(status.textContent).toMatch(/Failed to load tenant users/)
-    expect(screen.getByRole('combobox')).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: 'Your conversations' })).toBeTruthy()
     expect(screen.queryByText('alice@example.com')).toBeNull()
   })
 
   it('drops tenant users whose email or name is not a string', async () => {
-    polyfillPointerCapture()
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -155,22 +164,11 @@ describe('ViewAsParticipantBar', () => {
       )
     )
 
-    render(
-      <ViewAsParticipantBar
-        tenantId="tenant-1"
-        currentViewAsEmail={null}
-        sessionEmail="admin@example.com"
-        onViewAsChange={() => {}}
-      />
-    )
-
-    await act(async () => {
-      await Promise.resolve()
-    })
-    fireEvent.click(screen.getByRole('combobox'))
+    renderBar()
+    await openViewAsMenu()
 
     expect(
-      await screen.findByRole('option', { name: 'Alice (alice@example.com)' })
+      await screen.findByRole('menuitem', { name: 'Alice (alice@example.com)' })
     ).toBeTruthy()
     expect(screen.queryByText('bob@example.com')).toBeNull()
     expect(screen.queryByText('NoEmail')).toBeNull()
@@ -197,7 +195,7 @@ describe('ViewAsParticipantBar', () => {
     expect(screen.getByText('other@example.com')).toBeTruthy()
     expect(screen.getByRole('button', { name: /exit view-as/i })).toBeTruthy()
     expect(screen.queryByRole('status')).toBeNull()
-    expect(screen.getByRole('combobox')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /viewing as other@example.com/i })).toBeTruthy()
   })
 
   it('surfaces an error when the user search request times out', async () => {
@@ -218,18 +216,8 @@ describe('ViewAsParticipantBar', () => {
       })
     )
 
-    render(
-      <ViewAsParticipantBar
-        tenantId="tenant-1"
-        currentViewAsEmail={null}
-        sessionEmail="admin@example.com"
-        onViewAsChange={() => {}}
-      />
-    )
-
-    await act(async () => {
-      await Promise.resolve()
-    })
+    renderBar()
+    await openViewAsMenu()
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(USER_SEARCH_TIMEOUT_MS)
@@ -242,7 +230,6 @@ describe('ViewAsParticipantBar', () => {
   })
 
   it('asks for consent before applying view-as, and cancel leaves the admin on their own chats', async () => {
-    polyfillPointerCapture()
     const onViewAsChange = vi.fn()
     vi.stubGlobal(
       'fetch',
@@ -278,7 +265,6 @@ describe('ViewAsParticipantBar', () => {
   })
 
   it('applies view-as only after Continue', async () => {
-    polyfillPointerCapture()
     const onViewAsChange = vi.fn()
     vi.stubGlobal(
       'fetch',
@@ -311,10 +297,15 @@ function polyfillPointerCapture() {
   HTMLElement.prototype.scrollIntoView = () => {}
 }
 
-async function chooseViewAsUser(optionName: string) {
+async function openViewAsMenu() {
+  const trigger = screen.getByRole('button', { name: 'View as' })
+  fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: 'mouse' })
   await act(async () => {
     await Promise.resolve()
   })
-  fireEvent.click(screen.getByRole('combobox'))
-  fireEvent.click(await screen.findByRole('option', { name: optionName }))
+}
+
+async function chooseViewAsUser(optionName: string) {
+  await openViewAsMenu()
+  fireEvent.click(await screen.findByRole('menuitem', { name: optionName }))
 }
