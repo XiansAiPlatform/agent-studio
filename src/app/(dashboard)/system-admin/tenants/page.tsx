@@ -117,15 +117,9 @@ function TenantsPageContent() {
       if (enabled) {
         toast.success(`${tenant.name} enabled`);
       } else {
-        // Disabling deactivates the tenant's agents server-side; re-count to report leftovers.
-        const remaining = await fetchActiveAgentCount(tenant.tenantId).catch(() => null);
-        if (remaining && remaining > 0) {
-          toast.warning(
-            `${tenant.name} disabled, but ${remaining} agent${remaining === 1 ? '' : 's'} could not be deactivated. Disable it again to retry.`
-          );
-        } else {
-          toast.success(`${tenant.name} disabled and its agents deactivated`);
-        }
+        // The server queues agent deactivation and returns before it finishes, so there is
+        // nothing to count yet.
+        toast.success(`${tenant.name} disabled. Its agents are being deactivated in the background.`);
       }
       // Keep the edit panel open with the updated tenant data
       setEditTarget(updated);
