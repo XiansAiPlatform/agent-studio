@@ -90,6 +90,14 @@ describe('resolveEmailVerificationPolicy', () => {
     expect(result?.configError).toContain('neither')
   })
 
+  it('rejects trusted values without a trusted claim', () => {
+    const result = resolveEmailVerificationPolicy('azure-ad', {
+      ...required,
+      AZURE_AD_TRUSTED_VALUES: 'abc-123',
+    })
+    expect(result?.configError).toContain('neither')
+  })
+
   it('lower-cases trusted values', () => {
     const result = resolveEmailVerificationPolicy('azure-ad', {
       ...required,
@@ -152,6 +160,24 @@ describe('evaluateEmailVerification', () => {
   it('names the failed claims', () => {
     const result = evaluateEmailVerification(verified, { email: 'a@example.com', email_verified: false })
     expect(result).toEqual({ admitted: false, reason: 'claim check failed: email_verified' })
+  })
+
+  it('names every failed claim', () => {
+    const two = policy({
+      verifyClaims: [
+        { claim: 'email_verified', value: 'true' },
+        { claim: 'xms_edov', value: 'true' },
+      ],
+    })
+    const result = evaluateEmailVerification(two, { email: 'a@example.com' })
+    expect(result).toEqual({ admitted: false, reason: 'claim check failed: email_verified, xms_edov' })
+  })
+
+  it('refuses null claims when verify claims are configured', () => {
+    expect(evaluateEmailVerification(verified, null)).toEqual({
+      admitted: false,
+      reason: 'no email claim in token',
+    })
   })
 
   it('falls back to the trusted claim when the verify claims fail', () => {
