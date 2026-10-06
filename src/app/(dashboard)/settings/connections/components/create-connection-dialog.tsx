@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { 
   Dialog, 
@@ -15,12 +15,14 @@ import { Copy, Loader2, ExternalLink, Info, Eye, EyeOff, Plug, Webhook } from 'l
 import { useIntegrationTypes, IntegrationType } from '../hooks/use-integration-types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
+import { oauthMcpConnectionKey } from '@/lib/mcp/connection-key'
 
 interface CreateConnectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: any) => Promise<{ id: string; webhookUrl: string } | void>
   isSubmitting?: boolean
+  existingConnectionKeys?: string[]
   onSlackSelected?: () => void
   onTeamsSelected?: () => void
   onWebhooksSelected?: () => void
@@ -79,6 +81,7 @@ export function CreateConnectionDialog({
   onOpenChange,
   onSubmit,
   isSubmitting = false,
+  existingConnectionKeys = [],
   onSlackSelected,
   onTeamsSelected,
   onWebhooksSelected
@@ -97,6 +100,11 @@ export function CreateConnectionDialog({
   const [failedIcons, setFailedIcons] = useState<Set<string>>(new Set())
   const [callbackUrl, setCallbackUrl] = useState('')
   const [callbackUrlError, setCallbackUrlError] = useState('')
+  const connectionKey = useMemo(() => {
+    if (selectedIntegration?.platformId !== 'oauth-mcp' || !formData.name.trim()) return ''
+    return oauthMcpConnectionKey(formData.name)
+  }, [formData.name, selectedIntegration?.platformId])
+  const connectionKeyExists = connectionKey !== '' && existingConnectionKeys.includes(connectionKey)
 
   // Reset failed icons when dialog closes
   useEffect(() => {
@@ -137,6 +145,8 @@ export function CreateConnectionDialog({
 
     if (!formData.name.trim()) {
       newErrors.name = 'Integration name is required'
+    } else if (connectionKeyExists) {
+      newErrors.name = 'This connection name is already in use for this activation'
     }
 
     if (!formData.platformId) {
@@ -182,10 +192,16 @@ export function CreateConnectionDialog({
     integration.requiredConfigurationFields.forEach(field => {
       initialConfigFields[field.fieldName] = ''
     })
+    let name = `${integration.displayName} Connection`
+    let description = integration.description
+    if (integration.platformId === 'oauth-mcp') {
+      name = ''
+      description = ''
+    }
     
     setFormData({
-      name: `${integration.displayName} Connection`,
-      description: integration.description,
+      name,
+      description,
       platformId: integration.platformId,
       configFields: initialConfigFields
     })
@@ -395,6 +411,18 @@ export function CreateConnectionDialog({
                       {errors.name && (
                         <p className="text-sm text-destructive mt-1">{errors.name}</p>
                       )}
+                      {connectionKey && (
+                        <div className={connectionKeyExists
+                          ? 'rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive'
+                          : 'rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground'}>
+                          Connection key: <code>{connectionKey}</code>
+                          <span className="ml-1">
+                            {connectionKeyExists
+                              ? '(already in use in this activation)'
+                              : '(must be unique in this activation)'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -538,7 +566,7 @@ export function CreateConnectionDialog({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                  <Button type="submit" disabled={isSubmitting || connectionKeyExists} className="w-full sm:w-auto">
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

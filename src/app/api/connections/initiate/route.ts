@@ -13,17 +13,18 @@ import { sealOAuthState } from "@/lib/mcp/oauth-state"
 import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
 import { createXiansClient, XiansApiError } from '@/lib/xians/client'
 import { discoverMcpOAuth } from '@/lib/mcp/oauth-discovery'
+import { oauthMcpConnectionKey } from '@/lib/mcp/connection-key'
 
 const MCP_OAUTH_COOKIE = 'mcp-oauth-state'
-const MCP_OAUTH_CONNECTION_KEY = 'MCP_OAUTH_CONNECTION'
 
 async function oauthMcpConnectionExists(
   tenantId: string,
   agentName: string,
-  activationName: string
+  activationName: string,
+  connectionKey: string
 ): Promise<boolean> {
   const query = new URLSearchParams({
-    key: MCP_OAUTH_CONNECTION_KEY,
+    key: connectionKey,
     tenantId,
     agentId: agentName,
     activationName,
@@ -98,9 +99,10 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
       const userId = apiContext.session.user.email?.trim().toLowerCase()
       if (!userId) return NextResponse.json({ error: 'User email is required' }, { status: 400 })
 
-      if (await oauthMcpConnectionExists(tenantId, data.agentName, data.activationName)) {
+      const connectionKey = oauthMcpConnectionKey(data.name)
+      if (await oauthMcpConnectionExists(tenantId, data.agentName, data.activationName, connectionKey)) {
         return NextResponse.json(
-          { error: 'An OAuth MCP connection already exists for this activation. Delete it before connecting another server.' },
+          { error: `Connection key ${connectionKey} already exists in this activation. Use a different connection name.` },
           { status: 409 }
         )
       }
@@ -140,6 +142,7 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
       response.cookies.set(MCP_OAUTH_COOKIE, sealOAuthState({
         state,
         name: data.name,
+        connectionKey,
         providerId: 'oauth-mcp',
         mcpUrl,
         authorizationUrl: oauth.authorizationUrl,

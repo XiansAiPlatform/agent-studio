@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { MoreHorizontal, Plug, Webhook } from 'lucide-react'
+import { Copy, MoreHorizontal, Plug, Webhook } from 'lucide-react'
 import Image from 'next/image'
 import {
   DropdownMenu,
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { OIDCConnection, ConnectionStatus } from '../types'
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 
 // Icon mapping for integration types
 const INTEGRATION_ICONS: Record<string, string> = {
@@ -67,6 +68,18 @@ export function ConnectionCard({
   const isWebhook =
     connection.providerId === 'builtin_webhook' || connection.providerId === 'webhook'
   const isManagedMcp = connection.providerId === 'oauth-mcp'
+
+  const copyConnectionKey = async (event: React.MouseEvent) => {
+    event.stopPropagation()
+    const connectionKey = connection.configuration?.connectionKey
+    if (!connectionKey) return
+    try {
+      await navigator.clipboard.writeText(String(connectionKey))
+      showSuccessToast('Connection key copied')
+    } catch (error) {
+      showErrorToast(error instanceof Error ? error : new Error('Failed to copy connection key'))
+    }
+  }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'unknown'
@@ -143,9 +156,18 @@ export function ConnectionCard({
             )}
           </div>
           {isManagedMcp && connection.configuration?.connectionKey && (
-            <code className="mt-2 block text-xs text-muted-foreground">
-              {String(connection.configuration.connectionKey)}
-            </code>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <code className="truncate">{String(connection.configuration.connectionKey)}</code>
+              <button
+                type="button"
+                title="Copy connection key"
+                aria-label="Copy connection key"
+                className="rounded p-1 hover:bg-muted hover:text-foreground"
+                onClick={copyConnectionKey}
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
         </div>
 

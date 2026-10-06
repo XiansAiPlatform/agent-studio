@@ -11,7 +11,6 @@ import { unsealOAuthState } from '@/lib/mcp/oauth-state'
 import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
 
 const MCP_OAUTH_COOKIE = 'mcp-oauth-state'
-const MCP_OAUTH_CONNECTION_KEY = 'MCP_OAUTH_CONNECTION'
 
 interface OAuthTokenResponse {
   access_token: string
@@ -66,7 +65,7 @@ async function saveOAuthMcpConnection(
 ): Promise<void> {
   const client = createXiansClient()
   const query = new URLSearchParams({
-    key: MCP_OAUTH_CONNECTION_KEY,
+    key: pending.connectionKey,
     tenantId,
     agentId: pending.agentName,
     activationName: pending.activationName,
@@ -80,7 +79,7 @@ async function saveOAuthMcpConnection(
   } catch (error) {
     if (!(error instanceof XiansApiError) || error.status !== 404) throw error
   }
-  if (existing) throw new Error('An OAuth MCP connection already exists for this activation')
+  if (existing) throw new Error(`Connection key ${pending.connectionKey} already exists in this activation`)
 
   const value = {
     secretId: '',
@@ -111,7 +110,7 @@ async function saveOAuthMcpConnection(
   }
 
   const created = await client.post<SecretMetadata>('/api/v1/admin/secrets', {
-    key: MCP_OAUTH_CONNECTION_KEY,
+    key: pending.connectionKey,
     value: JSON.stringify(value),
     ...scope,
     additionalData,

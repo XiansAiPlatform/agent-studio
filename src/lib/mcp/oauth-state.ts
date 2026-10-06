@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypt
 export interface McpOAuthState {
   state: string
   name: string
+  connectionKey: string
   providerId: 'oauth-mcp'
   mcpUrl: string
   authorizationUrl: string

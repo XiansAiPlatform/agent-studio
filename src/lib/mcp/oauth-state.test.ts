@@ -21,6 +21,7 @@ describe('MCP OAuth state', () => {
     const state: McpOAuthState = {
       state: 'state',
       name: 'CRM MCP',
+      connectionKey: 'MCP_OAUTH_CRM_MCP',
       providerId: 'oauth-mcp',
       mcpUrl: 'https://mcp.example.com',
       authorizationUrl: 'https://auth.example.com/authorize',
@@ -45,6 +46,7 @@ describe('MCP OAuth state', () => {
     const sealed = sealOAuthState({
       state: 'state',
       name: 'CRM MCP',
+      connectionKey: 'MCP_OAUTH_CRM_MCP',
       providerId: 'oauth-mcp',
       mcpUrl: 'https://mcp.example.com',
       authorizationUrl: 'https://auth.example.com/authorize',
