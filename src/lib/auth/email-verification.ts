@@ -180,7 +180,8 @@ export function evaluateEmailVerification(
     return { admitted: true, reason: `trusted ${policy.trustedClaim}` }
   }
 
-  return { admitted: false, reason: `email not verified and ${policy.trustedClaim} not trusted` }
+  const emailNote = policy.verifyClaims.length > 0 ? 'email not verified and ' : ''
+  return { admitted: false, reason: `${emailNote}${policy.trustedClaim} not trusted` }
 }
 
 /** Keep the domain for diagnosis without logging the full address. */

@@ -190,10 +190,32 @@ describe('evaluateEmailVerification', () => {
     expect(result).toEqual({ admitted: true, reason: 'trusted tid' })
   })
 
+  it('admits a trusted-claim-only policy when the value matches', () => {
+    const trusted = policy({ trustedClaim: 'hd', trustedValues: ['example.com'] })
+    expect(evaluateEmailVerification(trusted, { hd: 'example.com' })).toEqual({
+      admitted: true,
+      reason: 'trusted hd',
+    })
+  })
+
   it('refuses an untrusted claim value', () => {
     const trusted = policy({ trustedClaim: 'hd', trustedValues: ['example.com'] })
-    expect(evaluateEmailVerification(trusted, { hd: 'evil.com' }).admitted).toBe(false)
+    expect(evaluateEmailVerification(trusted, { hd: 'evil.com' })).toEqual({
+      admitted: false,
+      reason: 'hd not trusted',
+    })
     expect(evaluateEmailVerification(trusted, null).admitted).toBe(false)
+  })
+
+  it('mentions email verification when verify claims were also checked', () => {
+    const both = policy({
+      verifyClaims: [{ claim: 'xms_edov', value: 'true' }],
+      trustedClaim: 'tid',
+      trustedValues: ['abc-123'],
+    })
+    expect(evaluateEmailVerification(both, { email: 'a@example.com', tid: 'other' }).reason).toBe(
+      'email not verified and tid not trusted'
+    )
   })
 })
 
