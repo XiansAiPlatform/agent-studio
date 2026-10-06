@@ -130,6 +130,26 @@ function ConnectionsContent() {
     console.log('[Page] handleCreateConnection called with data:', data)
     
     try {
+      if (data.platformId === 'oauth-mcp') {
+        if (!agentName || !activationName) {
+          throw new Error('Open Connections from an agent activation to connect an OAuth MCP server')
+        }
+        const result = await initiateConnection.mutateAsync({
+          name: data.name,
+          description: data.description,
+          providerId: data.platformId,
+          clientId: data.configuration.clientId,
+          clientSecret: data.configuration.clientSecret,
+          mcpUrl: data.configuration.mcpUrl,
+          agentName,
+          activationName,
+          returnUrl: `/settings/connections?agentName=${encodeURIComponent(agentName)}&activationName=${encodeURIComponent(activationName)}`,
+        })
+        setShowCreateDialog(false)
+        window.location.href = result.authUrl
+        return
+      }
+
       // For Slack, use direct integration creation
       if (data.platformId === 'slack') {
         console.log('[Page] Slack integration - starting creation')
@@ -386,7 +406,7 @@ function ConnectionsContent() {
                 }}
                 onViewUsage={() => {/* TODO: Implement usage view */}}
                 onAuthorize={handleAuthorizeConnection}
-                onClick={handleViewDetails}
+                onClick={connection.providerId === 'oauth-mcp' ? undefined : handleViewDetails}
               />
             ))}
             

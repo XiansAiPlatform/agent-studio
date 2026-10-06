@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { MoreHorizontal, Webhook } from 'lucide-react'
+import { MoreHorizontal, Plug, Webhook } from 'lucide-react'
 import Image from 'next/image'
 import {
   DropdownMenu,
@@ -26,7 +26,8 @@ const INTEGRATION_NAMES: Record<string, string> = {
   'teams': 'Microsoft Teams',
   'outlook': 'Outlook',
   'webhook': 'Custom Webhook',
-  'builtin_webhook': 'Webhook'
+  'builtin_webhook': 'Webhook',
+  'oauth-mcp': 'OAuth MCP'
 }
 
 interface ConnectionCardProps {
@@ -65,6 +66,7 @@ export function ConnectionCard({
   const displayName = INTEGRATION_NAMES[connection.providerId] || connection.providerId
   const isWebhook =
     connection.providerId === 'builtin_webhook' || connection.providerId === 'webhook'
+  const isManagedMcp = connection.providerId === 'oauth-mcp'
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'unknown'
@@ -93,7 +95,9 @@ export function ConnectionCard({
           "flex-shrink-0 mt-0.5 flex items-center justify-center w-10 h-10",
           !connection.isActive && "opacity-50 grayscale"
         )}>
-          {connection.providerId === 'builtin_webhook' ? (
+          {isManagedMcp ? (
+            <Plug className="h-10 w-10 text-muted-foreground" />
+          ) : connection.providerId === 'builtin_webhook' ? (
             <Webhook className="h-10 w-10 text-muted-foreground" />
           ) : (
             <Image 
@@ -138,6 +142,11 @@ export function ConnectionCard({
               </>
             )}
           </div>
+          {isManagedMcp && connection.configuration?.connectionKey && (
+            <code className="mt-2 block text-xs text-muted-foreground">
+              {String(connection.configuration.connectionKey)}
+            </code>
+          )}
         </div>
 
         {/* Actions */}
@@ -156,7 +165,7 @@ export function ConnectionCard({
                 <DropdownMenuSeparator />
               </>
             )}
-            {!isWebhook && (
+            {!isWebhook && !isManagedMcp && (
               <>
                 <DropdownMenuItem onClick={() => onTest(connection.id)}>
                   Test
@@ -166,13 +175,17 @@ export function ConnectionCard({
                 </DropdownMenuItem>
               </>
             )}
-            <DropdownMenuItem onClick={() => onEdit(connection)}>
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onToggleActive(connection.id, !connection.isActive)}>
-              {connection.isActive ? 'Disable' : 'Enable'}
-            </DropdownMenuItem>
+            {!isManagedMcp && (
+              <>
+                <DropdownMenuItem onClick={() => onEdit(connection)}>
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onToggleActive(connection.id, !connection.isActive)}>
+                  {connection.isActive ? 'Disable' : 'Enable'}
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuItem 
               onClick={() => onDelete(connection.id)}
               className="text-red-600 focus:text-red-600"

@@ -9,6 +9,55 @@ import {
   ConnectionResponse,
   ConnectionStatus
 } from "@/app/(dashboard)/settings/connections/types"
+import { createXiansClient } from '@/lib/xians/client'
+
+interface SecretListItem {
+  id: string
+  key: string
+  userId?: string | null
+  agentId?: string | null
+  activationName?: string | null
+  additionalData?: Record<string, unknown> | null
+  createdAt: string
+  updatedAt?: string | null
+  createdBy: string
+}
+
+async function getMcpConnections(
+  tenantId: string,
+  agentName?: string | null,
+  activationName?: string | null
+): Promise<OIDCConnection[]> {
+  const query = new URLSearchParams({ tenantId })
+  if (agentName) query.set('agentId', agentName)
+  if (activationName) query.set('activationName', activationName)
+  const client = createXiansClient()
+  const secrets = await client.get<SecretListItem[]>(`/api/v1/admin/secrets?${query}`, {
+    headers: { 'X-Tenant-Id': tenantId },
+  })
+  return secrets
+    .filter(secret => secret.additionalData?.purpose === 'mcp-oauth')
+    .map(secret => ({
+      id: secret.id,
+      tenantId,
+      userId: secret.createdBy || 'activation',
+      name: String(secret.additionalData?.name ?? secret.key),
+      providerId: String(secret.additionalData?.providerId ?? 'oauth-mcp'),
+      clientId: '',
+      status: 'connected' as ConnectionStatus,
+      createdAt: secret.createdAt,
+      updatedAt: secret.updatedAt ?? secret.createdAt,
+      createdBy: secret.createdBy,
+      hasValidToken: true,
+      isActive: true,
+      agentName: secret.agentId ?? undefined,
+      activationName: secret.activationName ?? undefined,
+      configuration: {
+        connectionKey: secret.key,
+        endpoint: secret.additionalData?.endpoint,
+      },
+    }))
+}
 
 // Mock data for development - In production, this would come from Xians backend
 // Shared mock storage (same as tenant routes) - ensure global exists, don't overwrite
@@ -89,8 +138,13 @@ export const GET = withParticipantAdmin(async (request, apiContext: ApiContext) 
     const status = url.searchParams.get('status')
     const providerId = url.searchParams.get('providerId')
     const onlyActive = url.searchParams.get('onlyActive') === 'true'
-
-    let connections = getMockConnections(tenantId)
+    const agentName = url.searchParams.get('agentName')
+    const activationName = url.searchParams.get('activationName')
+    let connections = await getMcpConnections(
+      tenantId,
+      agentName,
+      activationName
+    )
 
     if (search) {
       const searchLower = search.toLowerCase()

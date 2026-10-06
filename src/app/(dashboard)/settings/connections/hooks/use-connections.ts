@@ -79,16 +79,18 @@ async function fetchConnections(
     const queryString = params.toString()
     const url = `/api/integrations${queryString ? `?${queryString}` : ''}`
     
-    const response = await fetch(url)
+    const mcpUrl = `/api/connections?${queryString}`
+    const [response, mcpResponse] = await Promise.all([fetch(url), fetch(mcpUrl)])
     if (!response.ok) {
       throw new Error(`Failed to fetch integrations: ${response.statusText}`)
     }
+    if (!mcpResponse.ok) throw new Error(`Failed to fetch MCP connections: ${mcpResponse.statusText}`)
     
     // Map integration response to OIDCConnection format
     const integrations = await response.json()
     
     // Transform integration data to match OIDCConnection interface
-    return integrations.map((integration: any): OIDCConnection => ({
+    const mappedIntegrations = integrations.map((integration: any): OIDCConnection => ({
       id: integration.id,
       tenantId: integration.tenantId,
       userId: integration.createdBy || 'system',
@@ -112,6 +114,8 @@ async function fetchConnections(
       configuration: integration.configuration,
       mappingConfig: integration.mappingConfig,
     }))
+    const mcpConnections: ConnectionsListResponse = await mcpResponse.json()
+    return [...mappedIntegrations, ...mcpConnections.connections]
   }
   
   // Otherwise, fetch from connections endpoint
