@@ -23,6 +23,7 @@ import { Tenant, CreateTenantRequest, UpdateTenantRequest } from './types';
 import { AddTenantDialog } from './components/add-tenant-dialog';
 import { EditTenantDialog } from './components/edit-tenant-dialog';
 import { DeleteTenantDialog } from './components/delete-tenant-dialog';
+import { DisableTenantDialog } from './components/disable-tenant-dialog';
 import {
   DashboardPage,
   DashboardPageBody,
@@ -42,6 +43,9 @@ function TenantsPageContent() {
   const [deleteTarget, setDeleteTarget] = useState<Tenant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [togglingTenantId, setTogglingTenantId] = useState<string | null>(null);
+  const [disableTarget, setDisableTarget] = useState<Tenant | null>(null);
+  const [activeAgentCount, setActiveAgentCount] = useState<number | null>(null);
+  const [isLoadingAgentCount, setIsLoadingAgentCount] = useState(false);
 
   const {
     tenants,
@@ -52,6 +56,7 @@ function TenantsPageContent() {
     createTenant,
     updateTenant,
     deleteTenant,
+    fetchActiveAgentCount,
   } = useTenants();
 
   const isSystemAdmin = useCan('system:admin');
@@ -105,15 +110,17 @@ function TenantsPageContent() {
     }
   };
 
-  const handleToggleEnabled = async (tenant: Tenant) => {
+  const setEnabled = async (tenant: Tenant, enabled: boolean) => {
     setTogglingTenantId(tenant.tenantId);
     try {
-      const updated = await updateTenant(tenant.tenantId, { enabled: !tenant.enabled });
-      toast.success(
-        tenant.enabled
-          ? `${tenant.name} disabled`
-          : `${tenant.name} enabled`
-      );
+      const updated = await updateTenant(tenant.tenantId, { enabled });
+      if (enabled) {
+        toast.success(`${tenant.name} enabled`);
+      } else {
+        // The server queues agent deactivation and returns before it finishes, so there is
+        // nothing to count yet.
+        toast.success(`${tenant.name} disabled. Its agents are being deactivated in the background.`);
+      }
       // Keep the edit panel open with the updated tenant data
       setEditTarget(updated);
       refresh();
@@ -122,6 +129,31 @@ function TenantsPageContent() {
     } finally {
       setTogglingTenantId(null);
     }
+  };
+
+  // Enabling is harmless; disabling deactivates every agent and cannot be undone by
+  // re-enabling, so it goes through a confirmation that shows how many agents are affected.
+  const handleToggleEnabled = async (tenant: Tenant) => {
+    if (!tenant.enabled) {
+      await setEnabled(tenant, true);
+      return;
+    }
+    setDisableTarget(tenant);
+    setActiveAgentCount(null);
+    setIsLoadingAgentCount(true);
+    try {
+      setActiveAgentCount(await fetchActiveAgentCount(tenant.tenantId));
+    } catch {
+      setActiveAgentCount(null);
+    } finally {
+      setIsLoadingAgentCount(false);
+    }
+  };
+
+  const handleDisableConfirm = async () => {
+    if (!disableTarget) return;
+    await setEnabled(disableTarget, false);
+    setDisableTarget(null);
   };
 
   const handleDeleteRequest = (tenant: Tenant) => {
@@ -329,6 +361,18 @@ function TenantsPageContent() {
         }}
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
+      />
+
+      <DisableTenantDialog
+        tenant={disableTarget}
+        open={disableTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && togglingTenantId === null) setDisableTarget(null);
+        }}
+        onConfirm={handleDisableConfirm}
+        isDisabling={disableTarget !== null && togglingTenantId === disableTarget.tenantId}
+        activeAgentCount={activeAgentCount}
+        isLoadingCount={isLoadingAgentCount}
       />
     </DashboardPage>
   );
