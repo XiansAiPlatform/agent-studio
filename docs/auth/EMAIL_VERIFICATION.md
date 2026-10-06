@@ -59,10 +59,11 @@ AZURE_AD_TRUSTED_VALUES=<your-tenant-guid>
 
 ### Invalid configuration
 
-When verification is required, these are rejected:
+These are rejected:
 
-- A `VERIFY_CLAIMS` entry that is not `claim=value`.
-- Neither `VERIFY_CLAIMS` nor both `TRUSTED_CLAIM` and `TRUSTED_VALUES` set.
+- An `ALLOW_UNVERIFIED_EMAIL` value other than `true` or `false`. An empty value counts as unset.
+- When verification is required, a `VERIFY_CLAIMS` entry that is not `claim=value`.
+- When verification is required, neither `VERIFY_CLAIMS` nor both `TRUSTED_CLAIM` and `TRUSTED_VALUES` set.
 
 An invalid configuration is logged at startup and that provider refuses **every** sign-in until it is fixed.
 

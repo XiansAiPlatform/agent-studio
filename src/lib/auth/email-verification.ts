@@ -24,6 +24,7 @@ export interface EmailVerificationPolicy {
   providerId: string
   verifyClaims: ClaimCheck[]
   trustedClaim?: string
+  /** Lower-cased. */
   trustedValues: string[]
   /** Set when the env config is unusable. The provider then refuses every sign-in. */
   configError?: string
@@ -53,7 +54,7 @@ function parseList(raw: string | undefined): string[] {
 /**
  * The verification policy for a provider, or null when verification is not
  * required for it. Precedence: `<PREFIX>_ALLOW_UNVERIFIED_EMAIL`, then
- * `AUTH_ALLOW_UNVERIFIED_EMAIL`, then allow.
+ * `AUTH_ALLOW_UNVERIFIED_EMAIL`, then allow. Empty values count as unset.
  */
 export function resolveEmailVerificationPolicy(
   providerId: string,
@@ -62,13 +63,19 @@ export function resolveEmailVerificationPolicy(
   const prefix = PROVIDER_ENV_PREFIXES[providerId]
   if (!prefix) return null
 
-  const allowUnverified =
-    parseBoolean(env[`${prefix}_ALLOW_UNVERIFIED_EMAIL`]) ??
-    parseBoolean(env.AUTH_ALLOW_UNVERIFIED_EMAIL) ??
-    true
-  if (allowUnverified) return null
-
   const policy: EmailVerificationPolicy = { providerId, verifyClaims: [], trustedValues: [] }
+
+  const switchName = [`${prefix}_ALLOW_UNVERIFIED_EMAIL`, 'AUTH_ALLOW_UNVERIFIED_EMAIL'].find(
+    (name) => env[name]?.trim()
+  )
+  if (!switchName) return null
+  const allowUnverified = parseBoolean(env[switchName])
+  // A typo in the switch must not silently turn verification off.
+  if (allowUnverified === undefined) {
+    policy.configError = `${switchName} is "${env[switchName]}", expected true or false`
+    return policy
+  }
+  if (allowUnverified) return null
 
   for (const pair of parseList(env[`${prefix}_VERIFY_CLAIMS`])) {
     // Split on the first '=' only so values may contain '='.
@@ -86,7 +93,8 @@ export function resolveEmailVerificationPolicy(
   const trustedValues = parseList(env[`${prefix}_TRUSTED_VALUES`])
   if (trustedClaim && trustedValues.length > 0) {
     policy.trustedClaim = trustedClaim
-    policy.trustedValues = trustedValues
+    // GUIDs and domains are case-insensitive, so a pasted upper-case tenant id still matches.
+    policy.trustedValues = trustedValues.map((value) => value.toLowerCase())
   }
 
   if (policy.verifyClaims.length === 0 && !policy.trustedClaim) {
@@ -129,7 +137,7 @@ function emailClaim(claims: Record<string, unknown>): string | undefined {
       : undefined,
   ]
   for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim()
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim().toLowerCase()
   }
   return undefined
 }
@@ -164,13 +172,11 @@ export function evaluateEmailVerification(
     }
   }
 
-  // GUIDs and domains are case-insensitive, so a pasted upper-case tenant id still matches.
-  const trusted = policy.trustedValues.map((value) => value.toLowerCase())
   const actual = policy.trustedClaim ? tokenClaims[policy.trustedClaim] : undefined
   const actualValues = (Array.isArray(actual) ? actual : [actual])
     .filter((value) => typeof value === 'string')
     .map((value) => (value as string).toLowerCase())
-  if (actualValues.some((value) => trusted.includes(value))) {
+  if (actualValues.some((value) => policy.trustedValues.includes(value))) {
     return { admitted: true, reason: `trusted ${policy.trustedClaim}` }
   }
 

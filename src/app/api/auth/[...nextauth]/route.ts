@@ -14,6 +14,7 @@ import {
   evaluateEmailVerification,
   redactEmail,
   resolveEmailVerificationPolicy,
+  type EmailVerificationPolicy,
 } from "@/lib/auth/email-verification"
 
 /** Default OpenID scopes when no resource scope is configured. */
@@ -230,6 +231,7 @@ if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
       clientId: process.env.AZURE_AD_CLIENT_ID,
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
       tenantId: process.env.AZURE_AD_TENANT_ID,
+      idToken: true,
       authorization: {
         params: {
           // Include offline_access for refresh tokens, plus a resource scope
@@ -323,8 +325,10 @@ function parseLocalAuthUsers(raw: string | undefined): Map<string, string> {
   return users
 }
 
+const emailVerificationPolicies = new Map<string, EmailVerificationPolicy>()
 for (const provider of providers) {
   const policy = resolveEmailVerificationPolicy(provider.id)
+  if (policy) emailVerificationPolicies.set(provider.id, policy)
   if (policy?.configError) {
     console.error(`[Auth] Email verification config for ${provider.id} is invalid, all sign-ins will be refused: ${policy.configError}`)
   }
@@ -367,7 +371,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       // Runs before the tenant lookup so a refused sign-in never queries the claimed email.
-      const verificationPolicy = account ? resolveEmailVerificationPolicy(account.provider) : null
+      const verificationPolicy = account ? emailVerificationPolicies.get(account.provider) : undefined
       if (verificationPolicy) {
         const verification = evaluateEmailVerification(
           verificationPolicy,
