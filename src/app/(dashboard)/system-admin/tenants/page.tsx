@@ -23,6 +23,7 @@ import { Tenant, CreateTenantRequest, UpdateTenantRequest } from './types';
 import { AddTenantDialog } from './components/add-tenant-dialog';
 import { EditTenantDialog } from './components/edit-tenant-dialog';
 import { DeleteTenantDialog } from './components/delete-tenant-dialog';
+import { DisableTenantDialog } from './components/disable-tenant-dialog';
 import {
   DashboardPage,
   DashboardPageBody,
@@ -42,6 +43,7 @@ function TenantsPageContent() {
   const [deleteTarget, setDeleteTarget] = useState<Tenant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [togglingTenantId, setTogglingTenantId] = useState<string | null>(null);
+  const [disableTarget, setDisableTarget] = useState<Tenant | null>(null);
 
   const {
     tenants,
@@ -103,6 +105,21 @@ function TenantsPageContent() {
       toast.error(err instanceof Error ? err.message : 'Failed to update tenant');
       throw err;
     }
+  };
+
+  // Disabling deactivates the tenant's agents, so it is confirmed first; enabling is not.
+  const handleToggleRequest = async (tenant: Tenant) => {
+    if (tenant.enabled) {
+      setDisableTarget(tenant);
+      return;
+    }
+    await handleToggleEnabled(tenant);
+  };
+
+  const handleDisableConfirm = async () => {
+    if (!disableTarget) return;
+    await handleToggleEnabled(disableTarget);
+    setDisableTarget(null);
   };
 
   const handleToggleEnabled = async (tenant: Tenant) => {
@@ -316,9 +333,19 @@ function TenantsPageContent() {
           if (!open) setEditTarget(null);
         }}
         onSubmit={handleEdit}
-        onToggleEnabled={handleToggleEnabled}
+        onToggleEnabled={handleToggleRequest}
         onDeleteRequest={handleDeleteRequest}
         isToggling={togglingTenantId === editTarget?.tenantId}
+      />
+
+      <DisableTenantDialog
+        tenant={disableTarget}
+        open={disableTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDisableTarget(null);
+        }}
+        onConfirm={handleDisableConfirm}
+        isDisabling={togglingTenantId !== null && togglingTenantId === disableTarget?.tenantId}
       />
 
       <DeleteTenantDialog
