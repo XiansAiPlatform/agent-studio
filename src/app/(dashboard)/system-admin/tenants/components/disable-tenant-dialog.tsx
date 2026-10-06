@@ -39,10 +39,12 @@ export function DisableTenantDialog({
     fetch(`/api/system-admin/tenants/${encodeURIComponent(tenantId)}/active-agents`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`Request failed (${res.status})`)
-        const body: { count: number } = await res.json()
+        const body: { count?: unknown } = await res.json()
+        if (typeof body?.count !== 'number') throw new Error('Invalid response shape')
         if (!cancelled) setResult({ tenantId, count: body.count })
       })
-      .catch(() => {
+      .catch((error) => {
+        console.warn('[DisableTenantDialog] Failed to fetch active agents count:', error)
         if (!cancelled) setResult({ tenantId, count: null })
       })
     return () => {
