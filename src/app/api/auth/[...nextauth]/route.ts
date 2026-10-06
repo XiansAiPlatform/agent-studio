@@ -10,6 +10,11 @@ import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
 import { describeXiansError, isServiceApiKeyError } from "@/lib/xians/errors"
 import { runWithOnBehalfOf } from "@/lib/xians/on-behalf-of"
+import {
+  evaluateEmailVerification,
+  redactEmail,
+  resolveEmailVerificationPolicy,
+} from "@/lib/auth/email-verification"
 
 /** Default OpenID scopes when no resource scope is configured. */
 const DEFAULT_AZURE_SCOPES = "openid profile email offline_access"
@@ -318,6 +323,13 @@ function parseLocalAuthUsers(raw: string | undefined): Map<string, string> {
   return users
 }
 
+for (const provider of providers) {
+  const policy = resolveEmailVerificationPolicy(provider.id)
+  if (policy?.configError) {
+    console.error(`[Auth] Email verification config for ${provider.id} is invalid, all sign-ins will be refused: ${policy.configError}`)
+  }
+}
+
 const localAuthUsers = parseLocalAuthUsers(process.env.LOCAL_AUTH_USERS)
 
 if (process.env.LOCAL_AUTH_ENABLED === 'true' && localAuthUsers.size > 0) {
@@ -354,6 +366,24 @@ export const authOptions: NextAuthOptions = {
   
   callbacks: {
     async signIn({ user, account, profile }) {
+      // Runs before the tenant lookup so a refused sign-in never queries the claimed email.
+      const verificationPolicy = account ? resolveEmailVerificationPolicy(account.provider) : null
+      if (verificationPolicy) {
+        const verification = evaluateEmailVerification(
+          verificationPolicy,
+          profile as Record<string, unknown> | undefined
+        )
+        if (!verification.admitted) {
+          console.warn(
+            `[Auth] Sign-in refused for ${verificationPolicy.providerId} user ${redactEmail(user.email || getEmailFromProfile(profile))}: ${verification.reason}`
+          )
+          return false
+        }
+        if (verification.email) {
+          user.email = verification.email
+        }
+      }
+
       const resolvedEmail = user.email || getEmailFromProfile(profile)
 
       if (resolvedEmail && user.email !== resolvedEmail) {
