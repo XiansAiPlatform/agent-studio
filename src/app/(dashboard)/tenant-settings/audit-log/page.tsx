@@ -8,22 +8,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { AuditLogFilterBar } from './components/audit-log-filter-bar';
 import { AuditLogList } from './components/audit-log-list';
 import type { AuditLogFilters, AuditLogListResponse } from './types';
+import { buildFilterQuery } from './utils';
 
 const PAGE_SIZE = 20;
-
-function buildFilterQuery(filters: AuditLogFilters): URLSearchParams {
-  const params = new URLSearchParams();
-  if (filters.performedBy) params.set('performedBy', filters.performedBy);
-  if (filters.action) params.set('action', filters.action);
-  if (filters.onlyWithoutActivation) {
-    params.set('onlyWithoutActivation', 'true');
-  } else if (filters.activationName) {
-    params.set('activationName', filters.activationName);
-  }
-  if (filters.startDate) params.set('startDate', filters.startDate);
-  if (filters.endDate) params.set('endDate', filters.endDate);
-  return params;
-}
 
 function AuditLogContent() {
   const router = useRouter();
