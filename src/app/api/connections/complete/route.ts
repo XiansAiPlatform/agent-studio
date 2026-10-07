@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { redirect } from "next/navigation"
-import { randomBytes } from "crypto"
+import { randomBytes, timingSafeEqual } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   OIDCConnection,
@@ -11,6 +11,36 @@ import { unsealOAuthState } from '@/lib/mcp/oauth-state'
 import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
 
 const MCP_OAUTH_COOKIE = 'mcp-oauth-state'
+
+function redirectAndClearState(url: URL): NextResponse {
+  const response = NextResponse.redirect(url)
+  response.cookies.set(MCP_OAUTH_COOKIE, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/api/connections/complete',
+    maxAge: 0,
+  })
+  return response
+}
+
+function statesMatch(expected: string, actual: string | null): boolean {
+  if (!actual) return false
+  const expectedBuffer = Buffer.from(expected)
+  const actualBuffer = Buffer.from(actual)
+  return expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer)
+}
+
+function oauthResultUrl(requestUrl: string, returnUrl: string, name: string): URL {
+  const requestOrigin = new URL(requestUrl).origin
+  let target = new URL(returnUrl, requestUrl)
+  if (target.origin !== requestOrigin) {
+    target = new URL('/settings/connections', requestUrl)
+  }
+  target.searchParams.set('success', 'connection_created')
+  target.searchParams.set('name', name)
+  return target
+}
 
 interface OAuthTokenResponse {
   access_token: string
@@ -52,6 +82,7 @@ async function exchangeOAuthCode(
     method: 'POST',
     headers,
     body,
+    signal: AbortSignal.timeout(10_000),
   })
   if (!response.ok) throw new Error(`OAuth token exchange failed (${response.status})`)
   return response.json()
@@ -229,17 +260,17 @@ const getHandler = withParticipantAdmin(async (request, apiContext: ApiContext) 
     if (sealedState) {
       const pending = unsealOAuthState(sealedState)
       const currentUser = apiContext.session.user.email?.trim().toLowerCase()
-      if (pending.state !== state || pending.userId !== currentUser || Date.now() - pending.createdAt > 600_000) {
-        return NextResponse.redirect(new URL('/settings/connections?error=state_mismatch', request.url))
+      if (!statesMatch(pending.state, state) || pending.userId !== currentUser || Date.now() - pending.createdAt > 600_000) {
+        return redirectAndClearState(new URL('/settings/connections?error=state_mismatch', request.url))
       }
       if (error) {
-        return NextResponse.redirect(new URL(
+        return redirectAndClearState(new URL(
           `/settings/connections?error=oauth_error&details=${encodeURIComponent(errorDescription || error)}`,
           request.url
         ))
       }
       if (!code) {
-        return NextResponse.redirect(new URL('/settings/connections?error=missing_oauth_params', request.url))
+        return redirectAndClearState(new URL('/settings/connections?error=missing_oauth_params', request.url))
       }
 
       try {
@@ -255,22 +286,10 @@ const getHandler = withParticipantAdmin(async (request, apiContext: ApiContext) 
           pending.codeVerifier
         )
         await saveOAuthMcpConnection(tenantId, pending, token, redirectUri)
-        const separator = pending.returnUrl.includes('?') ? '&' : '?'
-        const response = NextResponse.redirect(new URL(
-          `${pending.returnUrl}${separator}success=connection_created&name=${encodeURIComponent(pending.name)}`,
-          request.url
-        ))
-        response.cookies.set(MCP_OAUTH_COOKIE, '', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          path: '/api/connections/complete',
-          maxAge: 0,
-        })
-        return response
+        return redirectAndClearState(oauthResultUrl(request.url, pending.returnUrl, pending.name))
       } catch (tokenError) {
         console.error('Failed to connect OAuth MCP:', tokenError)
-        return NextResponse.redirect(new URL('/settings/connections?error=token_exchange_failed', request.url))
+        return redirectAndClearState(new URL('/settings/connections?error=token_exchange_failed', request.url))
       }
     }
 

@@ -124,7 +124,14 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
       const redirectUri = getOAuthCallbackUrl()
       const authUrl = new URL(oauth.authorizationUrl)
       let returnUrl = '/settings/connections'
-      if (data.returnUrl?.startsWith('/') && !data.returnUrl.startsWith('//')) returnUrl = data.returnUrl
+      try {
+        const parsedReturn = new URL(data.returnUrl ?? '', redirectUri)
+        if (parsedReturn.origin === new URL(redirectUri).origin) {
+          returnUrl = parsedReturn.pathname + parsedReturn.search
+        }
+      } catch {
+        // Keep the default return URL.
+      }
       authUrl.searchParams.set('client_id', data.clientId)
       authUrl.searchParams.set('response_type', 'code')
       authUrl.searchParams.set('redirect_uri', redirectUri)

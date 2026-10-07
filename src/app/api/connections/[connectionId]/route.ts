@@ -165,11 +165,11 @@ export const DELETE = withParticipantAdmin(async (request, apiContext: ApiContex
 
     if (/^[a-f\d]{24}$/i.test(connectionId)) {
       const client = createXiansClient()
-      const secret = await client.get<{ additionalData?: Record<string, unknown> | null }>(
+      const secret = await client.get<{ tenantId?: string | null; additionalData?: Record<string, unknown> | null }>(
         `/api/v1/admin/secrets/${encodeURIComponent(connectionId)}`,
         { headers: { 'X-Tenant-Id': tenantId } }
       )
-      if (secret.additionalData?.purpose !== 'mcp-oauth') {
+      if (secret.tenantId !== tenantId || secret.additionalData?.purpose !== 'mcp-oauth') {
         return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
       }
       await client.delete(`/api/v1/admin/secrets/${encodeURIComponent(connectionId)}`, {

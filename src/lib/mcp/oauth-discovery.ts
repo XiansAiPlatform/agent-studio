@@ -27,6 +27,7 @@ export async function discoverMcpOAuth(mcpUrl: string): Promise<McpOAuthMetadata
   const challenge = await fetch(endpoint, {
     method: 'POST',
     redirect: 'manual',
+    signal: AbortSignal.timeout(10_000),
     headers: {
       Accept: 'application/json, text/event-stream',
       'Content-Type': 'application/json',
@@ -42,6 +43,9 @@ export async function discoverMcpOAuth(mcpUrl: string): Promise<McpOAuthMetadata
       },
     }),
   })
+  if (challenge.status !== 401) {
+    throw new Error(`MCP server did not request OAuth authentication (${challenge.status})`)
+  }
   const resourceMetadataUrl = resourceMetadataFrom(challenge) ??
     protectedResourceMetadataUrl(endpoint)
   const resource = await fetchMetadata<ProtectedResourceMetadata>(resourceMetadataUrl)
@@ -104,6 +108,7 @@ async function fetchMetadata<T>(url: URL): Promise<T> {
   const response = await fetch(requireExternalUrl(url.toString()), {
     headers: { Accept: 'application/json' },
     redirect: 'manual',
+    signal: AbortSignal.timeout(10_000),
   })
   if (!response.ok) throw new Error(`OAuth metadata request failed (${response.status})`)
   return response.json() as Promise<T>

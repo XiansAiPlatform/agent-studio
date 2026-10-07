@@ -28,35 +28,40 @@ async function getMcpConnections(
   agentName?: string | null,
   activationName?: string | null
 ): Promise<OIDCConnection[]> {
-  const query = new URLSearchParams({ tenantId })
-  if (agentName) query.set('agentId', agentName)
-  if (activationName) query.set('activationName', activationName)
-  const client = createXiansClient()
-  const secrets = await client.get<SecretListItem[]>(`/api/v1/admin/secrets?${query}`, {
-    headers: { 'X-Tenant-Id': tenantId },
-  })
-  return secrets
-    .filter(secret => secret.additionalData?.purpose === 'mcp-oauth')
-    .map(secret => ({
-      id: secret.id,
-      tenantId,
-      userId: secret.createdBy || 'activation',
-      name: String(secret.additionalData?.name ?? secret.key),
-      providerId: String(secret.additionalData?.providerId ?? 'oauth-mcp'),
-      clientId: '',
-      status: 'connected' as ConnectionStatus,
-      createdAt: secret.createdAt,
-      updatedAt: secret.updatedAt ?? secret.createdAt,
-      createdBy: secret.createdBy,
-      hasValidToken: true,
-      isActive: true,
-      agentName: secret.agentId ?? undefined,
-      activationName: secret.activationName ?? undefined,
-      configuration: {
-        connectionKey: secret.key,
-        endpoint: secret.additionalData?.endpoint,
-      },
-    }))
+  try {
+    const query = new URLSearchParams({ tenantId })
+    if (agentName) query.set('agentId', agentName)
+    if (activationName) query.set('activationName', activationName)
+    const client = createXiansClient()
+    const secrets = await client.get<SecretListItem[]>(`/api/v1/admin/secrets?${query}`, {
+      headers: { 'X-Tenant-Id': tenantId },
+    })
+    return secrets
+      .filter(secret => secret.additionalData?.purpose === 'mcp-oauth')
+      .map(secret => ({
+        id: secret.id,
+        tenantId,
+        userId: secret.createdBy || 'activation',
+        name: String(secret.additionalData?.name ?? secret.key),
+        providerId: String(secret.additionalData?.providerId ?? 'oauth-mcp'),
+        clientId: '',
+        status: 'connected' as ConnectionStatus,
+        createdAt: secret.createdAt,
+        updatedAt: secret.updatedAt ?? secret.createdAt,
+        createdBy: secret.createdBy,
+        hasValidToken: true,
+        isActive: true,
+        agentName: secret.agentId ?? undefined,
+        activationName: secret.activationName ?? undefined,
+        configuration: {
+          connectionKey: secret.key,
+          endpoint: secret.additionalData?.endpoint,
+        },
+      }))
+  } catch (error) {
+    console.error('Failed to fetch MCP connections:', error)
+    return []
+  }
 }
 
 // Mock data for development - In production, this would come from Xians backend
