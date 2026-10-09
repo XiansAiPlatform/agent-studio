@@ -9,6 +9,7 @@ import {
 import { createXiansClient, XiansApiError } from '@/lib/xians/client'
 import { unsealOAuthState } from '@/lib/mcp/oauth-state'
 import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
+import { fetchExternalUrl } from '@/lib/security/external-fetch'
 
 const MCP_OAUTH_COOKIE = 'mcp-oauth-state'
 
@@ -78,7 +79,7 @@ async function exchangeOAuthCode(
     body.set('client_id', clientId)
     body.set('client_secret', clientSecret)
   }
-  const response = await fetch(tokenUrl, {
+  const response = await fetchExternalUrl(tokenUrl, {
     method: 'POST',
     headers,
     body,
@@ -113,7 +114,6 @@ async function saveOAuthMcpConnection(
   if (existing) throw new Error(`Connection key ${pending.connectionKey} already exists in this activation`)
 
   const value = {
-    secretId: '',
     clientId: pending.clientId,
     clientSecret: pending.clientSecret,
     redirectUri,
@@ -140,14 +140,8 @@ async function saveOAuthMcpConnection(
     status: 'connected',
   }
 
-  const created = await client.post<SecretMetadata>('/api/v1/admin/secrets', {
+  await client.post<SecretMetadata>('/api/v1/admin/secrets', {
     key: pending.connectionKey,
-    value: JSON.stringify(value),
-    ...scope,
-    additionalData,
-  }, { headers: { 'X-Tenant-Id': tenantId } })
-  value.secretId = created.id
-  await client.put(`/api/v1/admin/secrets/${encodeURIComponent(created.id)}`, {
     value: JSON.stringify(value),
     ...scope,
     additionalData,
@@ -260,7 +254,8 @@ const getHandler = withParticipantAdmin(async (request, apiContext: ApiContext) 
     if (sealedState) {
       const pending = unsealOAuthState(sealedState)
       const currentUser = apiContext.session.user.email?.trim().toLowerCase()
-      if (!statesMatch(pending.state, state) || pending.userId !== currentUser || Date.now() - pending.createdAt > 600_000) {
+      if (!statesMatch(pending.state, state) || pending.userId !== currentUser ||
+          pending.tenantId !== tenantId || Date.now() - pending.createdAt > 600_000) {
         return redirectAndClearState(new URL('/settings/connections?error=state_mismatch', request.url))
       }
       if (error) {

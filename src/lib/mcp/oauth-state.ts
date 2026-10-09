@@ -15,6 +15,7 @@ export interface McpOAuthState {
   codeVerifier: string
   agentName: string
   activationName: string
+  tenantId: string
   userId: string
   returnUrl: string
   createdAt: number

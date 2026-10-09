@@ -13,8 +13,12 @@ vi.mock('@/lib/api/with-tenant', () => ({
   }),
 }))
 
-vi.mock('@/lib/xians/client', () => ({ createXiansClient }))
+vi.mock('@/lib/xians/client', async importOriginal => {
+  const original = await importOriginal<typeof import('@/lib/xians/client')>()
+  return { ...original, createXiansClient }
+})
 
+import { XiansApiError } from '@/lib/xians/client'
 import { DELETE } from './route'
 
 const connectionId = '507f1f77bcf86cd799439011'
@@ -54,5 +58,18 @@ describe('DELETE /api/connections/[connectionId] for OAuth MCP', () => {
     }))
     expect(response.status).toBe(404)
     expect(deleteSecret).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when the OAuth MCP secret no longer exists', async () => {
+    createXiansClient.mockReturnValue({
+      get: vi.fn().mockRejectedValue(new XiansApiError('Not found', 404)),
+      delete: vi.fn(),
+    })
+
+    const response = await DELETE(new NextRequest(`http://localhost/api/connections/${connectionId}`, {
+      method: 'DELETE',
+    }))
+
+    expect(response.status).toBe(404)
   })
 })

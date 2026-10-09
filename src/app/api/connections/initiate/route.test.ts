@@ -83,6 +83,7 @@ describe('POST /api/connections/initiate for OAuth MCP', () => {
     expect(authUrl.searchParams.get('code_challenge_method')).toBe('S256')
     expect(authUrl.searchParams.get('resource')).toBe('https://mcp.example.com')
     expect(pending.connectionKey).toBe('MCP_OAUTH_HUBSPOT_PRODUCTION')
+    expect(pending.tenantId).toBe('tenant-1')
     expect(response.headers.get('set-cookie')).toContain('HttpOnly')
   })
 

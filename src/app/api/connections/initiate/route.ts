@@ -100,22 +100,26 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
       if (!userId) return NextResponse.json({ error: 'User email is required' }, { status: 400 })
 
       const connectionKey = oauthMcpConnectionKey(data.name)
-      if (await oauthMcpConnectionExists(tenantId, data.agentName, data.activationName, connectionKey)) {
+      const mcpUrl = data.mcpUrl!
+      const [exists, discovery] = await Promise.allSettled([
+        oauthMcpConnectionExists(tenantId, data.agentName, data.activationName, connectionKey),
+        discoverMcpOAuth(mcpUrl),
+      ])
+      if (exists.status === 'rejected') throw exists.reason
+      if (exists.value) {
         return NextResponse.json(
           { error: `Connection key ${connectionKey} already exists in this activation. Use a different connection name.` },
           { status: 409 }
         )
       }
 
-      const mcpUrl = data.mcpUrl!
-      let oauth
-      try {
-        oauth = await discoverMcpOAuth(mcpUrl)
-      } catch (error) {
+      if (discovery.status === 'rejected') {
+        const error = discovery.reason
         console.error('OAuth MCP discovery failed:', error)
         const message = error instanceof Error ? error.message : 'Unknown discovery error'
         return NextResponse.json({ error: `OAuth discovery failed: ${message}` }, { status: 400 })
       }
+      const oauth = discovery.value
 
       const state = generateState()
       const codeVerifier = randomBytes(48).toString('base64url')
@@ -161,6 +165,7 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
         codeVerifier,
         agentName: data.agentName,
         activationName: data.activationName,
+        tenantId,
         userId,
         returnUrl,
         createdAt: Date.now(),

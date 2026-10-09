@@ -1,10 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { discoverMcpOAuth } from './oauth-discovery'
 
+const { lookup } = vi.hoisted(() => ({ lookup: vi.fn() }))
+vi.mock('node:dns/promises', () => ({ lookup }))
+
 afterEach(() => vi.unstubAllGlobals())
 
 describe('MCP OAuth discovery', () => {
+  afterEach(() => lookup.mockReset())
+
   it('discovers OAuth endpoints and scopes from MCP metadata', async () => {
+    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(null, {
         status: 401,
@@ -36,6 +42,7 @@ describe('MCP OAuth discovery', () => {
   })
 
   it('rejects an MCP endpoint that does not request OAuth', async () => {
+    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
     await expect(discoverMcpOAuth('https://mcp.example.com')).rejects.toThrow(
       'MCP server did not request OAuth authentication (200)'
@@ -43,6 +50,7 @@ describe('MCP OAuth discovery', () => {
   })
 
   it('uses the standard protected-resource metadata URL without a challenge header', async () => {
+    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(Response.json({
@@ -93,6 +101,7 @@ describe('MCP OAuth discovery', () => {
       message: 'does not support PKCE S256',
     },
   ])('rejects $name metadata', async ({ resource, authorization, message }) => {
+    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(Response.json(resource))
@@ -100,5 +109,15 @@ describe('MCP OAuth discovery', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(discoverMcpOAuth('https://mcp.example.com')).rejects.toThrow(message)
+  })
+
+  it('rejects a hostname that resolves to a private address', async () => {
+    lookup.mockResolvedValue([{ address: '169.254.169.254', family: 4 }])
+    vi.stubGlobal('fetch', vi.fn())
+
+    await expect(discoverMcpOAuth('https://mcp.example.com')).rejects.toThrow(
+      'URL host resolves to a private address'
+    )
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

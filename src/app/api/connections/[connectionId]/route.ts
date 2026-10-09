@@ -6,7 +6,7 @@ import {
   ConnectionResponse,
   ConnectionStatus
 } from "@/app/(dashboard)/settings/connections/types"
-import { createXiansClient } from '@/lib/xians/client'
+import { createXiansClient, XiansApiError } from '@/lib/xians/client'
 
 function getMockStorage(): Record<string, OIDCConnection[]> {
   if (typeof global !== 'undefined' && (global as any).mockConnections) {
@@ -165,17 +165,24 @@ export const DELETE = withParticipantAdmin(async (request, apiContext: ApiContex
 
     if (/^[a-f\d]{24}$/i.test(connectionId)) {
       const client = createXiansClient()
-      const secret = await client.get<{ tenantId?: string | null; additionalData?: Record<string, unknown> | null }>(
-        `/api/v1/admin/secrets/${encodeURIComponent(connectionId)}`,
-        { headers: { 'X-Tenant-Id': tenantId } }
-      )
-      if (secret.tenantId !== tenantId || secret.additionalData?.purpose !== 'mcp-oauth') {
-        return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+      try {
+        const secret = await client.get<{ tenantId?: string | null; additionalData?: Record<string, unknown> | null }>(
+          `/api/v1/admin/secrets/${encodeURIComponent(connectionId)}`,
+          { headers: { 'X-Tenant-Id': tenantId } }
+        )
+        if (secret.tenantId !== tenantId || secret.additionalData?.purpose !== 'mcp-oauth') {
+          return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+        }
+        await client.delete(`/api/v1/admin/secrets/${encodeURIComponent(connectionId)}`, {
+          headers: { 'X-Tenant-Id': tenantId },
+        })
+        return new Response(null, { status: 204 })
+      } catch (error) {
+        if (error instanceof XiansApiError && error.status === 404) {
+          return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+        }
+        throw error
       }
-      await client.delete(`/api/v1/admin/secrets/${encodeURIComponent(connectionId)}`, {
-        headers: { 'X-Tenant-Id': tenantId },
-      })
-      return new Response(null, { status: 204 })
     }
 
     const connections = getMockConnections(tenantId)

@@ -1,4 +1,5 @@
 import { validateExternalUrl } from '@/lib/security/url'
+import { fetchExternalUrl } from '@/lib/security/external-fetch'
 
 export interface McpOAuthMetadata {
   authorizationUrl: string
@@ -24,9 +25,8 @@ interface AuthorizationServerMetadata {
 
 export async function discoverMcpOAuth(mcpUrl: string): Promise<McpOAuthMetadata> {
   const endpoint = requireExternalUrl(mcpUrl)
-  const challenge = await fetch(endpoint, {
+  const challenge = await fetchExternalUrl(endpoint, {
     method: 'POST',
-    redirect: 'manual',
     signal: AbortSignal.timeout(10_000),
     headers: {
       Accept: 'application/json, text/event-stream',
@@ -105,9 +105,8 @@ async function fetchAuthorizationMetadata(issuer: URL): Promise<AuthorizationSer
 }
 
 async function fetchMetadata<T>(url: URL): Promise<T> {
-  const response = await fetch(requireExternalUrl(url.toString()), {
+  const response = await fetchExternalUrl(requireExternalUrl(url.toString()), {
     headers: { Accept: 'application/json' },
-    redirect: 'manual',
     signal: AbortSignal.timeout(10_000),
   })
   if (!response.ok) throw new Error(`OAuth metadata request failed (${response.status})`)

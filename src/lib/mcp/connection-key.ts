@@ -1,11 +1,8 @@
+import { createHash } from 'node:crypto'
+
 export function oauthMcpConnectionKey(name: string): string {
   const slug = name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 64)
   if (slug) return `MCP_OAUTH_${slug}`
-  let hash = 2166136261
-  for (let index = 0; index < name.length; index++) {
-    hash ^= name.charCodeAt(index)
-    hash = Math.imul(hash, 16777619)
-  }
-  const value = (hash >>> 0).toString(16).padStart(8, '0').toUpperCase()
+  const value = createHash('sha256').update(name).digest('hex').slice(0, 8).toUpperCase()
   return `MCP_OAUTH_${value}`
 }
