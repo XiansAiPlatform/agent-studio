@@ -11,9 +11,9 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import type { ClientSafeProvider } from "next-auth/react"
 
-export function SignInForm() {
+export function SignInForm({ initialError = null }: { initialError?: string | null }) {
   const [isLoading, setIsLoading] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialError)
   const [isOnline, setIsOnline] = useState(true)
   const [providers, setProviders] = useState<Record<string, ClientSafeProvider> | null>(null)
   const [localEmail, setLocalEmail] = useState('')
