@@ -14,6 +14,7 @@ export interface OIDCConnection {
   clientSecret?: string         // Never exposed in API responses
   customScopes?: string[]       // Override default scopes if needed
   wellKnownUrl?: string        // Override default well-known URL
+  mcpUrl?: string
   
   // Connection metadata
   status: ConnectionStatus
@@ -86,6 +87,8 @@ export interface InitiateConnectionRequest {
   customScopes?: string[]
   wellKnownUrl?: string
   returnUrl?: string  // Where to redirect user after OAuth completion
+  agentName?: string
+  activationName?: string
 }
 
 export interface InitiateConnectionResponse {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { randomBytes } from "crypto"
+import { createHash, randomBytes } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import { validateWellKnownUrl } from "@/lib/security/url"
 import { parseJsonBody } from "@/lib/api/validate"
@@ -9,6 +9,36 @@ import {
   OIDCConnection,
   ConnectionStatus
 } from "@/app/(dashboard)/settings/connections/types"
+import { sealOAuthState } from "@/lib/mcp/oauth-state"
+import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
+import { createXiansClient, XiansApiError } from '@/lib/xians/client'
+import { discoverMcpOAuth } from '@/lib/mcp/oauth-discovery'
+import { oauthMcpConnectionKey } from '@/lib/mcp/connection-key'
+
+const MCP_OAUTH_COOKIE = 'mcp-oauth-state'
+
+async function oauthMcpConnectionExists(
+  tenantId: string,
+  agentName: string,
+  activationName: string,
+  connectionKey: string
+): Promise<boolean> {
+  const query = new URLSearchParams({
+    key: connectionKey,
+    tenantId,
+    agentId: agentName,
+    activationName,
+  })
+  try {
+    await createXiansClient().get(`/api/v1/admin/secrets/fetch?${query}`, {
+      headers: { 'X-Tenant-Id': tenantId },
+    })
+    return true
+  } catch (error) {
+    if (error instanceof XiansApiError && error.status === 404) return false
+    throw error
+  }
+}
 
 function getMockStorage(): Record<string, OIDCConnection[]> {
   if (typeof global !== 'undefined' && (global as any).mockConnections) {
@@ -35,6 +65,16 @@ function generateState(): string {
   return randomBytes(32).toString('hex')
 }
 
+// GET /api/connections/initiate
+export const GET = withParticipantAdmin(async () => {
+  try {
+    return NextResponse.json({ callbackUrl: getOAuthCallbackUrl() })
+  } catch (error) {
+    console.error('Failed to resolve OAuth callback URL:', error)
+    return NextResponse.json({ error: 'OAuth callback URL is not configured' }, { status: 500 })
+  }
+})
+
 // POST /api/connections/initiate
 export const POST = withParticipantAdmin(async (request, apiContext: ApiContext) => {
   try {
@@ -43,6 +83,101 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
     const parsed = await parseJsonBody(request, InitiateConnectionSchema)
     if (!parsed.ok) return parsed.response
     const data = parsed.data
+
+    if (data.providerId === 'oauth-mcp') {
+      if (!apiContext.tenantContext.permissions.includes('write')) {
+        return NextResponse.json({ error: 'Permission denied: write required' }, { status: 403 })
+      }
+
+      if (!data.agentName || !data.activationName) {
+        return NextResponse.json(
+          { error: 'Select an agent activation before connecting an OAuth MCP server' },
+          { status: 400 }
+        )
+      }
+
+      const userId = apiContext.session.user.email?.trim().toLowerCase()
+      if (!userId) return NextResponse.json({ error: 'User email is required' }, { status: 400 })
+
+      const connectionKey = oauthMcpConnectionKey(data.name)
+      const mcpUrl = data.mcpUrl!
+      const [exists, discovery] = await Promise.allSettled([
+        oauthMcpConnectionExists(tenantId, data.agentName, data.activationName, connectionKey),
+        discoverMcpOAuth(mcpUrl),
+      ])
+      if (exists.status === 'rejected') throw exists.reason
+      if (exists.value) {
+        return NextResponse.json(
+          { error: `Connection key ${connectionKey} already exists in this activation. Use a different connection name.` },
+          { status: 409 }
+        )
+      }
+
+      if (discovery.status === 'rejected') {
+        const error = discovery.reason
+        console.error('OAuth MCP discovery failed:', error)
+        const message = error instanceof Error ? error.message : 'Unknown discovery error'
+        return NextResponse.json({ error: `OAuth discovery failed: ${message}` }, { status: 400 })
+      }
+      const oauth = discovery.value
+
+      const state = generateState()
+      const codeVerifier = randomBytes(48).toString('base64url')
+      const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url')
+      const connectionId = `conn_${generateId()}`
+      const redirectUri = getOAuthCallbackUrl()
+      const authUrl = new URL(oauth.authorizationUrl)
+      let returnUrl = '/settings/connections'
+      try {
+        const parsedReturn = new URL(data.returnUrl ?? '', redirectUri)
+        if (parsedReturn.origin === new URL(redirectUri).origin) {
+          returnUrl = parsedReturn.pathname + parsedReturn.search
+        }
+      } catch {
+        // Keep the default return URL.
+      }
+      authUrl.searchParams.set('client_id', data.clientId)
+      authUrl.searchParams.set('response_type', 'code')
+      authUrl.searchParams.set('redirect_uri', redirectUri)
+      authUrl.searchParams.set('state', state)
+      authUrl.searchParams.set('code_challenge', codeChallenge)
+      authUrl.searchParams.set('code_challenge_method', 'S256')
+      authUrl.searchParams.set('resource', mcpUrl)
+      if (oauth.scopes.length) authUrl.searchParams.set('scope', oauth.scopes.join(' '))
+
+      const response = NextResponse.json<InitiateConnectionResponse>({
+        connectionId,
+        authUrl: authUrl.toString(),
+        state,
+      })
+      response.cookies.set(MCP_OAUTH_COOKIE, sealOAuthState({
+        state,
+        name: data.name,
+        connectionKey,
+        providerId: 'oauth-mcp',
+        mcpUrl,
+        authorizationUrl: oauth.authorizationUrl,
+        tokenUrl: oauth.tokenUrl,
+        scopes: oauth.scopes,
+        tokenEndpointAuthMethod: oauth.tokenEndpointAuthMethod,
+        clientId: data.clientId,
+        clientSecret: data.clientSecret,
+        codeVerifier,
+        agentName: data.agentName,
+        activationName: data.activationName,
+        tenantId,
+        userId,
+        returnUrl,
+        createdAt: Date.now(),
+      }), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/api/connections/complete',
+        maxAge: 600,
+      })
+      return response
+    }
 
     const now = new Date().toISOString()
     const connectionId = `conn_${generateId()}`

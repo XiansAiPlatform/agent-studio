@@ -34,6 +34,13 @@ import { SlackWizardSheet } from './components/slack-wizard-sheet';
 import { TeamsWizardSheet } from './components/teams-wizard-sheet';
 import { WebhooksSheet } from './components/webhooks-sheet';
 
+function clearOAuthResult() {
+  const url = new URL(window.location.href);
+  ['success', 'error', 'name', 'user', 'details'].forEach(parameter =>
+    url.searchParams.delete(parameter));
+  window.history.replaceState({}, document.title, url);
+}
+
 function ConnectionsContent() {
   const searchParams = useSearchParams();
   const agentName = searchParams.get('agentName');
@@ -66,8 +73,7 @@ function ConnectionsContent() {
           ? `Connection "${connectionName}" created and authorized as ${userName}`
           : `Connection "${connectionName}" created successfully`
       );
-      // Clear URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
+      clearOAuthResult();
     } else if (error) {
       let errorMessage = 'Failed to create connection';
       switch (error) {
@@ -87,8 +93,7 @@ function ConnectionsContent() {
           errorMessage = errorDetails || 'Unknown error occurred';
       }
       showErrorToast(new Error(errorMessage));
-      // Clear URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
+      clearOAuthResult();
     }
   }, []);
 
@@ -125,11 +130,36 @@ function ConnectionsContent() {
     
     return matchesSearch && matchesStatus && matchesProvider;
   }) || [];
+  const deletesAsConnection = selectedConnection?.providerId === 'oauth-mcp' || !agentName || !activationName;
+  const oauthConnectionKeys = useMemo(() => connections
+    ?.filter(connection => connection.providerId === 'oauth-mcp')
+    .map(connection => connection.configuration?.connectionKey)
+    .filter((key): key is string => typeof key === 'string') ?? [], [connections]);
 
   const handleCreateConnection = async (data: any) => {
     console.log('[Page] handleCreateConnection called with data:', data)
     
     try {
+      if (data.platformId === 'oauth-mcp') {
+        if (!agentName || !activationName) {
+          throw new Error('Open Connections from an agent activation to connect an OAuth MCP server')
+        }
+        const result = await initiateConnection.mutateAsync({
+          name: data.name,
+          description: data.description,
+          providerId: data.platformId,
+          clientId: data.configuration.clientId,
+          clientSecret: data.configuration.clientSecret,
+          mcpUrl: data.configuration.mcpUrl,
+          agentName,
+          activationName,
+          returnUrl: `/settings/connections?agentName=${encodeURIComponent(agentName)}&activationName=${encodeURIComponent(activationName)}`,
+        })
+        setShowCreateDialog(false)
+        window.location.href = result.authUrl
+        return
+      }
+
       // For Slack, use direct integration creation
       if (data.platformId === 'slack') {
         console.log('[Page] Slack integration - starting creation')
@@ -242,11 +272,10 @@ function ConnectionsContent() {
     if (!selectedConnection) return;
     
     try {
-      // When viewing integrations (agentName+activationName), use integrations API
-      if (agentName && activationName) {
-        await deleteIntegration.mutateAsync(selectedConnection.id);
-      } else {
+      if (deletesAsConnection) {
         await deleteConnection.mutateAsync(selectedConnection.id);
+      } else {
+        await deleteIntegration.mutateAsync(selectedConnection.id);
       }
       setShowDeleteDialog(false);
       setSelectedConnection(null);
@@ -386,7 +415,7 @@ function ConnectionsContent() {
                 }}
                 onViewUsage={() => {/* TODO: Implement usage view */}}
                 onAuthorize={handleAuthorizeConnection}
-                onClick={handleViewDetails}
+                onClick={connection.providerId === 'oauth-mcp' ? undefined : handleViewDetails}
               />
             ))}
             
@@ -419,6 +448,7 @@ function ConnectionsContent() {
             onOpenChange={setShowCreateDialog}
             onSubmit={handleCreateConnection}
             isSubmitting={initiateConnection.isPending}
+            existingConnectionKeys={oauthConnectionKeys}
             onSlackSelected={() => {
               setShowCreateDialog(false)
               setShowSlackWizard(true)
@@ -489,7 +519,7 @@ function ConnectionsContent() {
           onOpenChange={setShowDeleteDialog}
           connection={selectedConnection}
           onConfirm={handleDeleteConnection}
-          isDeleting={agentName && activationName ? deleteIntegration.isPending : deleteConnection.isPending}
+          isDeleting={deletesAsConnection ? deleteConnection.isPending : deleteIntegration.isPending}
         />
 
         {/* Integration Details Sheet */}

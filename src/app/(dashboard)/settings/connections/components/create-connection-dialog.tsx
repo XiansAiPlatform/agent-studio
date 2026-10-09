@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { 
   Dialog, 
@@ -11,16 +11,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, ExternalLink, Info, Eye, EyeOff, Plug, Webhook } from 'lucide-react'
+import { Copy, Loader2, ExternalLink, Info, Eye, EyeOff, Plug, Webhook } from 'lucide-react'
 import { useIntegrationTypes, IntegrationType } from '../hooks/use-integration-types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
+import { oauthMcpConnectionKey } from '@/lib/mcp/connection-key'
 
 interface CreateConnectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: any) => Promise<{ id: string; webhookUrl: string } | void>
   isSubmitting?: boolean
+  existingConnectionKeys?: string[]
   onSlackSelected?: () => void
   onTeamsSelected?: () => void
   onWebhooksSelected?: () => void
@@ -44,11 +46,42 @@ const webhookIntegration: IntegrationType = {
   documentationUrl: null
 }
 
+const oauthMcpIntegration: IntegrationType = {
+  platformId: 'oauth-mcp',
+  displayName: 'OAuth MCP',
+  description: 'Connect an agent activation to an OAuth-protected MCP server.',
+  icon: 'oauth-mcp',
+  requiredConfigurationFields: [
+    {
+      fieldName: 'mcpUrl',
+      displayName: 'MCP Server URL',
+      description: 'https://mcp.example.com',
+      isSecret: false,
+    },
+    {
+      fieldName: 'clientId',
+      displayName: 'Client ID',
+      description: '',
+      isSecret: false,
+    },
+    {
+      fieldName: 'clientSecret',
+      displayName: 'Client Secret',
+      description: '',
+      isSecret: true,
+    },
+  ],
+  capabilities: ['mcp', 'oauth'],
+  webhookEndpoint: '',
+  documentationUrl: null,
+}
+
 export function CreateConnectionDialog({
   open,
   onOpenChange,
   onSubmit,
   isSubmitting = false,
+  existingConnectionKeys = [],
   onSlackSelected,
   onTeamsSelected,
   onWebhooksSelected
@@ -65,6 +98,13 @@ export function CreateConnectionDialog({
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [failedIcons, setFailedIcons] = useState<Set<string>>(new Set())
+  const [callbackUrl, setCallbackUrl] = useState('')
+  const [callbackUrlError, setCallbackUrlError] = useState('')
+  const connectionKey = useMemo(() => {
+    if (selectedIntegration?.platformId !== 'oauth-mcp' || !formData.name.trim()) return ''
+    return oauthMcpConnectionKey(formData.name)
+  }, [formData.name, selectedIntegration?.platformId])
+  const connectionKeyExists = connectionKey !== '' && existingConnectionKeys.includes(connectionKey)
 
   // Reset failed icons when dialog closes
   useEffect(() => {
@@ -73,11 +113,40 @@ export function CreateConnectionDialog({
     }
   }, [open])
 
+  useEffect(() => {
+    if (selectedIntegration?.platformId !== 'oauth-mcp') return
+
+    const controller = new AbortController()
+    fetch('/api/connections/initiate', { signal: controller.signal })
+      .then(async response => {
+        const body = await response.json()
+        if (!response.ok) throw new Error(body.error || 'Failed to load OAuth callback URL')
+        setCallbackUrl(body.callbackUrl)
+        setCallbackUrlError('')
+      })
+      .catch(error => {
+        if (error instanceof Error && error.name === 'AbortError') return
+        setCallbackUrlError('OAuth callback URL is unavailable')
+      })
+    return () => controller.abort()
+  }, [selectedIntegration?.platformId])
+
+  const copyCallbackUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(callbackUrl)
+      showSuccessToast('OAuth callback URL copied')
+    } catch (error) {
+      showErrorToast(error instanceof Error ? error : new Error('Failed to copy callback URL'))
+    }
+  }
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
     if (!formData.name.trim()) {
       newErrors.name = 'Integration name is required'
+    } else if (connectionKeyExists) {
+      newErrors.name = 'This connection name is already in use for this activation'
     }
 
     if (!formData.platformId) {
@@ -86,7 +155,7 @@ export function CreateConnectionDialog({
 
     // Validate required configuration fields
     selectedIntegration?.requiredConfigurationFields.forEach(field => {
-      if (!formData.configFields[field.fieldName]?.trim()) {
+      if (field.isRequired !== false && !formData.configFields[field.fieldName]?.trim()) {
         newErrors[field.fieldName] = `${field.displayName} is required`
       }
     })
@@ -123,10 +192,16 @@ export function CreateConnectionDialog({
     integration.requiredConfigurationFields.forEach(field => {
       initialConfigFields[field.fieldName] = ''
     })
+    let name = `${integration.displayName} Connection`
+    let description = integration.description
+    if (integration.platformId === 'oauth-mcp') {
+      name = ''
+      description = ''
+    }
     
     setFormData({
-      name: `${integration.displayName} Connection`,
-      description: integration.description,
+      name,
+      description,
       platformId: integration.platformId,
       configFields: initialConfigFields
     })
@@ -230,6 +305,21 @@ export function CreateConnectionDialog({
           ) : step === 'select' ? (
             <div className="px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto flex-1 min-h-0">
               <div className="flex flex-col gap-3 sm:gap-4">
+                <button
+                  type="button"
+                  onClick={() => handleIntegrationSelect(oauthMcpIntegration)}
+                  className="group relative p-3 sm:p-6 text-left bg-card hover:bg-muted border border-border rounded-lg transition-all duration-200 hover:border-primary/30 hover:shadow-sm"
+                >
+                  <div className="flex items-center gap-3 sm:gap-6">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center bg-muted rounded-lg">
+                      <Plug className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1 text-left">
+                      <h3 className="text-sm sm:text-base font-normal text-foreground">OAuth MCP</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">Connect an agent activation to an OAuth-protected MCP server.</p>
+                    </div>
+                  </div>
+                </button>
                 {/* Webhooks - always show as first option */}
                 {!integrationTypes.some(t => t.platformId === 'webhook') && (
                   <button
@@ -306,11 +396,11 @@ export function CreateConnectionDialog({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-              <ScrollArea className="flex-1 min-h-0 px-4 sm:px-6 py-4 sm:py-6">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
                 <div className="space-y-6 pr-1 sm:pr-3">
                   {/* Basic Information */}
                   <div className="space-y-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="name">Connection Name *</Label>
                       <Input
                         id="name"
@@ -321,9 +411,21 @@ export function CreateConnectionDialog({
                       {errors.name && (
                         <p className="text-sm text-destructive mt-1">{errors.name}</p>
                       )}
+                      {connectionKey && (
+                        <div className={connectionKeyExists
+                          ? 'rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive'
+                          : 'rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground'}>
+                          Connection key: <code>{connectionKey}</code>
+                          <span className="ml-1">
+                            {connectionKeyExists
+                              ? '(already in use in this activation)'
+                              : '(must be unique in this activation)'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="description">Description (optional)</Label>
                       <Textarea
                         id="description"
@@ -335,6 +437,34 @@ export function CreateConnectionDialog({
                     </div>
                   </div>
 
+                  {selectedIntegration?.platformId === 'oauth-mcp' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="oauth-callback-url">OAuth callback URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="oauth-callback-url"
+                          value={callbackUrl}
+                          placeholder="Loading callback URL..."
+                          readOnly
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          title="Copy OAuth callback URL"
+                          aria-label="Copy OAuth callback URL"
+                          disabled={!callbackUrl}
+                          onClick={copyCallbackUrl}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {callbackUrlError && (
+                        <p className="text-sm text-destructive">{callbackUrlError}</p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Configuration Fields */}
                   {selectedIntegration && selectedIntegration.requiredConfigurationFields.length > 0 && (
                     <div className="space-y-4">
@@ -344,14 +474,15 @@ export function CreateConnectionDialog({
                       </div>
 
                       {selectedIntegration.requiredConfigurationFields.map((field) => (
-                        <div key={field.fieldName}>
+                        <div key={field.fieldName} className="space-y-2">
                           <Label htmlFor={field.fieldName}>
-                            {field.displayName} *
+                            {field.displayName}{field.isRequired === false ? ' (optional)' : ' *'}
                           </Label>
                           <div className="relative">
                             <Input
                               id={field.fieldName}
                               type={field.isSecret && !showSecrets[field.fieldName] ? 'password' : 'text'}
+                              autoComplete={field.isSecret ? 'new-password' : 'off'}
                               value={formData.configFields[field.fieldName] || ''}
                               onChange={(e) => setFormData(prev => ({
                                 ...prev,
@@ -382,9 +513,11 @@ export function CreateConnectionDialog({
                               </Button>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {field.description}
-                          </p>
+                          {field.description && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {field.description}
+                            </p>
+                          )}
                           {errors[field.fieldName] && (
                             <p className="text-sm text-destructive mt-1">{errors[field.fieldName]}</p>
                           )}
@@ -410,7 +543,7 @@ export function CreateConnectionDialog({
                     </div>
                   )}
                 </div>
-              </ScrollArea>
+              </div>
 
               <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 pt-3 sm:pt-4 pb-[max(env(safe-area-inset-bottom),0.875rem)] sm:pb-[max(env(safe-area-inset-bottom),1rem)] border-t shrink-0 bg-background">
                 <Button
@@ -433,7 +566,7 @@ export function CreateConnectionDialog({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                  <Button type="submit" disabled={isSubmitting || connectionKeyExists} className="w-full sm:w-auto">
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

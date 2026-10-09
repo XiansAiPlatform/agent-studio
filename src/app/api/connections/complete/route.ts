@@ -1,11 +1,152 @@
 import { NextRequest, NextResponse } from "next/server"
 import { redirect } from "next/navigation"
-import { randomBytes } from "crypto"
+import { randomBytes, timingSafeEqual } from "crypto"
 import { withParticipantAdmin, ApiContext } from "@/lib/api/with-tenant"
 import {
   OIDCConnection,
   UserTokenInfo
 } from "@/app/(dashboard)/settings/connections/types"
+import { createXiansClient, XiansApiError } from '@/lib/xians/client'
+import { unsealOAuthState } from '@/lib/mcp/oauth-state'
+import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
+import { fetchExternalUrl } from '@/lib/security/external-fetch'
+
+const MCP_OAUTH_COOKIE = 'mcp-oauth-state'
+
+function redirectAndClearState(url: URL): NextResponse {
+  const response = NextResponse.redirect(url)
+  response.cookies.set(MCP_OAUTH_COOKIE, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/api/connections/complete',
+    maxAge: 0,
+  })
+  return response
+}
+
+function statesMatch(expected: string, actual: string | null): boolean {
+  if (!actual) return false
+  const expectedBuffer = Buffer.from(expected)
+  const actualBuffer = Buffer.from(actual)
+  return expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer)
+}
+
+function oauthResultUrl(requestUrl: string, returnUrl: string, name: string): URL {
+  const requestOrigin = new URL(requestUrl).origin
+  let target = new URL(returnUrl, requestUrl)
+  if (target.origin !== requestOrigin) {
+    target = new URL('/settings/connections', requestUrl)
+  }
+  target.searchParams.set('success', 'connection_created')
+  target.searchParams.set('name', name)
+  return target
+}
+
+interface OAuthTokenResponse {
+  access_token: string
+  refresh_token?: string
+  expires_in: number
+  scope?: string | string[]
+  token_type?: string
+}
+
+interface SecretMetadata {
+  id: string
+}
+
+async function exchangeOAuthCode(
+  tokenUrl: string,
+  resource: string,
+  tokenEndpointAuthMethod: 'client_secret_post' | 'client_secret_basic',
+  code: string,
+  redirectUri: string,
+  clientId: string,
+  clientSecret: string,
+  codeVerifier: string
+): Promise<OAuthTokenResponse> {
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: redirectUri,
+    code_verifier: codeVerifier,
+    resource,
+  })
+  const headers: Record<string, string> = { 'Content-Type': 'application/x-www-form-urlencoded' }
+  if (tokenEndpointAuthMethod === 'client_secret_basic') {
+    headers.Authorization = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+  } else {
+    body.set('client_id', clientId)
+    body.set('client_secret', clientSecret)
+  }
+  const response = await fetchExternalUrl(tokenUrl, {
+    method: 'POST',
+    headers,
+    body,
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!response.ok) throw new Error(`OAuth token exchange failed (${response.status})`)
+  return response.json()
+}
+
+async function saveOAuthMcpConnection(
+  tenantId: string,
+  pending: ReturnType<typeof unsealOAuthState>,
+  token: OAuthTokenResponse,
+  redirectUri: string
+): Promise<void> {
+  const client = createXiansClient()
+  const query = new URLSearchParams({
+    key: pending.connectionKey,
+    tenantId,
+    agentId: pending.agentName,
+    activationName: pending.activationName,
+  })
+  let existing: SecretMetadata | null = null
+  try {
+    existing = await client.get<SecretMetadata>(
+      `/api/v1/admin/secrets/fetch?${query}`,
+      { headers: { 'X-Tenant-Id': tenantId } }
+    )
+  } catch (error) {
+    if (!(error instanceof XiansApiError) || error.status !== 404) throw error
+  }
+  if (existing) throw new Error(`Connection key ${pending.connectionKey} already exists in this activation`)
+
+  const value = {
+    clientId: pending.clientId,
+    clientSecret: pending.clientSecret,
+    redirectUri,
+    scopes: pending.scopes,
+    tokens: {
+      tokenType: token.token_type ?? 'Bearer',
+      accessToken: token.access_token,
+      refreshToken: token.refresh_token,
+      expiresIn: token.expires_in,
+      scope: Array.isArray(token.scope) ? token.scope.join(' ') : token.scope,
+      obtainedAt: new Date().toISOString(),
+    },
+  }
+  const scope = {
+    tenantId,
+    agentId: pending.agentName,
+    activationName: pending.activationName,
+  }
+  const additionalData = {
+    purpose: 'mcp-oauth',
+    providerId: pending.providerId,
+    name: pending.name,
+    endpoint: pending.mcpUrl,
+    status: 'connected',
+  }
+
+  await client.post<SecretMetadata>('/api/v1/admin/secrets', {
+    key: pending.connectionKey,
+    value: JSON.stringify(value),
+    ...scope,
+    additionalData,
+  }, { headers: { 'X-Tenant-Id': tenantId } })
+}
 
 function getMockStorage(): Record<string, OIDCConnection[]> {
   if (typeof global !== 'undefined' && (global as any).mockConnections) {
@@ -108,6 +249,44 @@ const getHandler = withParticipantAdmin(async (request, apiContext: ApiContext) 
     const state = url.searchParams.get('state')
     const error = url.searchParams.get('error')
     const errorDescription = url.searchParams.get('error_description')
+
+    const sealedState = request.cookies.get(MCP_OAUTH_COOKIE)?.value
+    if (sealedState) {
+      const pending = unsealOAuthState(sealedState)
+      const currentUser = apiContext.session.user.email?.trim().toLowerCase()
+      if (!statesMatch(pending.state, state) || pending.userId !== currentUser ||
+          pending.tenantId !== tenantId || Date.now() - pending.createdAt > 600_000) {
+        return redirectAndClearState(new URL('/settings/connections?error=state_mismatch', request.url))
+      }
+      if (error) {
+        return redirectAndClearState(new URL(
+          `/settings/connections?error=oauth_error&details=${encodeURIComponent(errorDescription || error)}`,
+          request.url
+        ))
+      }
+      if (!code) {
+        return redirectAndClearState(new URL('/settings/connections?error=missing_oauth_params', request.url))
+      }
+
+      try {
+        const redirectUri = getOAuthCallbackUrl()
+        const token = await exchangeOAuthCode(
+          pending.tokenUrl,
+          pending.mcpUrl,
+          pending.tokenEndpointAuthMethod,
+          code,
+          redirectUri,
+          pending.clientId,
+          pending.clientSecret,
+          pending.codeVerifier
+        )
+        await saveOAuthMcpConnection(tenantId, pending, token, redirectUri)
+        return redirectAndClearState(oauthResultUrl(request.url, pending.returnUrl, pending.name))
+      } catch (tokenError) {
+        console.error('Failed to connect OAuth MCP:', tokenError)
+        return redirectAndClearState(new URL('/settings/connections?error=token_exchange_failed', request.url))
+      }
+    }
 
     if (!connectionId) {
       return redirect(`/settings/connections?error=missing_connection_id`)
