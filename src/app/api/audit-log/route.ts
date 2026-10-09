@@ -15,12 +15,14 @@ export const GET = withTenantAdmin(
       const upstream = new URLSearchParams()
 
       const performedBy = searchParams.get('performedBy')
+      const action = searchParams.get('action')
       const activationName = searchParams.get('activationName')
       const onlyWithoutActivation = searchParams.get('onlyWithoutActivation')
       const startDate = searchParams.get('startDate')
       const endDate = searchParams.get('endDate')
 
       if (performedBy) upstream.set('performedBy', performedBy)
+      if (action) upstream.set('action', action)
       if (onlyWithoutActivation === 'true') {
         upstream.set('onlyWithoutActivation', 'true')
       } else if (activationName) {

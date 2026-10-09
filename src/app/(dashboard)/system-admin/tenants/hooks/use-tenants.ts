@@ -166,6 +166,20 @@ export function useTenants() {
     }
   }, [])
 
+  /**
+   * Number of active agent activations in a tenant (disabling the tenant deactivates them).
+   * GET /api/system-admin/tenants/{tenantId}/active-agents
+   */
+  const fetchActiveAgentCount = useCallback(async (tenantId: string): Promise<number> => {
+    const res = await fetch(`${BASE_URL}/${encodeURIComponent(tenantId)}/active-agents`)
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error ?? `Failed to fetch active agents (${res.status})`)
+    }
+    const body: { activeCount: number } = await res.json()
+    return body.activeCount
+  }, [])
+
   return {
     ...state,
     isMutating,
@@ -176,5 +190,6 @@ export function useTenants() {
     createTenant,
     updateTenant,
     deleteTenant,
+    fetchActiveAgentCount,
   }
 }

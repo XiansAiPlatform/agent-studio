@@ -6,6 +6,8 @@
 /** Filters applied to audit log queries. All optional. */
 export interface AuditLogFilters {
   performedBy: string | null;
+  /** Exact action to filter by (e.g. "agent.access.changed"). */
+  action: string | null;
   /** Exact activation name to filter by. Ignored when onlyWithoutActivation is true. */
   activationName: string | null;
   /** When true, show only entries that have no associated activation. */
