@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { sealOAuthState, type McpOAuthState } from '@/lib/mcp/oauth-state'
 
 vi.mock('server-only', () => ({}))
 
-const { contextRef, createXiansClient, lookup } = vi.hoisted(() => ({
+const { contextRef, createXiansClient, fetchExternalUrl } = vi.hoisted(() => ({
   contextRef: {
     current: {
       session: { user: { id: 'user-1', email: 'admin@example.com' } },
@@ -12,10 +12,10 @@ const { contextRef, createXiansClient, lookup } = vi.hoisted(() => ({
     },
   },
   createXiansClient: vi.fn(),
-  lookup: vi.fn(),
+  fetchExternalUrl: vi.fn(),
 }))
 
-vi.mock('node:dns/promises', () => ({ lookup }))
+vi.mock('@/lib/security/external-fetch', () => ({ fetchExternalUrl }))
 
 vi.mock('@/lib/api/with-tenant', () => ({
   withParticipantAdmin: (
@@ -72,12 +72,11 @@ describe('GET /api/connections/complete for OAuth MCP', () => {
     process.env.NEXTAUTH_SECRET = 'test-secret'
     contextRef.current.session.user.email = 'admin@example.com'
     contextRef.current.tenantContext.tenant.id = 'tenant-1'
-    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    fetchExternalUrl.mockReset().mockResolvedValue(Response.json({
       access_token: 'access-token',
       refresh_token: 'refresh-token',
       expires_in: 3600,
-    })))
+    }))
     createXiansClient.mockReturnValue({
       get: vi.fn().mockRejectedValue(new XiansApiError('Not found', 404)),
       post: vi.fn().mockResolvedValue({ id: 'secret-1' }),
@@ -85,8 +84,6 @@ describe('GET /api/connections/complete for OAuth MCP', () => {
     })
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
-
-  afterEach(() => vi.unstubAllGlobals())
 
   it('clears state after a mismatch or missing code', async () => {
     const mismatch = await GET(request(pending(), 'state=wrong&code=code'))
@@ -130,18 +127,17 @@ describe('GET /api/connections/complete for OAuth MCP', () => {
   })
 
   it('uses HTTP Basic authentication when required by the token endpoint', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({
+    fetchExternalUrl.mockResolvedValue(Response.json({
       access_token: 'access-token',
       expires_in: 3600,
     }))
-    vi.stubGlobal('fetch', fetchMock)
 
     await GET(request(
       pending({ tokenEndpointAuthMethod: 'client_secret_basic' }),
       'state=expected-state&code=code'
     ))
 
-    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+    expect(fetchExternalUrl.mock.calls[0]?.[1]?.headers).toMatchObject({
       Authorization: `Basic ${Buffer.from('client-id:client-secret').toString('base64')}`,
     })
   })
@@ -163,7 +159,7 @@ describe('GET /api/connections/complete for OAuth MCP', () => {
     ))
     expectCleared(providerError)
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 500 })))
+    fetchExternalUrl.mockResolvedValue(new Response(null, { status: 500 }))
     const tokenError = await GET(request(pending(), 'state=expected-state&code=code'))
     expect(new URL(tokenError.headers.get('location')!).searchParams.get('error')).toBe('token_exchange_failed')
     expectCleared(tokenError)

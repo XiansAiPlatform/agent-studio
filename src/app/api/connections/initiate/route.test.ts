@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { XiansApiError } from '@/lib/xians/client'
 import { unsealOAuthState } from '@/lib/mcp/oauth-state'
+import { oauthMcpConnectionKey } from '@/lib/mcp/connection-key'
 
 vi.mock('server-only', () => ({}))
 
@@ -82,7 +83,7 @@ describe('POST /api/connections/initiate for OAuth MCP', () => {
     expect(response.status).toBe(200)
     expect(authUrl.searchParams.get('code_challenge_method')).toBe('S256')
     expect(authUrl.searchParams.get('resource')).toBe('https://mcp.example.com')
-    expect(pending.connectionKey).toBe('MCP_OAUTH_HUBSPOT_PRODUCTION')
+    expect(pending.connectionKey).toBe(oauthMcpConnectionKey('HubSpot Production'))
     expect(pending.tenantId).toBe('tenant-1')
     expect(response.headers.get('set-cookie')).toContain('HttpOnly')
   })

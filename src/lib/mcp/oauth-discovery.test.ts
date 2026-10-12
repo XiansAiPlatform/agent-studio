@@ -1,17 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { fetchExternalUrl } = vi.hoisted(() => ({ fetchExternalUrl: vi.fn() }))
+vi.mock('@/lib/security/external-fetch', () => ({ fetchExternalUrl }))
+
 import { discoverMcpOAuth } from './oauth-discovery'
 
-const { lookup } = vi.hoisted(() => ({ lookup: vi.fn() }))
-vi.mock('node:dns/promises', () => ({ lookup }))
-
-afterEach(() => vi.unstubAllGlobals())
-
 describe('MCP OAuth discovery', () => {
-  afterEach(() => lookup.mockReset())
+  beforeEach(() => fetchExternalUrl.mockReset())
 
   it('discovers OAuth endpoints and scopes from MCP metadata', async () => {
-    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
-    const fetchMock = vi.fn()
+    fetchExternalUrl
       .mockResolvedValueOnce(new Response(null, {
         status: 401,
         headers: {
@@ -30,28 +28,24 @@ describe('MCP OAuth discovery', () => {
         code_challenge_methods_supported: ['S256'],
         token_endpoint_auth_methods_supported: ['client_secret_post'],
       }))
-    vi.stubGlobal('fetch', fetchMock)
-
     await expect(discoverMcpOAuth('https://mcp.example.com')).resolves.toEqual({
       authorizationUrl: 'https://auth.example.com/authorize',
       tokenUrl: 'https://auth.example.com/token',
       scopes: ['crm.read'],
       tokenEndpointAuthMethod: 'client_secret_post',
     })
-    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchExternalUrl).toHaveBeenCalledTimes(3)
   })
 
   it('rejects an MCP endpoint that does not request OAuth', async () => {
-    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
+    fetchExternalUrl.mockResolvedValue(new Response(null, { status: 200 }))
     await expect(discoverMcpOAuth('https://mcp.example.com')).rejects.toThrow(
       'MCP server did not request OAuth authentication (200)'
     )
   })
 
   it('uses the standard protected-resource metadata URL without a challenge header', async () => {
-    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
-    const fetchMock = vi.fn()
+    fetchExternalUrl
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(Response.json({
         resource: 'https://mcp.example.com',
@@ -62,10 +56,8 @@ describe('MCP OAuth discovery', () => {
         authorization_endpoint: 'https://auth.example.com/authorize',
         token_endpoint: 'https://auth.example.com/token',
       }))
-    vi.stubGlobal('fetch', fetchMock)
-
     await discoverMcpOAuth('https://mcp.example.com')
-    expect(fetchMock.mock.calls[1]?.[0].toString()).toBe(
+    expect(fetchExternalUrl.mock.calls[1]?.[0].toString()).toBe(
       'https://mcp.example.com/.well-known/oauth-protected-resource'
     )
   })
@@ -101,23 +93,11 @@ describe('MCP OAuth discovery', () => {
       message: 'does not support PKCE S256',
     },
   ])('rejects $name metadata', async ({ resource, authorization, message }) => {
-    lookup.mockResolvedValue([{ address: '203.0.113.10', family: 4 }])
-    const fetchMock = vi.fn()
+    fetchExternalUrl
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(Response.json(resource))
-    if (authorization) fetchMock.mockResolvedValueOnce(Response.json(authorization))
-    vi.stubGlobal('fetch', fetchMock)
+    if (authorization) fetchExternalUrl.mockResolvedValueOnce(Response.json(authorization))
 
     await expect(discoverMcpOAuth('https://mcp.example.com')).rejects.toThrow(message)
-  })
-
-  it('rejects a hostname that resolves to a private address', async () => {
-    lookup.mockResolvedValue([{ address: '169.254.169.254', family: 4 }])
-    vi.stubGlobal('fetch', vi.fn())
-
-    await expect(discoverMcpOAuth('https://mcp.example.com')).rejects.toThrow(
-      'URL host resolves to a private address'
-    )
-    expect(fetch).not.toHaveBeenCalled()
   })
 })

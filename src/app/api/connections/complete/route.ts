@@ -8,7 +8,7 @@ import {
 } from "@/app/(dashboard)/settings/connections/types"
 import { createXiansClient, XiansApiError } from '@/lib/xians/client'
 import { unsealOAuthState } from '@/lib/mcp/oauth-state'
-import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
+import { getOAuthCallbackUrl, isOAuthCallbackSecure } from '@/lib/mcp/oauth-url'
 import { fetchExternalUrl } from '@/lib/security/external-fetch'
 
 const MCP_OAUTH_COOKIE = 'mcp-oauth-state'
@@ -17,7 +17,7 @@ function redirectAndClearState(url: URL): NextResponse {
   const response = NextResponse.redirect(url)
   response.cookies.set(MCP_OAUTH_COOKIE, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isOAuthCallbackSecure(),
     sameSite: 'lax',
     path: '/api/connections/complete',
     maxAge: 0,

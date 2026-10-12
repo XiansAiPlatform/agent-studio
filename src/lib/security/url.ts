@@ -63,7 +63,7 @@ function isPrivateIPv6(host: string): boolean {
   // IPv4-mapped forms can contain dotted IPv4 or two hexadecimal groups.
   const dotted = lower.match(/^::ffff:([0-9.]+)$/)
   if (dotted && isPrivateIPv4(dotted[1])) return true
-  const hexadecimal = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/)
+  const hexadecimal = lower.match(/^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/)
   if (hexadecimal) {
     const high = Number.parseInt(hexadecimal[1], 16)
     const low = Number.parseInt(hexadecimal[2], 16)

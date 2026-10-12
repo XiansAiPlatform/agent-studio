@@ -10,7 +10,7 @@ import {
   ConnectionStatus
 } from "@/app/(dashboard)/settings/connections/types"
 import { sealOAuthState } from "@/lib/mcp/oauth-state"
-import { getOAuthCallbackUrl } from '@/lib/mcp/oauth-url'
+import { getOAuthCallbackUrl, isOAuthCallbackSecure } from '@/lib/mcp/oauth-url'
 import { createXiansClient, XiansApiError } from '@/lib/xians/client'
 import { discoverMcpOAuth } from '@/lib/mcp/oauth-discovery'
 import { oauthMcpConnectionKey } from '@/lib/mcp/connection-key'
@@ -101,25 +101,21 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
 
       const connectionKey = oauthMcpConnectionKey(data.name)
       const mcpUrl = data.mcpUrl!
-      const [exists, discovery] = await Promise.allSettled([
-        oauthMcpConnectionExists(tenantId, data.agentName, data.activationName, connectionKey),
-        discoverMcpOAuth(mcpUrl),
-      ])
-      if (exists.status === 'rejected') throw exists.reason
-      if (exists.value) {
+      if (await oauthMcpConnectionExists(tenantId, data.agentName, data.activationName, connectionKey)) {
         return NextResponse.json(
           { error: `Connection key ${connectionKey} already exists in this activation. Use a different connection name.` },
           { status: 409 }
         )
       }
 
-      if (discovery.status === 'rejected') {
-        const error = discovery.reason
+      let oauth
+      try {
+        oauth = await discoverMcpOAuth(mcpUrl)
+      } catch (error) {
         console.error('OAuth MCP discovery failed:', error)
         const message = error instanceof Error ? error.message : 'Unknown discovery error'
         return NextResponse.json({ error: `OAuth discovery failed: ${message}` }, { status: 400 })
       }
-      const oauth = discovery.value
 
       const state = generateState()
       const codeVerifier = randomBytes(48).toString('base64url')
@@ -171,7 +167,7 @@ export const POST = withParticipantAdmin(async (request, apiContext: ApiContext)
         createdAt: Date.now(),
       }), {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isOAuthCallbackSecure(),
         sameSite: 'lax',
         path: '/api/connections/complete',
         maxAge: 600,

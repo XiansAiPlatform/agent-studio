@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { sealOAuthState, unsealOAuthState, type McpOAuthState } from './oauth-state'
-import { getOAuthCallbackUrl } from './oauth-url'
+import { getOAuthCallbackUrl, isOAuthCallbackSecure } from './oauth-url'
 
 const originalSecret = process.env.NEXTAUTH_SECRET
 const originalUrl = process.env.NEXTAUTH_URL
@@ -14,6 +14,12 @@ describe('MCP OAuth state', () => {
   it('builds the canonical callback URL', () => {
     process.env.NEXTAUTH_URL = 'http://localhost:3010/'
     expect(getOAuthCallbackUrl()).toBe('http://localhost:3010/api/connections/complete')
+    expect(isOAuthCallbackSecure()).toBe(false)
+  })
+
+  it('recognizes a secure callback URL', () => {
+    process.env.NEXTAUTH_URL = 'https://studio.example.com/'
+    expect(isOAuthCallbackSecure()).toBe(true)
   })
 
   it('round trips encrypted state', () => {
@@ -69,5 +75,10 @@ describe('MCP OAuth state', () => {
     const replacement = sealed[index] === 'A' ? 'B' : 'A'
     const tampered = `${sealed.slice(0, index)}${replacement}${sealed.slice(index + 1)}`
     expect(() => unsealOAuthState(tampered)).toThrow()
+  })
+
+  it('rejects truncated state', () => {
+    process.env.NEXTAUTH_SECRET = 'test-secret'
+    expect(() => unsealOAuthState('AA')).toThrow('corrupted or truncated')
   })
 })

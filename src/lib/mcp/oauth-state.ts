@@ -38,6 +38,7 @@ export function sealOAuthState(value: McpOAuthState): string {
 
 export function unsealOAuthState(value: string): McpOAuthState {
   const payload = Buffer.from(value, 'base64url')
+  if (payload.length < 28) throw new Error('Invalid OAuth state: corrupted or truncated payload')
   const decipher = createDecipheriv(algorithm, key(), payload.subarray(0, 12))
   decipher.setAuthTag(payload.subarray(12, 28))
   const json = Buffer.concat([decipher.update(payload.subarray(28)), decipher.final()]).toString()
