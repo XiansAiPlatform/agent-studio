@@ -22,6 +22,7 @@ import {
   Code2,
   CalendarClock,
   Workflow,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -163,6 +164,19 @@ const navigation: NavigationItem[] = [
           basePath: '/settings/workflows',
           useQueryParams: true,
           icon: Workflow,
+        },
+      },
+      {
+        name: 'Evals',
+        href: '/settings/evals',
+        capability: 'evals:manage',
+        triggersPanel: true,
+        panelConfig: {
+          title: 'Select an Agent',
+          description: 'Choose an agent activation to manage its evals',
+          basePath: '/settings/evals',
+          useQueryParams: true,
+          icon: FlaskConical,
         },
       },
       { name: 'Performance', href: '/settings/performance' },

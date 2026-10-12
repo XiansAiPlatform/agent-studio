@@ -1,0 +1,139 @@
+/**
+ * Server-side helpers for the Evals (automated agent health checks) API routes.
+ *
+ * The backend keys health checks by activation **id**, but Agent Settings pages
+ * address an activation by `agentName` + `activationName` (the sidebar agent
+ * picker). The id is therefore always resolved here, server-side, from the
+ * tenant's activation list — never accepted from the browser — so a caller can't
+ * pair an agent they may edit with another agent's activation id.
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import type { Session } from 'next-auth'
+import { createXiansClient, type XiansClient } from './client'
+import { decodeAgentNameParam } from './agent-name'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
+
+export interface ResolvedActivation {
+  id: string
+  name: string
+  agentName: string
+  isActive: boolean
+}
+
+/** AdminApi base path for one activation's health checks. */
+export function healthChecksBasePath(tenantId: string, activationId: string): string {
+  return `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations/${encodeURIComponent(activationId)}/health-checks`
+}
+
+/** AdminApi path for the tenant-wide health-check listing. */
+export function tenantHealthChecksPath(tenantId: string): string {
+  return `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/health-checks`
+}
+
+/** The activation fields read here; the backend sends more. */
+interface ActivationRecord {
+  id?: string
+  name?: string
+  agentName?: string
+  isActive?: boolean
+  active?: boolean | null
+}
+
+function toList(response: unknown): ActivationRecord[] {
+  if (Array.isArray(response)) return response as ActivationRecord[]
+  const wrapped = response as { items?: unknown; data?: unknown } | null
+  if (Array.isArray(wrapped?.items)) return wrapped.items as ActivationRecord[]
+  if (Array.isArray(wrapped?.data)) return wrapped.data as ActivationRecord[]
+  return []
+}
+
+/**
+ * Find the activation named `activationName` of agent `agentName` in the tenant.
+ * Returns null when it doesn't exist (or belongs to another agent).
+ */
+export async function resolveActivation(
+  client: XiansClient,
+  tenantId: string,
+  agentName: string,
+  activationName: string
+): Promise<ResolvedActivation | null> {
+  const decodedAgent = decodeAgentNameParam(agentName)
+  const query = new URLSearchParams({ agentName: decodedAgent })
+  const response = await client.get<unknown>(
+    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations?${query.toString()}`
+  )
+
+  const match = toList(response).find(
+    (activation) =>
+      activation?.name === activationName && activation?.agentName === decodedAgent
+  )
+  if (!match?.id) return null
+
+  return {
+    id: String(match.id),
+    name: String(match.name),
+    agentName: String(match.agentName),
+    isActive: Boolean(match.isActive ?? match.active),
+  }
+}
+
+/** Reads and validates the `agentName` / `activationName` query params. */
+export function readActivationParams(
+  searchParams: URLSearchParams
+): { agentName: string; activationName: string } | NextResponse {
+  const agentName = searchParams.get('agentName')
+  const activationName = searchParams.get('activationName')
+  if (!agentName || !activationName) {
+    return NextResponse.json(
+      { error: 'agentName and activationName are required' },
+      { status: 400 }
+    )
+  }
+  return { agentName: decodeAgentNameParam(agentName), activationName }
+}
+
+export function activationNotFound(): NextResponse {
+  return NextResponse.json({ error: 'Activation not found' }, { status: 404 })
+}
+
+export interface EvalRequestContext {
+  client: XiansClient
+  activation: ResolvedActivation
+  basePath: string
+}
+
+/**
+ * Shared preamble for every per-activation evals route: validate the query,
+ * require that the session user may edit the agent, then resolve the
+ * activation id server-side. Returns a ready response on any failure.
+ *
+ * Callers must already be inside `withTenantAdmin` (TenantAdmin / system admin),
+ * which is the per-user gate for `evals:manage`.
+ */
+export async function prepareEvalRequest(
+  request: NextRequest,
+  session: Session,
+  tenantId: string
+): Promise<EvalRequestContext | NextResponse> {
+  const params = readActivationParams(new URL(request.url).searchParams)
+  if (params instanceof NextResponse) return params
+
+  const denied = await assertCanEditAgent(session, tenantId, params.agentName)
+  if (denied) return denied
+
+  const client = createXiansClient((session as Session & { accessToken?: string }).accessToken)
+  const activation = await resolveActivation(client, tenantId, params.agentName, params.activationName)
+  if (!activation) return activationNotFound()
+
+  return { client, activation, basePath: healthChecksBasePath(tenantId, activation.id) }
+}
+
+export function evalsErrorResponse(error: unknown, fallback: string): NextResponse {
+  const e = error as { message?: string; response?: unknown; status?: number } | null
+  return NextResponse.json(
+    { error: e?.message || fallback, details: e?.response },
+    // status 0 means the backend was unreachable; report that as a bad gateway.
+    { status: e?.status === 0 ? 502 : e?.status || 500 }
+  )
+}
