@@ -1,19 +1,18 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { PageLoader } from '@/components/ui/page-loader';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { AuditLogFilterBar } from './components/audit-log-filter-bar';
 import { AuditLogList } from './components/audit-log-list';
 import type { AuditLogFilters, AuditLogListResponse } from './types';
-import { buildFilterQuery } from './utils';
+import { buildApiFilterQuery, buildFilterQuery } from './utils';
 
 const PAGE_SIZE = 20;
 
 function AuditLogContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { currentTenantId } = useTenant();
   const { user } = useAuth();
@@ -22,7 +21,10 @@ function AuditLogContent() {
   const filters: AuditLogFilters = useMemo(
     () => ({
       performedBy: searchParams.get('performedBy'),
-      action: searchParams.get('action'),
+      actions: (searchParams.get('action') ?? '')
+        .split(',')
+        .map((a) => a.trim())
+        .filter(Boolean),
       activationName: searchParams.get('activationName'),
       onlyWithoutActivation: searchParams.get('onlyWithoutActivation') === 'true',
       startDate: searchParams.get('startDate'),
@@ -60,13 +62,17 @@ function AuditLogContent() {
       if (nextPage > 1) params.set('page', String(nextPage));
 
       const qs = params.toString();
-      router.push(qs ? `/tenant-settings/audit-log?${qs}` : '/tenant-settings/audit-log', {
-        scroll: false,
-      });
+      // The URL is only a client-side source of truth for this page, so update it through
+      // the History API (Next syncs useSearchParams) instead of router.push, which would
+      // make a server round trip and re-render the route before the list fetch can start.
+      window.history.pushState(
+        null,
+        '',
+        qs ? `/tenant-settings/audit-log?${qs}` : '/tenant-settings/audit-log'
+      );
     },
-    [router, filters, currentPage]
+    [filters, currentPage]
   );
-
   const handleFilterChange = useCallback(
     (partial: Partial<AuditLogFilters>) => {
       // Any filter change resets pagination.
@@ -79,7 +85,7 @@ function AuditLogContent() {
     updateURL({
       filters: {
         performedBy: null,
-        action: null,
+        actions: [],
         activationName: null,
         onlyWithoutActivation: false,
         startDate: null,
@@ -101,24 +107,18 @@ function AuditLogContent() {
 
     (async () => {
       try {
-        const [performedByRes, actionsRes, activationNamesRes] = await Promise.all([
-          fetch('/api/audit-log/performed-by', { signal: controller.signal }),
-          fetch('/api/audit-log/actions', { signal: controller.signal }),
-          fetch('/api/audit-log/activation-names', { signal: controller.signal }),
-        ]);
+        const res = await fetch('/api/audit-log/filter-options', { signal: controller.signal });
+        if (!res.ok) return;
 
-        if (performedByRes.ok) {
-          const data = await performedByRes.json();
-          setPerformedByOptions(Array.isArray(data) ? data : []);
-        }
-        if (actionsRes.ok) {
-          const data = await actionsRes.json();
-          setActionOptions(Array.isArray(data) ? data : []);
-        }
-        if (activationNamesRes.ok) {
-          const data = await activationNamesRes.json();
-          setActivationNameOptions(Array.isArray(data) ? data : []);
-        }
+        const data = (await res.json()) as {
+          performedBy?: unknown;
+          actions?: unknown;
+          activationNames?: unknown;
+        };
+        const toList = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : []);
+        setPerformedByOptions(toList(data.performedBy));
+        setActionOptions(toList(data.actions));
+        setActivationNameOptions(toList(data.activationNames));
         hasFetchedOptionsRef.current = true;
       } catch {
         // Non-fatal: the filter dropdowns just stay empty (still usable with "Any").
@@ -138,7 +138,7 @@ function AuditLogContent() {
       setListLoading(true);
       setListError(null);
       try {
-        const params = buildFilterQuery(filters);
+        const params = buildApiFilterQuery(filters);
         params.set('page', String(currentPage));
         params.set('pageSize', String(PAGE_SIZE));
         const res = await fetch(`/api/audit-log?${params.toString()}`, {
@@ -164,7 +164,6 @@ function AuditLogContent() {
 
     return () => controller.abort();
   }, [shouldFetch, filters, currentPage]);
-
   return (
     <div className="container mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="min-w-0">

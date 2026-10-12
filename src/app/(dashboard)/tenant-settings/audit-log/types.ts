@@ -6,15 +6,15 @@
 /** Filters applied to audit log queries. All optional. */
 export interface AuditLogFilters {
   performedBy: string | null;
-  /** Exact action to filter by (e.g. "agent.access.changed"). */
-  action: string | null;
+  /** Exact actions to filter by (e.g. ["agent.access.changed"]); sent comma-separated. Empty = any. */
+  actions: string[];
   /** Exact activation name to filter by. Ignored when onlyWithoutActivation is true. */
   activationName: string | null;
   /** When true, show only entries that have no associated activation. */
   onlyWithoutActivation: boolean;
-  /** ISO date string (inclusive). */
+  /** Local date-time `YYYY-MM-DDTHH:mm` (inclusive); converted to UTC when calling the API. */
   startDate: string | null;
-  /** ISO date string (inclusive). */
+  /** Local date-time `YYYY-MM-DDTHH:mm` (inclusive); converted to UTC when calling the API. */
   endDate: string | null;
 }
 
