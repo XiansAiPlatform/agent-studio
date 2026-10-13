@@ -21,6 +21,7 @@ function AuditLogContent() {
   const filters: AuditLogFilters = useMemo(
     () => ({
       performedBy: searchParams.get('performedBy'),
+      // Comma-separated list; action names never contain commas (see buildFilterQuery).
       actions: (searchParams.get('action') ?? '')
         .split(',')
         .map((a) => a.trim())

@@ -66,6 +66,7 @@ export function formatFilterDateTime(value: string, boundary: 'start' | 'end'): 
 export function buildFilterQuery(filters: AuditLogFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.performedBy) params.set('performedBy', filters.performedBy);
+  // Action names are dot-separated identifiers (never contain commas); the API takes a comma-separated list.
   if (filters.actions.length > 0) params.set('action', filters.actions.join(','));
   if (filters.onlyWithoutActivation) {
     params.set('onlyWithoutActivation', 'true');

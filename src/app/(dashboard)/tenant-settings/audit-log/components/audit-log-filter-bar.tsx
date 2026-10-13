@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,7 @@ function DateTimeFilterInput({ id, value, min, max, onCommit }: DateTimeFilterIn
   const [draft, setDraft] = useState(value ?? '');
   const [syncedValue, setSyncedValue] = useState(value);
   const onCommitRef = useRef(onCommit);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     onCommitRef.current = onCommit;
   });
@@ -62,11 +63,13 @@ function DateTimeFilterInput({ id, value, min, max, onCommit }: DateTimeFilterIn
 
   useEffect(() => {
     if (!isDirty) return;
-    const timer = setTimeout(() => onCommitRef.current(draft || null), DATE_COMMIT_DELAY_MS);
-    return () => clearTimeout(timer);
+    timerRef.current = setTimeout(() => onCommitRef.current(draft || null), DATE_COMMIT_DELAY_MS);
+    return () => clearTimeout(timerRef.current);
   }, [draft, isDirty]);
 
   const commitNow = () => {
+    // Cancel the pending debounce so a blur/Enter before the delay commits exactly once.
+    clearTimeout(timerRef.current);
     if (isDirty) onCommit(draft || null);
   };
 
@@ -114,9 +117,11 @@ export function AuditLogFilterBar({
   const startValue = normalizeDateTimeLocal(filters.startDate, 'start');
   const endValue = normalizeDateTimeLocal(filters.endDate, 'end');
 
+  const selectedActions = useMemo(() => new Set(filters.actions), [filters.actions]);
+
   const toggleAction = (name: string) =>
     onChange({
-      actions: filters.actions.includes(name)
+      actions: selectedActions.has(name)
         ? filters.actions.filter((a) => a !== name)
         : [...filters.actions, name],
     });
@@ -197,7 +202,7 @@ export function AuditLogFilterBar({
                   }}
                 >
                   <span className="flex-1 truncate">{name}</span>
-                  {filters.actions.includes(name) && <Check className="h-4 w-4" />}
+                  {selectedActions.has(name) && <Check className="h-4 w-4" />}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
