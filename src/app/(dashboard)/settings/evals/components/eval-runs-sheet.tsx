@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle, CheckCircle2, ChevronDown, History, Loader2, RefreshCw, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDateTimeWithSeconds, formatRelative } from '../../schedules/format'
-import { AgentEval, EvalRun, EvalStatus, describeEval, formatInterval } from '../types'
+import { AgentEval, EvalRun, EvalStatus, describeAssertion, describeEval, formatInterval } from '../types'
 import { fetchEvalRuns } from '../hooks/use-evals'
 import { EvalStatusBadge, RunStatusBadge } from './eval-status-badge'
 
@@ -53,16 +53,18 @@ function RunRow({ run }: { run: EvalRun }) {
           {run.assertionResults.length > 0 && (
             <ul className="space-y-1">
               {run.assertionResults.map((result, i) => (
-                <li key={i} className="flex items-center gap-2 text-xs">
+                <li key={i} className="flex items-start gap-2 text-xs">
                   {result.passed ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-600 dark:text-green-400" />
                   ) : (
-                    <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                    <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
                   )}
-                  <span className="text-muted-foreground">
-                    {result.op === 'contains' ? 'contains' : 'does not contain'}
+                  <span className="min-w-0 break-words">
+                    <code className="rounded bg-background px-1 py-0.5">{describeAssertion(result)}</code>
+                    {!result.passed && result.actual != null && (
+                      <span className="ml-1 text-muted-foreground">got “{result.actual}”</span>
+                    )}
                   </span>
-                  <code className="rounded bg-background px-1 py-0.5">{result.value}</code>
                 </li>
               ))}
             </ul>

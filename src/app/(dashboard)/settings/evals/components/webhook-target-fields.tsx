@@ -5,16 +5,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
-import type { WebhookTarget } from '../types'
+import type { WebhookMode, WebhookTarget } from '../types'
 
 interface WebhookTargetFieldsProps {
+  mode: WebhookMode
   agentName: string
   activationName: string
   workflowType: string
   methodName: string
+  webhookName: string
   onWorkflowChange: (workflowType: string) => void
   onMethodChange: (methodName: string) => void
+  onWebhookNameChange: (webhookName: string) => void
   workflowError?: string
+  /** Error for the second field: the method (update mode) or the webhook name (builtin mode). */
   methodError?: string
 }
 
@@ -23,6 +27,9 @@ const STATUS_SUFFIX: Record<WebhookTarget['status'], string> = {
   notRunning: ' (not running)',
   unavailable: ' (no answer)',
 }
+
+const TRIGGER_CLASS = 'w-full min-w-0 text-left [&>span]:min-w-0 [&>span]:truncate'
+const CONTENT_CLASS = 'max-w-[var(--radix-select-trigger-width)]'
 
 function FieldHint({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>
@@ -33,17 +40,22 @@ function FieldError({ message }: { message?: string }) {
 }
 
 /**
- * Workflow + Method pickers for webhook evals. Workflows are the agent's registered ones; methods
- * are the update handlers the activation's running workflow reports. Falls back to free text when
- * the list can't be loaded, the workflow isn't running, or the user prefers to type.
+ * Workflow + method / webhook-name pickers for webhook evals.
+ * - Update mode: the agent's workflows, and the update handlers the activation's running workflow reports.
+ * - Builtin mode: the agent's built-in workflows, and the webhook names registered for the activation
+ *   in Connections → Webhooks (an agent's OnWebhook handler can accept other names too, so typing is allowed).
+ * Falls back to free text when nothing can be listed or the user prefers to type.
  */
 export function WebhookTargetFields({
+  mode,
   agentName,
   activationName,
   workflowType,
   methodName,
+  webhookName,
   onWorkflowChange,
   onMethodChange,
+  onWebhookNameChange,
   workflowError,
   methodError,
 }: WebhookTargetFieldsProps) {
@@ -80,44 +92,53 @@ export function WebhookTargetFields({
     )
   }
 
-  const useLists = !manual && targets.length > 0
-  const selected = targets.find((t) => t.workflowType === workflowType)
-  const methods = selected?.methods ?? []
-  const methodListed = methods.some((m) => m.name === methodName)
+  const builtin = mode === 'builtin'
+  const builtinTargets = targets.filter((t) => t.isBuiltIn)
+  // Older servers don't report isBuiltIn; then offer every workflow.
+  const workflows = builtin && builtinTargets.length > 0 ? builtinTargets : targets
+  const selected = workflows.find((t) => t.workflowType === workflowType)
+  const secondValue = builtin ? webhookName : methodName
+  const setSecond = builtin ? onWebhookNameChange : onMethodChange
+  const options = builtin
+    ? (selected?.webhooks ?? []).map((name) => ({ name, description: null as string | null }))
+    : (selected?.methods ?? []).map((m) => ({ name: m.name, description: m.description ?? null }))
+  const secondListed = options.some((o) => o.name === secondValue)
+  const secondLabel = builtin ? 'Webhook name' : 'Method'
 
   const pickWorkflow = (next: string) => {
     onWorkflowChange(next)
-    // Keep the method only if the new workflow has it; preselect when there's exactly one.
-    const nextMethods = targets.find((t) => t.workflowType === next)?.methods ?? []
-    if (!nextMethods.some((m) => m.name === methodName)) {
-      onMethodChange(nextMethods.length === 1 ? nextMethods[0].name : '')
+    // Keep the second value only if the new workflow lists it; preselect when there's exactly one.
+    const target = workflows.find((t) => t.workflowType === next)
+    const names = builtin ? (target?.webhooks ?? []) : (target?.methods ?? []).map((m) => m.name)
+    if (!names.includes(secondValue)) {
+      setSecond(names.length === 1 ? names[0] : '')
     }
   }
 
-  if (!useLists) {
+  if (manual || workflows.length === 0) {
     return (
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="eval-webhook-workflow">Workflow</Label>
           <Input
             id="eval-webhook-workflow"
-            placeholder="Flow name, e.g. Git Events Workflow"
+            placeholder={builtin ? 'Flow name, e.g. Integrator Workflow' : 'Flow name, e.g. Git Events Workflow'}
             value={workflowType}
             onChange={(e) => onWorkflowChange(e.target.value)}
           />
           <FieldError message={workflowError} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="eval-webhook-method">Method</Label>
+          <Label htmlFor="eval-webhook-second">{secondLabel}</Label>
           <Input
-            id="eval-webhook-method"
-            placeholder="Update method name, e.g. health-ping"
-            value={methodName}
-            onChange={(e) => onMethodChange(e.target.value)}
+            id="eval-webhook-second"
+            placeholder={builtin ? 'Webhook name, e.g. ticket-created' : 'Update method name, e.g. health-ping'}
+            value={secondValue}
+            onChange={(e) => setSecond(e.target.value)}
           />
           <FieldError message={methodError} />
         </div>
-        {targets.length > 0 ? (
+        {workflows.length > 0 ? (
           <button type="button" className="text-xs text-primary hover:underline" onClick={() => setManual(false)}>
             Choose from the agent’s workflows instead
           </button>
@@ -137,15 +158,15 @@ export function WebhookTargetFields({
       <div className="space-y-2">
         <Label htmlFor="eval-webhook-workflow">Workflow</Label>
         <Select value={workflowType || undefined} onValueChange={pickWorkflow}>
-          <SelectTrigger id="eval-webhook-workflow" className="w-full min-w-0 text-left [&>span]:min-w-0 [&>span]:truncate">
+          <SelectTrigger id="eval-webhook-workflow" className={TRIGGER_CLASS}>
             <SelectValue placeholder="Select a workflow" />
           </SelectTrigger>
-          <SelectContent className="max-w-[var(--radix-select-trigger-width)]">
-            {targets.map((target) => (
+          <SelectContent className={CONTENT_CLASS}>
+            {workflows.map((target) => (
               <SelectItem key={target.workflowType} value={target.workflowType} className="items-start">
                 <span className="break-words">
                   {target.workflowType}
-                  <span className="text-muted-foreground">{STATUS_SUFFIX[target.status]}</span>
+                  {!builtin && <span className="text-muted-foreground">{STATUS_SUFFIX[target.status]}</span>}
                 </span>
               </SelectItem>
             ))}
@@ -163,28 +184,28 @@ export function WebhookTargetFields({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="eval-webhook-method">Method</Label>
-        {methods.length > 0 ? (
-          <Select value={methodName || undefined} onValueChange={onMethodChange}>
-            <SelectTrigger id="eval-webhook-method" className="w-full min-w-0 text-left [&>span]:min-w-0 [&>span]:truncate">
-              <SelectValue placeholder="Select a method" />
+        <Label htmlFor="eval-webhook-second">{secondLabel}</Label>
+        {options.length > 0 ? (
+          <Select value={secondValue || undefined} onValueChange={setSecond}>
+            <SelectTrigger id="eval-webhook-second" className={TRIGGER_CLASS}>
+              <SelectValue placeholder={builtin ? 'Select a webhook' : 'Select a method'} />
             </SelectTrigger>
-            <SelectContent className="max-w-[var(--radix-select-trigger-width)]">
-              {methods.map((method) => (
-                <SelectItem key={method.name} value={method.name} className="items-start">
+            <SelectContent className={CONTENT_CLASS}>
+              {options.map((option) => (
+                <SelectItem key={option.name} value={option.name} className="items-start">
                   <span className="flex min-w-0 flex-col">
-                    <span className="break-all">{method.name}</span>
-                    {method.description && (
-                      <span className="break-words text-xs text-muted-foreground">{method.description}</span>
+                    <span className="break-all">{option.name}</span>
+                    {option.description && (
+                      <span className="break-words text-xs text-muted-foreground">{option.description}</span>
                     )}
                   </span>
                 </SelectItem>
               ))}
-              {methodName && !methodListed && (
-                <SelectItem value={methodName}>
+              {secondValue && !secondListed && (
+                <SelectItem value={secondValue}>
                   <span className="break-all">
-                    {methodName}
-                    <span className="text-muted-foreground"> (not found)</span>
+                    {secondValue}
+                    <span className="text-muted-foreground"> (not listed)</span>
                   </span>
                 </SelectItem>
               )}
@@ -192,22 +213,27 @@ export function WebhookTargetFields({
           </Select>
         ) : (
           <Input
-            id="eval-webhook-method"
-            placeholder={workflowType ? 'Update method name' : 'Select a workflow first'}
+            id="eval-webhook-second"
+            placeholder={
+              !workflowType ? 'Select a workflow first' : builtin ? 'Webhook name, e.g. ticket-created' : 'Update method name'
+            }
             disabled={!workflowType}
-            value={methodName}
-            onChange={(e) => onMethodChange(e.target.value)}
+            value={secondValue}
+            onChange={(e) => setSecond(e.target.value)}
           />
         )}
         <FieldError message={methodError} />
-        {selected?.detail && <FieldHint>{selected.detail}</FieldHint>}
-        {selected && methods.length > 0 && methodName && !methodListed && (
-          <FieldHint>This workflow doesn’t currently expose “{methodName}”.</FieldHint>
+        {builtin && selected && options.length === 0 && (
+          <FieldHint>
+            No webhooks are registered for this workflow in Connections. Type the name the agent’s OnWebhook
+            handler expects.
+          </FieldHint>
         )}
+        {!builtin && selected?.detail && <FieldHint>{selected.detail}</FieldHint>}
       </div>
 
       <button type="button" className="text-xs text-primary hover:underline" onClick={() => setManual(true)}>
-        Enter workflow and method manually
+        Enter workflow and {builtin ? 'webhook name' : 'method'} manually
       </button>
     </div>
   )

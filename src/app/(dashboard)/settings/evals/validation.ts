@@ -5,8 +5,13 @@ import {
   MAX_TIMEOUT_SECONDS,
   MIN_INTERVAL_MINUTES,
   MIN_TIMEOUT_SECONDS,
+  assertionOpInfo,
   parseQueryParams,
 } from './types'
+
+/** The JSON path subset the server accepts: `$`, then `.name` and `[index]` segments. */
+const JSON_PATH = /^\$(\.[^.[\]]+|\[\d+\])*$/
+const HEADER_NAME = /^[A-Za-z0-9_-]+$/
 
 /**
  * Client-side checks mirroring the backend's HealthCheckValidator, so most
@@ -38,13 +43,8 @@ export function validateEvalForm(values: EvalFormValues): Record<string, string>
       errors.timeoutSeconds = `Timeout must be between ${MIN_TIMEOUT_SECONDS} and ${MAX_TIMEOUT_SECONDS} seconds`
     }
 
-    const filled = values.assertions.filter((a) => a.value.trim())
-    if (filled.length > MAX_ASSERTIONS) {
-      errors.assertions = `At most ${MAX_ASSERTIONS} assertions`
-    }
-    if (values.assertions.some((a) => a.value.trim().length > 500)) {
-      errors.assertions = 'Assertion text must be 500 characters or less'
-    }
+    const assertionError = validateAssertions(values)
+    if (assertionError) errors.assertions = assertionError
   }
 
   switch (values.type) {
@@ -62,17 +62,21 @@ export function validateEvalForm(values: EvalFormValues): Record<string, string>
       else if (workflowType.includes(':')) {
         errors.webhookWorkflowType = 'Use the flow name only, without the agent prefix'
       }
-      if (!values.webhookMethodName.trim()) errors.webhookMethodName = 'Method name is required'
 
-      try {
-        const params = parseQueryParams(values.webhookQueryParams)
-        const credential = Object.keys(params).find((key) =>
-          ['apikey', 'access_token'].includes(key.toLowerCase())
-        )
-        if (credential) errors.webhookQueryParams = `Don't put credentials (${credential}) in query parameters`
-        else if (Object.keys(params).length > 20) errors.webhookQueryParams = 'At most 20 query parameters'
-      } catch (err) {
-        errors.webhookQueryParams = err instanceof Error ? err.message : 'Invalid query parameters'
+      if (values.webhookMode === 'builtin') {
+        if (!values.webhookName.trim()) errors.webhookName = 'Webhook name is required'
+      } else {
+        if (!values.webhookMethodName.trim()) errors.webhookMethodName = 'Method name is required'
+        try {
+          const params = parseQueryParams(values.webhookQueryParams)
+          const credential = Object.keys(params).find((key) =>
+            ['apikey', 'access_token'].includes(key.toLowerCase())
+          )
+          if (credential) errors.webhookQueryParams = `Don't put credentials (${credential}) in query parameters`
+          else if (Object.keys(params).length > 20) errors.webhookQueryParams = 'At most 20 query parameters'
+        } catch (err) {
+          errors.webhookQueryParams = err instanceof Error ? err.message : 'Invalid query parameters'
+        }
       }
 
       if (values.webhookBody.length > 32 * 1024) errors.webhookBody = 'Body must be 32 KB or less'
@@ -84,6 +88,15 @@ export function validateEvalForm(values: EvalFormValues): Record<string, string>
           errors.webhookExpectedStatusCode = 'Enter a valid HTTP status code (100-599) or leave empty'
         }
       }
+
+      const maxResponseMs = values.webhookMaxResponseMs.trim()
+      if (maxResponseMs) {
+        const parsed = Number(maxResponseMs)
+        const limit = values.timeoutSeconds * 1000
+        if (!Number.isInteger(parsed) || parsed < 1 || parsed > limit) {
+          errors.webhookMaxResponseMs = `Enter milliseconds between 1 and the timeout (${limit}), or leave empty`
+        }
+      }
       break
     }
 
@@ -93,4 +106,32 @@ export function validateEvalForm(values: EvalFormValues): Record<string, string>
   }
 
   return errors
+}
+
+function validateAssertions(values: EvalFormValues): string | null {
+  const rows = values.assertions.filter((a) => a.value.trim() || (a.path ?? '').trim())
+  if (rows.length > MAX_ASSERTIONS) return `At most ${MAX_ASSERTIONS} checks`
+
+  for (const assertion of values.assertions) {
+    const info = assertionOpInfo(assertion.op)
+    const path = (assertion.path ?? '').trim()
+    const value = assertion.value.trim()
+    const untouched = !value && !path
+    if (untouched) continue
+
+    if (info.webhookOnly && values.type !== 'webhook') return `“${info.label}” checks are only available on webhook evals`
+    if (value.length > 500) return 'Check values must be 500 characters or less'
+
+    if (info.pathLabel === 'JSON path') {
+      if (!path) return 'Enter a JSON path, e.g. $.status'
+      if (!JSON_PATH.test(path)) return `“${path}” isn’t a supported JSON path; use $.field, $.a.b or $.items[0].name`
+    }
+    if (info.pathLabel === 'Header') {
+      if (!path) return 'Enter a header name'
+      if (!HEADER_NAME.test(path)) return `“${path}” isn’t a valid header name`
+    }
+    if (info.needsValue && !value) return `Enter the expected value for “${info.label}”`
+  }
+
+  return null
 }
