@@ -24,7 +24,6 @@ import { AddTenantDialog } from './components/add-tenant-dialog';
 import { EditTenantDialog } from './components/edit-tenant-dialog';
 import { DeleteTenantDialog } from './components/delete-tenant-dialog';
 import { DisableTenantDialog } from './components/disable-tenant-dialog';
-import { DisableTenantDialog } from './components/disable-tenant-dialog';
 import {
   DashboardPage,
   DashboardPageBody,
@@ -55,7 +54,6 @@ function TenantsPageContent() {
     createTenant,
     updateTenant,
     deleteTenant,
-    fetchActiveAgentCount,
   } = useTenants();
 
   const isSystemAdmin = useCan('system:admin');
@@ -115,16 +113,16 @@ function TenantsPageContent() {
       setDisableTarget(tenant);
       return;
     }
-    await handleToggleEnabled(tenant);
+    await setEnabled(tenant, true);
   };
 
   const handleDisableConfirm = async () => {
     if (!disableTarget) return;
-    await handleToggleEnabled(disableTarget);
+    await setEnabled(disableTarget, false);
     setDisableTarget(null);
   };
 
-  const handleToggleEnabled = async (tenant: Tenant) => {
+  const setEnabled = async (tenant: Tenant, enabled: boolean) => {
     setTogglingTenantId(tenant.tenantId);
     try {
       const updated = await updateTenant(tenant.tenantId, { enabled });
@@ -143,31 +141,6 @@ function TenantsPageContent() {
     } finally {
       setTogglingTenantId(null);
     }
-  };
-
-  // Enabling is harmless; disabling deactivates every agent and cannot be undone by
-  // re-enabling, so it goes through a confirmation that shows how many agents are affected.
-  const handleToggleEnabled = async (tenant: Tenant) => {
-    if (!tenant.enabled) {
-      await setEnabled(tenant, true);
-      return;
-    }
-    setDisableTarget(tenant);
-    setActiveAgentCount(null);
-    setIsLoadingAgentCount(true);
-    try {
-      setActiveAgentCount(await fetchActiveAgentCount(tenant.tenantId));
-    } catch {
-      setActiveAgentCount(null);
-    } finally {
-      setIsLoadingAgentCount(false);
-    }
-  };
-
-  const handleDisableConfirm = async () => {
-    if (!disableTarget) return;
-    await setEnabled(disableTarget, false);
-    setDisableTarget(null);
   };
 
   const handleDeleteRequest = (tenant: Tenant) => {
@@ -276,7 +249,7 @@ function TenantsPageContent() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                    <div className="flex h-8 w-8 shrink-0 items-handleToggleEnabledcenter justify-center rounded-md bg-primary/10">
                       <Building2 className="h-4 w-4 text-primary" />
                     </div>
                     <div className="min-w-0">
@@ -371,7 +344,7 @@ function TenantsPageContent() {
         tenant={disableTarget}
         open={disableTarget !== null}
         onOpenChange={(open) => {
-          if (!open) setDisableTarget(null);
+          if (!open && togglingTenantId === null) setDisableTarget(null);
         }}
         onConfirm={handleDisableConfirm}
         isDisabling={togglingTenantId !== null && togglingTenantId === disableTarget?.tenantId}
@@ -387,17 +360,6 @@ function TenantsPageContent() {
         isDeleting={isDeleting}
       />
 
-      <DisableTenantDialog
-        tenant={disableTarget}
-        open={disableTarget !== null}
-        onOpenChange={(open) => {
-          if (!open && togglingTenantId === null) setDisableTarget(null);
-        }}
-        onConfirm={handleDisableConfirm}
-        isDisabling={disableTarget !== null && togglingTenantId === disableTarget.tenantId}
-        activeAgentCount={activeAgentCount}
-        isLoadingCount={isLoadingAgentCount}
-      />
     </DashboardPage>
   );
 }
