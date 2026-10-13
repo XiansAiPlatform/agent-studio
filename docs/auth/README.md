@@ -38,6 +38,10 @@ This directory contains comprehensive documentation for the authentication syste
    - Simple email/password login for quick local deployments
    - Env-gated, multi-user, dev-only
 
+6a. **[Require Verified Email](./EMAIL_VERIFICATION.md)**
+   - Per-provider gate against unverified email claims (nOAuth)
+   - Entra `xms_edov`, `email_verified`, trusted tenants
+
 ### Architecture & Implementation
 
 5. **[Authentication Implementation](./AUTHENTICATION_IMPLEMENTATION.md)**
