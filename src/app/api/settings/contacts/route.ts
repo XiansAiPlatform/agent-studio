@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { contactSchema, firstIssue } from '@/app/(dashboard)/tenant-settings/contacts/schema'
 
 /**
  * GET /api/settings/contacts?search=
@@ -36,12 +37,18 @@ export const POST = withTenantAdmin(
   async (request: NextRequest, { tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
 
-    let body: { name?: string; email?: string; phone?: string }
+    let raw: unknown
     try {
-      body = await request.json()
+      raw = await request.json()
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
+
+    const parsed = contactSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 })
+    }
+    const body = parsed.data
 
     try {
       const client = createXiansClient()

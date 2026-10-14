@@ -13,5 +13,6 @@ export interface Contact {
 export interface ContactRequest {
   name: string
   email: string
-  phone: string
+  /** An empty string clears the phone on update. */
+  phone?: string
 }

@@ -3,6 +3,7 @@ import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { encodeSafePathSegment } from '@/lib/api/path-segment'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { contactPatchSchema, firstIssue } from '@/app/(dashboard)/tenant-settings/contacts/schema'
 
 type ContactParams = { contactId: string }
 
@@ -24,12 +25,18 @@ export const PATCH = withTenantAdmin(
     const path = contactPath(tenantId, params.contactId)
     if (path instanceof NextResponse) return path
 
-    let body: { name?: string; email?: string; phone?: string }
+    let raw: unknown
     try {
-      body = await request.json()
+      raw = await request.json()
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
+
+    const parsed = contactPatchSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 })
+    }
+    const body = parsed.data
 
     try {
       const client = createXiansClient()

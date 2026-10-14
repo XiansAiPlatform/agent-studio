@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import {
   Dialog,
   DialogContent,
@@ -17,12 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { Contact, ContactRequest } from '../types'
-
-const schema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(200, 'Name is too long'),
-  email: z.string().trim().email('Please enter a valid email address'),
-  phone: z.string().trim().max(30, 'Phone is too long'),
-})
+import { contactSchema } from '../schema'
 
 interface ContactDialogProps {
   /** The contact to edit, or null to add a new one. */
@@ -43,7 +37,7 @@ export function ContactDialog({ contact, open, onOpenChange, onSubmit }: Contact
     reset,
     formState: { errors },
   } = useForm<ContactRequest>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(contactSchema),
     defaultValues: { name: '', email: '', phone: '' },
   })
 
