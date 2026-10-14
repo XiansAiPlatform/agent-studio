@@ -26,6 +26,7 @@ interface CreateConnectionDialogProps {
   onSlackSelected?: () => void
   onTeamsSelected?: () => void
   onWebhooksSelected?: () => void
+  onOAuthMcpSelected?: () => void
 }
 
 interface FormData {
@@ -84,7 +85,8 @@ export function CreateConnectionDialog({
   existingConnectionKeys = [],
   onSlackSelected,
   onTeamsSelected,
-  onWebhooksSelected
+  onWebhooksSelected,
+  onOAuthMcpSelected,
 }: CreateConnectionDialogProps) {
   const { integrationTypes, isLoading: loadingTypes, error: typesError } = useIntegrationTypes()
   const [step, setStep] = useState<'select' | 'configure'>('select')
@@ -165,6 +167,12 @@ export function CreateConnectionDialog({
   }
 
   const handleIntegrationSelect = (integration: IntegrationType) => {
+    if (integration.platformId === 'oauth-mcp') {
+      onOpenChange(false)
+      onOAuthMcpSelected?.()
+      return
+    }
+
     // For Slack, close dialog and notify parent to open wizard sheet
     if (integration.platformId === 'slack') {
       onOpenChange(false) // Close the dialog

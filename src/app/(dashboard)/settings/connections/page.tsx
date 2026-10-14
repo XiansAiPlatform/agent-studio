@@ -33,6 +33,7 @@ import { IntegrationDetailsSheet } from './components/integration-details-sheet'
 import { SlackWizardSheet } from './components/slack-wizard-sheet';
 import { TeamsWizardSheet } from './components/teams-wizard-sheet';
 import { WebhooksSheet } from './components/webhooks-sheet';
+import { OAuthMcpWizardSheet } from './components/oauth-mcp-wizard-sheet';
 
 function clearOAuthResult() {
   const url = new URL(window.location.href);
@@ -57,6 +58,7 @@ function ConnectionsContent() {
   const [showSlackWizard, setShowSlackWizard] = useState(false);
   const [showTeamsWizard, setShowTeamsWizard] = useState(false);
   const [showWebhooksSheet, setShowWebhooksSheet] = useState(false);
+  const [showOAuthMcpSheet, setShowOAuthMcpSheet] = useState(false);
 
   // Handle OAuth completion messages
   useEffect(() => {
@@ -442,7 +444,7 @@ function ConnectionsContent() {
         )}
 
         {/* Create Connection Dialog - Only render when not showing Slack, Teams, or Webhooks */}
-        {!showSlackWizard && !showTeamsWizard && !showWebhooksSheet && (
+        {!showSlackWizard && !showTeamsWizard && !showWebhooksSheet && !showOAuthMcpSheet && (
           <CreateConnectionDialog
             open={showCreateDialog}
             onOpenChange={setShowCreateDialog}
@@ -461,6 +463,20 @@ function ConnectionsContent() {
               setShowCreateDialog(false)
               setShowWebhooksSheet(true)
             }}
+            onOAuthMcpSelected={() => {
+              setShowCreateDialog(false)
+              setShowOAuthMcpSheet(true)
+            }}
+          />
+        )}
+
+        {showOAuthMcpSheet && (
+          <OAuthMcpWizardSheet
+            open={showOAuthMcpSheet}
+            onOpenChange={setShowOAuthMcpSheet}
+            onSubmit={handleCreateConnection}
+            isSubmitting={initiateConnection.isPending}
+            existingConnectionKeys={oauthConnectionKeys}
           />
         )}
 
