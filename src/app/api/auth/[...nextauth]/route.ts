@@ -10,6 +10,7 @@ import { createXiansClient } from "@/lib/xians/client"
 import { XiansTenantsApi } from "@/lib/xians/tenants"
 import { describeXiansError, isServiceApiKeyError } from "@/lib/xians/errors"
 import { runWithOnBehalfOf } from "@/lib/xians/on-behalf-of"
+import { applyStoredDisplayName } from "@/lib/auth/display-name"
 import {
   evaluateEmailVerification,
   redactEmail,
@@ -450,6 +451,13 @@ export const authOptions: NextAuthOptions = {
         token.hasTenantAccess = user.hasTenantAccess
         token.isSystemAdmin = user.isSystemAdmin
         token.tenantAccessCheckedAt = Date.now()
+        // Keep the identity-provider name so a blank stored name can fall back
+        // to it. Captured once; later refreshes must not overwrite it with the
+        // stored name that this callback writes onto token.name.
+        if (token.providerName === undefined) {
+          const profileName = typeof user.name === "string" ? user.name.trim() : ""
+          token.providerName = profileName || null
+        }
       }
 
       // Refresh the Microsoft (Entra ID or B2C) access token before it expires
@@ -496,6 +504,23 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
+      // Directory screens use the name stored on the Xians user. The session
+      // name starts as whatever the identity provider sent, so replace it on
+      // sign-in and on the same refresh that re-checks tenant access. A failed
+      // lookup keeps the current name. The stored record is never updated here.
+      if ((user || trigger === "update" || isStale) && token.email) {
+        try {
+          await runWithOnBehalfOf(token.email as string, () =>
+            applyStoredDisplayName(token)
+          )
+        } catch (error) {
+          console.error(
+            "[Auth] Failed to resolve stored display name:",
+            describeXiansError(error)
+          )
+        }
+      }
+
       return token
     },
     
@@ -504,6 +529,9 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.email = (token.email as string | null | undefined) ?? session.user.email
+        if (typeof token.name === "string" && token.name.trim()) {
+          session.user.name = token.name
+        }
         session.accessToken = token.accessToken as string
         session.user.hasTenantAccess = token.hasTenantAccess as boolean
         session.user.isSystemAdmin = token.isSystemAdmin as boolean

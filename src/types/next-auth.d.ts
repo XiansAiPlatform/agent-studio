@@ -66,5 +66,11 @@ declare module "next-auth/jwt" {
     isSystemAdmin?: boolean
     /** Epoch ms of last successful tenant-access re-validation */
     tenantAccessCheckedAt?: number
+    /**
+     * Display name from the identity provider at sign-in.
+     * Used when the Xians user record has no name. Null means the provider
+     * sent none. Absent means this token predates that capture.
+     */
+    providerName?: string | null
   }
 }
