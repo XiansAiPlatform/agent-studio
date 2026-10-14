@@ -15,12 +15,14 @@ vi.mock('@/lib/xians/client', async () => {
 import { XiansApiError } from '@/lib/xians/client'
 
 import {
+  ADMIN_USER_SEARCH_MAX_PAGES,
   applyStoredDisplayName,
   chooseDisplayName,
   classifyStoredName,
   classifyStoredNameFromSearch,
   rememberProviderName,
   sessionNameFromToken,
+  shouldFetchNextAdminUserSearchPage,
   shouldRefreshStoredDisplayName,
   shouldRevalidateTenantMembership,
   type DisplayNameToken,
@@ -129,6 +131,35 @@ describe('classifyStoredNameFromSearch', () => {
   })
 })
 
+describe('shouldFetchNextAdminUserSearchPage', () => {
+  it('stops at the page cap and elapsed-time cap', () => {
+    expect(
+      shouldFetchNextAdminUserSearchPage({
+        pagesFetched: ADMIN_USER_SEARCH_MAX_PAGES,
+        maxPages: ADMIN_USER_SEARCH_MAX_PAGES,
+        elapsedMs: 0,
+        maxElapsedMs: 3_000,
+      })
+    ).toBe(false)
+    expect(
+      shouldFetchNextAdminUserSearchPage({
+        pagesFetched: 1,
+        maxPages: ADMIN_USER_SEARCH_MAX_PAGES,
+        elapsedMs: 3_000,
+        maxElapsedMs: 3_000,
+      })
+    ).toBe(false)
+    expect(
+      shouldFetchNextAdminUserSearchPage({
+        pagesFetched: 1,
+        maxPages: ADMIN_USER_SEARCH_MAX_PAGES,
+        elapsedMs: 100,
+        maxElapsedMs: 3_000,
+      })
+    ).toBe(true)
+  })
+})
+
 describe('jwt refresh helpers', () => {
   it('revalidates tenant access on update and stale refresh', () => {
     expect(
@@ -205,6 +236,35 @@ describe('applyStoredDisplayName', () => {
     expect(String(get.mock.calls[0]?.[0])).toContain(
       'search=admin%40localhost.local'
     )
+  })
+
+  it('does not trust a lone match when pagination hits the page cap', async () => {
+    const filler = Array.from({ length: 100 }, (_, i) => ({
+      email: `filler-${i}@example.com`,
+      name: 'Other',
+    }))
+    get.mockImplementation((path: string) => {
+      const pageMatch = path.match(/[?&]page=(\d+)/)
+      const page = pageMatch ? Number(pageMatch[1]) : 1
+      return Promise.resolve({
+        users:
+          page === 1
+            ? [{ email: 'user@example.com', name: 'Stored Display Name' }, ...filler]
+            : filler,
+        totalCount: 10_000,
+        pageSize: 100,
+        pagination: { hasNext: true },
+      })
+    })
+    const token: DisplayNameToken = {
+      name: 'IdP Display Name',
+      email: 'user@example.com',
+    }
+
+    await applyStoredDisplayName(token)
+
+    expect(token.name).toBe('IdP Display Name')
+    expect(get.mock.calls.length).toBeLessThanOrEqual(ADMIN_USER_SEARCH_MAX_PAGES)
   })
 
   it('does not trust a lone match when search results are truncated', async () => {

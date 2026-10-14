@@ -25,9 +25,26 @@ export type StoredNameLookup =
   | { status: 'fallback' }
   | { status: 'unchanged' }
 
-/** Admin user search uses fuzzy matching; paginate before trusting a lone match. */
+/**
+ * Admin user search uses fuzzy matching; paginate before trusting a lone match.
+ * Bounds are intentionally tight — this runs on sign-in and stale JWT refresh.
+ */
 export const ADMIN_USER_SEARCH_PAGE_SIZE = 100
-export const ADMIN_USER_SEARCH_MAX_PAGES = 50
+export const ADMIN_USER_SEARCH_MAX_PAGES = 5
+/** Wall-clock cap so a pathological fuzzy search cannot stall auth for minutes. */
+export const ADMIN_USER_SEARCH_MAX_ELAPSED_MS = 3_000
+
+/** Whether another admin user search page should be fetched. */
+export function shouldFetchNextAdminUserSearchPage(input: {
+  pagesFetched: number
+  maxPages: number
+  elapsedMs: number
+  maxElapsedMs: number
+}): boolean {
+  return (
+    input.pagesFetched < input.maxPages && input.elapsedMs < input.maxElapsedMs
+  )
+}
 
 function trimmed(value: string | null | undefined): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -168,8 +185,18 @@ async function fetchAllSearchMatches(
   let page = 1
   let totalCount: number | undefined
   let searchComplete = false
+  const startedAt = Date.now()
+  let pagesFetched = 0
 
-  for (let guard = 0; guard < ADMIN_USER_SEARCH_MAX_PAGES; guard++) {
+  while (
+    shouldFetchNextAdminUserSearchPage({
+      pagesFetched,
+      maxPages: ADMIN_USER_SEARCH_MAX_PAGES,
+      elapsedMs: Date.now() - startedAt,
+      maxElapsedMs: ADMIN_USER_SEARCH_MAX_ELAPSED_MS,
+    })
+  ) {
+    pagesFetched++
     const data = await client.get<AdminUserListPage>(
       `/api/v1/admin/users?page=${page}&pageSize=${ADMIN_USER_SEARCH_PAGE_SIZE}&search=${encodeURIComponent(trimmedEmail)}`
     )
