@@ -83,9 +83,15 @@ export default function BrandingPage() {
   const [logoVersion, setLogoVersion] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Refetch when the active tenant changes. The branding API reads the tenant
+  // from the cookie, so a switch without this would keep showing the previous
+  // tenant's theme and logo.
   useEffect(() => {
+    setPendingUpload(null)
+    setLogoUrl('')
+    setLogoSource('upload')
     fetchBranding()
-  }, [fetchBranding])
+  }, [currentTenantId, fetchBranding])
 
   // Sync the selected theme with the loaded branding (only the known app themes
   // are selectable; an unknown stored value leaves the picker unselected).
@@ -365,7 +371,11 @@ export default function BrandingPage() {
             </div>
 
             {logoSource === 'upload' ? (
-              <div className="space-y-2">
+              // Distinct keys so React does not reuse one <input> across the
+              // file and URL modes. A file input must stay uncontrolled; the URL
+              // field is controlled. Reusing the node flips value between
+              // undefined and a string and breaks file selection.
+              <div key="logo-upload" className="space-y-2">
                 <Label htmlFor="logo-file">Choose an image</Label>
                 <Input
                   id="logo-file"
@@ -381,7 +391,7 @@ export default function BrandingPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div key="logo-url" className="space-y-2">
                 <Label htmlFor="logo-url">Image URL</Label>
                 <Input
                   id="logo-url"
