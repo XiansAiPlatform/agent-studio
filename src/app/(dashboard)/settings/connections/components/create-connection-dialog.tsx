@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Copy, Loader2, ExternalLink, Info, Eye, EyeOff, Plug, Webhook } from 'lucide-react'
 import { useIntegrationTypes, IntegrationType } from '../hooks/use-integration-types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -397,7 +396,7 @@ export function CreateConnectionDialog({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-              <ScrollArea className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="px-4 sm:px-6 py-4 sm:py-6">
                 <div className="space-y-6 pr-1 sm:pr-3">
                   {/* Basic Information */}
@@ -546,7 +545,7 @@ export function CreateConnectionDialog({
                   )}
                 </div>
                 </div>
-              </ScrollArea>
+              </div>
 
               <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 pt-3 sm:pt-4 pb-[max(env(safe-area-inset-bottom),0.875rem)] sm:pb-[max(env(safe-area-inset-bottom),1rem)] border-t shrink-0 bg-background">
                 <Button
