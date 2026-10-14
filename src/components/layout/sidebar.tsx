@@ -180,6 +180,7 @@ const navigation: NavigationItem[] = [
       { name: 'Users', href: '/tenant-settings/users' },
       { name: 'Branding', href: '/tenant-settings/branding' },
       { name: 'Audit Log', href: '/tenant-settings/audit-log' },
+      { name: 'Email', href: '/tenant-settings/email-configs' },
       {
         name: 'OIDC Providers',
         href: '/tenant-settings/oidc',
