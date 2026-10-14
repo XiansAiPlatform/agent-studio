@@ -18,9 +18,22 @@ import {
   applyStoredDisplayName,
   chooseDisplayName,
   classifyStoredName,
+  classifyStoredNameFromSearch,
   rememberProviderName,
+  sessionNameFromToken,
+  shouldRefreshStoredDisplayName,
+  shouldRevalidateTenantMembership,
   type DisplayNameToken,
 } from './display-name'
+
+function completeSearchPage(users: unknown[]) {
+  return {
+    users,
+    totalCount: users.length,
+    pageSize: 100,
+    pagination: { hasNext: false },
+  }
+}
 
 describe('chooseDisplayName', () => {
   it('uses the stored name when one is set', () => {
@@ -97,15 +110,89 @@ describe('classifyStoredName', () => {
   })
 })
 
+describe('classifyStoredNameFromSearch', () => {
+  it('refuses a unique match when the search page is incomplete', () => {
+    const users = [
+      { email: 'user@example.com', name: 'Stored Display Name' },
+      ...Array.from({ length: 19 }, (_, i) => ({
+        email: `other-${i}@example.com`,
+        name: 'Other',
+      })),
+    ]
+    expect(classifyStoredNameFromSearch(users, 'user@example.com', false)).toEqual({
+      status: 'unchanged',
+    })
+    expect(classifyStoredNameFromSearch(users, 'user@example.com', true)).toEqual({
+      status: 'found',
+      name: 'Stored Display Name',
+    })
+  })
+})
+
+describe('jwt refresh helpers', () => {
+  it('revalidates tenant access on update and stale refresh', () => {
+    expect(
+      shouldRevalidateTenantMembership({
+        trigger: 'update',
+        isStale: false,
+        email: 'a@example.com',
+      })
+    ).toBe(true)
+    expect(
+      shouldRevalidateTenantMembership({
+        trigger: undefined,
+        isStale: true,
+        email: 'a@example.com',
+      })
+    ).toBe(true)
+  })
+
+  it('refreshes display name on sign-in and stale refresh, not on update alone', () => {
+    expect(
+      shouldRefreshStoredDisplayName({
+        hasSignInUser: true,
+        isStale: false,
+        email: 'a@example.com',
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshStoredDisplayName({
+        hasSignInUser: false,
+        isStale: true,
+        email: 'a@example.com',
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshStoredDisplayName({
+        hasSignInUser: false,
+        isStale: false,
+        email: 'a@example.com',
+      })
+    ).toBe(false)
+  })
+})
+
+describe('sessionNameFromToken', () => {
+  it('prefers a non-empty token name', () => {
+    expect(sessionNameFromToken('Stored Display Name', 'IdP Name')).toBe(
+      'Stored Display Name'
+    )
+  })
+
+  it('keeps the session name when the token name is blank', () => {
+    expect(sessionNameFromToken('  ', 'Session Name')).toBe('Session Name')
+  })
+})
+
 describe('applyStoredDisplayName', () => {
   beforeEach(() => {
     get.mockReset()
   })
 
   it('replaces the provider name with the stored name and remembers the provider name', async () => {
-    get.mockResolvedValue({
-      users: [{ email: 'admin@localhost.local', name: 'Stored Display Name' }],
-    })
+    get.mockResolvedValue(
+      completeSearchPage([{ email: 'admin@localhost.local', name: 'Stored Display Name' }])
+    )
     const token: DisplayNameToken = {
       name: 'admin',
       email: 'admin@localhost.local',
@@ -120,15 +207,38 @@ describe('applyStoredDisplayName', () => {
     )
   })
 
+  it('does not trust a lone match when search results are truncated', async () => {
+    get
+      .mockResolvedValueOnce({
+        users: [{ email: 'user@example.com', name: 'Stored Display Name' }],
+        totalCount: 50,
+        pageSize: 100,
+        pagination: { hasNext: true },
+      })
+      .mockResolvedValueOnce({
+        users: [],
+        totalCount: 50,
+        pagination: { hasNext: false },
+      })
+    const token: DisplayNameToken = {
+      name: 'IdP Display Name',
+      email: 'user@example.com',
+    }
+
+    await applyStoredDisplayName(token)
+
+    expect(token.name).toBe('IdP Display Name')
+  })
+
   it('restores the provider name when the stored name is later cleared', async () => {
     const token: DisplayNameToken = {
       name: 'Stored Display Name',
       email: 'admin@localhost.local',
       providerName: 'admin',
     }
-    get.mockResolvedValue({
-      users: [{ email: 'admin@localhost.local', name: '' }],
-    })
+    get.mockResolvedValue(
+      completeSearchPage([{ email: 'admin@localhost.local', name: '' }])
+    )
 
     await applyStoredDisplayName(token)
 
@@ -137,12 +247,12 @@ describe('applyStoredDisplayName', () => {
   })
 
   it('does not adopt a stored name when the email matches more than one account', async () => {
-    get.mockResolvedValue({
-      users: [
+    get.mockResolvedValue(
+      completeSearchPage([
         { email: 'duplicate@example.com', name: 'Stored Alias' },
         { email: 'duplicate@example.com', name: 'Other Stored' },
-      ],
-    })
+      ])
+    )
     const token: DisplayNameToken = {
       name: 'IdP Display Name',
       email: 'duplicate@example.com',
@@ -155,7 +265,7 @@ describe('applyStoredDisplayName', () => {
 
   it('uses the account whose id is the email when search does not return it', async () => {
     get
-      .mockResolvedValueOnce({ users: [] })
+      .mockResolvedValueOnce(completeSearchPage([]))
       .mockResolvedValueOnce({ email: 'admin@localhost.local', name: 'Stored Display Name' })
     const token: DisplayNameToken = { name: 'admin', email: 'admin@localhost.local' }
 
@@ -167,7 +277,7 @@ describe('applyStoredDisplayName', () => {
 
   it('keeps the provider name when the account has no stored record', async () => {
     get
-      .mockResolvedValueOnce({ users: [] })
+      .mockResolvedValueOnce(completeSearchPage([]))
       .mockRejectedValueOnce(new XiansApiError('missing', 404))
     const token: DisplayNameToken = { name: 'admin', email: 'admin@localhost.local' }
 
@@ -186,6 +296,18 @@ describe('applyStoredDisplayName', () => {
 })
 
 describe('rememberProviderName', () => {
+  it('captures the provider name on first call from token.name', () => {
+    const token: DisplayNameToken = { name: 'John Doe', providerName: undefined }
+    rememberProviderName(token)
+    expect(token.providerName).toBe('John Doe')
+  })
+
+  it('captures null when token.name is blank', () => {
+    const token: DisplayNameToken = { name: ' ', providerName: undefined }
+    rememberProviderName(token)
+    expect(token.providerName).toBe(null)
+  })
+
   it('does not replace a captured provider name with the stored name', () => {
     const token: DisplayNameToken = {
       name: 'Stored Display Name',

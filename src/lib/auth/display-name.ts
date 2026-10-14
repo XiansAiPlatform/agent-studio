@@ -25,6 +25,10 @@ export type StoredNameLookup =
   | { status: 'fallback' }
   | { status: 'unchanged' }
 
+/** Admin user search uses fuzzy matching; paginate before trusting a lone match. */
+export const ADMIN_USER_SEARCH_PAGE_SIZE = 100
+export const ADMIN_USER_SEARCH_MAX_PAGES = 50
+
 function trimmed(value: string | null | undefined): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -78,6 +82,56 @@ export function classifyStoredName(
   return { status: 'found', name }
 }
 
+/**
+ * Same as {@link classifyStoredName}, but refuses a unique match when the
+ * upstream search result set may be truncated (fuzzy search + pagination).
+ */
+export function classifyStoredNameFromSearch(
+  users: Array<{ email?: string | null; name?: string | null }>,
+  email: string,
+  searchComplete: boolean
+): StoredNameLookup {
+  const result = classifyStoredName(users, email)
+  if (result.status === 'found' && !searchComplete) {
+    return { status: 'unchanged' }
+  }
+  return result
+}
+
+/** Whether the jwt callback should reload tenant membership. */
+export function shouldRevalidateTenantMembership(input: {
+  trigger?: string
+  isStale: boolean
+  email?: string | null
+}): boolean {
+  if (!trimmed(input.email)) return false
+  return input.trigger === 'update' || input.isStale
+}
+
+/**
+ * Whether the jwt callback should reload the stored display name.
+ * Not run on session.update() alone — only sign-in and stale refresh.
+ */
+export function shouldRefreshStoredDisplayName(input: {
+  hasSignInUser: boolean
+  isStale: boolean
+  email?: string | null
+}): boolean {
+  if (!trimmed(input.email)) return false
+  return input.hasSignInUser || input.isStale
+}
+
+/** Copy a non-empty token name onto the session user object. */
+export function sessionNameFromToken(
+  tokenName: unknown,
+  currentSessionName?: string | null
+): string | null | undefined {
+  if (typeof tokenName === 'string' && tokenName.trim()) {
+    return tokenName
+  }
+  return currentSessionName
+}
+
 function readListedUser(raw: unknown): { email: string; name: string } {
   const user = (raw ?? {}) as Record<string, unknown>
   const email = user.email
@@ -86,6 +140,73 @@ function readListedUser(raw: unknown): { email: string; name: string } {
     email: typeof email === 'string' ? email : '',
     name: typeof name === 'string' ? name : '',
   }
+}
+
+type AdminUserListPage = {
+  users?: unknown[]
+  totalCount?: number
+  pageSize?: number
+  pagination?: { hasNext?: boolean }
+}
+
+function adminUserSearchHasNext(data: AdminUserListPage, batchLength: number): boolean {
+  if (data.pagination?.hasNext === true) return true
+  if (data.pagination?.hasNext === false) return false
+  const pageSize = data.pageSize ?? ADMIN_USER_SEARCH_PAGE_SIZE
+  return batchLength >= pageSize
+}
+
+async function fetchAllSearchMatches(
+  email: string
+): Promise<{
+  users: Array<{ email: string; name: string }>
+  searchComplete: boolean
+}> {
+  const client = createXiansClient()
+  const trimmedEmail = email.trim()
+  const collected: Array<{ email: string; name: string }> = []
+  let page = 1
+  let totalCount: number | undefined
+  let searchComplete = false
+
+  for (let guard = 0; guard < ADMIN_USER_SEARCH_MAX_PAGES; guard++) {
+    const data = await client.get<AdminUserListPage>(
+      `/api/v1/admin/users?page=${page}&pageSize=${ADMIN_USER_SEARCH_PAGE_SIZE}&search=${encodeURIComponent(trimmedEmail)}`
+    )
+    const batch = (data.users ?? []).map(readListedUser)
+
+    if (typeof data.totalCount === 'number') {
+      totalCount = data.totalCount
+    }
+
+    if (batch.length === 0) {
+      searchComplete =
+        totalCount === undefined ? true : collected.length >= totalCount
+      break
+    }
+
+    collected.push(...batch)
+
+    const target = trimmedEmail.toLowerCase()
+    const exactMatches = collected.filter(
+      (user) => trimmed(user.email).toLowerCase() === target
+    )
+    if (exactMatches.length > 1) {
+      return { users: collected, searchComplete: true }
+    }
+
+    const hasNext = adminUserSearchHasNext(data, batch.length)
+    if (totalCount !== undefined) {
+      searchComplete = collected.length >= totalCount
+    } else {
+      searchComplete = !hasNext
+    }
+
+    if (searchComplete) break
+    page++
+  }
+
+  return { users: collected, searchComplete }
 }
 
 /**
@@ -97,17 +218,12 @@ function readListedUser(raw: unknown): { email: string; name: string } {
  * A 404 there means there is no stored name, not a failed lookup.
  */
 export async function fetchStoredDisplayName(email: string): Promise<StoredNameLookup> {
-  const client = createXiansClient()
   const trimmedEmail = email.trim()
-  const data = await client.get<{ users?: unknown[] }>(
-    `/api/v1/admin/users?page=1&pageSize=20&search=${encodeURIComponent(trimmedEmail)}`
-  )
-  const fromSearch = classifyStoredName(
-    (data.users ?? []).map(readListedUser),
-    trimmedEmail
-  )
+  const { users, searchComplete } = await fetchAllSearchMatches(trimmedEmail)
+  const fromSearch = classifyStoredNameFromSearch(users, trimmedEmail, searchComplete)
   if (fromSearch.status !== 'fallback') return fromSearch
 
+  const client = createXiansClient()
   try {
     const user = await client.get<unknown>(
       `/api/v1/admin/users/${encodeURIComponent(trimmedEmail)}`
