@@ -43,21 +43,24 @@ export function DateRangePicker({ startDate, endDate, onDateRangeChange }: DateR
   const tooLong = start !== null && end !== null && isRangeTooLong(start, end);
   const canApply = start !== null && end !== null && !tooLong;
 
+  // Pending dates are kept at midnight, like calendar clicks, so the last day
+  // isn't both an endpoint and in-range. toDateRange() expands it on Apply.
+  const selectRange = (range: DateRange) => {
+    setStart(startOfDay(new Date(range.startDate)));
+    setEnd(startOfDay(new Date(range.endDate)));
+    setMonth(startOfMonth(new Date(range.endDate)));
+  };
+
   // Reset the pending selection from props every time the picker opens
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
-      setStart(new Date(startDate));
-      setEnd(new Date(endDate));
-      setMonth(startOfMonth(new Date(endDate)));
+      selectRange({ startDate, endDate });
     }
     setOpen(nextOpen);
   };
 
   const handlePresetClick = (preset: DateRangePreset) => {
-    const range = getDateRangeFromPreset(preset);
-    setStart(new Date(range.startDate));
-    setEnd(new Date(range.endDate));
-    setMonth(startOfMonth(new Date(range.endDate)));
+    selectRange(getDateRangeFromPreset(preset));
   };
 
   // First click starts a new range, second click closes it
