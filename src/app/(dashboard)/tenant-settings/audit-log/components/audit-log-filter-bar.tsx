@@ -22,6 +22,7 @@ const NO_ACTIVATION_LABEL = 'Tenant-Level (No Activation)';
 interface AuditLogFilterBarProps {
   filters: AuditLogFilters;
   performedByOptions: string[];
+  actionOptions: string[];
   activationNameOptions: string[];
   onChange: (next: Partial<AuditLogFilters>) => void;
   onClearAll: () => void;
@@ -30,12 +31,14 @@ interface AuditLogFilterBarProps {
 export function AuditLogFilterBar({
   filters,
   performedByOptions,
+  actionOptions,
   activationNameOptions,
   onChange,
   onClearAll,
 }: AuditLogFilterBarProps) {
   const hasActiveFilters =
     filters.performedBy !== null ||
+    filters.action !== null ||
     filters.activationName !== null ||
     filters.onlyWithoutActivation ||
     filters.startDate !== null ||
@@ -43,7 +46,7 @@ export function AuditLogFilterBar({
 
   return (
     <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {/* Performed by */}
         <div className="space-y-1.5">
           <Label htmlFor="audit-performed-by" className="text-xs text-muted-foreground">
@@ -59,6 +62,29 @@ export function AuditLogFilterBar({
             <SelectContent>
               <SelectItem value={ANY_VALUE}>Any</SelectItem>
               {performedByOptions.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Action */}
+        <div className="space-y-1.5">
+          <Label htmlFor="audit-action" className="text-xs text-muted-foreground">
+            Action
+          </Label>
+          <Select
+            value={filters.action ?? ANY_VALUE}
+            onValueChange={(v) => onChange({ action: v === ANY_VALUE ? null : v })}
+          >
+            <SelectTrigger id="audit-action" className="w-full">
+              <SelectValue placeholder="Any" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY_VALUE}>Any</SelectItem>
+              {actionOptions.map((name) => (
                 <SelectItem key={name} value={name}>
                   {name}
                 </SelectItem>
@@ -143,6 +169,17 @@ export function AuditLogFilterBar({
               onClick={() => onChange({ performedBy: null })}
             >
               {filters.performedBy}
+              <X className="ml-1.5 h-3 w-3" />
+            </Badge>
+          )}
+
+          {filters.action && (
+            <Badge
+              variant="secondary"
+              className="cursor-pointer rounded-lg py-1 pl-2.5 pr-1.5 transition-colors hover:bg-secondary/80"
+              onClick={() => onChange({ action: null })}
+            >
+              {filters.action}
               <X className="ml-1.5 h-3 w-3" />
             </Badge>
           )}

@@ -8,21 +8,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { AuditLogFilterBar } from './components/audit-log-filter-bar';
 import { AuditLogList } from './components/audit-log-list';
 import type { AuditLogFilters, AuditLogListResponse } from './types';
+import { buildFilterQuery } from './utils';
 
 const PAGE_SIZE = 20;
-
-function buildFilterQuery(filters: AuditLogFilters): URLSearchParams {
-  const params = new URLSearchParams();
-  if (filters.performedBy) params.set('performedBy', filters.performedBy);
-  if (filters.onlyWithoutActivation) {
-    params.set('onlyWithoutActivation', 'true');
-  } else if (filters.activationName) {
-    params.set('activationName', filters.activationName);
-  }
-  if (filters.startDate) params.set('startDate', filters.startDate);
-  if (filters.endDate) params.set('endDate', filters.endDate);
-  return params;
-}
 
 function AuditLogContent() {
   const router = useRouter();
@@ -34,6 +22,7 @@ function AuditLogContent() {
   const filters: AuditLogFilters = useMemo(
     () => ({
       performedBy: searchParams.get('performedBy'),
+      action: searchParams.get('action'),
       activationName: searchParams.get('activationName'),
       onlyWithoutActivation: searchParams.get('onlyWithoutActivation') === 'true',
       startDate: searchParams.get('startDate'),
@@ -51,6 +40,7 @@ function AuditLogContent() {
   const [listError, setListError] = useState<string | null>(null);
 
   const [performedByOptions, setPerformedByOptions] = useState<string[]>([]);
+  const [actionOptions, setActionOptions] = useState<string[]>([]);
   const [activationNameOptions, setActivationNameOptions] = useState<string[]>([]);
   const hasFetchedOptionsRef = useRef(false);
 
@@ -89,6 +79,7 @@ function AuditLogContent() {
     updateURL({
       filters: {
         performedBy: null,
+        action: null,
         activationName: null,
         onlyWithoutActivation: false,
         startDate: null,
@@ -110,14 +101,19 @@ function AuditLogContent() {
 
     (async () => {
       try {
-        const [performedByRes, activationNamesRes] = await Promise.all([
+        const [performedByRes, actionsRes, activationNamesRes] = await Promise.all([
           fetch('/api/audit-log/performed-by', { signal: controller.signal }),
+          fetch('/api/audit-log/actions', { signal: controller.signal }),
           fetch('/api/audit-log/activation-names', { signal: controller.signal }),
         ]);
 
         if (performedByRes.ok) {
           const data = await performedByRes.json();
           setPerformedByOptions(Array.isArray(data) ? data : []);
+        }
+        if (actionsRes.ok) {
+          const data = await actionsRes.json();
+          setActionOptions(Array.isArray(data) ? data : []);
         }
         if (activationNamesRes.ok) {
           const data = await activationNamesRes.json();
@@ -183,6 +179,7 @@ function AuditLogContent() {
       <AuditLogFilterBar
         filters={filters}
         performedByOptions={performedByOptions}
+        actionOptions={actionOptions}
         activationNameOptions={activationNameOptions}
         onChange={handleFilterChange}
         onClearAll={handleClearAll}
