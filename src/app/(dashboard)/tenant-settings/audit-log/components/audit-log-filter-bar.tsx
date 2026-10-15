@@ -32,7 +32,7 @@ const DATE_COMMIT_DELAY_MS = 600;
 
 interface DateTimeFilterInputProps {
   id: string;
-  /** Committed value (local `YYYY-MM-DDTHH:mm`) or null. */
+  /** Committed value (local `YYYY-MM-DDTHH:mm:ss`) or null. */
   value: string | null;
   min?: string;
   max?: string;
@@ -59,24 +59,30 @@ function DateTimeFilterInput({ id, value, min, max, onCommit }: DateTimeFilterIn
     setDraft(value ?? '');
   }
 
-  const isDirty = draft !== (value ?? '');
+  // Browsers omit `:00` seconds from the input value; compare in the normalized form.
+  const normalizedDraft = normalizeDateTimeLocal(draft, 'start') ?? '';
+  const isDirty = normalizedDraft !== (value ?? '');
 
   useEffect(() => {
     if (!isDirty) return;
-    timerRef.current = setTimeout(() => onCommitRef.current(draft || null), DATE_COMMIT_DELAY_MS);
+    timerRef.current = setTimeout(
+      () => onCommitRef.current(normalizedDraft || null),
+      DATE_COMMIT_DELAY_MS
+    );
     return () => clearTimeout(timerRef.current);
-  }, [draft, isDirty]);
+  }, [normalizedDraft, isDirty]);
 
   const commitNow = () => {
     // Cancel the pending debounce so a blur/Enter before the delay commits exactly once.
     clearTimeout(timerRef.current);
-    if (isDirty) onCommit(draft || null);
+    if (isDirty) onCommit(normalizedDraft || null);
   };
 
   return (
     <Input
       id={id}
       type="datetime-local"
+      step={1}
       value={draft}
       min={min}
       max={max}

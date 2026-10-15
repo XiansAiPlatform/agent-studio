@@ -4,31 +4,33 @@ const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const DATETIME_LOCAL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
 
 /**
- * Normalize a filter value to the `YYYY-MM-DDTHH:mm` (local time) format used by
- * `<input type="datetime-local">`. Date-only values (older URLs) become the start
- * (00:00) or end (23:59) of that day. Returns null when the value is not usable.
+ * Normalize a filter value to the `YYYY-MM-DDTHH:mm:ss` (local time) format used by
+ * `<input type="datetime-local" step="1">`. Values without seconds (the browser omits
+ * `:00`, and older URLs use minute precision) get `:00`. Date-only values (older URLs)
+ * become the start (00:00:00) or end (23:59:59) of that day. Returns null when the
+ * value is not usable.
  */
 export function normalizeDateTimeLocal(
   value: string | null,
   boundary: 'start' | 'end'
 ): string | null {
   if (!value) return null;
-  if (DATE_ONLY.test(value)) return `${value}T${boundary === 'start' ? '00:00' : '23:59'}`;
-  if (DATETIME_LOCAL.test(value)) return value.slice(0, 16);
+  if (DATE_ONLY.test(value)) return `${value}T${boundary === 'start' ? '00:00:00' : '23:59:59'}`;
+  if (DATETIME_LOCAL.test(value)) return value.length === 16 ? `${value}:00` : value;
   return null;
 }
 
 /**
- * Convert a local `YYYY-MM-DDTHH:mm` value to a UTC ISO string. The backend stores
+ * Convert a local `YYYY-MM-DDTHH:mm[:ss]` value to a UTC ISO string. The backend stores
  * timestamps as DateTime.UtcNow, so filters must be compared in UTC. A start boundary
- * is the beginning of its minute and an end boundary the last millisecond of it.
+ * is the beginning of its second and an end boundary the last millisecond of it.
  */
 function localToUtcIso(value: string | null, boundary: 'start' | 'end'): string | null {
   const normalized = normalizeDateTimeLocal(value, boundary);
   if (!normalized) return null;
   const date = new Date(normalized); // no offset => parsed as local time
   if (Number.isNaN(date.getTime())) return null;
-  if (boundary === 'end') date.setSeconds(59, 999);
+  if (boundary === 'end') date.setMilliseconds(999);
   return date.toISOString();
 }
 
@@ -44,6 +46,7 @@ const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   hour: 'numeric',
   minute: '2-digit',
+  second: '2-digit',
 };
 
 /** Format an API (UTC) timestamp for display in the viewer's local time. */

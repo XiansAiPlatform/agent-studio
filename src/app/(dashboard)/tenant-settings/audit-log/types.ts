@@ -12,9 +12,9 @@ export interface AuditLogFilters {
   activationName: string | null;
   /** When true, show only entries that have no associated activation. */
   onlyWithoutActivation: boolean;
-  /** Local date-time `YYYY-MM-DDTHH:mm` (inclusive); converted to UTC when calling the API. */
+  /** Local date-time `YYYY-MM-DDTHH:mm:ss` (inclusive); converted to UTC when calling the API. */
   startDate: string | null;
-  /** Local date-time `YYYY-MM-DDTHH:mm` (inclusive); converted to UTC when calling the API. */
+  /** Local date-time `YYYY-MM-DDTHH:mm:ss` (inclusive); converted to UTC when calling the API. */
   endDate: string | null;
 }
 
