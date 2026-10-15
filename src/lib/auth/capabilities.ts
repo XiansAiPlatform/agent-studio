@@ -30,11 +30,7 @@ export type Capability =
   | 'developer:access'
   /** Manage tenant users (`/tenant-settings/*`). */
   | 'tenant:manage-users'
-  /**
-   * Configure and view automated agent evals (`/settings/evals`): periodic
-   * chat / webhook / schedule health checks and their run history. Mirrors the
-   * backend `tenant.healthChecks.manage` action, which defaults to TenantAdmin.
-   */
+  /** Create, edit and view agent evals (`/settings/evals`). Tenant admins have it by default. */
   | 'evals:manage'
   /**
    * Create, delete and list user-scoped secrets that belong to OTHER tenant

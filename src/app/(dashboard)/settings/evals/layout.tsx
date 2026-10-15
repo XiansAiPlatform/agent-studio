@@ -9,9 +9,8 @@ import { getCapabilitiesFromSession } from '@/lib/auth/server-capabilities'
 export const dynamic = 'force-dynamic'
 
 /**
- * Evals under Agent Settings: Tenant Admin and System Admin only, matching the
- * backend `tenant.healthChecks.manage` default. The API routes enforce the same
- * gate (withTenantAdmin); this layout keeps other roles off the page itself.
+ * Only tenant admins and system admins can open the Evals page.
+ * The API routes check this too.
  */
 export default async function EvalsSettingsLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)

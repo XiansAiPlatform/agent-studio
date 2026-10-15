@@ -18,7 +18,7 @@ interface WebhookTargetFieldsProps {
   onMethodChange: (methodName: string) => void
   onWebhookNameChange: (webhookName: string) => void
   workflowError?: string
-  /** Error for the second field: the method (update mode) or the webhook name (builtin mode). */
+  /** The error for the method (update mode) or the webhook name (built-in mode). */
   methodError?: string
 }
 
@@ -40,11 +40,10 @@ function FieldError({ message }: { message?: string }) {
 }
 
 /**
- * Workflow + method / webhook-name pickers for webhook evals.
- * - Update mode: the agent's workflows, and the update handlers the activation's running workflow reports.
- * - Builtin mode: the agent's built-in workflows, and the webhook names registered for the activation
- *   in Connections → Webhooks (an agent's OnWebhook handler can accept other names too, so typing is allowed).
- * Falls back to free text when nothing can be listed or the user prefers to type.
+ * Dropdowns to pick the workflow and the method or webhook name for a webhook eval.
+ * - Update mode: lists the agent's workflows and their update methods.
+ * - Built-in mode: lists the built-in workflows and the webhook names added in Connections.
+ * The user can also type the values.
  */
 export function WebhookTargetFields({
   mode,
@@ -94,7 +93,7 @@ export function WebhookTargetFields({
 
   const builtin = mode === 'builtin'
   const builtinTargets = targets.filter((t) => t.isBuiltIn)
-  // Older servers don't report isBuiltIn; then offer every workflow.
+  // If no workflow is marked as built-in, show all workflows.
   const workflows = builtin && builtinTargets.length > 0 ? builtinTargets : targets
   const selected = workflows.find((t) => t.workflowType === workflowType)
   const secondValue = builtin ? webhookName : methodName
@@ -107,7 +106,7 @@ export function WebhookTargetFields({
 
   const pickWorkflow = (next: string) => {
     onWorkflowChange(next)
-    // Keep the second value only if the new workflow lists it; preselect when there's exactly one.
+    // Keep the method or webhook name only if the new workflow has it. Pick it if there is only one.
     const target = workflows.find((t) => t.workflowType === next)
     const names = builtin ? (target?.webhooks ?? []) : (target?.methods ?? []).map((m) => m.name)
     if (!names.includes(secondValue)) {

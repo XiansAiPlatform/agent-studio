@@ -4,8 +4,7 @@ import { evalsErrorResponse, prepareEvalRequest } from '@/lib/xians/evals'
 
 /**
  * GET /api/evals/webhook-targets?agentName=...&activationName=...
- * The agent's workflows and, for each one running under the activation, the update methods a
- * webhook eval can call (read live from the workflow). Feeds the webhook eval form's dropdowns.
+ * The agent's workflows, update methods and webhook names, for the webhook eval form.
  */
 export const GET = withTenantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {

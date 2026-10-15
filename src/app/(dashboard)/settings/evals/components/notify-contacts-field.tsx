@@ -11,7 +11,7 @@ import { MAX_NOTIFY_CONTACTS } from '../types'
 
 interface NotifyContactsFieldProps {
   selected: string[]
-  /** Functional update, so contacts deleted since the eval was saved can be dropped once the list loads. */
+  /** Takes a function, so deleted contacts can be removed once the list loads. */
   onSelectedChange: (update: (current: string[]) => string[]) => void
   error?: string
 }
@@ -21,9 +21,8 @@ function Hint({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Picks which of the tenant's contacts (Tenant Settings → Contacts) are emailed when the eval
- * starts failing and when it recovers. Warns when the tenant has no email server, since
- * nothing would be sent.
+ * Lets the user pick which tenant contacts get an email when the eval starts failing
+ * and when it passes again. Shows a warning if the tenant has no email server.
  */
 export function NotifyContactsField({ selected, onSelectedChange, error }: NotifyContactsFieldProps) {
   const [contacts, setContacts] = useState<Contact[] | null>(null)
@@ -40,7 +39,7 @@ export function NotifyContactsField({ selected, onSelectedChange, error }: Notif
         const list = Array.isArray(data) ? data : []
         setContacts(list)
         setLoadFailed(!Array.isArray(data))
-        // Contacts deleted since the eval was saved would be rejected on save; drop them.
+        // Remove deleted contacts, or saving would fail.
         if (Array.isArray(data)) {
           const known = new Set(list.map((c) => c.id))
           onSelectedChange((current) => current.filter((id) => known.has(id)))
@@ -52,7 +51,7 @@ export function NotifyContactsField({ selected, onSelectedChange, error }: Notif
         setLoadFailed(true)
       })
 
-    // Only a definite "no email server" warns; a failed lookup stays quiet.
+    // Only warn when we know email is off. If the check fails, show nothing.
     fetch('/api/settings/email-configs')
       .then(async (res) => (res.ok ? ((await res.json()) as EmailConfigStatus) : null))
       .then((status) => {

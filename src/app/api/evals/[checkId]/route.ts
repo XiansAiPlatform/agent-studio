@@ -11,7 +11,7 @@ function invalidCheckId() {
 
 /**
  * PUT /api/evals/{checkId}?agentName=...&activationName=...
- * Replaces an eval's definition (including enable/disable). The type is immutable.
+ * Updates an eval, including enabling or disabling it. The type can't be changed.
  */
 export const PUT = withTenantAdmin<Params>(
   async (request: NextRequest, { session, tenantId, params }: ApiContext<Params>) => {
@@ -37,7 +37,7 @@ export const PUT = withTenantAdmin<Params>(
 
 /**
  * DELETE /api/evals/{checkId}?agentName=...&activationName=...
- * Deletes the eval, its schedule and its run history.
+ * Deletes the eval, its schedule and its runs.
  */
 export const DELETE = withTenantAdmin<Params>(
   async (request: NextRequest, { session, tenantId, params }: ApiContext<Params>) => {

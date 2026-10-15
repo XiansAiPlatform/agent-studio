@@ -28,7 +28,7 @@ interface AgentSelectionContentProps {
    * Omit for Conversations (no edit gate).
    */
   editAccessCheck?: AgentEditAccessCheck | null;
-  /** Called when the picker navigates away on its own (e.g. "Go to Agents") so the host can close itself. */
+  /** Called when the picker opens another page (like "Go to Agents"), so the parent can close it. */
   onNavigateAway?: () => void;
 }
 

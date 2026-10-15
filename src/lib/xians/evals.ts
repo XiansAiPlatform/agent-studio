@@ -1,11 +1,9 @@
 /**
- * Server-side helpers for the Evals (automated agent health checks) API routes.
+ * Server-side helpers for the Evals API routes.
  *
- * The backend keys health checks by activation **id**, but Agent Settings pages
- * address an activation by `agentName` + `activationName` (the sidebar agent
- * picker). The id is therefore always resolved here, server-side, from the
- * tenant's activation list — never accepted from the browser — so a caller can't
- * pair an agent they may edit with another agent's activation id.
+ * The backend needs the activation id, but the pages only know the agent name and
+ * activation name. So the id is always looked up here on the server, never taken from
+ * the browser. This stops a user from using an activation of an agent they can't edit.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -21,17 +19,17 @@ export interface ResolvedActivation {
   isActive: boolean
 }
 
-/** AdminApi base path for one activation's health checks. */
+/** The AdminApi path for one activation's health checks. */
 export function healthChecksBasePath(tenantId: string, activationId: string): string {
   return `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations/${encodeURIComponent(activationId)}/health-checks`
 }
 
-/** AdminApi path for the tenant-wide health-check listing. */
+/** The AdminApi path for all health checks in the tenant. */
 export function tenantHealthChecksPath(tenantId: string): string {
   return `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/health-checks`
 }
 
-/** The activation fields read here; the backend sends more. */
+/** The activation fields used here. */
 interface ActivationRecord {
   id?: string
   name?: string
@@ -49,8 +47,8 @@ function toList(response: unknown): ActivationRecord[] {
 }
 
 /**
- * Find the activation named `activationName` of agent `agentName` in the tenant.
- * Returns null when it doesn't exist (or belongs to another agent).
+ * Finds the agent's activation by name in the tenant.
+ * Returns null if it doesn't exist.
  */
 export async function resolveActivation(
   client: XiansClient,
@@ -78,7 +76,7 @@ export async function resolveActivation(
   }
 }
 
-/** Reads and validates the `agentName` / `activationName` query params. */
+/** Reads and checks the `agentName` and `activationName` query params. */
 export function readActivationParams(
   searchParams: URLSearchParams
 ): { agentName: string; activationName: string } | NextResponse {
@@ -104,12 +102,10 @@ export interface EvalRequestContext {
 }
 
 /**
- * Shared preamble for every per-activation evals route: validate the query,
- * require that the session user may edit the agent, then resolve the
- * activation id server-side. Returns a ready response on any failure.
+ * Common first steps for the evals routes: check the query, check that the user can
+ * edit the agent, and look up the activation id. Returns an error response if any step fails.
  *
- * Callers must already be inside `withTenantAdmin` (TenantAdmin / system admin),
- * which is the per-user gate for `evals:manage`.
+ * Callers must already use `withTenantAdmin`.
  */
 export async function prepareEvalRequest(
   request: NextRequest,
@@ -133,7 +129,7 @@ export function evalsErrorResponse(error: unknown, fallback: string): NextRespon
   const e = error as { message?: string; response?: unknown; status?: number } | null
   return NextResponse.json(
     { error: e?.message || fallback, details: e?.response },
-    // status 0 means the backend was unreachable; report that as a bad gateway.
+    // Status 0 means the backend could not be reached, so return 502.
     { status: e?.status === 0 ? 502 : e?.status || 500 }
   )
 }

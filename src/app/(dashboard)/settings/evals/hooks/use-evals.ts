@@ -1,9 +1,6 @@
 /**
- * Hook for an activation's evals (automated health checks).
- *
- * The tenant is resolved server-side from the session cookie and the activation
- * is addressed by agent + activation name (from the sidebar agent picker); the
- * API route resolves the activation id itself.
+ * Hook to load and change an activation's evals.
+ * The activation is picked by agent name and activation name; the API route finds its id.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -47,7 +44,7 @@ export function useEvals(ref: ActivationRef) {
   const { currentTenantId } = useTenant()
   const [data, setData] = useState<EvalsListResponse | undefined>(undefined)
   const [summary, setSummary] = useState<EvalSummary | undefined>(undefined)
-  /** Which activation data/summary belong to, so a switch never shows stale evals. */
+  /** The activation the loaded data belongs to, so old data isn't shown after switching. */
   const [loadedKey, setLoadedKey] = useState<string | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -59,9 +56,8 @@ export function useEvals(ref: ActivationRef) {
   )
   const { isLoading, resolve } = useResolvedLoading(ready ? key : null, false)
 
-  // State is only written after the first await, so calling this from an effect
-  // never triggers a synchronous re-render. Without an activation, the returned
-  // values are derived as empty below instead of being cleared here.
+  // State is only set after the first await, so this is safe to call from an effect.
+  // With no activation selected, the values below are simply empty.
   const load = useCallback(async () => {
     if (!ready) return
 
@@ -77,7 +73,7 @@ export function useEvals(ref: ActivationRef) {
       ])
       if (!listResponse.ok) await parseError(listResponse, 'Failed to load evals')
       setData(await listResponse.json())
-      // The summary is a nice-to-have; a failure there shouldn't hide the list.
+      // If the summary fails, still show the list.
       setSummary(summaryResponse.ok ? await summaryResponse.json() : undefined)
       setError(null)
       setLoadedKey(key)

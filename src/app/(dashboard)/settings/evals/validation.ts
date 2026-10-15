@@ -10,14 +10,13 @@ import {
   parseQueryParams,
 } from './types'
 
-/** The JSON path subset the server accepts: `$`, then `.name` and `[index]` segments. */
+/** A simple JSON path: `$` followed by `.name` and `[index]` parts. */
 const JSON_PATH = /^\$(\.[^.[\]]+|\[\d+\])*$/
 const HEADER_NAME = /^[A-Za-z0-9_-]+$/
 
 /**
- * Client-side checks mirroring the backend's HealthCheckValidator, so most
- * mistakes are caught before a round trip. The backend remains authoritative.
- * Returns field path → message; empty when valid.
+ * Checks the form before saving, using the same rules as the server.
+ * Returns an error message for each field. Empty when the form is valid.
  */
 export function validateEvalForm(values: EvalFormValues): Record<string, string> {
   const errors: Record<string, string> = {}

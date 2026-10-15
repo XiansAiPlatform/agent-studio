@@ -1,7 +1,6 @@
 /**
- * Evals = automated agent health checks (backend: `health-checks`). Each eval is
- * attached to one agent activation and runs on its own interval; every run is
- * recorded as pass / fail / error.
+ * Evals are automated checks for an agent (called `health-checks` in the backend).
+ * Each eval belongs to one activation, runs on an interval, and saves each run as pass, fail or error.
  */
 
 export type EvalType = 'chat' | 'webhook' | 'schedule'
@@ -10,17 +9,17 @@ export type ScheduleState = 'pending' | 'active' | 'paused'
 export type ActivationHealth = 'unknown' | 'healthy' | 'degraded' | 'unhealthy'
 
 /**
- * Text ops check the whole body (case-insensitive). JSON ops read one value at `path`
- * (`$.data.status`); header ops read the header named by `path`. Chat evals use text ops only.
+ * Text checks look at the whole response and ignore case. JSON checks look at one value
+ * (like `$.data.status`). Header checks look at one header. Chat evals can only use text checks.
  */
 export type AssertionOp = 'contains' | 'notContains' | 'jsonEquals' | 'jsonExists' | 'headerEquals' | 'headerExists'
 
-/** How a webhook eval calls the agent: a Temporal Update method, or the agent's builtin `OnWebhook` handler. */
+/** How a webhook eval calls the agent: an update method, or the agent's `OnWebhook` handler. */
 export type WebhookMode = 'update' | 'builtin'
 
 export interface EvalAssertion {
   op: AssertionOp
-  /** JSON path for JSON ops, header name for header ops. */
+  /** The JSON path or the header name. */
   path?: string | null
   value: string
 }
@@ -28,7 +27,7 @@ export interface EvalAssertion {
 export interface AssertionOpInfo {
   op: AssertionOp
   label: string
-  /** What `path` holds, when the op uses one. */
+  /** What the path field is for, if the check uses one. */
   pathLabel?: 'JSON path' | 'Header'
   needsValue: boolean
   webhookOnly: boolean
@@ -54,7 +53,7 @@ export interface ChatEvalConfig {
 }
 
 export interface WebhookEvalConfig {
-  /** Absent on evals created before modes existed: those are `update`. */
+  /** Missing on old evals. Those use `update`. */
   mode?: WebhookMode | null
   workflowType: string
   methodName: string
@@ -81,7 +80,7 @@ export interface AgentEval {
   chat?: ChatEvalConfig | null
   webhook?: WebhookEvalConfig | null
   schedule?: ScheduleEvalConfig | null
-  /** Tenant contacts emailed when the eval starts failing and when it recovers. */
+  /** Tenant contacts to email when the eval starts failing and when it passes again. */
   notifyContactIds?: string[] | null
   lastRunAt?: string | null
   lastStatus?: EvalStatus | null
@@ -99,7 +98,7 @@ export interface EvalAssertionResult {
   path?: string | null
   value: string
   passed: boolean
-  /** What the response held, for JSON and header ops. */
+  /** The value found in the response, for JSON and header checks. */
   actual?: string | null
 }
 
@@ -133,18 +132,18 @@ export interface EvalSummary {
 
 /** A workflow a webhook eval can call. */
 export interface WebhookTarget {
-  /** Flow name without the agent prefix, as stored on a webhook eval. */
+  /** The flow name, without the agent name. */
   workflowType: string
   workflowId: string
   activable: boolean
-  /** `running`: methods were read from the live workflow; otherwise methods is empty. */
+  /** Methods are only listed when the status is `running`. */
   status: 'running' | 'notRunning' | 'unavailable'
   detail?: string | null
-  /** Update mode: the workflow's Temporal Update methods. */
+  /** Update mode: the workflow's update methods. */
   methods: { name: string; description?: string | null }[]
-  /** Builtin mode: whether the workflow is a built-in (OnWebhook-capable) one. */
+  /** Built-in mode: true if this is a built-in workflow. */
   isBuiltIn?: boolean
-  /** Builtin mode: webhook names registered for this activation in Connections. */
+  /** Built-in mode: the webhook names added for this activation in Connections. */
   webhooks?: string[]
 }
 
@@ -153,7 +152,7 @@ export interface EvalsListResponse {
   checks: AgentEval[]
 }
 
-/** Request body for create / replace, matching the backend `HealthCheckRequest`. */
+/** The request body to create or update an eval. */
 export interface EvalRequest {
   name: string
   type: EvalType
@@ -173,7 +172,7 @@ export interface EvalRequest {
     assertions: EvalAssertion[]
   }
   schedule?: { scheduleId: string; requireLastRunSuccess: boolean }
-  /** Omitted when empty; the backend treats a missing list as "notify no one". */
+  /** Left out when empty, which means no one is emailed. */
   notifyContactIds?: string[]
 }
 
@@ -217,7 +216,7 @@ export const WEBHOOK_MODE_DESCRIPTIONS: Record<WebhookMode, string> = {
   update: 'A Temporal Update method on the workflow, as called by /api/user/webhooks/{workflow}/{method}.',
 }
 
-/** Flat, string-friendly shape the form edits. Converted with {@link toEvalRequest}. */
+/** The values the form edits. Turned into a request with {@link toEvalRequest}. */
 export interface EvalFormValues {
   name: string
   type: EvalType
@@ -263,7 +262,7 @@ export const DEFAULT_FORM_VALUES: EvalFormValues = {
   notifyContactIds: [],
 }
 
-/** Parses `key=value` lines; blank lines are ignored. Throws on a line without `=`. */
+/** Reads `key=value` lines. Blank lines are skipped. Throws if a line has no `=`. */
 export function parseQueryParams(text: string): Record<string, string> {
   const result: Record<string, string> = {}
   for (const rawLine of text.split(/\r?\n/)) {
@@ -285,7 +284,7 @@ export function formatQueryParams(params: Record<string, string> | undefined | n
 }
 
 /**
- * Drops untouched rows (no value, and no path for path ops) and sends only the fields each op uses.
+ * Removes empty check rows and keeps only the fields each check uses.
  */
 function cleanAssertions(assertions: EvalAssertion[]): EvalAssertion[] {
   return assertions
@@ -303,7 +302,7 @@ function cleanAssertions(assertions: EvalAssertion[]): EvalAssertion[] {
     })
 }
 
-/** Converts form values into the backend request body for the selected type only. */
+/** Turns the form values into a request body for the selected eval type. */
 export function toEvalRequest(values: EvalFormValues): EvalRequest {
   const base: EvalRequest = {
     name: values.name.trim(),
@@ -356,7 +355,7 @@ export function toEvalRequest(values: EvalFormValues): EvalRequest {
   }
 }
 
-/** Populates the form from an existing eval, for editing. */
+/** Fills the form from an existing eval, for editing. */
 export function toFormValues(evaluation: AgentEval): EvalFormValues {
   const assertions = evaluation.chat?.assertions ?? evaluation.webhook?.assertions ?? []
   const webhook = evaluation.webhook
@@ -369,7 +368,7 @@ export function toFormValues(evaluation: AgentEval): EvalFormValues {
     timeoutSeconds: evaluation.timeoutSeconds,
     chatMessage: evaluation.chat?.message ?? '',
     chatWorkflowType: evaluation.chat?.workflowType ?? '',
-    // Evals stored before modes existed have no mode: they are update-method evals.
+    // Old evals have no mode. They use update mode.
     webhookMode: webhook ? (webhook.mode ?? 'update') : DEFAULT_FORM_VALUES.webhookMode,
     webhookWorkflowType: webhook?.workflowType ?? '',
     webhookMethodName: webhook?.methodName ?? '',
@@ -385,7 +384,7 @@ export function toFormValues(evaluation: AgentEval): EvalFormValues {
   }
 }
 
-/** A short human description of what an eval does, for cards. */
+/** A short description of what an eval does, for the eval cards. */
 export function describeEval(evaluation: AgentEval): string {
   switch (evaluation.type) {
     case 'chat':
@@ -401,7 +400,7 @@ export function describeEval(evaluation: AgentEval): string {
   }
 }
 
-/** One line describing an assertion and its result, for run details. */
+/** One line describing a check, for the run details. */
 export function describeAssertion(result: EvalAssertionResult): string {
   switch (result.op) {
     case 'contains':

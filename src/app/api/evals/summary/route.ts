@@ -4,8 +4,7 @@ import { evalsErrorResponse, prepareEvalRequest } from '@/lib/xians/evals'
 
 /**
  * GET /api/evals/summary?agentName=...&activationName=...
- * Activation health derived from its evals' latest results:
- * healthy / degraded / unhealthy / unknown, with per-eval status.
+ * The activation's overall health (healthy, degraded, unhealthy or unknown) and each eval's status.
  */
 export const GET = withTenantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {

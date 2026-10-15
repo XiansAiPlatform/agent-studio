@@ -18,8 +18,8 @@ const STATUS: Record<EvalStatus, { label: string; className: string; icon: typeo
 }
 
 /**
- * Latest result of one eval. `fail` = the agent answered but wrongly;
- * `error` = no answer could be obtained (timeout, no worker, exception).
+ * The latest result of an eval. Fail: the agent answered, but the answer was wrong.
+ * Error: the agent did not answer (timeout, no worker, or an exception).
  */
 export function EvalStatusBadge({
   status,
@@ -59,7 +59,7 @@ export function EvalStatusBadge({
   )
 }
 
-/** Status of a single run in the history list. */
+/** The status of one run in the history list. */
 export function RunStatusBadge({ status, className }: { status: EvalStatus; className?: string }) {
   const { className: tone, icon: Icon } = STATUS[status]
   return (

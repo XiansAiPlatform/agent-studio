@@ -44,7 +44,7 @@ interface EvalFormSheetProps {
   onSubmit: (request: EvalRequest) => Promise<void>
 }
 
-/** Human name for a schedule: its description, else its workflow type. */
+/** A readable name for a schedule: its description, or else its workflow name. */
 function scheduleLabel(schedule: Schedule): string {
   return schedule.description?.trim() || schedule.workflowType
 }
@@ -61,7 +61,7 @@ export function EvalFormSheet({ open, onOpenChange, agentName, activationName, e
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-lg">
-        {/* Mounted per open and per eval, so the form starts from that eval's values. */}
+        {/* Re-created each time it opens, so the form starts with this eval's values. */}
         {open && (
           <EvalForm
             key={evaluation?.id ?? 'new'}
@@ -99,7 +99,7 @@ function EvalForm({
   const [schedules, setSchedules] = useState<Schedule[] | null>(null)
   const [schedulesFailed, setSchedulesFailed] = useState(false)
 
-  // Schedule evals pick from the agent's existing schedules; fall back to a text box.
+  // Load the agent's schedules for the dropdown. If that fails, show a text box.
   useEffect(() => {
     if (values.type !== 'schedule' || schedules !== null) return
     let cancelled = false
@@ -151,7 +151,7 @@ function EvalForm({
       await onSubmit(toEvalRequest(values))
       onClose()
     } catch (err) {
-      // Surface the backend's validation message next to the form.
+      // Show the server's error message in the form.
       setErrors({ form: err instanceof Error ? err.message : 'Failed to save eval' })
     } finally {
       setIsSubmitting(false)
@@ -372,8 +372,7 @@ function EvalForm({
                 </div>
               ) : schedules.length > 0 ? (
                 <Select value={values.scheduleId || undefined} onValueChange={(v) => set('scheduleId', v)}>
-                  {/* Schedule ids are long (tenant:agent:activation:name): keep the closed box to
-                      the readable name and let the list wrap ids instead of widening the panel. */}
+                  {/* Schedule ids are long, so show the short name here and wrap the ids in the list. */}
                   <SelectTrigger id="eval-schedule" className="w-full min-w-0 text-left [&>span]:min-w-0 [&>span]:truncate">
                     <SelectValue placeholder="Select a schedule">
                       {selectedSchedule ? scheduleLabel(selectedSchedule) : undefined}
@@ -422,7 +421,7 @@ function EvalForm({
           </>
         )}
 
-        {/* Assertions */}
+        {/* Checks */}
         {usesAssertions && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">

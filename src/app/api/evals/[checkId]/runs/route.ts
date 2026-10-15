@@ -9,7 +9,7 @@ const FORWARDED_PARAMS = ['status', 'from', 'to', 'page', 'pageSize'] as const
 
 /**
  * GET /api/evals/{checkId}/runs?agentName=...&activationName=...&status=&page=&pageSize=
- * Paged run history (newest first): { items, totalCount, page, pageSize }.
+ * Returns the eval's runs, newest first, one page at a time.
  */
 export const GET = withTenantAdmin<Params>(
   async (request: NextRequest, { session, tenantId, params }: ApiContext<Params>) => {

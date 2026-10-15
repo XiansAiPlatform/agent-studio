@@ -4,9 +4,8 @@ import { evalsErrorResponse, prepareEvalRequest } from '@/lib/xians/evals'
 
 /**
  * GET /api/evals?agentName=...&activationName=...
- * Lists the activation's evals (backend: health checks) with their latest status,
- * plus whether the activation is active (inactive activations pause their evals).
- * Tenant comes from the session cookie; restricted to TenantAdmin / system admin.
+ * Lists the activation's evals with their latest status, and whether the activation is active.
+ * Tenant admins and system admins only.
  */
 export const GET = withTenantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {
@@ -27,8 +26,7 @@ export const GET = withTenantAdmin(
 
 /**
  * POST /api/evals?agentName=...&activationName=...
- * Creates an eval. The body is forwarded as-is; the backend validates it
- * (interval >= 5 minutes, payload matching type, assertion limits).
+ * Creates an eval. The body is sent to the backend as-is, and the backend checks it.
  */
 export const POST = withTenantAdmin(
   async (request: NextRequest, { session, tenantId }: ApiContext) => {

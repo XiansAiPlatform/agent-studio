@@ -94,7 +94,7 @@ export function EvalRunsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-xl">
-        {/* Mounted per open and per eval, so filters and pages start fresh. */}
+        {/* Re-created each time it opens, so filters and paging start fresh. */}
         {open && evaluation && (
           <EvalRuns
             key={evaluation.id}
@@ -112,7 +112,7 @@ export function EvalRunsSheet({
 interface RunsQuery {
   page: number
   status: EvalStatus | 'all'
-  /** Bumped by Refresh to refetch the same query. */
+  /** Changed by Refresh to load the same data again. */
   nonce: number
 }
 
@@ -133,7 +133,7 @@ function EvalRuns({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // State is only set in the request callbacks; handlers below mark loading.
+  // State is only set when the request finishes. The handlers below set the loading state.
   useEffect(() => {
     let cancelled = false
     fetchEvalRuns({ agentName, activationName }, evaluation.id, {
