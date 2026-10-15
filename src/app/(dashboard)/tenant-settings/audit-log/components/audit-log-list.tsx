@@ -7,24 +7,13 @@ import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { cn } from '@/lib/utils';
 import type { AuditLogEntry, AuditLogListResponse } from '../types';
+import { formatDateTime } from '../utils';
 
 interface AuditLogListProps {
   data: AuditLogListResponse | null;
   loading: boolean;
   error: string | null;
   onPageChange: (page: number) => void;
-}
-
-function formatDateTime(value: string): string {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 }
 
 const DETAIL_KEY_LABELS: Record<string, string> = {
@@ -166,7 +155,10 @@ export function AuditLogList({ data, loading, error, onPageChange }: AuditLogLis
   const { entries, page, totalPages, totalCount } = data;
 
   return (
-    <Card className="overflow-hidden py-0">
+    <Card
+      className={cn('overflow-hidden py-0 transition-opacity', loading && 'opacity-60')}
+      aria-busy={loading}
+    >
       <CardContent className="px-0">
         {/* Header row (desktop) */}
         <div className="hidden grid-cols-12 gap-3 border-b border-border/60 bg-muted/30 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:grid">
