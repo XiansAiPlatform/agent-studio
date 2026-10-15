@@ -181,6 +181,10 @@ AZURE_AD_SCOPES=openid profile email offline_access api://your-app-id/access_as_
 - Update to "Multi-tenant" if you want to allow external users
 - Ensure you're using the correct tenant ID (`common` or `organizations`)
 
+### Users Are Sent Back to Login with "Your email address could not be verified"
+- Email verification is required for this provider and the ID token did not prove the email. The server log names the failing claim.
+- See [Require Verified Email](./EMAIL_VERIFICATION.md) for the optional claims to add.
+
 ## Production Deployment Checklist
 
 - [ ] Create a separate app registration for production
@@ -191,6 +195,7 @@ AZURE_AD_SCOPES=openid profile email offline_access api://your-app-id/access_as_
 - [ ] Set appropriate client secret expiration reminders
 - [ ] Configure proper CORS settings if needed
 - [ ] Test the complete authentication flow in production
+- [ ] Require verified email for Entra sign-ins, especially for multi-tenant apps (see [Require Verified Email](./EMAIL_VERIFICATION.md))
 
 ## Security Best Practices
 
