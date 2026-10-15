@@ -28,6 +28,8 @@ interface AgentSelectionContentProps {
    * Omit for Conversations (no edit gate).
    */
   editAccessCheck?: AgentEditAccessCheck | null;
+  /** Called when the picker navigates away on its own (e.g. "Go to Agents") so the host can close itself. */
+  onNavigateAway?: () => void;
 }
 
 /**
@@ -39,6 +41,7 @@ export function AgentSelectionContent({
   onActivationSelect,
   className,
   editAccessCheck,
+  onNavigateAway,
 }: AgentSelectionContentProps) {
   const router = useRouter();
   const { currentTenantId } = useTenant();
@@ -101,7 +104,10 @@ export function AgentSelectionContent({
           You don&apos;t have any active agents yet. Activate one to start a conversation.
         </p>
         <Button
-          onClick={() => router.push('/agents/running')}
+          onClick={() => {
+            router.push('/agents/running');
+            onNavigateAway?.();
+          }}
           className="bg-primary hover:bg-primary/90 rounded-full"
         >
           Go to Agents
@@ -240,6 +246,7 @@ export function AgentSelectionPanel({
           <AgentSelectionContent
             onActivationSelect={handleActivationSelect}
             editAccessCheck={editAccessCheck}
+            onNavigateAway={onClose}
           />
         </div>
       </div>

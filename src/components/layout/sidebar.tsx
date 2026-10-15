@@ -620,6 +620,10 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
               setActivePanelMode(null);
               onNavigate?.();
             }}
+            onNavigateAway={() => {
+              setActivePanelMode(null);
+              onNavigate?.();
+            }}
           />
         </div>
       </div>
