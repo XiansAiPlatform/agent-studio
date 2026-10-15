@@ -81,6 +81,8 @@ export interface AgentEval {
   chat?: ChatEvalConfig | null
   webhook?: WebhookEvalConfig | null
   schedule?: ScheduleEvalConfig | null
+  /** Tenant contacts emailed when the eval starts failing and when it recovers. */
+  notifyContactIds?: string[] | null
   lastRunAt?: string | null
   lastStatus?: EvalStatus | null
   lastDetail?: string | null
@@ -171,6 +173,8 @@ export interface EvalRequest {
     assertions: EvalAssertion[]
   }
   schedule?: { scheduleId: string; requireLastRunSuccess: boolean }
+  /** Omitted when empty; the backend treats a missing list as "notify no one". */
+  notifyContactIds?: string[]
 }
 
 // ----- Form model -----
@@ -180,6 +184,7 @@ export const MAX_INTERVAL_MINUTES = 1440
 export const MIN_TIMEOUT_SECONDS = 5
 export const MAX_TIMEOUT_SECONDS = 120
 export const MAX_ASSERTIONS = 10
+export const MAX_NOTIFY_CONTACTS = 10
 
 export const INTERVAL_PRESETS: { label: string; minutes: number }[] = [
   { label: 'Every 5 minutes', minutes: 5 },
@@ -233,6 +238,7 @@ export interface EvalFormValues {
   scheduleId: string
   requireLastRunSuccess: boolean
   assertions: EvalAssertion[]
+  notifyContactIds: string[]
 }
 
 export const DEFAULT_FORM_VALUES: EvalFormValues = {
@@ -254,6 +260,7 @@ export const DEFAULT_FORM_VALUES: EvalFormValues = {
   scheduleId: '',
   requireLastRunSuccess: true,
   assertions: [{ op: 'contains', value: '' }],
+  notifyContactIds: [],
 }
 
 /** Parses `key=value` lines; blank lines are ignored. Throws on a line without `=`. */
@@ -303,6 +310,7 @@ export function toEvalRequest(values: EvalFormValues): EvalRequest {
     type: values.type,
     enabled: values.enabled,
     intervalMinutes: values.intervalMinutes,
+    ...(values.notifyContactIds.length > 0 ? { notifyContactIds: values.notifyContactIds } : {}),
   }
 
   switch (values.type) {
@@ -373,6 +381,7 @@ export function toFormValues(evaluation: AgentEval): EvalFormValues {
     scheduleId: evaluation.schedule?.scheduleId ?? '',
     requireLastRunSuccess: evaluation.schedule?.requireLastRunSuccess ?? true,
     assertions: assertions.length > 0 ? assertions.map((a) => ({ ...a, path: a.path ?? '' })) : [],
+    notifyContactIds: evaluation.notifyContactIds ?? [],
   }
 }
 

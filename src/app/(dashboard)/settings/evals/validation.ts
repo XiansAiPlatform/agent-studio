@@ -2,6 +2,7 @@ import {
   EvalFormValues,
   MAX_ASSERTIONS,
   MAX_INTERVAL_MINUTES,
+  MAX_NOTIFY_CONTACTS,
   MAX_TIMEOUT_SECONDS,
   MIN_INTERVAL_MINUTES,
   MIN_TIMEOUT_SECONDS,
@@ -103,6 +104,10 @@ export function validateEvalForm(values: EvalFormValues): Record<string, string>
     case 'schedule':
       if (!values.scheduleId.trim()) errors.scheduleId = 'Choose a schedule'
       break
+  }
+
+  if (values.notifyContactIds.length > MAX_NOTIFY_CONTACTS) {
+    errors.notifyContactIds = `Choose at most ${MAX_NOTIFY_CONTACTS} contacts`
   }
 
   return errors

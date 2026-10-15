@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +32,7 @@ import {
 } from '../types'
 import { validateEvalForm } from '../validation'
 import { WebhookTargetFields } from './webhook-target-fields'
+import { NotifyContactsField } from './notify-contacts-field'
 
 interface EvalFormSheetProps {
   open: boolean
@@ -126,6 +127,12 @@ function EvalForm({
 
   const set = <K extends keyof EvalFormValues>(key: K, value: EvalFormValues[K]) =>
     setValues((current) => ({ ...current, [key]: value }))
+
+  const setNotifyContactIds = useCallback(
+    (update: (current: string[]) => string[]) =>
+      setValues((current) => ({ ...current, notifyContactIds: update(current.notifyContactIds) })),
+    []
+  )
 
   const setAssertion = (index: number, patch: Partial<EvalFormValues['assertions'][number]>) =>
     setValues((current) => ({
@@ -536,6 +543,12 @@ function EvalForm({
             </div>
           )}
         </div>
+
+        <NotifyContactsField
+          selected={values.notifyContactIds}
+          onSelectedChange={setNotifyContactIds}
+          error={errors.notifyContactIds}
+        />
 
         <div className="flex items-center justify-between gap-4 rounded-md border p-3">
           <div>

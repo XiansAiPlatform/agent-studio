@@ -118,6 +118,11 @@ describe('toEvalRequest', () => {
     expect(request.webhook).not.toHaveProperty('expectedStatusCode')
   })
 
+  it('sends notify contacts only when some are selected', () => {
+    expect(toEvalRequest(form({ notifyContactIds: ['c1', 'c2'] })).notifyContactIds).toEqual(['c1', 'c2'])
+    expect(toEvalRequest(form({ notifyContactIds: [] }))).not.toHaveProperty('notifyContactIds')
+  })
+
   it('sends no timeout or assertions for schedule evals', () => {
     const request = toEvalRequest(form({ type: 'schedule', scheduleId: 'acme:nightly', requireLastRunSuccess: false }))
 
@@ -148,6 +153,7 @@ describe('toFormValues', () => {
     } satisfies AgentEval
 
     expect(toFormValues(legacy).webhookMode).toBe('update')
+    expect(toFormValues(legacy).notifyContactIds).toEqual([])
     expect(toEvalRequest(toFormValues(legacy)).webhook).toMatchObject({ mode: 'update', methodName: 'ping' })
   })
 
@@ -173,6 +179,7 @@ describe('toFormValues', () => {
       createdAt: '2026-10-08T00:00:00Z',
     }
 
+    existing.notifyContactIds = ['66f000000000000000000010']
     const values = toFormValues(existing)
     expect(values.webhookQueryParams).toBe('source=hc')
     expect(values.webhookExpectedStatusCode).toBe('200')
@@ -192,6 +199,7 @@ describe('toFormValues', () => {
         expectedStatusCode: 200,
         assertions: [{ op: 'notContains', value: 'error' }],
       },
+      notifyContactIds: ['66f000000000000000000010'],
     })
   })
 })
@@ -269,6 +277,12 @@ describe('validateEvalForm', () => {
       form({ type: 'webhook', webhookWorkflowType: 'Inbound', webhookMethodName: 'ping', webhookExpectedStatusCode: '99' })
     )
     expect(errors).toHaveProperty('webhookExpectedStatusCode')
+  })
+
+  it('limits notify contacts to 10', () => {
+    const ids = Array.from({ length: 11 }, (_, i) => `c${i}`)
+    expect(validateEvalForm(form({ notifyContactIds: ids.slice(0, 10) }))).toEqual({})
+    expect(validateEvalForm(form({ notifyContactIds: ids }))).toHaveProperty('notifyContactIds')
   })
 
   it('does not validate timeout for schedule evals', () => {
