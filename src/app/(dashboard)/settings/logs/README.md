@@ -50,8 +50,14 @@ Primary filter: **Activation Name** (grouped by agent)
 
 - Collapsible tree structure: Agent → Activation → Workflow
 - Selecting an activation reveals the agent's registered workflows (from `/api/agents/{agentName}` definitions, including non-activable child/task workflows). Picking one narrows streams and logs to that workflow type (`workflowType` URL param, full `Agent:Flow` value). The workflow selection is cleared when the activation changes or is removed.
-- Search functionality
+- Agent search
 - Shows active/inactive status
+
+Log search (top of the filter panel):
+
+- Case-insensitive "contains" match on the log **message** or any top-level **property value** (e.g. an invoice number).
+- Applies to both the streams list and the drilled-in logs. While searching, a stream's log count, error count and last message reflect the matching logs only.
+- Applied with the other filters on **Apply** (or Enter), stored in the `search` URL param, and shown as a removable chip. Max 100 characters.
 
 Additional filters:
 
@@ -189,7 +195,7 @@ Benefits:
 - Grouped activation tree
 - Multi-select log levels
 - Date range with presets
-- Search functionality
+- Agent search
 - "Apply" button to update filters
 
 ### LogLevelBadge
@@ -212,7 +218,7 @@ Color-coded badges:
 
 1. Navigate to **Settings → Logs** in the sidebar.
 2. Browse the most recently active log streams (newest first).
-3. Click "Filter" to refine streams by activation, log level, or date range.
+3. Click "Filter" to search logs by message or property value (e.g. an invoice number), or refine streams by activation, log level, or date range.
 4. Click a stream to see its logs.
 5. In the logs view, click "Streams" to go back.
 6. Click on a log entry to expand details.
@@ -223,7 +229,7 @@ Color-coded badges:
 - Infinite scroll instead of pagination
 - Real-time log streaming (WebSocket)
 - Export logs to CSV/JSON
-- Advanced search (full-text search on message)
+- Search nested property values / `key:value` syntax
 - Workflow ID quick-link to workflow details
 - Log detail modal with more actions
 - Virtualized list for better performance with large datasets

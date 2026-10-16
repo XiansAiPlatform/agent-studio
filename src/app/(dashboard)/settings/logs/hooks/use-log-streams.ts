@@ -37,6 +37,7 @@ export function useLogStreams(
       filters.logLevel?.join(','),
       filters.startDate,
       filters.endDate,
+      filters.search,
       filters.pageSize,
       filters.page,
     ]
@@ -66,6 +67,7 @@ export function useLogStreams(
 
       if (current.startDate) params.set('startDate', current.startDate);
       if (current.endDate) params.set('endDate', current.endDate);
+      if (current.search) params.set('search', current.search);
 
       params.set('pageSize', (current.pageSize || 20).toString());
       params.set('page', (current.page || 1).toString());

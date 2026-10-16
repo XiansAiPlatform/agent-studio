@@ -21,6 +21,7 @@ export const GET = withParticipantAdmin(
       const logLevel = searchParams.get('logLevel')
       const startDate = searchParams.get('startDate')
       const endDate = searchParams.get('endDate')
+      const search = searchParams.get('search')
       const pageSize = searchParams.get('pageSize') || '20'
       const page = searchParams.get('page') || '1'
 
@@ -30,6 +31,7 @@ export const GET = withParticipantAdmin(
       if (logLevel) params.set('logLevel', logLevel)
       if (startDate) params.set('startDate', startDate)
       if (endDate) params.set('endDate', endDate)
+      if (search) params.set('search', search)
       params.set('pageSize', pageSize)
       params.set('page', page)
 
