@@ -68,7 +68,8 @@ function createMutationState<T>(
 // NOTE: None of these send a tenant id — the backend resolves the tenant
 // server-side from the session cookie. Callers only gate on tenant presence.
 async function fetchConnections(
-  options?: UseConnectionsOptions
+  options?: UseConnectionsOptions,
+  signal?: AbortSignal
 ): Promise<OIDCConnection[]> {
   // If agentName and activationName are provided, fetch from integrations endpoint
   if (options?.agentName && options?.activationName) {
@@ -79,16 +80,21 @@ async function fetchConnections(
     const queryString = params.toString()
     const url = `/api/integrations${queryString ? `?${queryString}` : ''}`
     
-    const response = await fetch(url)
+    const mcpUrl = `/api/connections?${queryString}`
+    const [response, mcpResponse] = await Promise.all([
+      fetch(url, { signal }),
+      fetch(mcpUrl, { signal }),
+    ])
     if (!response.ok) {
       throw new Error(`Failed to fetch integrations: ${response.statusText}`)
     }
+    if (!mcpResponse.ok) throw new Error(`Failed to fetch MCP connections: ${mcpResponse.statusText}`)
     
     // Map integration response to OIDCConnection format
     const integrations = await response.json()
     
     // Transform integration data to match OIDCConnection interface
-    return integrations.map((integration: any): OIDCConnection => ({
+    const mappedIntegrations = integrations.map((integration: any): OIDCConnection => ({
       id: integration.id,
       tenantId: integration.tenantId,
       userId: integration.createdBy || 'system',
@@ -112,6 +118,8 @@ async function fetchConnections(
       configuration: integration.configuration,
       mappingConfig: integration.mappingConfig,
     }))
+    const mcpConnections: ConnectionsListResponse = await mcpResponse.json()
+    return [...mappedIntegrations, ...mcpConnections.connections]
   }
   
   // Otherwise, fetch from connections endpoint
@@ -124,7 +132,7 @@ async function fetchConnections(
   const queryString = params.toString()
   const url = `/api/connections${queryString ? `?${queryString}` : ''}`
   
-  const response = await fetch(url)
+  const response = await fetch(url, { signal })
   if (!response.ok) {
     throw new Error(`Failed to fetch connections: ${response.statusText}`)
   }
@@ -313,12 +321,14 @@ export function useConnections(options?: UseConnectionsOptions) {
     }
 
     // Create new abort controller for this request
-    abortControllerRef.current = new AbortController()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     const fetchData = async () => {
       setError(null)
       try {
-        const data = await fetchConnections(options)
+        const data = await fetchConnections(options, controller.signal)
+        if (controller.signal.aborted) return
         setConnections(data)
         
         // Mark these parameters as fetched
@@ -341,9 +351,7 @@ export function useConnections(options?: UseConnectionsOptions) {
 
     // Cleanup function to abort request if component unmounts or dependencies change
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
+      controller.abort()
     }
   }, [currentTenantId, optionsKey, options])
 
@@ -359,11 +367,13 @@ export function useConnections(options?: UseConnectionsOptions) {
     }
 
     // Create new abort controller for this request
-    abortControllerRef.current = new AbortController()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
     
     setError(null)
     try {
-      const data = await fetchConnections(options)
+      const data = await fetchConnections(options, controller.signal)
+      if (controller.signal.aborted) return
       setConnections(data)
       lastFetchKeyRef.current = optionsKey
       resolve(optionsKey)
