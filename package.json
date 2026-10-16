@@ -32,6 +32,8 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "jsoneditor": "^10.4.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.562.0",
     "next": "^16.2.11",
     "next-auth": "^4.24.15",
