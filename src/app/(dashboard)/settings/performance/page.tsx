@@ -13,7 +13,7 @@ import { DateRangePicker } from './components/date-range-picker';
 import { SummaryCards } from './components/summary-cards';
 import { CategoryCard } from './components/category-card';
 import { PerformanceFilters } from './components/performance-filters';
-import { DateRangePreset } from './types';
+import { DateRange } from './types';
 import { getDateRangeFromPreset } from './utils/date-helpers';
 
 function PerformanceContent() {
@@ -22,8 +22,8 @@ function PerformanceContent() {
   const { currentTenantId } = useTenant();
   const { user } = useAuth();
 
-  // Get initial date range (default to last 30 days)
-  const initialRange = getDateRangeFromPreset('last30days');
+  // Get initial date range (default to last 1 month)
+  const initialRange = getDateRangeFromPreset('last1month');
   const [startDate, setStartDate] = useState(initialRange.startDate);
   const [endDate, setEndDate] = useState(initialRange.endDate);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -82,8 +82,7 @@ function PerformanceContent() {
     [router]
   );
 
-  const handleDateRangeChange = (preset: DateRangePreset) => {
-    const range = getDateRangeFromPreset(preset);
+  const handleDateRangeChange = (range: DateRange) => {
     setStartDate(range.startDate);
     setEndDate(range.endDate);
     updateURL(selectedAgent, selectedActivation, range.startDate, range.endDate);
