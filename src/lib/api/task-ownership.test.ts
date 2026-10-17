@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import { describe, it } from 'vitest'
 import type { Session } from 'next-auth'
 import type { XiansMessage } from '../xians/types'
 import {
