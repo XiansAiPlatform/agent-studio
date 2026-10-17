@@ -5,7 +5,7 @@ import { PageLoader } from '@/components/ui/page-loader';
 import { useLogs } from '../hooks/use-logs';
 import { LogFilters } from '../types';
 import { LogListItem } from './log-list-item';
-import { LogsPaginationBar } from './logs-pagination-bar';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 
 interface StreamLogsViewProps {
   filters: LogFilters;
@@ -87,12 +87,12 @@ export function StreamLogsView({
         ))}
       </div>
 
-      <LogsPaginationBar
-        currentPage={currentPage}
+      <PaginationBar
+        page={currentPage}
         totalPages={totalPages}
         totalCount={totalCount}
         itemNoun="log"
-        isLoading={isLoading}
+        loading={isLoading}
         onPageChange={onPageChange}
       />
     </>

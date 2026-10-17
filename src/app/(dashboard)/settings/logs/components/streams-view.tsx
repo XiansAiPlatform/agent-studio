@@ -7,7 +7,7 @@ import { Loader2, Layers, ChevronRight, Bot, Workflow } from 'lucide-react';
 import { useLogStreams } from '../hooks/use-log-streams';
 import { LogStream, LogStreamFilters } from '../types';
 import { LogStreamListItem } from './log-stream-list-item';
-import { LogsPaginationBar } from './logs-pagination-bar';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const UNGROUPED_KEY = '\u0000';
 
@@ -334,12 +334,12 @@ export function StreamsView({
         </div>
       )}
 
-      <LogsPaginationBar
-        currentPage={currentPage}
+      <PaginationBar
+        page={currentPage}
         totalPages={totalPages}
         totalCount={totalCount}
         itemNoun="stream"
-        isLoading={isLoading}
+        loading={isLoading}
         onPageChange={onPageChange}
       />
     </>

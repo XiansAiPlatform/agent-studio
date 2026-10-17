@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import { PageLoader } from '@/components/ui/page-loader';
 import { cn } from '@/lib/utils';
 import type { AuditLogEntry, AuditLogListResponse } from '../types';
@@ -175,34 +175,14 @@ export function AuditLogList({ data, loading, error, onPageChange }: AuditLogLis
           ))}
         </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between gap-3 border-t border-border/60 px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            Page {page} of {Math.max(totalPages, 1)} · {totalCount.toLocaleString()} total
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              disabled={page <= 1 || loading}
-              onClick={() => onPageChange(page - 1)}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              disabled={page >= totalPages || loading}
-              onClick={() => onPageChange(page + 1)}
-            >
-              Next
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <PaginationBar
+          attached
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          loading={loading}
+          onPageChange={onPageChange}
+        />
       </CardContent>
     </Card>
   );

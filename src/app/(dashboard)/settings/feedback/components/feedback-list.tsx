@@ -1,9 +1,9 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, ChevronLeft, ChevronRight, MessageSquareText } from 'lucide-react';
+import { PaginationBar } from '@/components/ui/pagination-bar';
+import { Star, MessageSquareText } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
 import { getReasonLabel } from '@/components/features/conversations/message-feedback';
 import { cn } from '@/lib/utils';
@@ -151,34 +151,14 @@ export function FeedbackList({
           ))}
         </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between gap-3 border-t border-border/60 px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            Page {page} of {Math.max(totalPages, 1)} · {totalCount.toLocaleString()} total
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              disabled={page <= 1 || loading}
-              onClick={() => onPageChange(page - 1)}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              disabled={page >= totalPages || loading}
-              onClick={() => onPageChange(page + 1)}
-            >
-              Next
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <PaginationBar
+          attached
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          loading={loading}
+          onPageChange={onPageChange}
+        />
       </CardContent>
     </Card>
   );
