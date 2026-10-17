@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import type { XiansClient } from '@/lib/xians/client'
 import { mockXiansClient } from '@/lib/xians/mock-xians-client'
 import { VIEW_AS_PARTICIPANT_QUERY_PARAM } from '@/lib/messaging/view-as-constants'
 import { forbiddenError } from '@/lib/api/error-handler'
@@ -50,7 +51,7 @@ function historyUrl(extra: Record<string, string> = {}) {
   return `http://localhost/api/messaging/history?${params.toString()}`
 }
 
-function stubClient(get: ReturnType<typeof vi.fn>, post = vi.fn().mockResolvedValue({ id: 'a' })) {
+function stubClient(get: XiansClient['get'], post = vi.fn().mockResolvedValue({ id: 'a' })) {
   createXiansClient.mockReturnValue(mockXiansClient({ get, post }))
 }
 
