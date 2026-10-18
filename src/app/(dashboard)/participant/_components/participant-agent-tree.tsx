@@ -47,7 +47,8 @@ import { showErrorToast } from '@/lib/utils/error-handler'
 import { resolveWorkflowName } from '@/lib/xians/built-in-workflows'
 import { isNoConversationalCapabilityError } from '@/lib/xians/conversational-capability'
 import { decodeAgentNameParam, agentNamesEqual } from '@/lib/xians/agent-name'
-import { subscribeMyPendingTaskCountRefresh } from '@/lib/pending-task-count-sync'
+import { useMyPendingTaskSummary } from '@/app/(dashboard)/dashboard/hooks/use-my-pending-task-count'
+import { pendingTaskActivationKey } from '@/lib/pending-task-summary'
 
 const TOPICS_PAGE_SIZE = 10
 
@@ -135,25 +136,6 @@ async function fetchTopicsForActivation(
   return all.sort((a, b) => (a.isDefault ? -1 : b.isDefault ? 1 : 0))
 }
 
-async function fetchPendingTaskCount(
-  agentName: string,
-  activationName: string
-): Promise<number> {
-  const queryParams = new URLSearchParams({
-    viewType: 'my',
-    status: 'Running',
-    agentName,
-    activationName,
-  })
-  const response = await fetch(`/api/tasks?${queryParams.toString()}`, {
-    cache: 'no-store',
-  })
-  if (!response.ok) return 0
-  const data = await response.json().catch(() => ({}))
-  if (typeof data.totalCount === 'number') return data.totalCount
-  return Array.isArray(data.tasks) ? data.tasks.length : 0
-}
-
 export function ParticipantAgentTree({
   onTopicSelect,
   onClose,
@@ -167,9 +149,7 @@ export function ParticipantAgentTree({
   const { activations: allActivations, isLoading: isLoadingActivations } =
     useActivations(currentTenantId)
   const activations = allActivations.filter((a) => a.status === 'active')
-  const activationKeys = activations
-    .map((activation) => `${activation.agentName}|${activation.name}`)
-    .join(',')
+  const { summary: pendingTaskSummary } = useMyPendingTaskSummary(Boolean(currentTenantId))
 
   const isTasksRoute = pathname === '/tasks' || pathname.startsWith('/tasks/')
   const routeAgentName = decodeAgentNameParam(params.agentName as string | undefined)
@@ -190,9 +170,6 @@ export function ParticipantAgentTree({
   )
   const [topicsByActivation, setTopicsByActivation] = useState<
     Record<string, Topic[]>
-  >({})
-  const [pendingCountByActivation, setPendingCountByActivation] = useState<
-    Record<string, number>
   >({})
   const [loadingActivations, setLoadingActivations] = useState<
     Set<string>
@@ -232,15 +209,11 @@ export function ParticipantAgentTree({
   const loadActivationChildren = useCallback(
     async (agentName: string, activationName: string) => {
       const workflow = workflowForAgent(agentName)
-      const [topics, pendingCount] = await Promise.all([
-        workflow
-          ? fetchTopicsForActivation(agentName, activationName, workflow)
-          : Promise.resolve([] as Topic[]),
-        fetchPendingTaskCount(agentName, activationName),
-      ])
+      const topics = workflow
+        ? await fetchTopicsForActivation(agentName, activationName, workflow)
+        : []
       const key = `${agentName}|${activationName}`
       setTopicsByActivation((prev) => ({ ...prev, [key]: topics }))
-      setPendingCountByActivation((prev) => ({ ...prev, [key]: pendingCount }))
     },
     [workflowForAgent]
   )
@@ -255,36 +228,6 @@ export function ParticipantAgentTree({
     fetchedKeysRef.current = new Set()
     setTopicsByActivation({})
   }, [selectedWorkflowType, currentTenantId])
-
-  useEffect(() => {
-    if (!activationKeys) return
-    let cancelled = false
-    const items = activationKeys.split(',').filter(Boolean).map((key) => {
-      const [agentName, activationName] = key.split('|')
-      return { agentName, activationName }
-    })
-
-    const loadPendingCounts = async () => {
-      const entries = await Promise.all(
-        items.map(async ({ agentName, activationName }) => {
-          const count = await fetchPendingTaskCount(agentName, activationName)
-          return [`${agentName}|${activationName}`, count] as const
-        })
-      )
-      if (!cancelled) {
-        setPendingCountByActivation(Object.fromEntries(entries))
-      }
-    }
-
-    loadPendingCounts()
-    const interval = window.setInterval(loadPendingCounts, 20_000)
-    const unsubscribe = subscribeMyPendingTaskCountRefresh(loadPendingCounts)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-      unsubscribe()
-    }
-  }, [activationKeys])
 
   // Auto-expand and fetch children for the currently selected activation
   useEffect(() => {
@@ -406,7 +349,7 @@ export function ParticipantAgentTree({
       }
 
       setExpandedActivations((prev) => new Set(prev).add(key))
-      if (topicsByActivation[key]?.length || pendingCountByActivation[key] !== undefined) {
+      if (topicsByActivation[key]?.length) {
         return
       }
 
@@ -416,7 +359,6 @@ export function ParticipantAgentTree({
       } catch (err) {
         console.error('[ParticipantAgentTree] Failed to fetch activation children:', err)
         setTopicsByActivation((prev) => ({ ...prev, [key]: [] }))
-        setPendingCountByActivation((prev) => ({ ...prev, [key]: 0 }))
       } finally {
         setLoadingActivations((prev) => {
           const next = new Set(prev)
@@ -428,7 +370,6 @@ export function ParticipantAgentTree({
     [
       expandedActivations,
       topicsByActivation,
-      pendingCountByActivation,
       loadActivationChildren,
     ]
   )
@@ -496,7 +437,8 @@ export function ParticipantAgentTree({
           agentNamesEqual(selectedAgentName, agentName) &&
           agentNamesEqual(selectedActivationName, activationName)
         const isSelectedTasks = isTasksRoute && isSelectedActivation
-        const pendingCount = pendingCountByActivation[key]
+        const pendingCount =
+          pendingTaskSummary.countsByActivation[pendingTaskActivationKey(agentName, activationName)] ?? 0
 
         return (
           <div key={key} className="flex flex-col">
