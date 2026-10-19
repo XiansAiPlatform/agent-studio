@@ -217,7 +217,9 @@ export function StreamsView({
                 <Layers className="h-7 w-7 text-muted-foreground/60" />
               </div>
               <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-foreground">No log streams found</p>
+                <p className="text-sm font-medium text-foreground">
+                  {filters.search ? `No logs match "${filters.search}"` : 'No log streams found'}
+                </p>
                 <p className="text-xs text-muted-foreground max-w-sm">
                   {hasActiveFilters
                     ? 'Try adjusting your filters to see more results'

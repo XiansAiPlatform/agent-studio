@@ -33,6 +33,8 @@ export interface LogFilters {
   logLevel?: LogLevel[];
   startDate?: string; // ISO 8601
   endDate?: string;   // ISO 8601
+  /** Free-text search on log message and property values. */
+  search?: string;
   page?: number;
   pageSize?: number;
 }
@@ -99,6 +101,7 @@ export interface LogStreamFilters {
   logLevel?: LogLevel[];
   startDate?: string;
   endDate?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 }
