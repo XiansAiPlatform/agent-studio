@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Palette, Check, Loader2, Upload, Link2, Trash2, ImageIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Palette, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Card,
   CardHeader,
@@ -23,45 +21,35 @@ import {
   DashboardPageHeader,
 } from '@/components/layout/dashboard-page'
 import { useBranding } from './hooks/use-branding'
+import { BrandingImageCard } from './components/branding-image-card'
 import { tenantLogoProxyUrl } from '@/lib/tenant/logo'
+import { DEFAULT_FAVICON, tenantFaviconProxyUrl } from '@/lib/tenant/favicon'
+import type { SaveImageRequest } from './types'
 
 const THEME_OPTIONS = Object.values(COLOR_THEMES)
 
-// Keep base64 uploads comfortably under the backend's ~1,000,000 char limit.
+// Keeps uploads safely below the backend's size limit.
 const MAX_LOGO_BYTES = 700 * 1024
+// Favicons are small, and every page loads one, so the limit is lower.
+const MAX_FAVICON_BYTES = 256 * 1024
+const MIN_FAVICON_SIZE = 32
 
-/** Load an image source and resolve its natural pixel dimensions. */
-function getImageDimensions(src: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image()
-    img.onload = () =>
-      resolve({ width: img.naturalWidth, height: img.naturalHeight })
-    img.onerror = () => reject(new Error('Could not load the image'))
-    img.src = src
-  })
-}
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('Could not read the file'))
-    reader.readAsDataURL(file)
-  })
-}
-
-type LogoSource = 'upload' | 'url'
-
-interface PendingUpload {
-  fileName: string
-  dataUrl: string
-  width: number
-  height: number
+function getFaviconWarning({ width, height }: { width: number; height: number }) {
+  if (width !== height) {
+    return `This image is ${width}×${height}px. Favicons look best square; it will be scaled to fit.`
+  }
+  if (width < MIN_FAVICON_SIZE) {
+    return `This image is ${width}×${height}px. Use at least ${MIN_FAVICON_SIZE}×${MIN_FAVICON_SIZE}px for a sharp icon.`
+  }
+  return null
 }
 
 export default function BrandingPage() {
   const currentTenantId = useTenantStore((s) => s.currentTenantId)
   const setTenantTheme = useTenantStore((s) => s.setTenantTheme)
+  const setTenantLogo = useTenantStore((s) => s.setTenantLogo)
+  const brandingVersion = useTenantStore((s) => s.brandingVersion)
+  const bumpBrandingVersion = useTenantStore((s) => s.bumpBrandingVersion)
 
   const {
     branding,
@@ -73,36 +61,27 @@ export default function BrandingPage() {
     clearTheme,
     saveLogo,
     removeLogo,
+    saveFavicon,
+    removeFavicon,
   } = useBranding()
 
   const [selectedTheme, setSelectedTheme] = useState<ColorThemeId | null>(null)
 
-  const [logoSource, setLogoSource] = useState<LogoSource>('upload')
-  const [logoUrl, setLogoUrl] = useState('')
-  const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null)
-  const [isDraggingLogo, setIsDraggingLogo] = useState(false)
-  // Bumped after a successful logo change to bust the proxy image cache.
-  const [logoVersion, setLogoVersion] = useState(0)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // Refetch when the active tenant changes. The branding API reads the tenant
-  // from the cookie, so a switch without this would keep showing the previous
-  // tenant's theme and logo.
+  // Load the branding again when the user switches tenant. Otherwise the page
+  // would keep showing the previous tenant's theme and images.
   useEffect(() => {
-    setPendingUpload(null)
-    setLogoUrl('')
-    setLogoSource('upload')
     fetchBranding()
   }, [currentTenantId, fetchBranding])
 
-  // Sync the selected theme with the loaded branding (only the known app themes
-  // are selectable; an unknown stored value leaves the picker unselected).
+  // Select the tenant's saved theme in the picker. If the saved theme is not
+  // one we know, nothing is selected.
   useEffect(() => {
     const theme = branding?.theme
     setSelectedTheme(theme && theme in COLOR_THEMES ? (theme as ColorThemeId) : null)
   }, [branding?.theme])
 
   const hasExistingLogo = Boolean(branding?.logo)
+  const hasExistingFavicon = Boolean(branding?.favicon)
 
   const currentThemeId =
     branding?.theme && branding.theme in COLOR_THEMES
@@ -111,21 +90,20 @@ export default function BrandingPage() {
 
   const themeDirty = selectedTheme !== null && selectedTheme !== currentThemeId
 
-  const logoPreviewSrc = useMemo(() => {
-    if (pendingUpload) return pendingUpload.dataUrl
-    if (hasExistingLogo && currentTenantId) {
-      return `${tenantLogoProxyUrl(currentTenantId)}?v=${logoVersion}`
-    }
-    return null
-  }, [pendingUpload, hasExistingLogo, currentTenantId, logoVersion])
+  const logoSrc = currentTenantId
+    ? `${tenantLogoProxyUrl(currentTenantId)}?v=${brandingVersion}`
+    : null
+  const faviconSrc = currentTenantId
+    ? tenantFaviconProxyUrl(currentTenantId, { version: brandingVersion })
+    : null
 
   // ── Theme ────────────────────────────────────────────────────────────────
   const handleSaveTheme = async () => {
     if (!selectedTheme) return
     try {
       await saveTheme(selectedTheme)
-      // Update the live tenant store so the new theme is applied immediately and
-      // persists across tenant switches (the ColorThemeProvider reacts to this).
+      // Update the tenant store too, so the new theme shows straight away and
+      // stays after switching tenants.
       if (currentTenantId) setTenantTheme(currentTenantId, selectedTheme)
       toast.success(`Theme set to ${COLOR_THEMES[selectedTheme].name}`)
     } catch (err) {
@@ -144,101 +122,46 @@ export default function BrandingPage() {
     }
   }
 
-  // ── Logo ───────────────────────────────────────────────────────────────────
-  const acceptImageFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file')
-      return
+  // ── Logo / favicon ─────────────────────────────────────────────────────────
+  // Update the tenant store too, so the header logo and the tab icon change
+  // without reloading the page. (The tab icon uses the logo when there is no
+  // favicon.)
+  const handleSaveLogo = async (logo: SaveImageRequest) => {
+    await saveLogo(logo)
+    if (currentTenantId) {
+      setTenantLogo(currentTenantId, {
+        url: tenantLogoProxyUrl(currentTenantId),
+        width: logo.width,
+        height: logo.height,
+      })
     }
-    if (file.size > MAX_LOGO_BYTES) {
-      toast.error('Image is too large. Please use an image under 700KB.')
-      return
-    }
-
-    try {
-      const dataUrl = await readFileAsDataUrl(file)
-      const { width, height } = await getImageDimensions(dataUrl)
-      setPendingUpload({ fileName: file.name, dataUrl, width, height })
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not read the image')
-    }
-  }
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    try {
-      await acceptImageFile(file)
-    } finally {
-      // Allow re-selecting the same file.
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  const handleLogoDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault()
-    setIsDraggingLogo(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file) await acceptImageFile(file)
-  }
-
-  const handleSaveLogo = async () => {
-    try {
-      if (logoSource === 'upload') {
-        if (!pendingUpload) {
-          toast.error('Please choose an image first')
-          return
-        }
-        await saveLogo({
-          imgBase64: pendingUpload.dataUrl,
-          width: pendingUpload.width,
-          height: pendingUpload.height,
-        })
-        setPendingUpload(null)
-      } else {
-        const url = logoUrl.trim()
-        if (!url) {
-          toast.error('Please enter an image URL')
-          return
-        }
-        let dimensions: { width: number; height: number }
-        try {
-          dimensions = await getImageDimensions(url)
-        } catch {
-          toast.error('Could not load an image from that URL')
-          return
-        }
-        await saveLogo({ url, width: dimensions.width, height: dimensions.height })
-        setLogoUrl('')
-      }
-      setLogoVersion((v) => v + 1)
-      toast.success('Logo updated')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update logo')
-    }
+    bumpBrandingVersion()
   }
 
   const handleRemoveLogo = async () => {
-    try {
-      await removeLogo()
-      setPendingUpload(null)
-      setLogoUrl('')
-      setLogoVersion((v) => v + 1)
-      toast.success('Logo removed')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to remove logo')
-    }
+    await removeLogo()
+    if (currentTenantId) setTenantLogo(currentTenantId, null)
+    bumpBrandingVersion()
   }
 
-  const canSaveLogo =
-    logoSource === 'upload' ? pendingUpload !== null : logoUrl.trim() !== ''
+  const handleSaveFavicon = async (favicon: SaveImageRequest) => {
+    await saveFavicon(favicon)
+    bumpBrandingVersion()
+  }
+
+  const handleRemoveFavicon = async () => {
+    await removeFavicon()
+    bumpBrandingVersion()
+  }
+
+  // What the browser tab shows when no favicon is uploaded.
+  const faviconFallbackSrc = hasExistingLogo && logoSrc ? logoSrc : DEFAULT_FAVICON
 
   return (
     <DashboardPage width="narrow">
       <DashboardPageHeader
         title="Branding"
-        description="Customize the theme and logo for this tenant"
+        description="Customize the theme, logo, and favicon for this tenant"
         icon={<Palette className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
       />
 
@@ -322,163 +245,57 @@ export default function BrandingPage() {
           </CardFooter>
         </Card>
 
-        {/* Logo */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Logo</CardTitle>
-            <CardDescription>
-              Upload an image or link to one. Recommended: a square or wide PNG/SVG
-              under 700KB.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Source toggle */}
-            <div className="inline-flex rounded-lg border p-1">
-              <button
-                type="button"
-                onClick={() => setLogoSource('upload')}
-                className={cn(
-                  'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                  logoSource === 'upload'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <Upload className="h-4 w-4" />
-                Upload
-              </button>
-              <button
-                type="button"
-                onClick={() => setLogoSource('url')}
-                className={cn(
-                  'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                  logoSource === 'url'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <Link2 className="h-4 w-4" />
-                Image URL
-              </button>
-            </div>
+        {/* The key makes the cards start fresh when the tenant changes, so an
+            unsaved upload is never carried over to another tenant. */}
+        <BrandingImageCard
+          key={`logo-${currentTenantId}`}
+          kind="logo"
+          title="Logo"
+          description="Upload an image or link to one. Recommended: a square or wide PNG/SVG under 700KB."
+          fileHint="PNG, SVG, or JPG under 700KB"
+          maxBytes={MAX_LOGO_BYTES}
+          urlPlaceholder="https://example.com/logo.png"
+          hasExisting={hasExistingLogo}
+          existingSrc={logoSrc}
+          emptyLabel="No logo set"
+          isMutating={isMutating}
+          onSave={handleSaveLogo}
+          onRemove={handleRemoveLogo}
+        />
 
-            {logoSource === 'upload' ? (
-              // Distinct key from the URL field so React does not reuse one
-              // <input>. A file input must stay uncontrolled; the URL field is
-              // controlled. Reusing the node flips value between undefined and a
-              // string and breaks file selection.
-              <div key="logo-upload">
-                <input
-                  id="logo-file"
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={handleFileChange}
-                />
-                <label
-                  htmlFor="logo-file"
-                  onDragOver={(e) => {
-                    e.preventDefault()
-                    setIsDraggingLogo(true)
-                  }}
-                  onDragLeave={(e) => {
-                    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-                      setIsDraggingLogo(false)
-                    }
-                  }}
-                  onDrop={handleLogoDrop}
-                  className={cn(
-                    'flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-8 text-center transition-colors',
-                    isDraggingLogo
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-muted/30 hover:border-primary/60 hover:bg-muted/50'
-                  )}
-                >
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border bg-background">
-                    {logoPreviewSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={logoPreviewSrc}
-                        alt="Tenant logo"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="max-w-full break-all text-sm font-medium text-foreground">
-                      {pendingUpload
-                        ? pendingUpload.fileName
-                        : hasExistingLogo
-                          ? 'Replace the current logo'
-                          : 'Choose an image'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {pendingUpload
-                        ? `${pendingUpload.width}×${pendingUpload.height}px · ready to save`
-                        : 'Click here, or drag and drop a PNG, SVG, or JPG under 700KB'}
-                    </p>
-                  </div>
-                  <span className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
-                    <Upload className="h-4 w-4" />
-                    {pendingUpload || hasExistingLogo ? 'Change image' : 'Choose image'}
-                  </span>
-                </label>
-              </div>
-            ) : (
-              <div key="logo-url" className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
-                    {logoPreviewSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={logoPreviewSrc}
-                        alt="Tenant logo"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {hasExistingLogo ? 'Current logo' : 'No logo set'}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logo-url">Image URL</Label>
-                  <Input
-                    id="logo-url"
-                    type="url"
-                    placeholder="https://example.com/logo.png"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
+        <BrandingImageCard
+          key={`favicon-${currentTenantId}`}
+          kind="favicon"
+          title="Favicon"
+          description="The icon shown in browser tabs and bookmarks. Recommended: a square PNG, SVG, or ICO, at least 32×32px. Without one, the logo is used, or the default Agent Studio icon."
+          fileHint="square PNG, SVG, or ICO under 256KB"
+          maxBytes={MAX_FAVICON_BYTES}
+          accept="image/*,.ico"
+          urlPlaceholder="https://example.com/favicon.png"
+          hasExisting={hasExistingFavicon}
+          existingSrc={faviconSrc}
+          emptyLabel={hasExistingLogo ? 'No favicon set · using the logo' : 'No favicon set · using the default icon'}
+          isMutating={isMutating}
+          onSave={handleSaveFavicon}
+          onRemove={handleRemoveFavicon}
+          getWarning={getFaviconWarning}
+          renderPreview={(src) => (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Browser tab preview</p>
+              <div className="rounded-lg border bg-muted/40 px-3 pt-2">
+                <div className="flex max-w-[240px] items-center gap-2 rounded-t-md border border-b-0 bg-background px-3 py-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={src ?? faviconFallbackSrc}
+                    alt=""
+                    className="h-4 w-4 shrink-0 object-contain"
                   />
+                  <span className="truncate text-xs text-foreground">Agent Studio</span>
                 </div>
               </div>
-            )}
-          </CardContent>
-          <CardFooter className="gap-2 border-t">
-            <Button
-              onClick={handleSaveLogo}
-              disabled={!canSaveLogo || isMutating}
-              className="gap-2"
-            >
-              {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save logo
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleRemoveLogo}
-              disabled={isMutating || !hasExistingLogo}
-              className="gap-2 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              Remove
-            </Button>
-          </CardFooter>
-        </Card>
+            </div>
+          )}
+        />
       </DashboardPageBody>
     </DashboardPage>
   )
