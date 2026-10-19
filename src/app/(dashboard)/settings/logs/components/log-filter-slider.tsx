@@ -48,12 +48,14 @@ interface LogFilterSliderProps {
   selectedLogLevels: LogLevel[];
   startDate: string | null;
   endDate: string | null;
+  search: string | null;
   onFiltersChange: (
     activation: SelectedActivation | null,
     workflowType: string | null,
     logLevels: LogLevel[],
     startDate: string | null,
-    endDate: string | null
+    endDate: string | null,
+    search: string | null
   ) => void;
 }
 
@@ -66,6 +68,7 @@ export function LogFilterSlider({
   selectedLogLevels,
   startDate,
   endDate,
+  search,
   onFiltersChange,
 }: LogFilterSliderProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,6 +77,7 @@ export function LogFilterSlider({
   const [localLogLevels, setLocalLogLevels] = useState<LogLevel[]>(selectedLogLevels);
   const [localStartDate, setLocalStartDate] = useState<string>(startDate || '');
   const [localEndDate, setLocalEndDate] = useState<string>(endDate || '');
+  const [localLogSearch, setLocalLogSearch] = useState<string>(search || '');
 
   // Sync local state when props change
   useEffect(() => {
@@ -82,7 +86,8 @@ export function LogFilterSlider({
     setLocalLogLevels(selectedLogLevels);
     setLocalStartDate(startDate || '');
     setLocalEndDate(endDate || '');
-  }, [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate]);
+    setLocalLogSearch(search || '');
+  }, [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search]);
 
   // Workflows of the selected activation's agent (third level of the tree)
   const { workflows: agentWorkflows, isLoading: isLoadingWorkflows } = useAgentWorkflows(
@@ -208,6 +213,7 @@ export function LogFilterSlider({
     setLocalLogLevels([]);
     setLocalStartDate('');
     setLocalEndDate('');
+    setLocalLogSearch('');
     setSearchQuery('');
   };
 
@@ -217,7 +223,8 @@ export function LogFilterSlider({
       localSelectedActivation ? localWorkflowType : null,
       localLogLevels,
       localStartDate || null,
-      localEndDate || null
+      localEndDate || null,
+      localLogSearch.trim() || null
     );
     onClose();
   };
@@ -237,7 +244,8 @@ export function LogFilterSlider({
     localWorkflowType !== null ||
     localLogLevels.length > 0 ||
     localStartDate !== '' ||
-    localEndDate !== '';
+    localEndDate !== '' ||
+    localLogSearch.trim() !== '';
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -256,6 +264,32 @@ export function LogFilterSlider({
 
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
+            {/* Log Search */}
+            <div className="space-y-3">
+              <Label htmlFor="log-search" className="text-sm font-medium">Search Logs</Label>
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="log-search"
+                  placeholder="Message or property, e.g. invoice number"
+                  value={localLogSearch}
+                  maxLength={100}
+                  onChange={(e) => setLocalLogSearch(e.target.value)}
+                  className="pl-10 pr-10 rounded-lg h-10"
+                />
+                {localLogSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setLocalLogSearch('')}
+                    aria-label="Clear search"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Log Level Filter */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
