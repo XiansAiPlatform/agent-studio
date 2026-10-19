@@ -34,16 +34,11 @@ const MAX_LOGO_BYTES = 700 * 1024
 const MAX_FAVICON_BYTES = 256 * 1024
 const MIN_FAVICON_SIZE = 32
 
-// A favicon must be square, or browsers squash or crop it.
-function getFaviconError({ width, height }: { width: number; height: number }) {
-  if (width !== height) {
-    return `This image is ${width}×${height}px. A favicon must be square (for example 64×64px). The current favicon was kept.`
-  }
-  return null
-}
-
-// A small favicon can still be saved, but may look blurry.
+// Any size can be saved. These notes only explain how the icon will look.
 function getFaviconWarning({ width, height }: { width: number; height: number }) {
+  if (width !== height) {
+    return `This image is ${width}×${height}px. Browser tabs show icons in a square, so a non-square image will look smaller.`
+  }
   if (width < MIN_FAVICON_SIZE) {
     return `This image is ${width}×${height}px. Use at least ${MIN_FAVICON_SIZE}×${MIN_FAVICON_SIZE}px for a sharp icon.`
   }
@@ -162,8 +157,9 @@ export default function BrandingPage() {
     bumpBrandingVersion()
   }
 
-  // What the browser tab shows when no favicon is uploaded.
-  const faviconFallbackSrc = hasExistingLogo && logoSrc ? logoSrc : DEFAULT_FAVICON
+  // What the browser tab shows when nothing new is chosen. The favicon URL
+  // already falls back to the logo, then the default icon, on the server.
+  const tabIconSrc = faviconSrc ?? DEFAULT_FAVICON
 
   return (
     <DashboardPage width="narrow">
@@ -275,8 +271,8 @@ export default function BrandingPage() {
           key={`favicon-${currentTenantId}`}
           kind="favicon"
           title="Favicon"
-          description="The icon shown in browser tabs and bookmarks. It must be square: a PNG, SVG, or ICO, ideally at least 32×32px. Without one, the logo is used, or the default Agent Studio icon."
-          fileHint="square PNG, SVG, or ICO under 256KB"
+          description="The icon shown in browser tabs and bookmarks. Any size works; a square PNG, SVG, or ICO of at least 32×32px looks best. Without one, the logo is used, or the default Agent Studio icon."
+          fileHint="PNG, SVG, or ICO under 256KB"
           maxBytes={MAX_FAVICON_BYTES}
           accept="image/*,.ico"
           urlPlaceholder="https://example.com/favicon.png"
@@ -286,7 +282,6 @@ export default function BrandingPage() {
           isMutating={isMutating}
           onSave={handleSaveFavicon}
           onRemove={handleRemoveFavicon}
-          getError={getFaviconError}
           getWarning={getFaviconWarning}
           renderPreview={(src) => (
             <div className="space-y-2">
@@ -295,7 +290,7 @@ export default function BrandingPage() {
                 <div className="flex max-w-[240px] items-center gap-2 rounded-t-md border border-b-0 bg-background px-3 py-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={src ?? faviconFallbackSrc}
+                    src={src ?? tabIconSrc}
                     alt=""
                     className="h-4 w-4 shrink-0 object-contain"
                   />

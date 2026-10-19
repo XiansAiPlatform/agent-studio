@@ -65,12 +65,7 @@ interface BrandingImageCardProps {
   isMutating: boolean
   onSave: (image: SaveImageRequest) => Promise<void>
   onRemove: () => Promise<void>
-  /**
-   * Optional. Returns an error for an image that must not be saved, for example
-   * "not square". The image is rejected and the current one is kept.
-   */
-  getError?: (dimensions: { width: number; height: number }) => string | null
-  /** Optional. Returns a warning for an image that can still be saved, for example "too small". */
+  /** Optional. Returns a note about the chosen image, for example "not square". The image is still saved. */
   getWarning?: (dimensions: { width: number; height: number }) => string | null
   /** Optional. An extra preview shown under the upload area. */
   renderPreview?: (src: string | null) => ReactNode
@@ -95,7 +90,6 @@ export function BrandingImageCard({
   isMutating,
   onSave,
   onRemove,
-  getError,
   getWarning,
   renderPreview,
 }: BrandingImageCardProps) {
@@ -130,12 +124,6 @@ export function BrandingImageCard({
     try {
       const dataUrl = await readFileAsDataUrl(file)
       const { width, height } = await getImageDimensions(dataUrl)
-      const error = getError?.({ width, height })
-      if (error) {
-        // Reject the file and keep the current image.
-        toast.error(error)
-        return
-      }
       setPendingUpload({ fileName: file.name, dataUrl, width, height })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not read the image')
@@ -185,12 +173,6 @@ export function BrandingImageCard({
           dimensions = await getImageDimensions(trimmed)
         } catch {
           toast.error('Could not load an image from that URL')
-          return
-        }
-        const error = getError?.(dimensions)
-        if (error) {
-          // Don't save. The current image stays as it is.
-          toast.error(error)
           return
         }
         const warning = getWarning?.(dimensions)

@@ -96,27 +96,22 @@ function buildImageResponse(
   return new NextResponse(new Uint8Array(entry.body), { status: 200, headers })
 }
 
-interface ProxyOptions {
-  /**
-   * Runs when the tenant has no image of this kind. Use it to send something
-   * else instead (for example, a redirect to another image) rather than a 404.
-   */
-  onNotFound?: (request: NextRequest, tenantId: string) => NextResponse
-}
-
 /**
  * Handles `GET /api/tenants/{tenantId}/{kind}`. Checks that the user belongs to
  * the tenant, then returns the image from the cache or from the backend.
+ *
+ * `kinds` can list more than one image, in order. The first one the tenant has
+ * is returned. For example `['favicon', 'logo']` returns the favicon, or the
+ * logo if there is no favicon. If the tenant has none of them, the result is 404.
  *
  * The route file must check the login itself and wrap the call in
  * `runWithSessionOnBehalfOf`. The script scripts/check-route-auth.mjs checks this.
  */
 export async function proxyTenantImage(
-  kind: TenantImageKind,
+  kinds: TenantImageKind | TenantImageKind[],
   request: NextRequest,
   tenantId: string | undefined,
-  session: Session,
-  options: ProxyOptions = {}
+  session: Session
 ): Promise<NextResponse> {
   if (!tenantId) {
     return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 })
@@ -139,11 +134,30 @@ export async function proxyTenantImage(
   }
 
   const ifNoneMatch = request.headers.get('if-none-match')
+
+  for (const kind of Array.isArray(kinds) ? kinds : [kinds]) {
+    const result = await getTenantImage(kind, tenantId)
+    if (result === 'not-found') continue
+    if (result instanceof NextResponse) return result
+    return buildImageResponse(result, ifNoneMatch)
+  }
+
+  return NextResponse.json({ error: 'Image not found' }, { status: 404 })
+}
+
+/**
+ * Gets one image from the cache or the backend. Returns 'not-found' if the
+ * tenant doesn't have this image, or an error response if something failed.
+ */
+async function getTenantImage(
+  kind: TenantImageKind,
+  tenantId: string
+): Promise<CachedImage | 'not-found' | NextResponse> {
   const key = cacheKey(kind, tenantId)
 
   const cached = getFreshCached(key)
   if (cached) {
-    return buildImageResponse(cached, ifNoneMatch)
+    return cached
   }
 
   const baseUrl = process.env.XIANS_SERVER_URL
@@ -163,15 +177,12 @@ export async function proxyTenantImage(
       cache: 'no-store',
     })
 
-    if (upstream.status === 404 && options.onNotFound) {
-      return options.onNotFound(request, tenantId)
+    if (upstream.status === 404) {
+      return 'not-found'
     }
 
     if (!upstream.ok) {
-      return NextResponse.json(
-        { error: `${kind} not found` },
-        { status: upstream.status === 404 ? 404 : 502 }
-      )
+      return NextResponse.json({ error: `Failed to fetch ${kind}` }, { status: 502 })
     }
 
     const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream'
@@ -185,8 +196,7 @@ export async function proxyTenantImage(
       expiresAt: Date.now() + IMAGE_CACHE_TTL_MS,
     }
     setCached(key, entry)
-
-    return buildImageResponse(entry, ifNoneMatch)
+    return entry
   } catch (error) {
     console.error(`[Tenant ${kind} Proxy] Failed to fetch ${kind} for tenant`, tenantId, error)
     return NextResponse.json({ error: `Failed to fetch ${kind}` }, { status: 502 })

@@ -59,17 +59,15 @@ describe('tenantFaviconProxyUrl', () => {
     expect(tenantFaviconProxyUrl('acme corp')).toBe('/api/tenants/acme%20corp/favicon')
   })
 
-  it('adds the logo fallback and cache-busting version', () => {
-    expect(tenantFaviconProxyUrl('acme', { fallbackToLogo: true, version: 3 })).toBe(
-      '/api/tenants/acme/favicon?fallback=logo&v=3'
-    )
+  it('adds the cache-busting version', () => {
+    expect(tenantFaviconProxyUrl('acme', { version: 3 })).toBe('/api/tenants/acme/favicon?v=3')
   })
 
   it('omits a zero version', () => {
     expect(tenantFaviconProxyUrl('acme', { version: 0 })).toBe('/api/tenants/acme/favicon')
   })
 
-  it('uses the Agent Studio default asset', () => {
+  it('uses logo.svg as the default icon', () => {
     expect(DEFAULT_FAVICON).toBe('/logo.svg')
   })
 })
