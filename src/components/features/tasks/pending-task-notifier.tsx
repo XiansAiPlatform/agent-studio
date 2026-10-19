@@ -6,15 +6,13 @@ import { useMyPendingTaskCount } from '@/app/(dashboard)/dashboard/hooks/use-my-
 import { useTenant } from '@/hooks/use-tenant'
 import { showToast } from '@/lib/toast'
 
-const POLL_MS = 20_000
-
 /**
- * Polls for HITL requests waiting on the signed-in user. When a new one
+ * Watches for HITL requests waiting on the signed-in user. When a new one
  * appears, shows a toast so people do not have to hunt through chat or menus.
  */
 export function PendingTaskNotifier() {
   const { currentTenantId } = useTenant()
-  const { count } = useMyPendingTaskCount(Boolean(currentTenantId), { pollIntervalMs: POLL_MS })
+  const { count } = useMyPendingTaskCount(Boolean(currentTenantId))
   const pathname = usePathname()
   const router = useRouter()
   const previousCountRef = useRef<number | null>(null)

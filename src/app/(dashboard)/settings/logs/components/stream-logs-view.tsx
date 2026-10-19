@@ -5,7 +5,7 @@ import { PageLoader } from '@/components/ui/page-loader';
 import { useLogs } from '../hooks/use-logs';
 import { LogFilters } from '../types';
 import { LogListItem } from './log-list-item';
-import { LogsPaginationBar } from './logs-pagination-bar';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 
 interface StreamLogsViewProps {
   filters: LogFilters;
@@ -66,7 +66,9 @@ export function StreamLogsView({
               <FileText className="h-7 w-7 text-muted-foreground/60" />
             </div>
             <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-foreground">No logs found</p>
+              <p className="text-sm font-medium text-foreground">
+                {filters.search ? `No logs match "${filters.search}"` : 'No logs found'}
+              </p>
               <p className="text-xs text-muted-foreground max-w-sm">
                 {hasActiveFilters
                   ? 'Try adjusting your filters to see more results'
@@ -87,12 +89,12 @@ export function StreamLogsView({
         ))}
       </div>
 
-      <LogsPaginationBar
-        currentPage={currentPage}
+      <PaginationBar
+        page={currentPage}
         totalPages={totalPages}
         totalCount={totalCount}
         itemNoun="log"
-        isLoading={isLoading}
+        loading={isLoading}
         onPageChange={onPageChange}
       />
     </>

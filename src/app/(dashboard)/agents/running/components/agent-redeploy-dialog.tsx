@@ -25,7 +25,7 @@ export function getRedeploySteps(isActive: boolean): ActionProgressStep[] {
 
   steps.push(
     { id: 'delete', label: 'Undeploy current instance' },
-    { id: 'create', label: 'Create new instance' },
+    { id: 'create', label: 'Deploy new instance' },
     { id: 'activate', label: 'Activate new instance' }
   );
 
@@ -70,7 +70,7 @@ export function AgentRedeployDialog({
             <div className="flex-1">
               <DialogTitle>Redeploy Agent Instance</DialogTitle>
               <DialogDescription className="mt-1">
-                Deactivate, undeploy, and create a fresh instance with the same
+                Deactivate, undeploy, and deploy a fresh instance with the same
                 name
               </DialogDescription>
             </div>
@@ -90,7 +90,7 @@ export function AgentRedeployDialog({
             )}
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground">
-                This will stop and undeploy the current instance, then create
+                This will stop and undeploy the current instance, then deploy
                 and activate a new one with the same name, template, and
                 workflow configuration. Runtime data tied to the old instance
                 may be lost.

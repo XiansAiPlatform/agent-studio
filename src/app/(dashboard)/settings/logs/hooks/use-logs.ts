@@ -42,6 +42,7 @@ export function useLogs(
     filters.logLevel?.join(','),
     filters.startDate,
     filters.endDate,
+    filters.search,
     filters.pageSize,
     filters.page,
   ]);
@@ -76,6 +77,7 @@ export function useLogs(
       
       if (currentFilters.startDate) params.set('startDate', currentFilters.startDate);
       if (currentFilters.endDate) params.set('endDate', currentFilters.endDate);
+      if (currentFilters.search) params.set('search', currentFilters.search);
       
       params.set('pageSize', (currentFilters.pageSize || 20).toString());
       params.set('page', (currentFilters.page || 1).toString());

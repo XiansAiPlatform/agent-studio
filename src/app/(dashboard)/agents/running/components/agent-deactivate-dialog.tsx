@@ -54,7 +54,7 @@ export function AgentDeactivateDialog({
             <div className="flex-1">
               <DialogTitle>Deactivate Agent Instance</DialogTitle>
               <DialogDescription className="mt-1">
-                Stop this agent from running
+                Stop this instance. You can reactivate it later
               </DialogDescription>
             </div>
           </div>
@@ -76,7 +76,7 @@ export function AgentDeactivateDialog({
             )}
             <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-900">
               <p className="text-xs text-muted-foreground">
-                This will stop the agent from processing new tasks and
+                This will stop the instance from processing new tasks and
                 conversations. You can reactivate it later.
               </p>
             </div>

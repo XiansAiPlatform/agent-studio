@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import { PaginationBar } from '@/components/ui/pagination-bar'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
@@ -21,8 +22,6 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   ShieldCheck,
   RefreshCw,
   ArrowUp,
@@ -487,34 +486,12 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1 || isLoading}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages || isLoading}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <PaginationBar
+          page={page}
+          totalPages={totalPages}
+          loading={isLoading}
+          onPageChange={setPage}
+        />
       </DashboardPageBody>
 
       {/* Dialogs */}

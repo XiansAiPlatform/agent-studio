@@ -178,8 +178,10 @@ const navigation: NavigationItem[] = [
     capability: 'tenant:manage-users',
     children: [
       { name: 'Users', href: '/tenant-settings/users' },
+      { name: 'Contacts', href: '/tenant-settings/contacts' },
       { name: 'Branding', href: '/tenant-settings/branding' },
       { name: 'Audit Log', href: '/tenant-settings/audit-log' },
+      { name: 'Email', href: '/tenant-settings/email-configs' },
       {
         name: 'OIDC Providers',
         href: '/tenant-settings/oidc',
@@ -475,9 +477,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const router = useRouter();
   const { can } = usePermissions();
   const { currentTenantId } = useTenant();
-  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId), {
-    pollIntervalMs: 20_000,
-  });
+  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId));
 
   const visibleNavigation = navigation.filter((item) =>
     item.capability ? can(item.capability) : true
