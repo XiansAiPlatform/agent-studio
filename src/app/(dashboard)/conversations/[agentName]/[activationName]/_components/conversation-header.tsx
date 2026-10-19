@@ -86,7 +86,6 @@ export function ConversationHeader({
 }: ConversationHeaderProps) {
   const { onOpenMenu } = useParticipantLayout();
   const { count: pendingCount } = useMyPendingTaskCount(Boolean(agentName && activationName), {
-    pollIntervalMs: 20_000,
     agentName,
     activationName,
   });

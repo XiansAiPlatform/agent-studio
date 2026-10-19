@@ -14,9 +14,8 @@ function extractTenantId(pathname: string): string | null {
 
 /**
  * GET /api/system-admin/tenants/[tenantId]/active-agents
- * Number of active agent activations in a tenant. Shown in the disable-tenant warning, since
- * disabling deactivates all of them and re-enabling does not bring them back.
- * System administrators only.
+ * Count the tenant's active agent activations — the agents that disabling the tenant will
+ * deactivate. System administrators only.
  */
 export const GET = withSystemAdmin(async (request: NextRequest) => {
   const tenantId = extractTenantId(request.nextUrl.pathname)
@@ -26,18 +25,15 @@ export const GET = withSystemAdmin(async (request: NextRequest) => {
 
   try {
     const client = createXiansClient()
-    // The AdminApi returns the full list as a plain array; tolerate a paginated shape too.
-    const response = await client.get<
-      XiansAgentActivation[] | { items?: XiansAgentActivation[]; data?: XiansAgentActivation[] }
-    >(`/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations`)
-    const activations = Array.isArray(response)
-      ? response
-      : response?.items ?? response?.data ?? []
-    const activeCount = activations.filter((a) => a.isActive).length
-    return NextResponse.json({ activeCount })
+    // The upstream returns every activation of the tenant as a plain array.
+    const activations = await client.get<XiansAgentActivation[]>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentActivations`
+    )
+    const count = (activations ?? []).filter((a) => a.isActive).length
+    return NextResponse.json({ count })
   } catch (error) {
     return handleApiError(error, 'system-admin/tenants/[tenantId]/active-agents GET', {
-      fallbackMessage: 'Failed to fetch active agents',
+      fallbackMessage: 'Failed to count active agents',
     })
   }
 })

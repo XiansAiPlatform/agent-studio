@@ -13,12 +13,11 @@ import {
   Trash2,
   RefreshCw,
   ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
   Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -468,30 +467,12 @@ function UsersPageContent() {
         </div>
       )}
 
-      {/* ── Pagination ──────────────────────────────────────────── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1 || isLoading}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages || isLoading}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+      <PaginationBar
+        page={page}
+        totalPages={totalPages}
+        loading={isLoading}
+        onPageChange={setPage}
+      />
 
       {isAllTenants && (
         <p className="text-xs text-muted-foreground text-center">

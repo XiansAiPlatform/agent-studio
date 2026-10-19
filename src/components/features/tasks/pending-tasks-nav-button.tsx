@@ -13,7 +13,7 @@ interface PendingTasksNavButtonProps {
 
 export function PendingTasksNavButton({ className, compact }: PendingTasksNavButtonProps) {
   const { currentTenantId } = useTenant()
-  const { count } = useMyPendingTaskCount(Boolean(currentTenantId), { pollIntervalMs: 20_000 })
+  const { count } = useMyPendingTaskCount(Boolean(currentTenantId))
 
   if (count <= 0) return null
 

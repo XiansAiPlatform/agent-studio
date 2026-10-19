@@ -13,7 +13,7 @@ const VALID_LOG_LEVELS: LogLevel[] = ['Error', 'Warning', 'Information', 'Debug'
 
 /**
  * Owns all URL-derived state for the logs page (selected activation, log
- * level filters, date range, pagination, and the drilled-in workflow id),
+ * level filters, date range, search term, pagination, and the drilled-in workflow id),
  * plus the filter objects and mutation handlers views/consumers need.
  *
  * The URL is the single source of truth: reading a param populates state on
@@ -30,6 +30,7 @@ export function useLogsUrlState() {
   const [selectedLogLevels, setSelectedLogLevels] = useState<LogLevel[]>([]);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [search, setSearch] = useState<string | null>(null);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [selectedStreamMeta, setSelectedStreamMeta] = useState<LogStream | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,6 +45,7 @@ export function useLogsUrlState() {
     const logLevelParam = searchParams.get('logLevel');
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
+    const searchParam = searchParams.get('search');
     const pageParam = searchParams.get('page');
     const workflowIdParam = searchParams.get('workflowId');
     const workflowTypeParam = searchParams.get('workflowType');
@@ -64,6 +66,7 @@ export function useLogsUrlState() {
 
     setStartDate(startDateParam || null);
     setEndDate(endDateParam || null);
+    setSearch(searchParam || null);
     setSelectedWorkflowId(workflowIdParam || null);
 
     // If the user lands directly on a workflow URL (no in-memory metadata), clear stale meta.
@@ -90,10 +93,11 @@ export function useLogsUrlState() {
       logLevel: selectedLogLevels.length > 0 ? selectedLogLevels : undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
+      search: search || undefined,
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
-    [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, currentPage]
+    [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage]
   );
 
   // Filters consumed by the drilled-in stream-logs view
@@ -106,10 +110,11 @@ export function useLogsUrlState() {
       logLevel: selectedLogLevels.length > 0 ? selectedLogLevels : undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
+      search: search || undefined,
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
-    [selectedActivation, selectedWorkflowId, selectedWorkflowType, selectedLogLevels, startDate, endDate, currentPage]
+    [selectedActivation, selectedWorkflowId, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage]
   );
 
   const updateURL = useCallback(
@@ -119,6 +124,7 @@ export function useLogsUrlState() {
       logLevels?: LogLevel[];
       startDate?: string | null;
       endDate?: string | null;
+      search?: string | null;
       page?: number;
       workflowId?: string | null;
     }) => {
@@ -138,6 +144,7 @@ export function useLogsUrlState() {
       const newLogLevels = next.logLevels !== undefined ? next.logLevels : selectedLogLevels;
       const newStartDate = next.startDate !== undefined ? next.startDate : startDate;
       const newEndDate = next.endDate !== undefined ? next.endDate : endDate;
+      const newSearch = next.search !== undefined ? next.search : search;
       const newPage = next.page !== undefined ? next.page : currentPage;
       // Changing the activation or workflow scope leaves a drilled-in stream: the stream belongs to
       // the old scope, so staying on it would make the new filter look like it had no effect.
@@ -155,6 +162,7 @@ export function useLogsUrlState() {
       if (newLogLevels.length > 0) params.set('logLevel', newLogLevels.join(','));
       if (newStartDate) params.set('startDate', newStartDate);
       if (newEndDate) params.set('endDate', newEndDate);
+      if (newSearch) params.set('search', newSearch);
       if (newPage > 1) params.set('page', newPage.toString());
 
       const newURL = params.toString() ? `/settings/logs?${params.toString()}` : '/settings/logs';
@@ -165,11 +173,12 @@ export function useLogsUrlState() {
       setSelectedLogLevels(newLogLevels);
       setStartDate(newStartDate);
       setEndDate(newEndDate);
+      setSearch(newSearch);
       setCurrentPage(newPage);
       setSelectedWorkflowId(newWorkflowId);
       if (!newWorkflowId) setSelectedStreamMeta(null);
     },
-    [router, selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, currentPage, selectedWorkflowId]
+    [router, selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage, selectedWorkflowId]
   );
 
   const handlePageChange = useCallback(
@@ -191,17 +200,18 @@ export function useLogsUrlState() {
   }, [updateURL]);
 
   const clearFilter = useCallback(
-    (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange') => {
+    (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange' | 'search') => {
       if (type === 'activation') updateURL({ activation: null, page: 1 });
       else if (type === 'workflowType') updateURL({ workflowType: null, page: 1 });
       else if (type === 'logLevel') updateURL({ logLevels: [], page: 1 });
       else if (type === 'dateRange') updateURL({ startDate: null, endDate: null, page: 1 });
+      else if (type === 'search') updateURL({ search: null, page: 1 });
     },
     [updateURL]
   );
 
   const clearAllFilters = useCallback(() => {
-    updateURL({ activation: null, logLevels: [], startDate: null, endDate: null, page: 1 });
+    updateURL({ activation: null, logLevels: [], startDate: null, endDate: null, search: null, page: 1 });
   }, [updateURL]);
 
   const applyFilterSliderChanges = useCallback(
@@ -210,21 +220,27 @@ export function useLogsUrlState() {
       workflowType: string | null,
       logLevels: LogLevel[],
       start: string | null,
-      end: string | null
+      end: string | null,
+      searchTerm: string | null
     ) => {
-      updateURL({ activation, workflowType, logLevels, startDate: start, endDate: end, page: 1 });
+      updateURL({ activation, workflowType, logLevels, startDate: start, endDate: end, search: searchTerm, page: 1 });
     },
     [updateURL]
   );
 
   const hasActiveFilters =
-    selectedActivation !== null || selectedLogLevels.length > 0 || startDate !== null || endDate !== null;
+    selectedActivation !== null ||
+    selectedLogLevels.length > 0 ||
+    startDate !== null ||
+    endDate !== null ||
+    search !== null;
 
   const activeFilterCount =
     (selectedActivation ? 1 : 0) +
     (selectedWorkflowType ? 1 : 0) +
     (selectedLogLevels.length > 0 ? 1 : 0) +
-    (startDate || endDate ? 1 : 0);
+    (startDate || endDate ? 1 : 0) +
+    (search ? 1 : 0);
 
   return {
     urlParamsInitialized,
@@ -235,6 +251,7 @@ export function useLogsUrlState() {
     selectedLogLevels,
     startDate,
     endDate,
+    search,
     selectedWorkflowId,
     selectedStreamMeta,
     streamFilters,

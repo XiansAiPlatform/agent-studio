@@ -47,31 +47,44 @@ const ASSOCIATED_DATA_OPTIONS: AssociatedDataOption[] = [
   { id: 'feedback', label: 'Feedback', icon: Star },
 ];
 
-interface AgentDeleteDialogProps {
+export function getUndeploySteps(isActive: boolean): ActionProgressStep[] {
+  const steps: ActionProgressStep[] = [];
+
+  if (isActive) {
+    steps.push({ id: 'deactivate', label: 'Deactivate agent' });
+  }
+
+  steps.push({ id: 'undeploy', label: 'Undeploy agent instance' });
+
+  return steps;
+}
+
+interface AgentUndeployDialogProps {
   open: boolean;
   agent: Agent | null;
-  isDeleting: boolean;
+  isUndeploying: boolean;
   currentStepIndex: number;
   hasFailed?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (selectedDataIds: string[]) => void;
 }
 
-export function AgentDeleteDialog({
+export function AgentUndeployDialog({
   open,
   agent,
-  isDeleting,
+  isUndeploying,
   currentStepIndex,
   hasFailed = false,
   onOpenChange,
   onConfirm,
-}: AgentDeleteDialogProps) {
+}: AgentUndeployDialogProps) {
   const [selectedData, setSelectedData] = useState<Set<string>>(
     () => new Set(ASSOCIATED_DATA_OPTIONS.map((option) => option.id))
   );
 
   const allSelected = selectedData.size === ASSOCIATED_DATA_OPTIONS.length;
   const someSelected = selectedData.size > 0 && !allSelected;
+  const isActive = agent?.status === 'active';
 
   const toggleAll = () => {
     setSelectedData(
@@ -95,21 +108,21 @@ export function AgentDeleteDialog({
 
   const steps: ActionProgressStep[] = useMemo(
     () => [
-      { id: 'delete', label: 'Undeploy agent instance' },
+      ...getUndeploySteps(!!isActive),
       ...ASSOCIATED_DATA_OPTIONS.map((option) => ({
         id: option.id,
         label: `Delete ${option.label}`,
         enabled: selectedData.has(option.id),
       })),
     ],
-    [selectedData]
+    [isActive, selectedData]
   );
 
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (isDeleting && !nextOpen) return;
+        if (isUndeploying && !nextOpen) return;
         if (!nextOpen) {
           setSelectedData(
             new Set(ASSOCIATED_DATA_OPTIONS.map((option) => option.id))
@@ -134,7 +147,7 @@ export function AgentDeleteDialog({
         </DialogHeader>
 
         <div className="py-4 space-y-4">
-          {agent?.status === 'active' && (
+          {isActive && (
             <div className="rounded-lg border border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/30 p-4">
               <div className="flex items-start gap-3">
                 <Info className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
@@ -143,8 +156,8 @@ export function AgentDeleteDialog({
                     Agent is Active
                   </h4>
                   <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-                    This agent is currently running. You must deactivate it
-                    before you can undeploy it.
+                    This agent is currently running. It will be deactivated
+                    before undeploying.
                   </p>
                 </div>
               </div>
@@ -180,7 +193,7 @@ export function AgentDeleteDialog({
                   id="select-all-associated-data"
                   checked={allSelected ? true : someSelected ? 'indeterminate' : false}
                   onCheckedChange={toggleAll}
-                  disabled={isDeleting}
+                  disabled={isUndeploying}
                 />
                 <Label
                   htmlFor="select-all-associated-data"
@@ -201,7 +214,7 @@ export function AgentDeleteDialog({
                     id={`associated-data-${id}`}
                     checked={selectedData.has(id)}
                     onCheckedChange={() => toggleOne(id)}
-                    disabled={isDeleting}
+                    disabled={isUndeploying}
                   />
                   <Label
                     htmlFor={`associated-data-${id}`}
@@ -218,7 +231,7 @@ export function AgentDeleteDialog({
           <ActionProgressSteps
             steps={steps}
             currentStepIndex={currentStepIndex}
-            isRunning={isDeleting}
+            isRunning={isUndeploying}
             hasFailed={hasFailed}
           />
         </div>
@@ -227,16 +240,16 @@ export function AgentDeleteDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isDeleting}
+            disabled={isUndeploying}
           >
             Cancel
           </Button>
           <Button
             variant="destructive"
             onClick={() => onConfirm(Array.from(selectedData))}
-            disabled={isDeleting || agent?.status === 'active'}
+            disabled={isUndeploying}
           >
-            {isDeleting ? (
+            {isUndeploying ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Undeploying...

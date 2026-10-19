@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Tenant } from '../types'
 
 interface DisableTenantDialogProps {
@@ -19,16 +20,6 @@ interface DisableTenantDialogProps {
   onOpenChange: (open: boolean) => void
   onConfirm: () => Promise<void>
   isDisabling: boolean
-  /** Active agent activations in the tenant; null while loading or when the count failed. */
-  activeAgentCount: number | null
-  isLoadingCount: boolean
-}
-
-function describeAgents(count: number | null, isLoading: boolean) {
-  if (isLoading) return 'all of its running agents'
-  if (count === null) return 'all of its running agents'
-  if (count === 0) return 'any agents that are running'
-  return `all ${count} running agent${count === 1 ? '' : 's'}`
 }
 
 export function DisableTenantDialog({
@@ -37,36 +28,67 @@ export function DisableTenantDialog({
   onOpenChange,
   onConfirm,
   isDisabling,
-  activeAgentCount,
-  isLoadingCount,
 }: DisableTenantDialogProps) {
+  // Keyed by tenant so a result for a previous tenant reads as still loading. count null = failed.
+  const [result, setResult] = useState<{ tenantId: string; count: number | null } | null>(null)
+  const tenantId = tenant?.tenantId
+
+  useEffect(() => {
+    if (!open || !tenantId) return
+    let cancelled = false
+    fetch(`/api/system-admin/tenants/${encodeURIComponent(tenantId)}/active-agents`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`)
+        const body: { count?: unknown } = await res.json()
+        if (typeof body?.count !== 'number') throw new Error('Invalid response shape')
+        if (!cancelled) setResult({ tenantId, count: body.count })
+      })
+      .catch((error) => {
+        console.warn('[DisableTenantDialog] Failed to fetch active agents count:', error)
+        if (!cancelled) setResult({ tenantId, count: null })
+      })
+    return () => {
+      cancelled = true
+      setResult(null)
+    }
+  }, [open, tenantId])
+
+  // undefined = loading, null = failed to load
+  const activeCount = result && result.tenantId === tenantId ? result.count : undefined
+
+  const agentsLine =
+    activeCount === undefined ? (
+      <span className="inline-flex items-center gap-1.5">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        Counting active agents…
+      </span>
+    ) : activeCount === null ? (
+      'All of its active agents will be deactivated (the count could not be loaded).'
+    ) : activeCount === 0 ? (
+      'It has no active agents.'
+    ) : (
+      <>
+        <span className="font-medium text-foreground">
+          {activeCount} active {activeCount === 1 ? 'agent' : 'agents'}
+        </span>{' '}
+        will be deactivated in the background.
+      </>
+    )
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Disable tenant?</AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-3">
+            <div className="space-y-2">
               <p>
-                Disabling{' '}
+                Users will lose access to{' '}
                 <span className="font-medium text-foreground">{tenant?.name}</span>{' '}
-                (<span className="font-mono">{tenant?.tenantId}</span>) will block its
-                users and deactivate{' '}
-                <span className="font-medium text-foreground">
-                  {describeAgents(activeAgentCount, isLoadingCount)}
-                </span>
-                {isLoadingCount && (
-                  <Loader2 className="ml-1 inline h-3 w-3 animate-spin" aria-label="Counting agents" />
-                )}
-                {' '}(workflows cancelled, schedules deleted).
+                (<span className="font-mono">{tenant?.tenantId}</span>).
               </p>
-              <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-amber-900 dark:text-amber-200">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>
-                  Re-enabling the tenant will <span className="font-semibold">not</span>{' '}
-                  reactivate these agents. They must be activated again manually.
-                </p>
-              </div>
+              <p>{agentsLine}</p>
+              <p>Re-enabling the tenant does not reactivate its agents.</p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -82,7 +104,7 @@ export function DisableTenantDialog({
             className="bg-destructive text-white hover:bg-destructive/90"
           >
             {isDisabling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Disable tenant
+            Disable
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

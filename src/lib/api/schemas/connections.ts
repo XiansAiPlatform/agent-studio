@@ -16,7 +16,14 @@ const PROVIDER_IDS = [
   'github',
   'notion',
   'generic-oidc',
+  'oauth-mcp',
 ] as const
+
+const externalUrlSchema = z
+  .string()
+  .url()
+  .startsWith('https://', { message: 'URL must use https' })
+  .max(2048)
 
 const wellKnownUrlSchema = z
   .string()
@@ -41,6 +48,7 @@ const baseConnectionFields = {
   clientSecret: z.string().min(1).max(2000),
   customScopes: customScopesSchema,
   wellKnownUrl: wellKnownUrlSchema.optional(),
+  mcpUrl: externalUrlSchema.optional(),
 }
 
 export const CreateConnectionSchema = z
@@ -51,8 +59,20 @@ export const InitiateConnectionSchema = z
   .object({
     ...baseConnectionFields,
     returnUrl: z.string().max(2048).optional(),
+    agentName: z.string().min(1).max(100).optional(),
+    activationName: z.string().min(1).max(100).optional(),
   })
   .strict()
+  .superRefine((value, context) => {
+    if (value.providerId !== 'oauth-mcp') return
+    if (!value.mcpUrl) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['mcpUrl'],
+        message: 'mcpUrl is required for OAuth MCP connections',
+      })
+    }
+  })
 
 export const AuthorizeConnectionSchema = z
   .object({

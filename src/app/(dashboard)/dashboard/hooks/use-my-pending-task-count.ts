@@ -1,105 +1,65 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { subscribeMyPendingTaskCountRefresh } from '@/lib/pending-task-count-sync'
-
-type TasksListResponse = {
-  tasks?: unknown[]
-  totalCount?: number | null
-  hasNextPage?: boolean
-}
+import { useEffect, useSyncExternalStore } from 'react'
+import { useTenantStore } from '@/store/tenant-store'
+import { refreshMyPendingTaskCounts } from '@/lib/pending-task-count-sync'
+import {
+  EMPTY_PENDING_TASK_SUMMARY,
+  pendingTaskActivationKey,
+  type PendingTaskSummary,
+} from '@/lib/pending-task-summary'
+import {
+  getPendingTaskSummaryServerSnapshot,
+  getPendingTaskSummarySnapshot,
+  retainPendingTaskSummary,
+  subscribePendingTaskSummary,
+} from '@/lib/pending-task-summary-store'
 
 type PendingTaskCountOptions = {
-  pollIntervalMs?: number
   agentName?: string
   activationName?: string
 }
 
 /**
- * Fetches the count of the current user's pending (Running) HITL tasks.
- * Prefer totalCount when the API provides it; otherwise use the first page length.
+ * Shared summary of the current user's pending (Running) HITL tasks.
+ * Every mounted consumer shares one poll, which pauses while the tab is hidden.
+ */
+export function useMyPendingTaskSummary(enabled = true): {
+  summary: PendingTaskSummary
+  isLoading: boolean
+} {
+  const tenantId = useTenantStore((state) => state.currentTenantId)
+  const active = enabled && Boolean(tenantId)
+  const snapshot = useSyncExternalStore(
+    subscribePendingTaskSummary,
+    getPendingTaskSummarySnapshot,
+    getPendingTaskSummaryServerSnapshot
+  )
+
+  useEffect(() => {
+    if (!active || !tenantId) return
+    return retainPendingTaskSummary(tenantId)
+  }, [active, tenantId])
+
+  if (!active) return { summary: EMPTY_PENDING_TASK_SUMMARY, isLoading: false }
+  if (snapshot.tenantId !== tenantId) return { summary: EMPTY_PENDING_TASK_SUMMARY, isLoading: true }
+  return { summary: snapshot.summary, isLoading: snapshot.isLoading }
+}
+
+/**
+ * Count of the current user's pending HITL tasks, optionally for one activation.
  * Safe for participants and all sidebar roles (viewType=my).
  */
 export function useMyPendingTaskCount(
   enabled = true,
   options: PendingTaskCountOptions = {}
 ) {
-  const { pollIntervalMs, agentName, activationName } = options
-  const [count, setCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(enabled)
+  const { agentName, activationName } = options
+  const { summary, isLoading } = useMyPendingTaskSummary(enabled)
+  const count =
+    agentName && activationName
+      ? summary.countsByActivation[pendingTaskActivationKey(agentName, activationName)] ?? 0
+      : summary.totalCount
 
-  const fetchCount = useCallback(
-    async (signal?: AbortSignal) => {
-      const params = new URLSearchParams({
-        viewType: 'my',
-        status: 'Running',
-      })
-      if (agentName) params.set('agentName', agentName)
-      if (activationName) params.set('activationName', activationName)
-
-      const response = await fetch(`/api/tasks?${params}`, {
-        signal,
-        cache: 'no-store',
-      })
-      if (!response.ok) {
-        setCount(0)
-        return
-      }
-      const data: TasksListResponse = await response.json()
-      if (typeof data.totalCount === 'number') {
-        setCount(data.totalCount)
-        return
-      }
-      const length = Array.isArray(data.tasks) ? data.tasks.length : 0
-      setCount(data.hasNextPage && length > 0 ? length : length)
-    },
-    [agentName, activationName]
-  )
-
-  useEffect(() => {
-    if (!enabled) {
-      setIsLoading(false)
-      setCount(0)
-      return
-    }
-
-    const abortController = new AbortController()
-
-    async function load() {
-      setIsLoading(true)
-      try {
-        await fetchCount(abortController.signal)
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') return
-        setCount(0)
-      } finally {
-        if (!abortController.signal.aborted) setIsLoading(false)
-      }
-    }
-
-    load()
-
-    const interval =
-      pollIntervalMs && pollIntervalMs > 0
-        ? window.setInterval(() => {
-            fetchCount(abortController.signal).catch((error) => {
-              if (error instanceof Error && error.name === 'AbortError') return
-            })
-          }, pollIntervalMs)
-        : null
-
-    const unsubscribe = subscribeMyPendingTaskCountRefresh(() => {
-      fetchCount(abortController.signal).catch((error) => {
-        if (error instanceof Error && error.name === 'AbortError') return
-      })
-    })
-
-    return () => {
-      abortController.abort()
-      if (interval) window.clearInterval(interval)
-      unsubscribe()
-    }
-  }, [enabled, fetchCount, pollIntervalMs])
-
-  return { count, isLoading, refetch: fetchCount }
+  return { count, isLoading, refetch: refreshMyPendingTaskCounts }
 }
