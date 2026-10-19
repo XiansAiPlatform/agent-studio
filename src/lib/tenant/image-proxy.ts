@@ -12,12 +12,13 @@ import { xiansAdminHeaders } from '@/lib/xians/client'
  * key, and the browser must never see that key. So this code fetches the image
  * on the server, adds the key there, and passes the image on to the browser.
  *
- * There are two caches:
+ * Caching:
  * - The server keeps each image in memory for 5 minutes, so it doesn't ask the
  *   backend again on every page load. Saving or removing an image clears it
  *   straight away (see `invalidateTenantImage`).
- * - The browser keeps the image for 1 hour. After that it asks again, and if
- *   the image hasn't changed the server just replies "not modified" (304).
+ * - The browser keeps a copy but checks with the server before each use. If
+ *   the image hasn't changed, the server just replies "not modified" (304), so
+ *   this is cheap, and a new logo or favicon shows on the next page load.
  */
 
 export type TenantImageKind = 'logo' | 'favicon'
@@ -31,11 +32,16 @@ interface CachedImage {
 
 // In-memory cache. It lives as long as the server process does. There are few
 // tenants and the images are small, so a simple Map is enough.
-const imageCache = new Map<string, CachedImage>()
+//
+// It is kept on `globalThis` because Next.js may bundle each route separately,
+// each with its own copy of this file. Without this, the save route would clear
+// one copy of the cache while the image route kept serving the old image.
+const globalForImageCache = globalThis as typeof globalThis & {
+  __tenantImageCache?: Map<string, CachedImage>
+}
+const imageCache = (globalForImageCache.__tenantImageCache ??= new Map<string, CachedImage>())
 const IMAGE_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 const IMAGE_CACHE_MAX_ENTRIES = 200
-// How long the browser may reuse an image before asking again.
-const BROWSER_MAX_AGE_SECONDS = 3600
 
 function cacheKey(kind: TenantImageKind, tenantId: string): string {
   return `${kind}:${tenantId}`
@@ -77,7 +83,8 @@ function buildImageResponse(
 ): NextResponse {
   const headers = {
     'Content-Type': entry.contentType,
-    'Cache-Control': `private, max-age=${BROWSER_MAX_AGE_SECONDS}, stale-while-revalidate=86400`,
+    // The browser may keep a copy, but must check with us before using it.
+    'Cache-Control': 'private, no-cache',
     ETag: entry.etag,
   }
 

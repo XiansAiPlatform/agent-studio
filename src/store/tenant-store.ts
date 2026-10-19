@@ -27,8 +27,9 @@ interface TenantState {
   /** When false, user cannot change theme (tenant has set theme and user is not admin) */
   canCustomizeTheme: boolean
   /**
-   * A number that goes up by one each time the logo or favicon changes. It is
-   * added to image URLs so the browser loads the new image, not its old copy.
+   * Changes to a new, unique number (the current time) each time the logo or
+   * favicon changes. It is added to image URLs so the browser loads the new
+   * image, not its old copy. It is 0 until the first change.
    */
   brandingVersion: number
 
@@ -62,7 +63,10 @@ export const useTenantStore = create<TenantState>()(
       canCustomizeTheme: true,
       brandingVersion: 0,
 
-      bumpBrandingVersion: () => set((state) => ({ brandingVersion: state.brandingVersion + 1 })),
+      // Use the current time, not a counter. A counter starts again at 0 after a
+      // page reload, so it would reuse URLs the browser may still have cached.
+      bumpBrandingVersion: () =>
+        set((state) => ({ brandingVersion: Math.max(Date.now(), state.brandingVersion + 1) })),
 
       setCanCustomizeTheme: (value) => set({ canCustomizeTheme: value }),
 

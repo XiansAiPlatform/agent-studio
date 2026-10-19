@@ -34,10 +34,16 @@ const MAX_LOGO_BYTES = 700 * 1024
 const MAX_FAVICON_BYTES = 256 * 1024
 const MIN_FAVICON_SIZE = 32
 
-function getFaviconWarning({ width, height }: { width: number; height: number }) {
+// A favicon must be square, or browsers squash or crop it.
+function getFaviconError({ width, height }: { width: number; height: number }) {
   if (width !== height) {
-    return `This image is ${width}×${height}px. Favicons look best square; it will be scaled to fit.`
+    return `This image is ${width}×${height}px. A favicon must be square (for example 64×64px). The current favicon was kept.`
   }
+  return null
+}
+
+// A small favicon can still be saved, but may look blurry.
+function getFaviconWarning({ width, height }: { width: number; height: number }) {
   if (width < MIN_FAVICON_SIZE) {
     return `This image is ${width}×${height}px. Use at least ${MIN_FAVICON_SIZE}×${MIN_FAVICON_SIZE}px for a sharp icon.`
   }
@@ -130,7 +136,9 @@ export default function BrandingPage() {
     await saveLogo(logo)
     if (currentTenantId) {
       setTenantLogo(currentTenantId, {
-        url: tenantLogoProxyUrl(currentTenantId),
+        // A new URL each time, so every place that shows the logo loads the
+        // new image instead of reusing the old one.
+        url: `${tenantLogoProxyUrl(currentTenantId)}?v=${Date.now()}`,
         width: logo.width,
         height: logo.height,
       })
@@ -267,7 +275,7 @@ export default function BrandingPage() {
           key={`favicon-${currentTenantId}`}
           kind="favicon"
           title="Favicon"
-          description="The icon shown in browser tabs and bookmarks. Recommended: a square PNG, SVG, or ICO, at least 32×32px. Without one, the logo is used, or the default Agent Studio icon."
+          description="The icon shown in browser tabs and bookmarks. It must be square: a PNG, SVG, or ICO, ideally at least 32×32px. Without one, the logo is used, or the default Agent Studio icon."
           fileHint="square PNG, SVG, or ICO under 256KB"
           maxBytes={MAX_FAVICON_BYTES}
           accept="image/*,.ico"
@@ -278,6 +286,7 @@ export default function BrandingPage() {
           isMutating={isMutating}
           onSave={handleSaveFavicon}
           onRemove={handleRemoveFavicon}
+          getError={getFaviconError}
           getWarning={getFaviconWarning}
           renderPreview={(src) => (
             <div className="space-y-2">
