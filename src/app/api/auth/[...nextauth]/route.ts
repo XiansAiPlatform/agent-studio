@@ -11,6 +11,12 @@ import { XiansTenantsApi } from "@/lib/xians/tenants"
 import { describeXiansError, isServiceApiKeyError } from "@/lib/xians/errors"
 import { runWithOnBehalfOf } from "@/lib/xians/on-behalf-of"
 import {
+  applyStoredDisplayName,
+  sessionNameFromToken,
+  shouldRefreshStoredDisplayName,
+  shouldRevalidateTenantMembership,
+} from "@/lib/auth/display-name"
+import {
   evaluateEmailVerification,
   redactEmail,
   resolveEmailVerificationPolicy,
@@ -450,6 +456,13 @@ export const authOptions: NextAuthOptions = {
         token.hasTenantAccess = user.hasTenantAccess
         token.isSystemAdmin = user.isSystemAdmin
         token.tenantAccessCheckedAt = Date.now()
+        // Keep the identity-provider name so a blank stored name can fall back
+        // to it. Captured once; later refreshes must not overwrite it with the
+        // stored name that this callback writes onto token.name.
+        if (token.providerName === undefined) {
+          const profileName = typeof user.name === "string" ? user.name.trim() : ""
+          token.providerName = profileName || null
+        }
       }
 
       // Refresh the Microsoft (Entra ID or B2C) access token before it expires
@@ -474,26 +487,60 @@ export const authOptions: NextAuthOptions = {
           : 0
       const isStale = Date.now() - lastChecked > REVALIDATE_AFTER_MS
 
-      if ((trigger === 'update' || isStale) && token.email) {
-        try {
-          await runWithOnBehalfOf(token.email as string, async () => {
-            const client = createXiansClient()
-            const tenantsApi = new XiansTenantsApi(client)
-            const response = await tenantsApi.getParticipantTenants(
-              token.email as string
+      const revalidateTenant = shouldRevalidateTenantMembership({
+        trigger,
+        isStale,
+        email: token.email as string | null | undefined,
+      })
+      const refreshDisplayName = shouldRefreshStoredDisplayName({
+        hasSignInUser: !!user,
+        isStale,
+        email: token.email as string | null | undefined,
+      })
+
+      if ((revalidateTenant || refreshDisplayName) && token.email) {
+        await runWithOnBehalfOf(token.email as string, async () => {
+          const tasks: Promise<void>[] = []
+
+          if (revalidateTenant) {
+            tasks.push(
+              (async () => {
+                try {
+                  const client = createXiansClient()
+                  const tenantsApi = new XiansTenantsApi(client)
+                  const response = await tenantsApi.getParticipantTenants(
+                    token.email as string
+                  )
+                  token.hasTenantAccess = response.tenants.length > 0
+                  token.isSystemAdmin = response.isSystemAdmin
+                  token.tenantAccessCheckedAt = Date.now()
+                } catch (error) {
+                  console.error(
+                    '[Auth] Failed to re-validate tenant access during jwt refresh:',
+                    describeXiansError(error)
+                  )
+                }
+              })()
             )
-            token.hasTenantAccess = response.tenants.length > 0
-            token.isSystemAdmin = response.isSystemAdmin
-            token.tenantAccessCheckedAt = Date.now()
-          })
-        } catch (error) {
-          // Don't fail the request on a transient backend issue; just keep the
-          // existing claims and try again on the next refresh cycle.
-          console.error(
-            '[Auth] Failed to re-validate tenant access during jwt refresh:',
-            describeXiansError(error)
-          )
-        }
+          }
+
+          if (refreshDisplayName) {
+            tasks.push(
+              (async () => {
+                try {
+                  await applyStoredDisplayName(token)
+                } catch (error) {
+                  console.error(
+                    '[Auth] Failed to resolve stored display name:',
+                    describeXiansError(error)
+                  )
+                }
+              })()
+            )
+          }
+
+          await Promise.all(tasks)
+        })
       }
 
       return token
@@ -504,6 +551,10 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.email = (token.email as string | null | undefined) ?? session.user.email
+        const resolvedName = sessionNameFromToken(token.name, session.user.name)
+        if (resolvedName !== undefined && resolvedName !== null) {
+          session.user.name = resolvedName
+        }
         session.accessToken = token.accessToken as string
         session.user.hasTenantAccess = token.hasTenantAccess as boolean
         session.user.isSystemAdmin = token.isSystemAdmin as boolean
