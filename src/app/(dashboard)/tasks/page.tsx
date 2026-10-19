@@ -17,8 +17,9 @@ import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
 import { showErrorToast } from '@/lib/utils/error-handler';
-import { Filter, X, ChevronLeft, ChevronRight, ClipboardList, CheckSquare } from 'lucide-react';
+import { Filter, X, ClipboardList, CheckSquare } from 'lucide-react';
 import { PageLoader } from '@/components/ui/page-loader';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import { useParticipantLayout } from '@/contexts/participant-layout-context';
 import { ParticipantMenuBar } from '@/app/(dashboard)/conversations/[agentName]/[activationName]/_components/participant-menu-bar';
 
@@ -71,7 +72,6 @@ function TasksContent() {
   const [selectedActivation, setSelectedActivation] = useState<SelectedActivation | null>(null);
   const [viewType, setViewType] = useState<ViewType>('my');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [allActivations, setAllActivations] = useState<Array<{ activationName: string; agentName: string }>>([]);
   const [isLoadingActivations, setIsLoadingActivations] = useState(true);
@@ -294,9 +294,7 @@ function TasksContent() {
       const data: XiansTasksResponse = await response.json();
       console.log('[TasksPage] Fetched tasks:', data);
       
-      // Update pagination state
       setHasNextPage(data.hasNextPage);
-      setTotalPages(data.hasNextPage ? currentPage + 1 : currentPage);
 
       // Remove duplicates based on workflowId (keep first occurrence)
       const listedTasks = Array.isArray(data.tasks) ? data.tasks : [];
@@ -644,38 +642,12 @@ function TasksContent() {
                 ))}
               </div>
               
-              {/* Pagination */}
-              <Card className="border-border">
-                <CardContent className="!px-5 !py-3.5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground font-medium">
-                      Page {currentPage}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || isLoadingTasks}
-                        className="h-8 rounded-lg"
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={!hasNextPage || isLoadingTasks}
-                        className="h-8 rounded-lg"
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <PaginationBar
+                page={currentPage}
+                hasNext={hasNextPage}
+                loading={isLoadingTasks}
+                onPageChange={handlePageChange}
+              />
             </>
           ) : (
             <Card className="border-border">

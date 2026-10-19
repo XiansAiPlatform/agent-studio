@@ -10,11 +10,10 @@ import {
   Search,
   Loader2,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,8 +43,6 @@ function TenantsPageContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [togglingTenantId, setTogglingTenantId] = useState<string | null>(null);
   const [disableTarget, setDisableTarget] = useState<Tenant | null>(null);
-  const [activeAgentCount, setActiveAgentCount] = useState<number | null>(null);
-  const [isLoadingAgentCount, setIsLoadingAgentCount] = useState(false);
 
   const {
     tenants,
@@ -56,7 +53,6 @@ function TenantsPageContent() {
     createTenant,
     updateTenant,
     deleteTenant,
-    fetchActiveAgentCount,
   } = useTenants();
 
   const isSystemAdmin = useCan('system:admin');
@@ -110,6 +106,21 @@ function TenantsPageContent() {
     }
   };
 
+  // Disabling deactivates the tenant's agents, so it is confirmed first; enabling is not.
+  const handleToggleRequest = async (tenant: Tenant) => {
+    if (tenant.enabled) {
+      setDisableTarget(tenant);
+      return;
+    }
+    await setEnabled(tenant, true);
+  };
+
+  const handleDisableConfirm = async () => {
+    if (!disableTarget) return;
+    await setEnabled(disableTarget, false);
+    setDisableTarget(null);
+  };
+
   const setEnabled = async (tenant: Tenant, enabled: boolean) => {
     setTogglingTenantId(tenant.tenantId);
     try {
@@ -129,31 +140,6 @@ function TenantsPageContent() {
     } finally {
       setTogglingTenantId(null);
     }
-  };
-
-  // Enabling is harmless; disabling deactivates every agent and cannot be undone by
-  // re-enabling, so it goes through a confirmation that shows how many agents are affected.
-  const handleToggleEnabled = async (tenant: Tenant) => {
-    if (!tenant.enabled) {
-      await setEnabled(tenant, true);
-      return;
-    }
-    setDisableTarget(tenant);
-    setActiveAgentCount(null);
-    setIsLoadingAgentCount(true);
-    try {
-      setActiveAgentCount(await fetchActiveAgentCount(tenant.tenantId));
-    } catch {
-      setActiveAgentCount(null);
-    } finally {
-      setIsLoadingAgentCount(false);
-    }
-  };
-
-  const handleDisableConfirm = async () => {
-    if (!disableTarget) return;
-    await setEnabled(disableTarget, false);
-    setDisableTarget(null);
   };
 
   const handleDeleteRequest = (tenant: Tenant) => {
@@ -262,7 +248,7 @@ function TenantsPageContent() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                    <div className="flex h-8 w-8 shrink-0 items-handleToggleEnabledcenter justify-center rounded-md bg-primary/10">
                       <Building2 className="h-4 w-4 text-primary" />
                     </div>
                     <div className="min-w-0">
@@ -310,29 +296,14 @@ function TenantsPageContent() {
         </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <span className="text-sm text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={!pagination.hasPrevious || isLoading}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-            disabled={!pagination.hasNext || isLoading}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+      <PaginationBar
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        hasPrevious={pagination.hasPrevious}
+        hasNext={pagination.hasNext}
+        loading={isLoading}
+        onPageChange={setPage}
+      />
       </DashboardPageBody>
 
       <AddTenantDialog
@@ -348,9 +319,19 @@ function TenantsPageContent() {
           if (!open) setEditTarget(null);
         }}
         onSubmit={handleEdit}
-        onToggleEnabled={handleToggleEnabled}
+        onToggleEnabled={handleToggleRequest}
         onDeleteRequest={handleDeleteRequest}
         isToggling={togglingTenantId === editTarget?.tenantId}
+      />
+
+      <DisableTenantDialog
+        tenant={disableTarget}
+        open={disableTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && togglingTenantId === null) setDisableTarget(null);
+        }}
+        onConfirm={handleDisableConfirm}
+        isDisabling={togglingTenantId !== null && togglingTenantId === disableTarget?.tenantId}
       />
 
       <DeleteTenantDialog
@@ -363,17 +344,6 @@ function TenantsPageContent() {
         isDeleting={isDeleting}
       />
 
-      <DisableTenantDialog
-        tenant={disableTarget}
-        open={disableTarget !== null}
-        onOpenChange={(open) => {
-          if (!open && togglingTenantId === null) setDisableTarget(null);
-        }}
-        onConfirm={handleDisableConfirm}
-        isDisabling={disableTarget !== null && togglingTenantId === disableTarget.tenantId}
-        activeAgentCount={activeAgentCount}
-        isLoadingCount={isLoadingAgentCount}
-      />
     </DashboardPage>
   );
 }

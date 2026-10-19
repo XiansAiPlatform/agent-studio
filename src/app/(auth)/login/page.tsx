@@ -4,7 +4,19 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { SignInForm } from "./sign-in-form"
 import { useTenantProvider } from "@/lib/tenant"
 
-export default async function LoginPage() {
+// NextAuth redirects here with ?error=AccessDenied when the signIn callback refuses a user.
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  AccessDenied: "Your email address could not be verified. Contact your administrator.",
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string | string[] }>
+}) {
+  const { error } = await searchParams
+  const authError = typeof error === "string" ? AUTH_ERROR_MESSAGES[error] ?? null : null
+
   const session = await getServerSession(authOptions)
   
   if (session) {
@@ -33,7 +45,7 @@ export default async function LoginPage() {
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <SignInForm />
+      <SignInForm initialError={authError} />
     </div>
   )
 }

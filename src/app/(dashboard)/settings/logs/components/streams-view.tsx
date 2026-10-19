@@ -7,7 +7,7 @@ import { Loader2, Layers, ChevronRight, Bot, Workflow } from 'lucide-react';
 import { useLogStreams } from '../hooks/use-log-streams';
 import { LogStream, LogStreamFilters } from '../types';
 import { LogStreamListItem } from './log-stream-list-item';
-import { LogsPaginationBar } from './logs-pagination-bar';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const UNGROUPED_KEY = '\u0000';
 
@@ -217,7 +217,9 @@ export function StreamsView({
                 <Layers className="h-7 w-7 text-muted-foreground/60" />
               </div>
               <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-foreground">No log streams found</p>
+                <p className="text-sm font-medium text-foreground">
+                  {filters.search ? `No logs match "${filters.search}"` : 'No log streams found'}
+                </p>
                 <p className="text-xs text-muted-foreground max-w-sm">
                   {hasActiveFilters
                     ? 'Try adjusting your filters to see more results'
@@ -334,12 +336,12 @@ export function StreamsView({
         </div>
       )}
 
-      <LogsPaginationBar
-        currentPage={currentPage}
+      <PaginationBar
+        page={currentPage}
         totalPages={totalPages}
         totalCount={totalCount}
         itemNoun="stream"
-        isLoading={isLoading}
+        loading={isLoading}
         onPageChange={onPageChange}
       />
     </>
