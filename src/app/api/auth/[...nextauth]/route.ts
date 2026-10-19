@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto"
 import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
@@ -160,7 +161,13 @@ if (process.env.LOCAL_AUTH_ENABLED === 'true' && localAuthUsers.size > 0) {
           return null
         }
         const expected = localAuthUsers.get(email)
-        if (expected && expected === credentials.password) {
+        const expectedBuf = Buffer.from(expected ?? '')
+        const suppliedBuf = Buffer.from(credentials.password ?? '')
+        const match =
+          expected !== undefined &&
+          expectedBuf.length === suppliedBuf.length &&
+          timingSafeEqual(expectedBuf, suppliedBuf)
+        if (match) {
           return { id: email, name: email.split('@')[0], email }
         }
         return null
