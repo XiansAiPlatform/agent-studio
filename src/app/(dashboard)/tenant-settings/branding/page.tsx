@@ -53,6 +53,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 type LogoSource = 'upload' | 'url'
 
 interface PendingUpload {
+  fileName: string
   dataUrl: string
   width: number
   height: number
@@ -79,13 +80,20 @@ export default function BrandingPage() {
   const [logoSource, setLogoSource] = useState<LogoSource>('upload')
   const [logoUrl, setLogoUrl] = useState('')
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null)
+  const [isDraggingLogo, setIsDraggingLogo] = useState(false)
   // Bumped after a successful logo change to bust the proxy image cache.
   const [logoVersion, setLogoVersion] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Refetch when the active tenant changes. The branding API reads the tenant
+  // from the cookie, so a switch without this would keep showing the previous
+  // tenant's theme and logo.
   useEffect(() => {
+    setPendingUpload(null)
+    setLogoUrl('')
+    setLogoSource('upload')
     fetchBranding()
-  }, [fetchBranding])
+  }, [currentTenantId, fetchBranding])
 
   // Sync the selected theme with the loaded branding (only the known app themes
   // are selectable; an unknown stored value leaves the picker unselected).
@@ -137,10 +145,7 @@ export default function BrandingPage() {
   }
 
   // ── Logo ───────────────────────────────────────────────────────────────────
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  const acceptImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please choose an image file')
       return
@@ -153,13 +158,29 @@ export default function BrandingPage() {
     try {
       const dataUrl = await readFileAsDataUrl(file)
       const { width, height } = await getImageDimensions(dataUrl)
-      setPendingUpload({ dataUrl, width, height })
+      setPendingUpload({ fileName: file.name, dataUrl, width, height })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not read the image')
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      await acceptImageFile(file)
     } finally {
       // Allow re-selecting the same file.
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  const handleLogoDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault()
+    setIsDraggingLogo(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) await acceptImageFile(file)
   }
 
   const handleSaveLogo = async () => {
@@ -311,29 +332,6 @@ export default function BrandingPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Preview */}
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
-                {logoPreviewSrc ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={logoPreviewSrc}
-                    alt="Tenant logo"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                ) : (
-                  <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {pendingUpload
-                  ? 'New image ready to save'
-                  : hasExistingLogo
-                    ? 'Current logo'
-                    : 'No logo set'}
-              </div>
-            </div>
-
             {/* Source toggle */}
             <div className="inline-flex rounded-lg border p-1">
               <button
@@ -365,31 +363,99 @@ export default function BrandingPage() {
             </div>
 
             {logoSource === 'upload' ? (
-              <div className="space-y-2">
-                <Label htmlFor="logo-file">Choose an image</Label>
-                <Input
+              // Distinct key from the URL field so React does not reuse one
+              // <input>. A file input must stay uncontrolled; the URL field is
+              // controlled. Reusing the node flips value between undefined and a
+              // string and breaks file selection.
+              <div key="logo-upload">
+                <input
                   id="logo-file"
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  className="sr-only"
                   onChange={handleFileChange}
                 />
-                {pendingUpload && (
-                  <p className="text-xs text-muted-foreground">
-                    {pendingUpload.width}×{pendingUpload.height}px selected
-                  </p>
-                )}
+                <label
+                  htmlFor="logo-file"
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDraggingLogo(true)
+                  }}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                      setIsDraggingLogo(false)
+                    }
+                  }}
+                  onDrop={handleLogoDrop}
+                  className={cn(
+                    'flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-8 text-center transition-colors',
+                    isDraggingLogo
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-muted/30 hover:border-primary/60 hover:bg-muted/50'
+                  )}
+                >
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border bg-background">
+                    {logoPreviewSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={logoPreviewSrc}
+                        alt="Tenant logo"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="max-w-full break-all text-sm font-medium text-foreground">
+                      {pendingUpload
+                        ? pendingUpload.fileName
+                        : hasExistingLogo
+                          ? 'Replace the current logo'
+                          : 'Choose an image'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {pendingUpload
+                        ? `${pendingUpload.width}×${pendingUpload.height}px · ready to save`
+                        : 'Click here, or drag and drop a PNG, SVG, or JPG under 700KB'}
+                    </p>
+                  </div>
+                  <span className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+                    <Upload className="h-4 w-4" />
+                    {pendingUpload || hasExistingLogo ? 'Change image' : 'Choose image'}
+                  </span>
+                </label>
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label htmlFor="logo-url">Image URL</Label>
-                <Input
-                  id="logo-url"
-                  type="url"
-                  placeholder="https://example.com/logo.png"
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                />
+              <div key="logo-url" className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
+                    {logoPreviewSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={logoPreviewSrc}
+                        alt="Tenant logo"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {hasExistingLogo ? 'Current logo' : 'No logo set'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="logo-url">Image URL</Label>
+                  <Input
+                    id="logo-url"
+                    type="url"
+                    placeholder="https://example.com/logo.png"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                  />
+                </div>
               </div>
             )}
           </CardContent>

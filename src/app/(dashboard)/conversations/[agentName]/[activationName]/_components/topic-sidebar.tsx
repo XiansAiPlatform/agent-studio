@@ -1,6 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { TopicList } from '@/components/features/conversations';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import { Topic } from '@/types/conversation';
 import { ActivationOption } from '../../../hooks';
 import { cn } from '@/lib/utils';
@@ -88,35 +87,15 @@ export function TopicSidebar({
         />
       </div>
 
-      {/* Pagination Controls */}
-      {!isLoadingTopics && totalPages > 1 && (
-        <div className="border-t border-primary/20 p-4 flex items-center justify-between bg-primary/[0.04] shadow-lg">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="h-9 px-3 rounded-lg bg-primary/5 hover:bg-primary/15 hover:text-primary transition-all duration-300 disabled:opacity-40 border border-primary/10"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1.5" />
-            Back
-          </Button>
-
-          <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/30 shadow-md">
-            {currentPage} / {totalPages}
-          </span>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={!hasMore}
-            className="h-9 px-3 rounded-lg bg-primary/5 hover:bg-primary/15 hover:text-primary transition-all duration-300 disabled:opacity-40 border border-primary/10"
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1.5" />
-          </Button>
-        </div>
+      {!isLoadingTopics && (
+        <PaginationBar
+          variant="compact"
+          attached
+          page={currentPage}
+          totalPages={totalPages}
+          hasNext={hasMore}
+          onPageChange={onPageChange}
+        />
       )}
     </div>
   );

@@ -13,17 +13,18 @@ import { DateRangePicker } from './components/date-range-picker';
 import { SummaryCards } from './components/summary-cards';
 import { CategoryCard } from './components/category-card';
 import { PerformanceFilters } from './components/performance-filters';
-import { DateRangePreset } from './types';
+import { ExportButton } from './components/export-button';
+import { DateRange } from './types';
 import { getDateRangeFromPreset } from './utils/date-helpers';
 
 function PerformanceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentTenantId } = useTenant();
+  const { currentTenantId, currentTenant } = useTenant();
   const { user } = useAuth();
 
-  // Get initial date range (default to last 30 days)
-  const initialRange = getDateRangeFromPreset('last30days');
+  // Get initial date range (default to last 1 month)
+  const initialRange = getDateRangeFromPreset('last1month');
   const [startDate, setStartDate] = useState(initialRange.startDate);
   const [endDate, setEndDate] = useState(initialRange.endDate);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -82,8 +83,7 @@ function PerformanceContent() {
     [router]
   );
 
-  const handleDateRangeChange = (preset: DateRangePreset) => {
-    const range = getDateRangeFromPreset(preset);
+  const handleDateRangeChange = (range: DateRange) => {
     setStartDate(range.startDate);
     setEndDate(range.endDate);
     updateURL(selectedAgent, selectedActivation, range.startDate, range.endDate);
@@ -168,11 +168,20 @@ function PerformanceContent() {
               Monitor metrics and resource usage across your agents
             </p>
           </div>
-          <div className="sm:shrink-0">
+          <div className="flex items-center gap-2 sm:shrink-0">
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
               onDateRangeChange={handleDateRangeChange}
+            />
+            <ExportButton
+              data={error ? null : data}
+              isLoading={isLoading}
+              startDate={startDate}
+              endDate={endDate}
+              selectedAgent={selectedAgent}
+              selectedActivation={selectedActivation}
+              tenantName={currentTenant?.tenant.name}
             />
           </div>
         </div>

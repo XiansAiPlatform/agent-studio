@@ -1,10 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import {
   Activity,
-  ChevronLeft,
-  ChevronRight,
   FileText,
   Loader2,
   Search,
@@ -88,33 +87,17 @@ export function RecordsPanel({
               <Plus className="h-4 w-4 mr-1" />
               Add record
             </Button>
-            {recordsData && recordsData.total > pageSize && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onPreviousPage}
-                  disabled={currentPage === 0 || recordsLoading}
-                  className="h-8 px-3"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground px-2">
-                  Page {currentPage + 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onNextPage}
-                  disabled={recordsData.data.length < pageSize || recordsLoading}
-                  className="h-8 px-3"
-                >
-                  {recordsLoading && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </>
+            {recordsData && (
+              <PaginationBar
+                variant="compact"
+                page={currentPage + 1}
+                totalPages={Math.max(1, Math.ceil(recordsData.total / Math.max(pageSize, 1)))}
+                loading={recordsLoading}
+                onPageChange={(nextPage) => {
+                  if (nextPage < currentPage + 1) onPreviousPage()
+                  else onNextPage()
+                }}
+              />
             )}
           </div>
         </div>

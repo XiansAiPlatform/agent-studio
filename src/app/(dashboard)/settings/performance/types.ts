@@ -93,10 +93,10 @@ export interface MetricTimeseriesResponse {
 
 export type DateRangePreset =
   | 'last7days'
-  | 'last30days'
-  | 'last90days'
-  | 'thisMonth'
-  | 'lastMonth'
+  | 'last1month'
+  | 'last3months'
+  | 'last6months'
+  | 'last1year'
   | 'custom';
 
 // Format helper types

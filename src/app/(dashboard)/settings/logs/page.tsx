@@ -30,6 +30,7 @@ function LogsContent() {
     selectedLogLevels,
     startDate,
     endDate,
+    search,
     selectedWorkflowId,
     selectedStreamMeta,
     streamFilters,
@@ -85,6 +86,7 @@ function LogsContent() {
               selectedLogLevels={selectedLogLevels}
               startDate={startDate}
               endDate={endDate}
+              search={search}
               onClearFilter={clearFilter}
               onClearAll={clearAllFilters}
             />
@@ -127,6 +129,7 @@ function LogsContent() {
           selectedLogLevels={selectedLogLevels}
           startDate={startDate}
           endDate={endDate}
+          search={search}
           onFiltersChange={applyFilterSliderChanges}
         />
       )}

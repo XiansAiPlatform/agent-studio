@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Bot, CheckCheck, Loader2, PanelLeft, ListTodo } from 'lucide-react';
 import { toast } from 'sonner';
 import { ParticipantMenuButton } from './participant-menu-bar';
@@ -9,6 +9,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useMyPendingTaskCount } from '@/app/(dashboard)/dashboard/hooks/use-my-pending-task-count';
+import { countUnreadAgentMessages, isUnreadAgentMessage } from '../../../utils/unread';
+
+/** Wait briefly so a burst of agent replies is marked with one cutoff. */
+const AUTO_READ_DELAY_MS = 400;
+const AUTO_READ_MAX_ATTEMPTS = 3;
+
+async function postMarkThreadRead(threadId: string, cutoff: string) {
+  const res = await fetch(`/api/messaging/threads/${threadId}/read`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ timestamp: cutoff }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
+  }
+}
 
 interface ConversationHeaderProps {
   activationName: string;
@@ -38,6 +56,8 @@ interface ConversationHeaderProps {
    */
   onOpenTopics?: () => void;
   agentName?: string;
+  /** Admin view-as: show the unread badge, but do not persist read state. */
+  readOnly?: boolean;
 }
 
 /**
@@ -62,10 +82,10 @@ export function ConversationHeader({
   onRetryHeartbeat,
   onOpenTopics,
   agentName,
+  readOnly = false,
 }: ConversationHeaderProps) {
   const { onOpenMenu } = useParticipantLayout();
   const { count: pendingCount } = useMyPendingTaskCount(Boolean(agentName && activationName), {
-    pollIntervalMs: 20_000,
     agentName,
     activationName,
   });
@@ -78,43 +98,88 @@ export function ConversationHeader({
   // history fetch confirms it server-side. It resets when the thread itself changes.
   const [readCutoff, setReadCutoff] = useState<string | null>(null);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
+  const [isPageVisible, setIsPageVisible] = useState(
+    () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
+  );
+  const cutoffRef = useRef<string | null>(null);
+  const autoReadGeneration = useRef(0);
   // Reset the optimistic cutoff when the thread itself changes (React's
   // "adjust state during render" pattern, avoiding an extra effect-driven render).
   const [cutoffForThread, setCutoffForThread] = useState(threadId);
   if (threadId !== cutoffForThread) {
     setCutoffForThread(threadId);
     setReadCutoff(null);
+    cutoffRef.current = null;
   }
 
-  const unreadCount = topic
-    ? topic.messages.filter(
-        (m) => m.readStatus !== 'Read' && (!readCutoff || m.timestamp > readCutoff)
-      ).length
-    : 0;
+  const messages = topic?.messages ?? [];
+  // Only agent chat/file messages. User bubbles and tool/reasoning steps are not unread.
+  const unreadCount = countUnreadAgentMessages(messages, readCutoff);
+  // Server status only. The optimistic cutoff must not retrigger auto-read.
+  const persistedUnreadKey = messages
+    .filter((message) => isUnreadAgentMessage(message, null))
+    .map((message) => message.id)
+    .join('\n');
+
+  useEffect(() => {
+    const onVisibility = () => setIsPageVisible(document.visibilityState !== 'hidden');
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  // While this chat is on screen, persist read state for the open thread.
+  // A new agent message changes persistedUnreadKey and schedules another mark.
+  useEffect(() => {
+    if (readOnly || !isPageVisible || !tenantId || !threadId || !persistedUnreadKey) return;
+
+    const generation = ++autoReadGeneration.current;
+    let timer = 0;
+
+    const attemptMark = (attempt: number) => {
+      timer = window.setTimeout(async () => {
+        if (autoReadGeneration.current !== generation) return;
+        const cutoff = new Date().toISOString();
+        const previousCutoff = cutoffRef.current;
+        cutoffRef.current = cutoff;
+        setReadCutoff(cutoff);
+        try {
+          await postMarkThreadRead(threadId, cutoff);
+        } catch {
+          if (autoReadGeneration.current !== generation) return;
+          // Leave a newer cutoff (manual mark, or a later auto-read) in place.
+          if (cutoffRef.current === cutoff) {
+            cutoffRef.current = previousCutoff;
+            setReadCutoff(previousCutoff);
+          }
+          if (attempt < AUTO_READ_MAX_ATTEMPTS) attemptMark(attempt + 1);
+        }
+      }, attempt === 1 ? AUTO_READ_DELAY_MS : 1000);
+    };
+
+    attemptMark(1);
+
+    return () => {
+      autoReadGeneration.current += 1;
+      window.clearTimeout(timer);
+    };
+  }, [readOnly, isPageVisible, tenantId, threadId, persistedUnreadKey]);
 
   const handleMarkThreadRead = async () => {
-    if (!tenantId || !threadId || isMarkingRead) return;
+    if (!tenantId || !threadId || isMarkingRead || readOnly) return;
     setIsMarkingRead(true);
     const cutoff = new Date().toISOString();
+    const previouslyUnread = countUnreadAgentMessages(messages, readCutoff);
     try {
-      const res = await fetch(`/api/messaging/threads/${threadId}/read`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timestamp: cutoff }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error || `Request failed (${res.status})`);
-      }
-
-      const result = (await res.json()) as { markedCount: number; unreadCount: number };
+      await postMarkThreadRead(threadId, cutoff);
+      cutoffRef.current = cutoff;
       setReadCutoff(cutoff);
+      const remaining = countUnreadAgentMessages(messages, cutoff);
+      const markedCount = Math.max(0, previouslyUnread - remaining);
       toast.success(
-        result.markedCount > 0
-          ? `Marked ${result.markedCount} message${result.markedCount === 1 ? '' : 's'} as read`
+        markedCount > 0
+          ? `Marked ${markedCount} message${markedCount === 1 ? '' : 's'} as read`
           : 'Thread already up to date',
-        { description: `${result.unreadCount} unread remaining in thread`, duration: 3000 }
+        { description: `${remaining} unread remaining in thread`, duration: 3000 }
       );
     } catch (error) {
       toast.error('Failed to mark thread as read', {
@@ -231,9 +296,13 @@ export function ConversationHeader({
                 variant="ghost"
                 size="sm"
                 onClick={handleMarkThreadRead}
-                disabled={isMarkingRead || unreadCount === 0}
+                disabled={readOnly || isMarkingRead || unreadCount === 0}
                 className="h-8 px-2 text-xs gap-1.5"
-                title="Mark all messages in this thread as read"
+                title={
+                  readOnly
+                    ? 'Unavailable while viewing as another user'
+                    : 'Mark all messages in this thread as read'
+                }
               >
                 {isMarkingRead ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

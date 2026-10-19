@@ -14,36 +14,36 @@ import {
   type ActionProgressStep,
 } from './action-progress-steps';
 
-export const RESTART_STEPS: ActionProgressStep[] = [
+export const REACTIVATE_STEPS: ActionProgressStep[] = [
   { id: 'load', label: 'Load current configuration' },
   { id: 'deactivate', label: 'Deactivate agent' },
-  { id: 'activate', label: 'Reactivate agent' },
+  { id: 'activate', label: 'Activate agent' },
 ];
 
-interface AgentRestartDialogProps {
+interface AgentReactivateDialogProps {
   open: boolean;
   agent: Agent | null;
-  isRestarting: boolean;
+  isReactivating: boolean;
   currentStepIndex: number;
   hasFailed?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }
 
-export function AgentRestartDialog({
+export function AgentReactivateDialog({
   open,
   agent,
-  isRestarting,
+  isReactivating,
   currentStepIndex,
   hasFailed = false,
   onOpenChange,
   onConfirm,
-}: AgentRestartDialogProps) {
+}: AgentReactivateDialogProps) {
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (isRestarting && !nextOpen) return;
+        if (isReactivating && !nextOpen) return;
         onOpenChange(nextOpen);
       }}
     >
@@ -54,9 +54,9 @@ export function AgentRestartDialog({
               <RefreshCw className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <DialogTitle>Restart Agent Instance</DialogTitle>
+              <DialogTitle>Reactivate Agent Instance</DialogTitle>
               <DialogDescription className="mt-1">
-                Deactivate and reactivate with the same configuration
+                Deactivate and activate again with the same configuration
               </DialogDescription>
             </div>
           </div>
@@ -65,7 +65,7 @@ export function AgentRestartDialog({
         <div className="py-4 space-y-4">
           <div className="rounded-lg border border-border bg-muted/40 p-4">
             <p className="text-sm text-foreground">
-              Are you sure you want to restart{' '}
+              Are you sure you want to reactivate{' '}
               <span className="font-semibold">{agent?.name}</span>?
             </p>
             {agent?.description && (
@@ -83,9 +83,9 @@ export function AgentRestartDialog({
           </div>
 
           <ActionProgressSteps
-            steps={RESTART_STEPS}
+            steps={REACTIVATE_STEPS}
             currentStepIndex={currentStepIndex}
-            isRunning={isRestarting}
+            isRunning={isReactivating}
             hasFailed={hasFailed}
           />
         </div>
@@ -94,20 +94,20 @@ export function AgentRestartDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isRestarting}
+            disabled={isReactivating}
           >
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={isRestarting}>
-            {isRestarting ? (
+          <Button onClick={onConfirm} disabled={isReactivating}>
+            {isReactivating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Restarting...
+                Reactivating...
               </>
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Restart Agent
+                Reactivate Agent
               </>
             )}
           </Button>
