@@ -1,39 +1,46 @@
+import {
+  addDays,
+  differenceInCalendarDays,
+  endOfDay,
+  isSameDay,
+  startOfDay,
+  subDays,
+  subMonths,
+} from 'date-fns';
 import { DateRange, DateRangePreset } from '../types';
 
 /**
- * Get the date range for "last month" (previous calendar month)
+ * Longest range the metrics API accepts (AdminMetricsService.MaxDateRangeDays)
  */
-export function getLastMonthRange(): DateRange {
-  const now = new Date();
-  const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-  
-  // Set to start of day (00:00:00)
-  firstDayOfLastMonth.setHours(0, 0, 0, 0);
-  
-  // Set to end of day (23:59:59)
-  lastDayOfLastMonth.setHours(23, 59, 59, 999);
-  
-  return {
-    startDate: firstDayOfLastMonth.toISOString(),
-    endDate: lastDayOfLastMonth.toISOString(),
-  };
+export const MAX_RANGE_DAYS = 365;
+
+/**
+ * Get the first day of a preset range. Every preset ends today, inclusive.
+ */
+function getPresetStart(preset: DateRangePreset, today: Date): Date {
+  switch (preset) {
+    case 'last7days':
+      return subDays(today, 6);
+    case 'last3months':
+      return addDays(subMonths(today, 3), 1);
+    case 'last6months':
+      return addDays(subMonths(today, 6), 1);
+    case 'last1year':
+      // 365 days including today, so leap years never exceed MAX_RANGE_DAYS
+      return subDays(today, MAX_RANGE_DAYS - 1);
+    case 'last1month':
+    default:
+      return addDays(subMonths(today, 1), 1);
+  }
 }
 
 /**
- * Get the date range for "this month" (current calendar month)
+ * Build a range covering whole local days from start to end
  */
-export function getThisMonthRange(): DateRange {
-  const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  
-  firstDayOfMonth.setHours(0, 0, 0, 0);
-  lastDayOfMonth.setHours(23, 59, 59, 999);
-  
+export function toDateRange(start: Date, end: Date): DateRange {
   return {
-    startDate: firstDayOfMonth.toISOString(),
-    endDate: lastDayOfMonth.toISOString(),
+    startDate: startOfDay(start).toISOString(),
+    endDate: endOfDay(end).toISOString(),
   };
 }
 
@@ -41,38 +48,29 @@ export function getThisMonthRange(): DateRange {
  * Get date range for a preset
  */
 export function getDateRangeFromPreset(preset: DateRangePreset): DateRange {
-  const now = new Date();
-  const endDate = new Date();
-  endDate.setHours(23, 59, 59, 999);
-  
-  let startDate = new Date();
-  
-  switch (preset) {
-    case 'last7days':
-      startDate.setDate(now.getDate() - 7);
-      startDate.setHours(0, 0, 0, 0);
-      break;
-    case 'last30days':
-      startDate.setDate(now.getDate() - 30);
-      startDate.setHours(0, 0, 0, 0);
-      break;
-    case 'last90days':
-      startDate.setDate(now.getDate() - 90);
-      startDate.setHours(0, 0, 0, 0);
-      break;
-    case 'thisMonth':
-      return getThisMonthRange();
-    case 'lastMonth':
-      return getLastMonthRange();
-    default:
-      // Default to this month
-      return getThisMonthRange();
-  }
-  
-  return {
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-  };
+  const today = new Date();
+  return toDateRange(getPresetStart(preset, today), today);
+}
+
+/**
+ * Find the preset matching a range, or 'custom' if none does
+ */
+export function detectPreset(startDate: string, endDate: string): DateRangePreset {
+  const today = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (!isSameDay(end, today)) return 'custom';
+
+  const presets: DateRangePreset[] = ['last7days', 'last1month', 'last3months', 'last6months', 'last1year'];
+  return presets.find((preset) => isSameDay(start, getPresetStart(preset, today))) ?? 'custom';
+}
+
+/**
+ * Check whether a range is longer than the API allows
+ */
+export function isRangeTooLong(start: Date, end: Date): boolean {
+  return differenceInCalendarDays(end, start) + 1 > MAX_RANGE_DAYS;
 }
 
 /**
@@ -81,12 +79,12 @@ export function getDateRangeFromPreset(preset: DateRangePreset): DateRange {
 export function formatDateRangeDisplay(startDate: string, endDate: string): string {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  
-  const options: Intl.DateTimeFormatOptions = { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
+
+  const options: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
   };
-  
+
   return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
 }

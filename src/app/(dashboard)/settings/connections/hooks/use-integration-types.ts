@@ -9,6 +9,7 @@ export interface IntegrationConfigField {
   displayName: string
   description: string
   isSecret: boolean
+  isRequired?: boolean
 }
 
 export interface IntegrationType {
