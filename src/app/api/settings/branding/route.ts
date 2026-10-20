@@ -3,14 +3,24 @@ import { withTenantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
+interface TenantImage {
+  url?: string | null
+  width?: number
+  height?: number
+}
+
+function toImageMeta(image: TenantImage | null | undefined) {
+  return image ? { width: image.width ?? null, height: image.height ?? null } : null
+}
+
 /**
  * GET /api/settings/branding
- * Returns the current tenant's branding (theme + logo metadata).
- * Tenant is resolved from the httpOnly cookie. TenantAdmin (or system admin) only.
+ * Returns the current tenant's branding: the theme, and whether a logo and a
+ * favicon are set (with their sizes). The tenant comes from the login cookie.
+ * Only tenant admins and system admins can use it.
  *
- * The backend rewrites a base64 logo to a URL (clearing the payload), so we only
- * surface logo presence + dimensions here. The image itself is loaded via the
- * same-origin proxy at /api/tenants/{tenantId}/logo.
+ * The images themselves are not included. The page loads them from
+ * /api/tenants/{tenantId}/logo and /api/tenants/{tenantId}/favicon.
  */
 export const GET = withTenantAdmin(
   async (_request: NextRequest, { tenantContext }: ApiContext) => {
@@ -20,19 +30,17 @@ export const GET = withTenantAdmin(
       const client = createXiansClient()
       const tenant = await client.get<{
         theme?: string | null
-        logo?: { url?: string | null; width?: number; height?: number } | null
+        logo?: TenantImage | null
+        favicon?: TenantImage | null
       }>(`/api/v1/admin/tenants/${encodeURIComponent(tenantId)}`, {
         headers: { 'X-Tenant-Id': tenantId },
       })
 
-      const logo = tenant.logo
-        ? {
-            width: tenant.logo.width ?? null,
-            height: tenant.logo.height ?? null,
-          }
-        : null
-
-      return NextResponse.json({ theme: tenant.theme ?? null, logo })
+      return NextResponse.json({
+        theme: tenant.theme ?? null,
+        logo: toImageMeta(tenant.logo),
+        favicon: toImageMeta(tenant.favicon),
+      })
     } catch (error) {
       return handleApiError(error, 'settings/branding GET', {
         fallbackMessage: 'Failed to load branding',

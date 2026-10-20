@@ -26,8 +26,15 @@ interface TenantState {
   hasAttemptedFetch: boolean  // Track if we've tried to fetch at least once
   /** When false, user cannot change theme (tenant has set theme and user is not admin) */
   canCustomizeTheme: boolean
+  /**
+   * Changes to a new, unique number (the current time) each time the logo or
+   * favicon changes. It is added to image URLs so the browser loads the new
+   * image, not its old copy. It is 0 until the first change.
+   */
+  brandingVersion: number
 
   // Actions
+  bumpBrandingVersion: () => void
   setTenants: (tenants: TenantState['tenants']) => void
   setCanCustomizeTheme: (value: boolean) => void
   /** Lazily hydrate a tenant's logo (fetched after the list is loaded). */
@@ -54,6 +61,12 @@ export const useTenantStore = create<TenantState>()(
       error: null,
       hasAttemptedFetch: false,
       canCustomizeTheme: true,
+      brandingVersion: 0,
+
+      // Use the current time, not a counter. A counter starts again at 0 after a
+      // page reload, so it would reuse URLs the browser may still have cached.
+      bumpBrandingVersion: () =>
+        set((state) => ({ brandingVersion: Math.max(Date.now(), state.brandingVersion + 1) })),
 
       setCanCustomizeTheme: (value) => set({ canCustomizeTheme: value }),
 
