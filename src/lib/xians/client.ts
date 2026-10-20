@@ -8,6 +8,36 @@
 
 import { applyOnBehalfOfHeader, getOnBehalfOf } from './on-behalf-of'
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 5_000
+
+function resolveRequestTimeoutMs(): number {
+  const raw = process.env.XIANS_REQUEST_TIMEOUT_MS
+  if (raw?.trim()) {
+    const parsed = Number.parseInt(raw, 10)
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  return DEFAULT_REQUEST_TIMEOUT_MS
+}
+
+function mergeAbortSignals(signals: AbortSignal[]): AbortSignal {
+  const active = signals.filter(Boolean)
+  if (active.length === 1) return active[0]
+  if (typeof AbortSignal.any === 'function') {
+    return AbortSignal.any(active)
+  }
+  const controller = new AbortController()
+  for (const signal of active) {
+    if (signal.aborted) {
+      controller.abort(signal.reason)
+      return controller.signal
+    }
+    signal.addEventListener('abort', () => controller.abort(signal.reason), {
+      once: true,
+    })
+  }
+  return controller.signal
+}
+
 export class XiansApiError extends Error {
   constructor(
     message: string,
@@ -75,10 +105,16 @@ export class XiansClient {
 
     applyOnBehalfOfHeader(headers, this.onBehalfOf)
 
+    const timeoutSignal = AbortSignal.timeout(resolveRequestTimeoutMs())
+    const signal = options.signal
+      ? mergeAbortSignals([options.signal, timeoutSignal])
+      : timeoutSignal
+
     try {
       const response = await fetch(url, {
         ...options,
         headers,
+        signal,
       })
 
       // Handle non-OK responses
@@ -127,8 +163,10 @@ export class XiansClient {
       let errorMessage = 'Unknown error'
       
       if (error instanceof Error) {
-        // Provide more helpful error messages for common network issues
-        if (error.message.includes('fetch failed') || error.message.includes('Failed to fetch')) {
+        if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+          errorMessage =
+            'Connection timed out. The backend server is not responding.'
+        } else if (error.message.includes('fetch failed') || error.message.includes('Failed to fetch')) {
           errorMessage = 'Unable to connect to the backend server. Please check if the server is running.'
         } else if (error.message.includes('ECONNREFUSED')) {
           errorMessage = 'Connection refused. The backend server is not responding.'
