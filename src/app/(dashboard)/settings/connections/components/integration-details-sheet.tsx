@@ -65,6 +65,11 @@ interface IntegrationDetailsSheetProps {
   onDeleted?: () => void
 }
 
+function formatConfigurationValue(value: unknown): string {
+  if (value !== null && typeof value === 'object') return JSON.stringify(value, null, 2)
+  return String(value)
+}
+
 export function IntegrationDetailsSheet({ 
   open, 
   onOpenChange, 
@@ -259,12 +264,12 @@ export function IntegrationDetailsSheet({
                           {key.replace(/([A-Z])/g, ' $1').trim()}:
                         </span>
                         <div className="sm:col-span-2 flex items-center justify-between gap-2">
-                          <code className="text-xs break-all">{String(value)}</code>
+                          <code className="text-xs whitespace-pre-wrap break-all">{formatConfigurationValue(value)}</code>
                           {value && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(String(value), key)}
+                              onClick={() => copyToClipboard(formatConfigurationValue(value), key)}
                             >
                               <Copy className="h-3 w-3" />
                             </Button>
