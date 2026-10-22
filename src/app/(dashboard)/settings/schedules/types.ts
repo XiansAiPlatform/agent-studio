@@ -50,6 +50,8 @@ export interface ScheduleRun {
   actualRunTime?: string | null
   status: ScheduleRunStatus
   workflowRunId?: string | null
+  /** Workflow ID of the started execution; keys its activity log stream. */
+  workflowId?: string | null
   errorMessage?: string | null
 }
 
