@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Sheet, SheetContent, SheetFooter } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,6 +13,7 @@ import {
   History,
   Pause,
   Play,
+  ScrollText,
 } from 'lucide-react'
 import { Schedule, ScheduleRun } from '../types'
 import { ScheduleStatusBadge, RunStatusBadge } from './schedule-status-badge'
@@ -40,10 +42,18 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   )
 }
 
+/** Activity log stream for a started run, keyed by its workflow ID. */
+function logsHref(run: ScheduleRun): string | null {
+  return run.workflowId
+    ? `/settings/logs?workflowId=${encodeURIComponent(run.workflowId)}`
+    : null
+}
+
 function RunRow({ run }: { run: ScheduleRun }) {
   const relative = formatRelative(run.scheduledTime)
-  return (
-    <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+  const href = logsHref(run)
+  const content = (
+    <>
       <div className="min-w-0 space-y-1">
         <div className="text-sm font-medium text-foreground">
           {formatDateTimeWithSeconds(run.scheduledTime)}
@@ -63,8 +73,29 @@ function RunRow({ run }: { run: ScheduleRun }) {
           </div>
         )}
       </div>
-      <RunStatusBadge status={run.status} className="shrink-0" />
-    </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {href && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary">
+            <ScrollText className="h-3.5 w-3.5" />
+            View logs
+          </span>
+        )}
+        <RunStatusBadge status={run.status} />
+      </div>
+    </>
+  )
+
+  const className = 'flex items-start justify-between gap-3 rounded-md border border-border/60 p-3'
+  if (!href) return <div className={className}>{content}</div>
+
+  return (
+    <Link
+      href={href}
+      title="Open the activity log for this run"
+      className={`${className} group transition-colors hover:border-primary/50 hover:bg-muted/40`}
+    >
+      {content}
+    </Link>
   )
 }
 
