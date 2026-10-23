@@ -55,6 +55,8 @@ function ConnectionsContent() {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | null>(null);
+  // Bumped on every open so the details sheet remounts and starts collapsed
+  const [detailsSheetKey, setDetailsSheetKey] = useState(0);
   const [showSlackWizard, setShowSlackWizard] = useState(false);
   const [showTeamsWizard, setShowTeamsWizard] = useState(false);
   const [showWebhooksSheet, setShowWebhooksSheet] = useState(false);
@@ -280,6 +282,11 @@ function ConnectionsContent() {
         await deleteIntegration.mutateAsync(selectedConnection.id);
       }
       setShowDeleteDialog(false);
+      // Deleting from the details sheet: close the sheet too.
+      if (selectedIntegrationId === selectedConnection.id) {
+        setShowDetailsSheet(false);
+        setSelectedIntegrationId(null);
+      }
       setSelectedConnection(null);
       showSuccessToast('Connection deleted successfully');
     } catch (error) {
@@ -313,6 +320,7 @@ function ConnectionsContent() {
 
   const handleViewDetails = (connectionId: string) => {
     setSelectedIntegrationId(connectionId);
+    setDetailsSheetKey(key => key + 1);
     setShowDetailsSheet(true);
   };
 
@@ -424,7 +432,7 @@ function ConnectionsContent() {
             {/* Add New Connection */}
             <button
               onClick={() => setShowCreateDialog(true)}
-              className="group p-6 rounded-xl bg-card/60 hover:bg-card/80 border-0 transition-all duration-200 text-left"
+              className="group p-6 rounded-xl bg-card/60 hover:bg-card/80 border border-border hover:border-primary/30 hover:shadow-md transition-all duration-200 text-left"
             >
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-muted/80 group-hover:text-foreground transition-colors flex-shrink-0 mt-0.5">
@@ -540,12 +548,15 @@ function ConnectionsContent() {
 
         {/* Integration Details Sheet */}
         <IntegrationDetailsSheet
+          key={detailsSheetKey}
           open={showDetailsSheet}
           onOpenChange={setShowDetailsSheet}
           integrationId={selectedIntegrationId}
-          onDeleted={() => {
-            refetch()
-            setSelectedIntegrationId(null)
+          onDeleteRequest={(id) => {
+            const connection = connections?.find(conn => conn.id === id);
+            if (!connection) return;
+            setSelectedConnection(connection);
+            setShowDeleteDialog(true);
           }}
         />
       </div>
