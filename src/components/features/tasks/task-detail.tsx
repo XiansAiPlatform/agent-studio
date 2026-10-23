@@ -26,6 +26,7 @@ import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { formatTaskActionLabel } from '@/lib/task-mapper';
 import { refreshMyPendingTaskCounts } from '@/lib/pending-task-count-sync';
 import { cn } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/format-relative-time';
 
 interface TaskDetailProps {
   task: Task;
@@ -76,28 +77,6 @@ function decodeText(text: string): string {
   decoded = decoded.replace(/\\r/g, '\r');
   
   return decoded;
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMs < 0) {
-    const absDiffHours = Math.abs(diffHours);
-    const absDiffDays = Math.abs(diffDays);
-    if (absDiffHours < 24) {
-      return `${absDiffHours} hour${absDiffHours === 1 ? '' : 's'} ago`;
-    }
-    return `${absDiffDays} day${absDiffDays === 1 ? '' : 's'} ago`;
-  }
-
-  if (diffHours < 24) {
-    return `in ${diffHours} hour${diffHours === 1 ? '' : 's'}`;
-  }
-  return `in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
 }
 
 export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
@@ -340,7 +319,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
           <div className="h-4 w-px bg-border" />
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>{formatDate(task.createdAt)}</span>
+            <span>{formatRelativeTime(task.createdAt, 'long')}</span>
           </div>
         </div>
       </div>
