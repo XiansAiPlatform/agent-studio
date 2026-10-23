@@ -6,19 +6,9 @@ import {
   SheetHeader, 
   SheetTitle 
 } from '@/components/ui/sheet'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, Copy, CheckCircle, XCircle, Bot, Workflow, Link2, Settings, Key, MapPin, Trash2, AlertTriangle } from 'lucide-react'
+import { Loader2, Copy, CheckCircle, XCircle, Bot, Workflow, Link2, Settings, Key, MapPin, Trash2 } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/lib/utils/error-handler'
 import { useTenant } from '@/hooks/use-tenant'
 
@@ -62,21 +52,20 @@ interface IntegrationDetailsSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   integrationId: string | null
-  onDeleted?: () => void
+  // The page owns the shared delete confirmation dialog.
+  onDeleteRequest?: (integrationId: string) => void
 }
 
 export function IntegrationDetailsSheet({ 
   open, 
   onOpenChange, 
   integrationId,
-  onDeleted
+  onDeleteRequest
 }: IntegrationDetailsSheetProps) {
   const { currentTenantId } = useTenant()
   const [integration, setIntegration] = useState<IntegrationDetails | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (open && integrationId && currentTenantId) {
@@ -141,38 +130,20 @@ export function IntegrationDetailsSheet({
     })
   }
 
-  const handleDelete = async () => {
-    if (!integrationId || !currentTenantId) return
-
-    setIsDeleting(true)
-    try {
-      const response = await fetch(
-        `/api/integrations/${integrationId}`,
-        {
-          method: 'DELETE',
-        }
-      )
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}))
-        throw new Error(error.error || 'Failed to delete integration')
-      }
-
-      showSuccessToast('Integration deleted successfully')
-      setShowDeleteDialog(false)
-      onOpenChange(false)
-      onDeleted?.()
-    } catch (err) {
-      showErrorToast(err as Error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="space-y-3 sm:space-y-4 px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4">
+      {/* Scroll the body, not SheetContent, so the absolute expand/close buttons stay pinned */}
+      <SheetContent
+        className="w-full sm:max-w-2xl"
+        headerActions={integration && !isLoading && !error ? (
+          <Badge variant={integration.isEnabled ? "default" : "secondary"} className="h-6">
+            {integration.isEnabled ? 'Enabled' : 'Disabled'}
+          </Badge>
+        ) : null}
+      >
+        {/* pr reserves room for the Enabled badge + expand/close cluster;
+            min-w-0 on SheetHeader's inner wrappers lets long names wrap instead of overflowing */}
+        <SheetHeader className="space-y-3 sm:space-y-4 pl-4 sm:pl-6 pr-36 sm:pr-40 pt-5 sm:pt-6 pb-3 sm:pb-4 [&>div]:min-w-0 [&>div>div]:min-w-0">
           {isLoading ? (
             <>
               <SheetTitle className="text-base sm:text-lg">Loading...</SheetTitle>
@@ -185,16 +156,11 @@ export function IntegrationDetailsSheet({
             </>
           ) : integration ? (
             <>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <SheetTitle className="text-lg sm:text-2xl truncate">{integration.name}</SheetTitle>
-                  <SheetDescription className="mt-1 sm:mt-2 text-xs sm:text-sm">
-                    {integration.description}
-                  </SheetDescription>
-                </div>
-                <Badge variant={integration.isEnabled ? "default" : "secondary"} className="shrink-0">
-                  {integration.isEnabled ? 'Enabled' : 'Disabled'}
-                </Badge>
+              <div className="min-w-0">
+                <SheetTitle className="text-lg sm:text-2xl break-words [overflow-wrap:anywhere]">{integration.name}</SheetTitle>
+                <SheetDescription className="mt-1 sm:mt-2 text-xs sm:text-sm">
+                  {integration.description}
+                </SheetDescription>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
@@ -211,6 +177,7 @@ export function IntegrationDetailsSheet({
           )}
         </SheetHeader>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -337,85 +304,18 @@ export function IntegrationDetailsSheet({
               {/* Danger Zone */}
               <div className="space-y-3 pt-6 border-t border-destructive/20">
                 <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
-                <div className="pl-0 sm:pl-6">
-                  <Button
-                    variant="destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Integration
-                  </Button>
-                </div>
+                <Button
+                  variant="destructive"
+                  onClick={() => onDeleteRequest?.(integration.id)}
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Integration
+                </Button>
               </div>
             </div>
         )}
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                Delete Integration
-              </AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div className="space-y-4">
-                  <div>
-                    Are you sure you want to delete{' '}
-                    <span className="font-semibold">"{integration?.name}"</span>?
-                  </div>
-
-                  <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg space-y-2">
-                    <div className="text-sm font-semibold text-destructive flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      Warning: This action cannot be undone
-                    </div>
-                    <ul className="text-sm text-destructive/90 space-y-1 list-disc list-inside">
-                      <li>The external platform will no longer be able to communicate with the agent</li>
-                      <li>All webhook configurations will be permanently removed</li>
-                      <li>Integration history and logs will be deleted</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                    <div className="text-sm text-amber-900 font-medium mb-2">
-                      📋 Before deleting, please clean up external resources:
-                    </div>
-                    <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
-                      <li>Remove webhook URLs from the external platform ({integration?.platformId})</li>
-                      <li>Revoke any API tokens or credentials configured externally</li>
-                      <li>Disable the app/bot integration in the external platform</li>
-                      <li>Delete or uninstall the app from your workspace if applicable</li>
-                    </ul>
-                  </div>
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="bg-destructive text-white hover:bg-destructive/90"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Integration
-                  </>
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        </div>
       </SheetContent>
     </Sheet>
   )
