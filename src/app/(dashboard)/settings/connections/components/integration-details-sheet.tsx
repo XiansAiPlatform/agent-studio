@@ -171,8 +171,9 @@ export function IntegrationDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="space-y-3 sm:space-y-4 px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4">
+      {/* Scroll the body, not SheetContent, so the absolute expand/close buttons stay pinned */}
+      <SheetContent className="w-full sm:max-w-2xl">
+        <SheetHeader className="space-y-3 sm:space-y-4 pl-4 sm:pl-6 pt-5 sm:pt-6 pb-3 sm:pb-4">
           {isLoading ? (
             <>
               <SheetTitle className="text-base sm:text-lg">Loading...</SheetTitle>
@@ -187,12 +188,13 @@ export function IntegrationDetailsSheet({
             <>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <SheetTitle className="text-lg sm:text-2xl truncate">{integration.name}</SheetTitle>
+                  <SheetTitle className="text-lg sm:text-2xl break-words [overflow-wrap:anywhere]">{integration.name}</SheetTitle>
                   <SheetDescription className="mt-1 sm:mt-2 text-xs sm:text-sm">
                     {integration.description}
                   </SheetDescription>
                 </div>
-                <Badge variant={integration.isEnabled ? "default" : "secondary"} className="shrink-0">
+                {/* h-6 + negative margin centers the badge on the expand/close buttons (top-3/sm:top-4) */}
+                <Badge variant={integration.isEnabled ? "default" : "secondary"} className="shrink-0 h-6 -mt-0.5 sm:-mt-2">
                   {integration.isEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
               </div>
@@ -211,6 +213,7 @@ export function IntegrationDetailsSheet({
           )}
         </SheetHeader>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -350,6 +353,7 @@ export function IntegrationDetailsSheet({
               </div>
             </div>
         )}
+        </div>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -363,7 +367,7 @@ export function IntegrationDetailsSheet({
                 <div className="space-y-4">
                   <div>
                     Are you sure you want to delete{' '}
-                    <span className="font-semibold">"{integration?.name}"</span>?
+                    <span className="font-semibold [overflow-wrap:anywhere]">"{integration?.name}"</span>?
                   </div>
 
                   <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg space-y-2">
