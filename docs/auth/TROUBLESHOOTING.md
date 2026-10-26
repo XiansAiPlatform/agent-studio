@@ -234,4 +234,14 @@ If none of these solutions work:
 
 ---
 
+## Dashboard Is Empty and the Avatar Shows "U" After Being Idle
+
+**Problem:** After the studio sits open for a while, activity logs and other data are missing and the avatar shows "U" instead of the user's initials.
+
+**Cause:** The session or the provider token expired while the page was open, so API calls returned 401.
+
+**Fix:** `SessionGuard` now signs the user out and redirects to `/login?reason=expired` in this case. Sign in again. If you are still seeing the symptom, check that the build includes `SessionGuard` in the root layout. To change the inactivity limit, set `IDLE_TIMEOUT_MINUTES` (default 30, `0` disables). See [Session Expiry and Inactivity](./auth.md#session-expiry-and-inactivity).
+
+---
+
 **Most Common Solution:** The issue is usually network-related (proxy, VPN, or firewall). Try disconnecting from VPN or using a mobile hotspot.

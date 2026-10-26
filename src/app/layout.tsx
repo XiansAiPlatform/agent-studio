@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorThemeProvider } from "@/components/theme-color-provider";
 import { SessionProvider } from "@/components/session-provider";
+import { SessionGuard } from "@/components/session-guard";
 import { AuthErrorBoundary } from "@/components/auth-error-boundary";
 import { Toaster } from "@/components/ui/sonner";
 import { FaviconUpdater } from "@/components/favicon-updater";
@@ -69,6 +70,11 @@ export default async function RootLayout({
   const tenantId = (await cookies()).get(CURRENT_TENANT_COOKIE)?.value;
   const faviconHref = tenantId ? tenantFaviconProxyUrl(tenantId) : DEFAULT_FAVICON;
 
+  // Read at request time (this layout is dynamic because of cookies()), so the
+  // value can be changed per deployment without rebuilding the image.
+  const parsedIdle = Number(process.env.IDLE_TIMEOUT_MINUTES ?? 30);
+  const idleTimeoutMinutes = Number.isFinite(parsedIdle) && parsedIdle >= 0 ? parsedIdle : 30;
+
   return (
     <html
       lang="en"
@@ -99,6 +105,7 @@ export default async function RootLayout({
             >
               <ColorThemeProvider>
                 <FaviconUpdater />
+                <SessionGuard idleTimeoutMinutes={idleTimeoutMinutes} />
                 {children}
                 <Toaster />
               </ColorThemeProvider>
