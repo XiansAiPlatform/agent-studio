@@ -188,7 +188,7 @@ export function IntegrationDetailsSheet({
             <>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <SheetTitle className="text-lg sm:text-2xl break-words [overflow-wrap:anywhere]">{integration.name}</SheetTitle>
+                  <SheetTitle className="text-lg sm:text-2xl truncate" title={integration.name}>{integration.name}</SheetTitle>
                   <SheetDescription className="mt-1 sm:mt-2 text-xs sm:text-sm">
                     {integration.description}
                   </SheetDescription>

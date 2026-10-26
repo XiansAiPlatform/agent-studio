@@ -126,12 +126,12 @@ export function ConnectionCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Connection name */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1 min-w-0">
-            {/* flex-wrap drops the badge below long names; overflow-wrap:anywhere breaks unspaced auto-generated names (e.g. webhooks) */}
+          <div className="flex items-center gap-2 mb-1 min-w-0">
+            {/* Long names (e.g. auto-generated webhooks) truncate with an ellipsis; full name on hover */}
             <h3
               title={connection.name}
               className={cn(
-                "min-w-0 text-base font-normal break-words [overflow-wrap:anywhere]",
+                "min-w-0 truncate text-base font-normal",
                 connection.isActive ? "text-foreground" : "text-muted-foreground"
               )}
             >
