@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentProps } from 'react';
 import dynamic from 'next/dynamic';
 import {
   KnowledgeItem,
@@ -115,9 +115,10 @@ function formatDate(dateString: string): string {
 interface ContentViewerProps {
   item: Pick<KnowledgeItem, 'type' | 'content'>;
   mounted: boolean;
+  markdownProps?: Omit<ComponentProps<typeof MDEditorMarkdown>, 'source'>;
 }
 
-export function ContentViewer({ item, mounted }: ContentViewerProps) {
+export function ContentViewer({ item, mounted, markdownProps }: ContentViewerProps) {
   if (!mounted) {
     return (
       <div className="h-full flex items-center justify-center p-3 bg-muted/50 rounded-md">
@@ -159,6 +160,7 @@ export function ContentViewer({ item, mounted }: ContentViewerProps) {
                 backgroundColor: 'transparent',
                 color: 'var(--foreground)',
               }}
+              {...markdownProps}
             />
           </div>
         </div>
