@@ -3,10 +3,34 @@ import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { canManageSecretOwner, resolveSecretAccess } from '@/lib/api/secret-access'
+import { assertCanEditAgent } from '@/lib/auth/agent-access'
 import {
   buildAdminSecretCreatePayload,
   type CreateSecretBody,
 } from '@/app/(dashboard)/settings/secrets/types'
+
+type XiansClient = ReturnType<typeof createXiansClient>
+
+/** Looks an agent deployment up by object id and returns its name (null if absent). */
+async function resolveAgentNameById(
+  client: XiansClient,
+  tenantId: string,
+  agentId: string
+): Promise<string | null> {
+  const pageSize = 100
+  for (let page = 1; ; page++) {
+    const data = await client.get<{
+      agents?: Array<{ id: string; name: string }>
+      pagination?: { hasNext?: boolean }
+    }>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentDeployments?page=${page}&pageSize=${pageSize}`,
+      { headers: { 'X-Tenant-Id': tenantId } }
+    )
+    const match = data?.agents?.find((a) => a.id === agentId)
+    if (match) return match.name
+    if (!data?.pagination?.hasNext) return null
+  }
+}
 
 /**
  * GET /api/settings/secrets
@@ -42,19 +66,24 @@ export const GET = withParticipantAdmin(
 
 /**
  * POST /api/settings/secrets
- * Create a tenant- or user-scoped secret. Tenant is always the cookie tenant.
+ * Create a tenant-, user-, agent- or activation-scoped secret. Tenant is always
+ * the cookie tenant.
  *
  * Request body: {
  *   key: string
  *   value: string
- *   scope?: 'tenant' | 'user'  // default tenant
- *   userId?: string            // required when scope is user (participant id)
+ *   scope?: 'tenant' | 'user' | 'agent' | 'activation'  // default tenant
+ *   userId?: string          // required when scope is user (participant id)
+ *   agentId?: string         // agent object id; required for agent / activation
+ *   activationName?: string  // required when scope is activation
  *   description?: string
  *   additionalData?: Record<string, string|number|boolean>
  * }
  *
- * Agent and activation scopes are not accepted from this UI. A user-scoped
- * secret for anyone other than the caller requires secrets:manage-user-scoped.
+ * `scope` only drives validation; the Admin API infers scope from the ids.
+ * A user-scoped secret for anyone other than the caller requires
+ * secrets:manage-user-scoped. Agent / activation scopes require write access
+ * to the agent, resolved server-side from `agentId`.
  */
 export const POST = withParticipantAdmin(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
@@ -84,6 +113,16 @@ export const POST = withParticipantAdmin(
       }
 
       const client = createXiansClient()
+
+      if (result.payload.agentId) {
+        const agentName = await resolveAgentNameById(client, tenantId, result.payload.agentId)
+        if (!agentName) {
+          return NextResponse.json({ error: 'Agent not found in this tenant' }, { status: 400 })
+        }
+        const denied = await assertCanEditAgent(session, tenantId, agentName)
+        if (denied) return denied
+      }
+
       const data = await client.post<unknown>(
         `/api/v1/admin/secrets`,
         result.payload,

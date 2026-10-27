@@ -1,11 +1,13 @@
 /**
  * Secret vault types for Agent Studio.
  *
- * Create is limited to tenant or user scope. Agent- and activation-scoped
- * secrets may still appear in the list when created from the SDK.
+ * Scope is implied by which ids are set on the secret: `userId` (user),
+ * `agentId` (agent, the agent object id) or `agentId` + `activationName`
+ * (activation). The create form's `scope` only drives validation and is not
+ * forwarded to the Admin API.
  */
 
-export type CreateSecretScope = 'tenant' | 'user'
+export type CreateSecretScope = 'tenant' | 'user' | 'agent' | 'activation'
 
 export type SecretScopeKind = 'tenant' | 'agent' | 'user' | 'activation'
 
@@ -16,7 +18,8 @@ export interface TenantSecret {
   agentId: string | null
   userId: string | null
   activationName: string | null
-  additionalData?: Record<string, string | number | boolean> | null
+  /** JSON string from the Admin API (older rows may deserialize to an object). */
+  additionalData?: string | Record<string, string | number | boolean> | null
   createdAt: string
   createdBy: string
 }
@@ -27,6 +30,10 @@ export interface CreateSecretRequest {
   scope: CreateSecretScope
   /** Participant id (usually lowercase email). Required when scope is `user`. */
   userId?: string
+  /** Agent object id. Required when scope is `agent` or `activation`. */
+  agentId?: string
+  /** Required when scope is `activation`. */
+  activationName?: string
   description?: string
   additionalData?: Record<string, string | number | boolean>
 }
@@ -47,22 +54,50 @@ export function getSecretScopeKind(
   return 'tenant'
 }
 
+/** Agent object id -> agent name, used to show names instead of ids. */
+export type AgentNameMap = Record<string, string>
+
 export function getSecretScopeDetail(
-  secret: Pick<TenantSecret, 'agentId' | 'userId' | 'activationName'>
+  secret: Pick<TenantSecret, 'agentId' | 'userId' | 'activationName'>,
+  agentNames?: AgentNameMap
 ): string | undefined {
   const kind = getSecretScopeKind(secret)
-  if (kind === 'activation') return secret.activationName ?? undefined
+  const agent = secret.agentId ? (agentNames?.[secret.agentId] ?? secret.agentId) : undefined
+  if (kind === 'activation') {
+    return secret.activationName
+      ? agent
+        ? `${agent} / ${secret.activationName}`
+        : secret.activationName
+      : undefined
+  }
   if (kind === 'user') return secret.userId ?? undefined
-  if (kind === 'agent') return secret.agentId ?? undefined
+  if (kind === 'agent') return agent
   return undefined
 }
 
 export function getSecretScopeLabel(
-  secret: Pick<TenantSecret, 'agentId' | 'userId' | 'activationName'>
+  secret: Pick<TenantSecret, 'agentId' | 'userId' | 'activationName'>,
+  agentNames?: AgentNameMap
 ): string {
   const kind = getSecretScopeKind(secret)
-  const detail = getSecretScopeDetail(secret)
+  const detail = getSecretScopeDetail(secret, agentNames)
   return detail ? `${SECRET_SCOPE_LABELS[kind]} · ${detail}` : SECRET_SCOPE_LABELS[kind]
+}
+
+/** `additionalData` is a JSON string on the wire; tolerate an already-parsed object. */
+export function parseAdditionalData(
+  raw: TenantSecret['additionalData']
+): Record<string, string | number | boolean> | undefined {
+  if (!raw) return undefined
+  if (typeof raw === 'object') return raw
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, string | number | boolean>)
+      : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -70,7 +105,8 @@ export function getSecretScopeLabel(
  * AdditionalData blob. Returns undefined when none is set.
  */
 export function getSecretDescription(secret: TenantSecret): string | undefined {
-  const raw = secret.additionalData?.description
+  const data = parseAdditionalData(secret.additionalData)
+  const raw = data?.description
   if (typeof raw !== 'string') return undefined
   const trimmed = raw.trim()
   return trimmed.length > 0 ? trimmed : undefined
@@ -81,7 +117,11 @@ export type AdminSecretCreatePayload = {
   value: string
   tenantId: string
   userId?: string
-  additionalData?: Record<string, string | number | boolean>
+  /** Agent object id. */
+  agentId?: string
+  activationName?: string
+  /** JSON string. */
+  additionalData?: string
 }
 
 export type CreateSecretBody = {
@@ -98,7 +138,7 @@ export type CreateSecretBody = {
 /**
  * Validates a Studio create-secret body and maps it to the Admin API payload.
  * Tenant is always taken from the session cookie, never from the client.
- * Agent and activation scopes are rejected.
+ * Agent and activation scopes carry the agent object id (and activation name).
  */
 export function buildAdminSecretCreatePayload(
   tenantId: string,
@@ -109,13 +149,23 @@ export function buildAdminSecretCreatePayload(
   if (!key) return { ok: false, error: 'Key is required' }
   if (!value || value.length === 0) return { ok: false, error: 'Value is required' }
 
-  if (body.agentId?.trim() || body.activationName?.trim()) {
-    return { ok: false, error: 'Agent and activation scopes cannot be set from this UI' }
+  const scope = (body.scope ?? 'tenant').trim().toLowerCase()
+  if (scope !== 'tenant' && scope !== 'user' && scope !== 'agent' && scope !== 'activation') {
+    return { ok: false, error: 'Scope must be tenant, user, agent or activation' }
   }
 
-  const scope = (body.scope ?? 'tenant').trim().toLowerCase()
-  if (scope !== 'tenant' && scope !== 'user') {
-    return { ok: false, error: 'Scope must be tenant or user' }
+  const userId = body.userId?.trim().toLowerCase()
+  const agentId = body.agentId?.trim()
+  const activationName = body.activationName?.trim()
+
+  if (scope !== 'user' && userId) {
+    return { ok: false, error: `User id is not allowed for ${scope}-scoped secrets` }
+  }
+  if ((scope === 'tenant' || scope === 'user') && (agentId || activationName)) {
+    return { ok: false, error: `Agent and activation are not allowed for ${scope}-scoped secrets` }
+  }
+  if (scope === 'agent' && activationName) {
+    return { ok: false, error: 'Activation is not allowed for agent-scoped secrets' }
   }
 
   const description = body.description?.trim()
@@ -132,20 +182,24 @@ export function buildAdminSecretCreatePayload(
     tenantId,
   }
   if (Object.keys(additionalData).length > 0) {
-    payload.additionalData = additionalData
+    payload.additionalData = JSON.stringify(additionalData)
   }
 
-  if (scope === 'tenant') {
-    if (body.userId?.trim()) {
-      return { ok: false, error: 'User id is not allowed for tenant-scoped secrets' }
+  if (scope === 'user') {
+    if (!userId) {
+      return { ok: false, error: 'Participant id is required for user-scoped secrets' }
     }
-    return { ok: true, payload }
+    payload.userId = userId
+  } else if (scope === 'agent') {
+    if (!agentId) return { ok: false, error: 'Agent is required for agent-scoped secrets' }
+    payload.agentId = agentId
+  } else if (scope === 'activation') {
+    if (!agentId) return { ok: false, error: 'Agent is required for activation-scoped secrets' }
+    if (!activationName) {
+      return { ok: false, error: 'Activation is required for activation-scoped secrets' }
+    }
+    payload.agentId = agentId
+    payload.activationName = activationName
   }
-
-  const userId = body.userId?.trim().toLowerCase()
-  if (!userId) {
-    return { ok: false, error: 'Participant id is required for user-scoped secrets' }
-  }
-  payload.userId = userId
   return { ok: true, payload }
 }
