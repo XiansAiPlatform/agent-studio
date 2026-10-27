@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import remarkBreaks from 'remark-breaks';
 import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,6 +81,18 @@ function decodeText(text: string): string {
 }
 
 type ViewerContent = Pick<KnowledgeItem, 'type' | 'content'>;
+
+type MarkdownNode = { type: string; children?: MarkdownNode[] };
+
+function remarkHtmlAsText() {
+  const visit = (node: MarkdownNode) => {
+    if (node.type === 'html') node.type = 'text';
+    node.children?.forEach(visit);
+  };
+  return visit;
+}
+
+const agentMarkdownProps = { remarkPlugins: [remarkBreaks, remarkHtmlAsText] };
 
 function isJsonContent(raw: string): boolean {
   const trimmed = raw.trim();
@@ -355,6 +368,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
             taskDetail ? normalizeDescriptionType(taskDetail.descriptionType) : task.descriptionType
           )}
           mounted
+          markdownProps={agentMarkdownProps}
         />
       )}
 
@@ -413,7 +427,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               </div>
             </>
           ) : (
-            <ContentViewer item={payloadContent(taskDetail.initialWork)} mounted />
+            <ContentViewer item={payloadContent(taskDetail.initialWork)} mounted markdownProps={agentMarkdownProps} />
           )}
         </div>
       )}
@@ -437,7 +451,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               placeholder="Edit proposed action..."
             />
           ) : (
-            <ContentViewer item={payloadContent(task.content.proposedAction)} mounted />
+            <ContentViewer item={payloadContent(task.content.proposedAction)} mounted markdownProps={agentMarkdownProps} />
           )}
         </div>
       )}
