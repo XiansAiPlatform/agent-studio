@@ -4,6 +4,7 @@ export interface Task {
   id: string;
   title: string;
   description: string;
+  descriptionType?: 'string' | 'markdown' | 'json';
   status: 'pending' | 'approved' | 'rejected' | 'obsolete';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   createdBy: {

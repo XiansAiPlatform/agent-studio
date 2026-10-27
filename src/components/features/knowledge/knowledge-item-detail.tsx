@@ -113,11 +113,11 @@ function formatDate(dateString: string): string {
 }
 
 interface ContentViewerProps {
-  item: KnowledgeItem;
+  item: Pick<KnowledgeItem, 'type' | 'content'>;
   mounted: boolean;
 }
 
-function ContentViewer({ item, mounted }: ContentViewerProps) {
+export function ContentViewer({ item, mounted }: ContentViewerProps) {
   if (!mounted) {
     return (
       <div className="h-full flex items-center justify-center p-3 bg-muted/50 rounded-md">
