@@ -4,6 +4,7 @@
 # Multi-stage build for Next.js application following best practices
 
 FROM node:22-alpine AS base
+RUN apk add --no-cache 'zlib>=1.3.2-r1'
 
 # Install dependencies only when needed
 FROM base AS deps
