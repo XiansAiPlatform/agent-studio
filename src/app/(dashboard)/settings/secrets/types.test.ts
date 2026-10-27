@@ -28,19 +28,21 @@ describe('buildAdminSecretCreatePayload', () => {
     expect(result).toEqual({
       ok: true,
       payload: { key: 'API_KEY', value: 'shh', tenantId: 't1', agentId: 'abc123' },
+      authAgentId: 'abc123',
     })
   })
 
-  it('builds an activation payload with agentId and activationName', () => {
+  it('builds an activation payload with only activationName (no agentId)', () => {
     const result = buildAdminSecretCreatePayload('t1', {
       ...base,
       scope: 'activation',
       agentId: 'abc123',
       activationName: 'prod-eu',
     })
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       ok: true,
-      payload: { agentId: 'abc123', activationName: 'prod-eu' },
+      payload: { key: 'API_KEY', value: 'shh', tenantId: 't1', activationName: 'prod-eu' },
+      authAgentId: 'abc123',
     })
   })
 
@@ -88,10 +90,8 @@ describe('secret display helpers', () => {
     expect(getSecretScopeDetail(secret({ agentId: 'abc' }), {})).toBe('abc')
   })
 
-  it('shows agent / activation for activation scope', () => {
-    expect(
-      getSecretScopeDetail(secret({ agentId: 'abc', activationName: 'prod' }), { abc: 'compello' })
-    ).toBe('compello / prod')
+  it('shows the activation name for activation scope', () => {
+    expect(getSecretScopeDetail(secret({ activationName: 'prod' }))).toBe('prod')
   })
 
   it('parses a JSON-string additionalData description', () => {

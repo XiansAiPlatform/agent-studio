@@ -75,6 +75,7 @@ export const GET = withParticipantAdmin(
  *   scope?: 'tenant' | 'user' | 'agent' | 'activation'  // default tenant
  *   userId?: string          // required when scope is user (participant id)
  *   agentId?: string         // agent object id; required for agent / activation
+ *                            // (used for the access check only on activation)
  *   activationName?: string  // required when scope is activation
  *   description?: string
  *   additionalData?: Record<string, string|number|boolean>
@@ -114,8 +115,8 @@ export const POST = withParticipantAdmin(
 
       const client = createXiansClient()
 
-      if (result.payload.agentId) {
-        const agentName = await resolveAgentNameById(client, tenantId, result.payload.agentId)
+      if (result.authAgentId) {
+        const agentName = await resolveAgentNameById(client, tenantId, result.authAgentId)
         if (!agentName) {
           return NextResponse.json({ error: 'Agent not found in this tenant' }, { status: 400 })
         }

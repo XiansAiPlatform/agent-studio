@@ -2,8 +2,7 @@
  * Secret vault types for Agent Studio.
  *
  * Scope is implied by which ids are set on the secret: `userId` (user),
- * `agentId` (agent, the agent object id) or `agentId` + `activationName`
- * (activation). The create form's `scope` only drives validation and is not
+ * `agentId` (agent, the agent object id) or `activationName` (activation). The create form's `scope` only drives validation and is not
  * forwarded to the Admin API.
  */
 
@@ -62,16 +61,9 @@ export function getSecretScopeDetail(
   agentNames?: AgentNameMap
 ): string | undefined {
   const kind = getSecretScopeKind(secret)
-  const agent = secret.agentId ? (agentNames?.[secret.agentId] ?? secret.agentId) : undefined
-  if (kind === 'activation') {
-    return secret.activationName
-      ? agent
-        ? `${agent} / ${secret.activationName}`
-        : secret.activationName
-      : undefined
-  }
+  if (kind === 'activation') return secret.activationName ?? undefined
   if (kind === 'user') return secret.userId ?? undefined
-  if (kind === 'agent') return agent
+  if (kind === 'agent' && secret.agentId) return agentNames?.[secret.agentId] ?? secret.agentId
   return undefined
 }
 
@@ -138,12 +130,20 @@ export type CreateSecretBody = {
 /**
  * Validates a Studio create-secret body and maps it to the Admin API payload.
  * Tenant is always taken from the session cookie, never from the client.
- * Agent and activation scopes carry the agent object id (and activation name).
+ * Agent scope sends the agent object id; activation scope sends only the
+ * activation name (the agent is returned separately as `authAgentId`).
  */
 export function buildAdminSecretCreatePayload(
   tenantId: string,
   body: CreateSecretBody
-): { ok: true; payload: AdminSecretCreatePayload } | { ok: false; error: string } {
+):
+  | {
+      ok: true
+      payload: AdminSecretCreatePayload
+      /** Agent object id to authorize against (agent and activation scopes). */
+      authAgentId?: string
+    }
+  | { ok: false; error: string } {
   const key = body.key?.trim()
   const value = body.value
   if (!key) return { ok: false, error: 'Key is required' }
@@ -198,8 +198,13 @@ export function buildAdminSecretCreatePayload(
     if (!activationName) {
       return { ok: false, error: 'Activation is required for activation-scoped secrets' }
     }
-    payload.agentId = agentId
+    // Admin API needs only the activation name; the agent is used for the
+    // Studio-side access check and is not forwarded.
     payload.activationName = activationName
   }
-  return { ok: true, payload }
+  return {
+    ok: true,
+    payload,
+    ...(agentId && (scope === 'agent' || scope === 'activation') ? { authAgentId: agentId } : {}),
+  }
 }
