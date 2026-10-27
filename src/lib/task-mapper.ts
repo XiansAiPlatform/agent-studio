@@ -6,6 +6,7 @@ export type XiansTaskLike = {
   runId?: string | null
   title?: string | null
   description?: string | null
+  descriptionType?: string | null
   initialWork?: string | null
   finalWork?: string | null
   participantId?: string | null
@@ -47,6 +48,11 @@ export function resolveXiansTaskStatus(
   return 'approved'
 }
 
+export function normalizeDescriptionType(value: unknown): NonNullable<Task['descriptionType']> {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  return normalized === 'markdown' || normalized === 'json' ? normalized : 'string'
+}
+
 export function mapXiansTaskToTask(xiansTask: XiansTaskLike): Task {
   const workflowId = (xiansTask.workflowId || xiansTask.taskId || '').trim()
   const status = resolveXiansTaskStatus(xiansTask)
@@ -55,6 +61,7 @@ export function mapXiansTaskToTask(xiansTask: XiansTaskLike): Task {
     id: workflowId,
     title: xiansTask.title || 'Untitled request',
     description: xiansTask.description || 'No description available',
+    descriptionType: normalizeDescriptionType(xiansTask.descriptionType),
     status,
     priority: 'medium',
     createdBy: {
