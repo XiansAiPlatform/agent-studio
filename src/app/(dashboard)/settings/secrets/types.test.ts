@@ -46,9 +46,14 @@ describe('buildAdminSecretCreatePayload', () => {
     })
   })
 
-  it('sends additionalData as a JSON string', () => {
+  it('sends the description inside an additionalData object', () => {
     const result = buildAdminSecretCreatePayload('t1', { ...base, description: ' note ' })
-    expect(result).toMatchObject({ ok: true, payload: { additionalData: '{"description":"note"}' } })
+    expect(result).toMatchObject({ ok: true, payload: { additionalData: { description: 'note' } } })
+  })
+
+  it('omits additionalData when there is no description', () => {
+    const result = buildAdminSecretCreatePayload('t1', base)
+    expect(result.ok && 'additionalData' in result.payload).toBe(false)
   })
 
   it('never forwards scope', () => {
@@ -94,7 +99,14 @@ describe('secret display helpers', () => {
     expect(getSecretScopeDetail(secret({ activationName: 'prod' }))).toBe('prod')
   })
 
-  it('parses a JSON-string additionalData description', () => {
+  it('reads the description from an additionalData object', () => {
+    expect(getSecretDescription(secret({ additionalData: { description: ' Stripe key ' } }))).toBe(
+      'Stripe key'
+    )
+    expect(getSecretDescription(secret({ additionalData: {} }))).toBeUndefined()
+  })
+
+  it('also reads additionalData returned as a JSON string', () => {
     expect(getSecretDescription(secret({ additionalData: '{"description":"hello"}' }))).toBe('hello')
     expect(getSecretDescription(secret({ additionalData: 'not json' }))).toBeUndefined()
   })

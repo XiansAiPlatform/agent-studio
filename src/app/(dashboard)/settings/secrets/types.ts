@@ -34,7 +34,6 @@ export interface CreateSecretRequest {
   /** Required when scope is `activation`. */
   activationName?: string
   description?: string
-  additionalData?: Record<string, string | number | boolean>
 }
 
 export const SECRET_SCOPE_LABELS: Record<SecretScopeKind, string> = {
@@ -76,7 +75,7 @@ export function getSecretScopeLabel(
   return detail ? `${SECRET_SCOPE_LABELS[kind]} · ${detail}` : SECRET_SCOPE_LABELS[kind]
 }
 
-/** `additionalData` is a JSON string on the wire; tolerate an already-parsed object. */
+/** `additionalData` is a JSON object; older rows may be a JSON string. Returns the object, if any. */
 export function parseAdditionalData(
   raw: TenantSecret['additionalData']
 ): Record<string, string | number | boolean> | undefined {
@@ -93,8 +92,8 @@ export function parseAdditionalData(
 }
 
 /**
- * Helper: pull the user-friendly description out of the secret's
- * AdditionalData blob. Returns undefined when none is set.
+ * Helper: the secret's description, stored under the `description` key of
+ * `additionalData`. Returns undefined when none is set.
  */
 export function getSecretDescription(secret: TenantSecret): string | undefined {
   const data = parseAdditionalData(secret.additionalData)
@@ -112,8 +111,8 @@ export type AdminSecretCreatePayload = {
   /** Agent object id. */
   agentId?: string
   activationName?: string
-  /** JSON string. */
-  additionalData?: string
+  /** JSON object of string / number / boolean values only. */
+  additionalData?: Record<string, string | number | boolean>
 }
 
 export type CreateSecretBody = {
@@ -169,20 +168,14 @@ export function buildAdminSecretCreatePayload(
   }
 
   const description = body.description?.trim()
-  const additionalData: Record<string, string | number | boolean> = {
-    ...(body.additionalData ?? {}),
-  }
-  if (description) {
-    additionalData.description = description
-  }
 
   const payload: AdminSecretCreatePayload = {
     key,
     value,
     tenantId,
   }
-  if (Object.keys(additionalData).length > 0) {
-    payload.additionalData = JSON.stringify(additionalData)
+  if (description) {
+    payload.additionalData = { description }
   }
 
   if (scope === 'user') {

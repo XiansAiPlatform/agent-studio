@@ -78,7 +78,6 @@ export const GET = withParticipantAdmin(
  *                            // (used for the access check only on activation)
  *   activationName?: string  // required when scope is activation
  *   description?: string
- *   additionalData?: Record<string, string|number|boolean>
  * }
  *
  * `scope` only drives validation; the Admin API infers scope from the ids.
