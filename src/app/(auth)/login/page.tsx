@@ -18,7 +18,7 @@ export default async function LoginPage({
   const authError =
     typeof error === "string"
       ? AUTH_ERROR_MESSAGES[error] ?? null
-      : reason === "expired"
+      : (Array.isArray(reason) ? reason[0] : reason) === "expired"
         ? "Your session has expired. Please sign in again."
         : null
 
