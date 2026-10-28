@@ -85,13 +85,14 @@ export function useAgentOptions() {
 }
 
 const ACTIVATION_PAGE_SIZE = 100
+const MAX_PAGES = 50
 
 /** Activations of one agent, from `GET /api/agent-activations?agentName=`. */
 export function useActivationOptions(agentName: string | undefined) {
   return useOnDemandList<ActivationOption>(async (signal) => {
     if (!agentName) return []
     const all: ActivationOption[] = []
-    for (let page = 1; ; page++) {
+    for (let page = 1; page <= MAX_PAGES; page++) {
       const params = new URLSearchParams({
         agentName,
         page: String(page),
@@ -111,7 +112,11 @@ export function useActivationOptions(agentName: string | undefined) {
         }
       }
       const pagination = data?.pagination
-      const hasNext = pagination?.hasNext ?? (pagination?.totalPages ?? 1) > page
+      const hasNext =
+        pagination?.hasNext ??
+        (pagination?.totalPages != null
+          ? pagination.totalPages > page
+          : rows.length >= ACTIVATION_PAGE_SIZE)
       if (!hasNext || rows.length === 0) break
     }
     return all.sort((a, b) => a.name.localeCompare(b.name))

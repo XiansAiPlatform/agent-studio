@@ -115,6 +115,7 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
     watch,
     control,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -328,6 +329,7 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
                   setValue('agentId', next, { shouldValidate: !!next })
                   setValue('agentName', picked?.name ?? '')
                   setValue('activationName', '')
+                  clearErrors('activationName')
                   activations.reset()
                 }}
                 options={agentSelectOptions}

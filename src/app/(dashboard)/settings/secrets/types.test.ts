@@ -70,6 +70,7 @@ describe('buildAdminSecretCreatePayload', () => {
     [{ scope: 'tenant', agentId: 'a' }, 'not allowed'],
     [{ scope: 'agent', agentId: 'a', userId: 'u@x.com' }, 'User id is not allowed'],
     [{ scope: 'bogus' }, 'Scope must be'],
+    [{ scope: 'activation', agentId: 'a', activationName: '<script>' }, 'Activation name is invalid'],
   ])('rejects %j', (extra, message) => {
     const result = buildAdminSecretCreatePayload('t1', { ...base, ...extra })
     expect(result.ok).toBe(false)

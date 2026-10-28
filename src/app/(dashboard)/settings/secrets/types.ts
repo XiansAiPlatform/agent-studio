@@ -2,9 +2,12 @@
  * Secret vault types for Agent Studio.
  *
  * Scope is implied by which ids are set on the secret: `userId` (user),
- * `agentId` (agent, the agent object id) or `activationName` (activation). The create form's `scope` only drives validation and is not
- * forwarded to the Admin API.
+ * `agentId` (agent, the agent object id) or `activationName` (activation).
+ * The create form's `scope` only drives validation and is not forwarded to
+ * the Admin API.
  */
+
+import { isValidAgentName } from '@/lib/xians/agent-name'
 
 export type CreateSecretScope = 'tenant' | 'user' | 'agent' | 'activation'
 
@@ -190,6 +193,9 @@ export function buildAdminSecretCreatePayload(
     if (!agentId) return { ok: false, error: 'Agent is required for activation-scoped secrets' }
     if (!activationName) {
       return { ok: false, error: 'Activation is required for activation-scoped secrets' }
+    }
+    if (!isValidAgentName(activationName)) {
+      return { ok: false, error: 'Activation name is invalid' }
     }
     // Admin API needs only the activation name; the agent is used for the
     // Studio-side access check and is not forwarded.

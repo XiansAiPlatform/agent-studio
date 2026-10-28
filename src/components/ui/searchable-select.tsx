@@ -152,11 +152,19 @@ export function SearchableSelect({
               {selected && !disabled && (
                 <span
                   role="button"
+                  tabIndex={0}
                   aria-label="Clear selection"
                   className="rounded p-0.5 text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation()
                     onChange('')
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onChange('')
+                    }
                   }}
                 >
                   <X className="h-3.5 w-3.5" />

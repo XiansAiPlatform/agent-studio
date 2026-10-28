@@ -4,33 +4,11 @@ import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { canManageSecretOwner, resolveSecretAccess } from '@/lib/api/secret-access'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
+import { agentHasActivation, resolveAgentNameById } from '@/lib/api/secret-agent-scope'
 import {
   buildAdminSecretCreatePayload,
   type CreateSecretBody,
 } from '@/app/(dashboard)/settings/secrets/types'
-
-type XiansClient = ReturnType<typeof createXiansClient>
-
-/** Looks an agent deployment up by object id and returns its name (null if absent). */
-async function resolveAgentNameById(
-  client: XiansClient,
-  tenantId: string,
-  agentId: string
-): Promise<string | null> {
-  const pageSize = 100
-  for (let page = 1; ; page++) {
-    const data = await client.get<{
-      agents?: Array<{ id: string; name: string }>
-      pagination?: { hasNext?: boolean }
-    }>(
-      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/agentDeployments?page=${page}&pageSize=${pageSize}`,
-      { headers: { 'X-Tenant-Id': tenantId } }
-    )
-    const match = data?.agents?.find((a) => a.id === agentId)
-    if (match) return match.name
-    if (!data?.pagination?.hasNext) return null
-  }
-}
 
 /**
  * GET /api/settings/secrets
@@ -119,6 +97,20 @@ export const POST = withParticipantAdmin(
         if (!agentName) {
           return NextResponse.json({ error: 'Agent not found in this tenant' }, { status: 400 })
         }
+
+        // The Admin API only receives the activation name, so confirm it is one
+        // of the selected agent's activations before authorizing on that agent.
+        const { activationName } = result.payload
+        if (
+          activationName &&
+          !(await agentHasActivation(client, tenantId, agentName, activationName))
+        ) {
+          return NextResponse.json(
+            { error: 'Activation not found for the selected agent' },
+            { status: 400 }
+          )
+        }
+
         const denied = await assertCanEditAgent(session, tenantId, agentName)
         if (denied) return denied
       }
