@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
+import { SESSION_EXPIRED_HEADER } from "@/lib/api/session-expired"
 
 const EXPIRED_CALLBACK_URL = '/login?reason=expired'
 const IDLE_STORAGE_KEY = 'agent-studio-last-activity'
@@ -60,12 +61,14 @@ export function SessionGuard({ idleTimeoutMinutes }: { idleTimeoutMinutes: numbe
     if (status === 'unauthenticated' || refreshFailed) expireSession.current()
   }, [status, refreshFailed, onPublicPath])
 
-  // Any unauthorized API response means the session is no longer valid.
+  // A 401 marked with SESSION_EXPIRED_HEADER means the session is no longer valid.
+  // API routes must use sessionExpiredResponse() for that, and 403 for any other
+  // authorization failure, so an unrelated 401 can't sign the user out.
   useEffect(() => {
     const originalFetch = window.fetch
     window.fetch = async (...args) => {
       const response = await originalFetch(...args)
-      if (response.status === 401) {
+      if (response.status === 401 && response.headers.get(SESSION_EXPIRED_HEADER)) {
         try {
           const input = args[0]
           const rawUrl = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
@@ -136,7 +139,7 @@ export function SessionGuard({ idleTimeoutMinutes }: { idleTimeoutMinutes: numbe
       document.removeEventListener('visibilitychange', onVisible)
       window.clearInterval(timer)
     }
-  }, [status, onPublicPath])
+  }, [status, onPublicPath, IDLE_TIMEOUT_MS])
 
   return null
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 function extractThumbprint(pathname: string): string | null {
   const match = pathname.match(/\/api\/developer\/agent-certificates\/([^/]+)\/revoke$/)
@@ -22,7 +23,7 @@ export const POST = withParticipantAdmin(
     const thumbprint = extractThumbprint(request.nextUrl.pathname)
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID not found in session' }, { status: 401 })
+      return sessionExpiredResponse({ error: 'User ID not found in session' })
     }
 
     if (!thumbprint) {
