@@ -3,7 +3,7 @@
 # Agent Studio Dockerfile
 # Multi-stage build for Next.js application following best practices
 
-FROM node:22-alpine3.24 AS base
+FROM node:22-alpine AS base
 RUN apk add --no-cache 'zlib>=1.3.2-r1'
 
 # Install dependencies only when needed
@@ -54,11 +54,12 @@ ENV AZURE_AD_TENANT_ID=build-time-placeholder
 RUN --mount=type=cache,target=/app/.next/cache \
     npm run build
 
-# Production image contains Node and the app, without npm's image layers.
-FROM alpine:3.24 AS runner
-RUN apk add --no-cache ca-certificates libstdc++ 'zlib>=1.3.2-r1'
-COPY --from=base /usr/local/bin/node /usr/local/bin/node
+# Production image, copy all files and run next
+FROM base AS runner
 WORKDIR /app
+
+# The runtime starts with node directly, so remove npm and its vulnerable CLI packages.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
