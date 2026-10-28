@@ -72,7 +72,9 @@ export default async function RootLayout({
 
   // Read at request time (this layout is dynamic because of cookies()), so the
   // value can be changed per deployment without rebuilding the image.
-  const parsedIdle = Number(process.env.IDLE_TIMEOUT_MINUTES ?? 30);
+  // An empty value counts as unset; Number('') would be 0 and disable the timeout.
+  const rawIdle = process.env.IDLE_TIMEOUT_MINUTES?.trim();
+  const parsedIdle = rawIdle ? Number(rawIdle) : 30;
   const idleTimeoutMinutes = Number.isFinite(parsedIdle) && parsedIdle >= 0 ? parsedIdle : 30;
 
   return (

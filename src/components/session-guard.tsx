@@ -100,16 +100,22 @@ export function SessionGuard({ idleTimeoutMinutes }: { idleTimeoutMinutes: numbe
     }
     if (IDLE_TIMEOUT_MS <= 0 || status !== 'authenticated') return
 
+    // This tab's own last activity, so a missing or unreadable stored value
+    // (cleared by another tab, storage blocked) cannot read as "active just now".
+    let lastActivity = 0
     const readLastActivity = () => {
+      let stored = 0
       try {
-        return Number(localStorage.getItem(IDLE_STORAGE_KEY)) || Date.now()
+        stored = Number(localStorage.getItem(IDLE_STORAGE_KEY)) || 0
       } catch {
-        return Date.now()
+        // Storage unavailable; rely on this tab's own activity.
       }
+      return Math.max(stored, lastActivity) || Date.now()
     }
     let lastWrite = 0
     const markActive = () => {
       const now = Date.now()
+      lastActivity = now
       if (now - lastWrite < ACTIVITY_WRITE_THROTTLE_MS) return
       lastWrite = now
       try {

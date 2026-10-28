@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession, Session } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { sessionExpiredResponse } from "@/lib/api/session-expired"
 import { useTenantProvider, TenantContext } from "@/lib/tenant"
 import { requireParticipantAdmin, requireTenantAdmin, requireSystemAdmin } from "@/lib/api/auth"
 import { runWithSessionOnBehalfOf } from "@/lib/xians/on-behalf-of"
@@ -161,10 +162,7 @@ export function withTenantFromSession<P extends RouteParams = RouteParams>(
       const session = await getServerSession(authOptions)
       
       if (!session || !session.user?.id || !session.user?.email) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        )
+        return sessionExpiredResponse({ error: 'Unauthorized' })
       }
 
       const tenantProvider = useTenantProvider()
@@ -236,10 +234,7 @@ export function withParticipantAdmin<P extends RouteParams = RouteParams>(
       const session = await getServerSession(authOptions)
 
       if (!session || !session.user?.id || !session.user?.email) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        )
+        return sessionExpiredResponse({ error: 'Unauthorized' })
       }
 
       const tenantProvider = useTenantProvider()
@@ -303,7 +298,7 @@ export function withTenantAdmin<P extends RouteParams = RouteParams>(
       const session = await getServerSession(authOptions)
 
       if (!session || !session.user?.id || !session.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return sessionExpiredResponse({ error: 'Unauthorized' })
       }
 
       const tenantProvider = useTenantProvider()
@@ -406,7 +401,7 @@ export function withSystemAdminTenant<P extends RouteParams = RouteParams>(
       const session = await getServerSession(authOptions)
 
       if (!session || !session.user?.id || !session.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return sessionExpiredResponse({ error: 'Unauthorized' })
       }
 
       const tenantProvider = useTenantProvider()

@@ -88,6 +88,28 @@ describe('SessionGuard', () => {
       expect(signOut).toHaveBeenCalledTimes(1)
     })
 
+    it('returns the response unchanged to the caller', async () => {
+      const res = new Response('ok', { status: 200 })
+      stubFetch.mockResolvedValue(res)
+      render(<SessionGuard idleTimeoutMinutes={0} />)
+      await expect(window.fetch('/api/tasks')).resolves.toBe(res)
+      expect(signOut).not.toHaveBeenCalled()
+    })
+
+    it('still returns a marked 401 to the caller', async () => {
+      const res = new Response(null, { status: 401, headers: marked })
+      stubFetch.mockResolvedValue(res)
+      render(<SessionGuard idleTimeoutMinutes={0} />)
+      await expect(window.fetch('/api/tasks')).resolves.toBe(res)
+    })
+
+    it('propagates network errors without signing out', async () => {
+      stubFetch.mockRejectedValue(new TypeError('Failed to fetch'))
+      render(<SessionGuard idleTimeoutMinutes={0} />)
+      await expect(window.fetch('/api/tasks')).rejects.toThrow('Failed to fetch')
+      expect(signOut).not.toHaveBeenCalled()
+    })
+
     it('restores the original fetch on unmount', () => {
       const { unmount } = render(<SessionGuard idleTimeoutMinutes={0} />)
       expect(window.fetch).not.toBe(stubFetch)
@@ -117,6 +139,30 @@ describe('SessionGuard', () => {
         window.dispatchEvent(new Event('mousemove'))
       }
       expect(signOut).not.toHaveBeenCalled()
+    })
+
+    it('still times out when the stored timestamp is removed by another tab', () => {
+      render(<SessionGuard idleTimeoutMinutes={1} />)
+      localStorage.removeItem(IDLE_KEY)
+      vi.advanceTimersByTime(61 * 1000 + 30 * 1000)
+      expect(signOut).toHaveBeenCalledTimes(1)
+    })
+
+    it('stays signed in when another tab records fresh activity', () => {
+      render(<SessionGuard idleTimeoutMinutes={1} />)
+      vi.advanceTimersByTime(50 * 1000)
+      localStorage.setItem(IDLE_KEY, String(Date.now()))
+      vi.advanceTimersByTime(30 * 1000)
+      expect(signOut).not.toHaveBeenCalled()
+    })
+
+    it('re-checks when a hidden tab becomes visible', () => {
+      render(<SessionGuard idleTimeoutMinutes={1} />)
+      // Jump the clock without firing the interval, as a throttled background tab would.
+      vi.setSystemTime(Date.now() + 2 * 60 * 1000)
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
+      document.dispatchEvent(new Event('visibilitychange'))
+      expect(signOut).toHaveBeenCalledTimes(1)
     })
 
     it('is disabled when the timeout is 0', () => {
