@@ -171,8 +171,9 @@ export function IntegrationDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      {/* Scroll the body, not SheetContent, so the absolute expand/close buttons stay pinned */}
-      <SheetContent className="w-full sm:max-w-2xl">
+      {/* Scroll the body, not SheetContent, so the absolute expand/close buttons stay pinned.
+          overflow-hidden keeps long unbroken header text from spilling past the sheet edge. */}
+      <SheetContent className="w-full sm:max-w-2xl overflow-hidden">
         <SheetHeader className="space-y-3 sm:space-y-4 pl-4 sm:pl-6 pt-5 sm:pt-6 pb-3 sm:pb-4">
           {isLoading ? (
             <>
