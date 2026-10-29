@@ -58,6 +58,9 @@ RUN --mount=type=cache,target=/app/.next/cache \
 FROM base AS runner
 WORKDIR /app
 
+# npm is not needed at runtime; Studio starts with node directly.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
