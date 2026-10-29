@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withDeveloperAccess, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
@@ -12,7 +12,7 @@ function extractId(pathname: string): string | null {
  * POST /api/developer/admin-apikeys/[id]/rotate
  * Rotate an admin API key — invalidates the current key and issues a new one.
  */
-export const POST = withParticipantAdmin(
+export const POST = withDeveloperAccess(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     const userId = session.user?.email ?? session.user?.id

@@ -111,6 +111,28 @@ export async function requireParticipantAdmin(
 }
 
 /**
+ * Require access to the Developer area (`/developer/*`) for an API route.
+ * Granted to TenantUser, TenantAdmin, and system admins only.
+ *
+ * @param session - The user's session
+ * @param currentTenantId - The tenant ID from the current-tenant-id cookie
+ */
+export async function requireDeveloper(
+  session: Session | null,
+  currentTenantId: string | null
+): Promise<NextResponse | null> {
+  if (session && !currentTenantId) {
+    return forbiddenError('Developer access requires a selected tenant')
+  }
+  return requireCapability(
+    session,
+    currentTenantId,
+    'developer:access',
+    'Developer access required'
+  )
+}
+
+/**
  * Require tenant user-management access (`/tenant-settings/*`) for an API route.
  * Granted to TenantAdmin and system admins only.
  *

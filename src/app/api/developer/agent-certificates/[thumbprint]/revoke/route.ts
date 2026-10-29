@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withDeveloperAccess, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 
@@ -13,7 +13,7 @@ function extractThumbprint(pathname: string): string | null {
  * Revoke an agent certificate by thumbprint.
  * Body: { reason?: string }
  */
-export const POST = withParticipantAdmin(
+export const POST = withDeveloperAccess(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     // Identify the user by email so revoke scopes match the userId used when
