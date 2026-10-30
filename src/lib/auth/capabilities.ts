@@ -30,6 +30,8 @@ export type Capability =
   | 'developer:access'
   /** Manage tenant users (`/tenant-settings/*`). */
   | 'tenant:manage-users'
+  /** Create, edit and view agent evals (`/settings/evals`). Tenant admins have it by default. */
+  | 'evals:manage'
   /**
    * Create, delete and list user-scoped secrets that belong to OTHER tenant
    * members, and browse the tenant member directory for the secret picker.
@@ -48,6 +50,7 @@ export const ALL_CAPABILITIES: Capability[] = [
   'settings:view',
   'developer:access',
   'tenant:manage-users',
+  'evals:manage',
   'secrets:manage-user-scoped',
   'theme:customize',
   'system:admin',
@@ -82,6 +85,7 @@ const ROLE_CAPABILITIES: Record<XiansParticipantRole, Capability[]> = {
     'developer:access',
     'theme:customize',
     'tenant:manage-users',
+    'evals:manage',
   ],
 }
 
