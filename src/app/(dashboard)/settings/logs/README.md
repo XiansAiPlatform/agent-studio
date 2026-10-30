@@ -31,7 +31,7 @@ This avoids loading thousands of unrelated log entries up front and gives operat
 ### 2. Logs view (drilled-in)
 
 - Activated when a `workflowId` is set in the URL.
-- Shows logs for the selected stream only (paginated 20 per page).
+- Shows logs for the selected stream only (paginated 20 per page). With **Include child workflows** on (`children=1`, also set by the **View logs** link on schedule runs) it also shows logs of the child workflows that stream started; each entry's workflow type tells them apart.
 - The page header itself becomes the drill-in header: a back button sits directly beside the title (agent + activation), with the workflow type and a click-to-copy workflow ID shown as the subtitle. There's no separate banner — the same title area that shows "Log Streams" in the streams view is swapped out (`streams-title.tsx` ↔ `stream-details-title.tsx`).
 - Each log entry shows:
   - Log level badge (Error, Warning, Information, Debug, Trace)
@@ -50,6 +50,7 @@ Primary filter: **Activation Name** (grouped by agent)
 
 - Collapsible tree structure: Agent → Activation → Workflow
 - Selecting an activation reveals the agent's registered workflows (from `/api/agents/{agentName}` definitions, including non-activable child/task workflows). Picking one narrows streams and logs to that workflow type (`workflowType` URL param, full `Agent:Flow` value). The workflow selection is cleared when the activation changes or is removed.
+- **Include child workflows** checkbox (`children=1` URL param, shown as a "+ child workflows" chip): adds the child workflows started by the selected workflow type (e.g. *Batch Orchestrator* also lists its *Batch Item* streams) and, when drilled into a stream, by that stream. It has no effect on the unfiltered streams list, which already shows every workflow. Children are found server-side through Temporal's `ParentWorkflowId` (up to 3 levels deep; for a type filter, the children of its 200 most recently active workflows); workflows started via the Temporal client from an activity have no parent link and are not included.
 - Agent search
 - Shows active/inactive status
 
@@ -138,6 +139,7 @@ Filter Slider updates URL params → re-renders both queries
 - `agentName`
 - `activationName`
 - `workflowType`
+- `includeChildWorkflows` (`true` widens `workflowType` / `workflowId` to child workflows; sent when **Include child workflows** is on)
 - `logLevel` (comma-separated)
 - `startDate` (ISO 8601)
 - `endDate` (ISO 8601)

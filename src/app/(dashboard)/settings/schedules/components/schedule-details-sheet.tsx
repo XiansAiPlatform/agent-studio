@@ -42,10 +42,10 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   )
 }
 
-/** Activity log stream for a started run, keyed by its workflow ID. */
+/** Activity logs for a started run and the child workflows it started, keyed by its workflow ID. */
 function logsHref(run: ScheduleRun): string | null {
   return run.workflowId
-    ? `/settings/logs?workflowId=${encodeURIComponent(run.workflowId)}`
+    ? `/settings/logs?workflowId=${encodeURIComponent(run.workflowId)}&children=1`
     : null
 }
 
