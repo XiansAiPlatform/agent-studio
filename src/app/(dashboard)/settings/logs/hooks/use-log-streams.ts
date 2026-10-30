@@ -38,6 +38,7 @@ export function useLogStreams(
       filters.startDate,
       filters.endDate,
       filters.search,
+      filters.includeChildWorkflows,
       filters.pageSize,
       filters.page,
     ]
@@ -60,6 +61,8 @@ export function useLogStreams(
       if (current.agentName) params.set('agentName', current.agentName);
       if (current.activationName) params.set('activationName', current.activationName);
       if (current.workflowType) params.set('workflowType', current.workflowType);
+      // Widens the workflow filter to child workflows started by workflows of that type
+      if (current.includeChildWorkflows) params.set('includeChildWorkflows', 'true');
 
       if (current.logLevel && current.logLevel.length > 0) {
         params.set('logLevel', current.logLevel.join(','));

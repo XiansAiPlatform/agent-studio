@@ -35,6 +35,8 @@ export interface LogFilters {
   endDate?: string;   // ISO 8601
   /** Free-text search on log message and property values. */
   search?: string;
+  /** Also return logs of child workflows started by `workflowId` (or by workflows of `workflowType`). */
+  includeChildWorkflows?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -102,6 +104,8 @@ export interface LogStreamFilters {
   startDate?: string;
   endDate?: string;
   search?: string;
+  /** Also list streams of child workflows started by workflows of `workflowType`. */
+  includeChildWorkflows?: boolean;
   page?: number;
   pageSize?: number;
 }
