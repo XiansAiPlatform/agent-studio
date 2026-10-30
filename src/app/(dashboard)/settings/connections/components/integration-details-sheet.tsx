@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { 
   Sheet, 
   SheetContent, 
@@ -67,7 +67,11 @@ export function IntegrationDetailsSheet({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const latestRequest = useRef(0)
+
+  // The page reuses this sheet for every card. A layout effect shows the loading
+  // state before paint, so the previous card's details never flash on open.
+  useLayoutEffect(() => {
     if (open && integrationId && currentTenantId) {
       fetchIntegrationDetails()
     }
@@ -77,24 +81,28 @@ export function IntegrationDetailsSheet({
   const fetchIntegrationDetails = async () => {
     if (!integrationId || !currentTenantId) return
 
+    // A slow response for an earlier card must not overwrite the current one
+    const requestId = ++latestRequest.current
     setIsLoading(true)
     setError(null)
     try {
       const response = await fetch(
         `/api/integrations/${integrationId}`
       )
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch integration details')
       }
 
       const data = await response.json()
+      if (requestId !== latestRequest.current) return
       setIntegration(data)
     } catch (err) {
+      if (requestId !== latestRequest.current) return
       setError(err instanceof Error ? err.message : 'Failed to load integration')
       showErrorToast(err as Error)
     } finally {
-      setIsLoading(false)
+      if (requestId === latestRequest.current) setIsLoading(false)
     }
   }
 
@@ -132,9 +140,10 @@ export function IntegrationDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      {/* Scroll the body, not SheetContent, so the absolute expand/close buttons stay pinned */}
+      {/* Scroll the body, not SheetContent, so the absolute expand/close buttons stay pinned.
+          overflow-hidden keeps long unbroken header text from spilling past the sheet edge. */}
       <SheetContent
-        className="w-full sm:max-w-2xl"
+        className="w-full sm:max-w-2xl overflow-hidden"
         headerActions={integration && !isLoading && !error ? (
           <Badge variant={integration.isEnabled ? "default" : "secondary"} className="h-6">
             {integration.isEnabled ? 'Enabled' : 'Disabled'}
@@ -142,7 +151,7 @@ export function IntegrationDetailsSheet({
         ) : null}
       >
         {/* pr reserves room for the Enabled badge + expand/close cluster;
-            min-w-0 on SheetHeader's inner wrappers lets long names wrap instead of overflowing */}
+            min-w-0 on SheetHeader's inner wrappers lets long names truncate instead of overflowing */}
         <SheetHeader className="space-y-3 sm:space-y-4 pl-4 sm:pl-6 pr-36 sm:pr-40 pt-5 sm:pt-6 pb-3 sm:pb-4 [&>div]:min-w-0 [&>div>div]:min-w-0">
           {isLoading ? (
             <>
@@ -157,7 +166,7 @@ export function IntegrationDetailsSheet({
           ) : integration ? (
             <>
               <div className="min-w-0">
-                <SheetTitle className="text-lg sm:text-2xl break-words [overflow-wrap:anywhere]">{integration.name}</SheetTitle>
+                <SheetTitle className="text-lg sm:text-2xl truncate" title={integration.name}>{integration.name}</SheetTitle>
                 <SheetDescription className="mt-1 sm:mt-2 text-xs sm:text-sm">
                   {integration.description}
                 </SheetDescription>

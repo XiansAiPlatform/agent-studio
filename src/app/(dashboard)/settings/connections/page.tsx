@@ -55,8 +55,6 @@ function ConnectionsContent() {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | null>(null);
-  // Bumped on every open so the details sheet remounts and starts collapsed
-  const [detailsSheetKey, setDetailsSheetKey] = useState(0);
   const [showSlackWizard, setShowSlackWizard] = useState(false);
   const [showTeamsWizard, setShowTeamsWizard] = useState(false);
   const [showWebhooksSheet, setShowWebhooksSheet] = useState(false);
@@ -320,7 +318,6 @@ function ConnectionsContent() {
 
   const handleViewDetails = (connectionId: string) => {
     setSelectedIntegrationId(connectionId);
-    setDetailsSheetKey(key => key + 1);
     setShowDetailsSheet(true);
   };
 
@@ -547,8 +544,8 @@ function ConnectionsContent() {
         />
 
         {/* Integration Details Sheet */}
+        {/* Stays mounted across opens so the expanded state carries over between cards */}
         <IntegrationDetailsSheet
-          key={detailsSheetKey}
           open={showDetailsSheet}
           onOpenChange={setShowDetailsSheet}
           integrationId={selectedIntegrationId}
