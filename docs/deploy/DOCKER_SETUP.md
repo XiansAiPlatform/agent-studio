@@ -29,7 +29,12 @@ GOOGLE_CLIENT_SECRET=your-google-secret
 AZURE_AD_CLIENT_ID=your-azure-id
 AZURE_AD_CLIENT_SECRET=your-azure-secret
 AZURE_AD_TENANT_ID=your-tenant-id
+
+# Optional:
+IDLE_TIMEOUT_MINUTES=30  # minutes of inactivity before sign-out; 0 disables
 ```
+
+`IDLE_TIMEOUT_MINUTES` is read at runtime, so set it when you start the container (for example `-e IDLE_TIMEOUT_MINUTES=60`). It does not need to be set at build time.
 
 ## Building Docker Images
 

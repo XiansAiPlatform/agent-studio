@@ -154,7 +154,7 @@ export function SignInForm({ initialError = null }: { initialError?: string | nu
       <CardContent className="space-y-4">
         {/* Network status indicator */}
         {!isOnline && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="[&>svg]:top-3.5 [&>svg+div]:translate-y-0">
             <WifiOff className="h-4 w-4" />
             <AlertDescription>
               No internet connection. Please check your network connection.
@@ -164,7 +164,7 @@ export function SignInForm({ initialError = null }: { initialError?: string | nu
 
         {/* Error display */}
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="[&>svg]:top-3.5 [&>svg+div]:translate-y-0">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>

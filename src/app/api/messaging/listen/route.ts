@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { xiansAdminHeaders } from '@/lib/xians/client'
 import { rejectClientViewAsParameter } from '@/lib/api/messaging-view-as-guards'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 /**
  * GET /api/messaging/listen
@@ -23,10 +24,7 @@ export async function GET(request: NextRequest) {
 
       const participantId = session.user?.email
       if (!participantId) {
-        return new Response(
-          JSON.stringify({ error: 'User email not found in session' }),
-          { status: 401, headers: { 'Content-Type': 'application/json' } }
-        )
+        return sessionExpiredResponse({ error: 'User email not found in session' })
       }
 
       if (!agentName || !activationName) {

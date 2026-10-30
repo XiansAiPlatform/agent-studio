@@ -3,6 +3,7 @@ import { withTenantFromSession, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { rejectClientViewAsParameter } from '@/lib/api/messaging-view-as-guards'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 /**
  * DELETE /api/messaging/messages
@@ -24,10 +25,7 @@ export const DELETE = withTenantFromSession(
 
       const participantId = session.user?.email
       if (!participantId) {
-        return NextResponse.json(
-          { error: 'User email not found in session' },
-          { status: 401 }
-        )
+        return sessionExpiredResponse({ error: 'User email not found in session' })
       }
 
       if (!agentName || !activationName) {
