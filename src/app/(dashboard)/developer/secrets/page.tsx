@@ -6,7 +6,10 @@ import { AdminApiKeysSection } from './components/admin-apikeys-section'
 
 export default function DeveloperSecretsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+    <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      {/* `relative` keeps absolutely positioned descendants (sr-only labels) inside <main>'s
+          scroll area; otherwise they extend the document and add a second scrollbar. */}
+
       {/* Page header */}
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto p-4 sm:p-6">
