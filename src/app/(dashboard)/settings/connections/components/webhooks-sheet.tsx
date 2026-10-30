@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -51,6 +52,7 @@ export function WebhooksSheet({
   const [createActivationName, setCreateActivationName] = useState(activationName || 'DefaultActivation');
   const [createWebhookName, setCreateWebhookName] = useState('Default');
   const [createWorkflowName, setCreateWorkflowName] = useState('Integrator Workflow');
+  const [createPrompt, setCreatePrompt] = useState('');
   const [createParticipantId, setCreateParticipantId] = useState('webhook');
   const [createTimeout, setCreateTimeout] = useState(30);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
@@ -69,6 +71,9 @@ export function WebhooksSheet({
     if (createTimeout < 1 || createTimeout > 300) {
       err.timeout = 'Timeout must be between 1 and 300 seconds';
     }
+    if (!useDefaultOptions && createWorkflowName.trim() === 'Webhook Prompt Workflow' && !createPrompt.trim()) {
+      err.prompt = 'Prompt is required for Webhook Prompt Workflow';
+    }
     setCreateErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -86,7 +91,8 @@ export function WebhooksSheet({
           activationName: normalizeAgentName(createActivationName),
           name: !useDefaultOptions && createWebhookName?.trim() ? createWebhookName.trim() : undefined,
           webhookName: createWebhookName?.trim() || 'Default',
-          workflowName: createWorkflowName?.trim() || 'Integrator Workflow',
+          workflowName: useDefaultOptions ? 'Integrator Workflow' : createWorkflowName.trim() || 'Integrator Workflow',
+          workflowInputs: !useDefaultOptions && createWorkflowName.trim() === 'Webhook Prompt Workflow' ? { Prompt: createPrompt.trim() } : undefined,
           participantId: createParticipantId?.trim() || 'webhook',
           timeoutInSeconds: createTimeout,
         }),
@@ -208,6 +214,18 @@ export function WebhooksSheet({
                         />
                       </div>
                     </div>
+                    {createWorkflowName.trim() === 'Webhook Prompt Workflow' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="webhookPrompt" className="text-sm font-medium">Prompt</Label>
+                        <Textarea
+                          id="webhookPrompt"
+                          value={createPrompt}
+                          onChange={(e) => setCreatePrompt(e.target.value)}
+                          placeholder="Describe the task to run when this webhook is called"
+                        />
+                        {createErrors.prompt && <p className="text-sm text-destructive">{createErrors.prompt}</p>}
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="participantId" className="text-sm font-medium">Participant ID</Label>
