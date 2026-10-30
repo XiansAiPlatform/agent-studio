@@ -172,11 +172,18 @@ export function ConnectionCard({
             )}
             {!isManagedMcp && (
               <>
+                {/* Edit isn't built yet: the click bubbles to the card, which opens the details sheet */}
                 <DropdownMenuItem onClick={() => onEdit(connection)}>
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onToggleActive(connection.id, !connection.isActive)}>
+                <DropdownMenuItem
+                  onClick={(event) => {
+                    // Don't let the click bubble to the card and open the details sheet
+                    event.stopPropagation()
+                    onToggleActive(connection.id, !connection.isActive)
+                  }}
+                >
                   {connection.isActive ? 'Disable' : 'Enable'}
                 </DropdownMenuItem>
               </>

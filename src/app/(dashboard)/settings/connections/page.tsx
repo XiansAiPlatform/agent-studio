@@ -115,6 +115,7 @@ function ConnectionsContent() {
     updateConnection,
     deleteConnection,
     deleteIntegration,
+    setIntegrationEnabled,
     testConnection,
     authorizeConnection,
     createIntegration
@@ -292,6 +293,19 @@ function ConnectionsContent() {
     }
   };
 
+  const handleToggleActive = async (connection: OIDCConnection, active: boolean) => {
+    try {
+      // Integrations (Slack, Teams, webhooks) carry a platformId and have their own routes
+      if (connection.platformId) {
+        await setIntegrationEnabled.mutateAsync({ id: connection.id, enabled: active });
+      } else {
+        await updateConnection.mutateAsync({ id: connection.id, data: { isActive: active } });
+      }
+    } catch (error) {
+      showErrorToast(error as Error);
+    }
+  };
+
   const handleTestConnection = async (connectionId: string) => {
     try {
       const result = await testConnection.mutateAsync(connectionId);
@@ -414,12 +428,7 @@ function ConnectionsContent() {
                   setShowDeleteDialog(true);
                 }}
                 onTest={handleTestConnection}
-                onToggleActive={(id, active) => {
-                  updateConnection.mutate({ 
-                    id, 
-                    data: { isActive: active } 
-                  });
-                }}
+                onToggleActive={(_id, active) => handleToggleActive(connection, active)}
                 onViewUsage={() => {/* TODO: Implement usage view */}}
                 onAuthorize={handleAuthorizeConnection}
                 onClick={connection.providerId === 'oauth-mcp' ? undefined : handleViewDetails}
