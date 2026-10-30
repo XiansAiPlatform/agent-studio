@@ -223,6 +223,7 @@ export function ConversationView({
                   ? () => setTopicsDrawerOpen(true)
                   : undefined
               }
+              readOnly={readOnly}
             />
             <ChatPanel
               conversation={conversation}
@@ -265,6 +266,7 @@ export function ConversationView({
                   ? () => setTopicsDrawerOpen(true)
                   : undefined
               }
+              readOnly={readOnly}
             />
 
             {/* Chat Interface */}

@@ -10,11 +10,10 @@ import {
   Search,
   Loader2,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -297,29 +296,14 @@ function TenantsPageContent() {
         </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <span className="text-sm text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={!pagination.hasPrevious || isLoading}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-            disabled={!pagination.hasNext || isLoading}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+      <PaginationBar
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        hasPrevious={pagination.hasPrevious}
+        hasNext={pagination.hasNext}
+        loading={isLoading}
+        onPageChange={setPage}
+      />
       </DashboardPageBody>
 
       <AddTenantDialog

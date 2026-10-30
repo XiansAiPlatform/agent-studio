@@ -13,6 +13,9 @@ import {
   storedTaskOwner,
   type XiansTaskRecord,
 } from '@/lib/api/task-access'
+import { createTtlCache } from '@/lib/xians/cache'
+import { summarizePendingTasks } from '@/lib/pending-task-summary'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 type XiansTasksListResponse = {
   tasks?: XiansTaskRecord[]
@@ -24,6 +27,12 @@ type XiansTasksListResponse = {
 
 const OWNED_SCAN_PAGE_SIZE = 50
 const OWNED_SCAN_MAX_PAGES = 5
+
+/**
+ * Badge summaries are polled by every open tab; the ownership scan behind them
+ * fans out into one GetTaskInfo per listed task. Keyed per user, never shared.
+ */
+const ownedTaskSummaryCache = createTtlCache<XiansTaskRecord[]>(15_000)
 
 /**
  * GET /api/tasks
@@ -40,6 +49,9 @@ const OWNED_SCAN_MAX_PAGES = 5
  * `viewType=everyone` requires Agent Settings access and is not owner-filtered.
  * Those list rows are still hydrated from GetTaskInfo so completion status
  * (`isCompleted` / `performedAction`) is present for the Admin UI.
+ *
+ * `summary=1` (viewType=my only) returns `{ totalCount, countsByActivation }`
+ * from a short per-user cache; `fresh=1` bypasses it after the user acts.
  */
 export const GET = withTenantFromSession(
   async (request: NextRequest, { tenantContext, session, tenantId: cookieTenantId }: ApiContext) => {
@@ -50,10 +62,7 @@ export const GET = withTenantFromSession(
 
       const participantId = session.user?.email
       if (!participantId) {
-        return NextResponse.json(
-          { error: 'User email not found in session' },
-          { status: 401 }
-        )
+        return sessionExpiredResponse({ error: 'User email not found in session' })
       }
 
       const agentName = searchParams.get('agentName')
@@ -89,6 +98,14 @@ export const GET = withTenantFromSession(
         })
       }
 
+      const isSummary = searchParams.get('summary') === '1'
+      if (isSummary && viewType !== 'my') {
+        return NextResponse.json(
+          { error: 'summary is only supported for viewType=my' },
+          { status: 400 }
+        )
+      }
+
       if (viewType !== 'my') {
         const authError = await requireParticipantAdmin(session, cookieTenantId)
         if (authError) return authError
@@ -99,6 +116,17 @@ export const GET = withTenantFromSession(
       if (agentName) baseParams.append('agentName', agentName)
       if (activationName) baseParams.append('activationName', activationName)
       if (status) baseParams.append('status', status)
+
+      if (isSummary) {
+        const cacheKey = [tenantId, participantId, status, agentName, activationName].join('\0')
+        if (searchParams.get('fresh') === '1') ownedTaskSummaryCache.delete(cacheKey)
+        const owned = await ownedTaskSummaryCache.get(cacheKey, () =>
+          listOwnedTasks(client, tenantId, session, accessToken, baseParams)
+        )
+        return NextResponse.json(summarizePendingTasks(owned), {
+          headers: { 'Cache-Control': 'private, no-store' },
+        })
+      }
 
       if (viewType !== 'my') {
         baseParams.set('pageSize', String(pageSize))

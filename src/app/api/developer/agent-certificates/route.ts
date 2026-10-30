@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 /**
  * GET /api/developer/agent-certificates
@@ -16,7 +17,7 @@ export const GET = withParticipantAdmin(
     const userId = session.user?.email ?? session.user?.id
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID not found in session' }, { status: 401 })
+      return sessionExpiredResponse({ error: 'User ID not found in session' })
     }
 
     try {
@@ -47,7 +48,7 @@ export const POST = withParticipantAdmin(
     const userId = session.user?.email ?? session.user?.id
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID not found in session' }, { status: 401 })
+      return sessionExpiredResponse({ error: 'User ID not found in session' })
     }
 
     let body: { name?: string; revokePrevious?: boolean } = {}

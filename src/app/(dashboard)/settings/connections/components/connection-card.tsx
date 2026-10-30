@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { MoreHorizontal, Webhook } from 'lucide-react'
+import { Copy, MoreHorizontal, Plug, Webhook } from 'lucide-react'
 import Image from 'next/image'
 import {
   DropdownMenu,
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { OIDCConnection, ConnectionStatus } from '../types'
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 
 // Icon mapping for integration types
 const INTEGRATION_ICONS: Record<string, string> = {
@@ -26,7 +27,8 @@ const INTEGRATION_NAMES: Record<string, string> = {
   'teams': 'Microsoft Teams',
   'outlook': 'Outlook',
   'webhook': 'Custom Webhook',
-  'builtin_webhook': 'Webhook'
+  'builtin_webhook': 'Webhook',
+  'oauth-mcp': 'OAuth MCP'
 }
 
 interface ConnectionCardProps {
@@ -65,6 +67,19 @@ export function ConnectionCard({
   const displayName = INTEGRATION_NAMES[connection.providerId] || connection.providerId
   const isWebhook =
     connection.providerId === 'builtin_webhook' || connection.providerId === 'webhook'
+  const isManagedMcp = connection.providerId === 'oauth-mcp'
+
+  const copyConnectionKey = async (event: React.MouseEvent) => {
+    event.stopPropagation()
+    const connectionKey = connection.configuration?.connectionKey
+    if (!connectionKey) return
+    try {
+      await navigator.clipboard.writeText(String(connectionKey))
+      showSuccessToast('Connection key copied')
+    } catch (error) {
+      showErrorToast(error instanceof Error ? error : new Error('Failed to copy connection key'))
+    }
+  }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'unknown'
@@ -80,7 +95,7 @@ export function ConnectionCard({
     <div 
       onClick={() => onClick?.(connection.id)}
       className={cn(
-        "group relative p-6 rounded-xl border-0 transition-all duration-200",
+        "group relative min-w-0 p-6 rounded-xl border-0 transition-all duration-200",
         connection.isActive 
           ? "bg-card/80 hover:bg-card" 
           : "bg-muted/50 hover:bg-muted/70",
@@ -93,7 +108,9 @@ export function ConnectionCard({
           "flex-shrink-0 mt-0.5 flex items-center justify-center w-10 h-10",
           !connection.isActive && "opacity-50 grayscale"
         )}>
-          {connection.providerId === 'builtin_webhook' ? (
+          {isManagedMcp ? (
+            <Plug className="h-10 w-10 text-muted-foreground" />
+          ) : connection.providerId === 'builtin_webhook' ? (
             <Webhook className="h-10 w-10 text-muted-foreground" />
           ) : (
             <Image 
@@ -109,15 +126,19 @@ export function ConnectionCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Connection name */}
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className={cn(
-              "text-base font-normal",
-              connection.isActive ? "text-foreground" : "text-muted-foreground"
-            )}>
+          <div className="flex items-center gap-2 mb-1 min-w-0">
+            {/* Long names (e.g. auto-generated webhooks) truncate with an ellipsis; full name on hover */}
+            <h3
+              title={connection.name}
+              className={cn(
+                "min-w-0 truncate text-base font-normal",
+                connection.isActive ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
               {connection.name}
             </h3>
             <span className={cn(
-              "text-xs px-2 py-0.5 rounded",
+              "shrink-0 text-xs px-2 py-0.5 rounded",
               connection.isActive 
                 ? "text-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 dark:text-emerald-400" 
                 : "text-muted-foreground bg-muted"
@@ -138,6 +159,22 @@ export function ConnectionCard({
               </>
             )}
           </div>
+          {isManagedMcp && connection.configuration?.connectionKey && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <code className="min-w-0 truncate" title={String(connection.configuration.connectionKey)}>
+                {String(connection.configuration.connectionKey)}
+              </code>
+              <button
+                type="button"
+                title="Copy connection key"
+                aria-label="Copy connection key"
+                className="shrink-0 rounded p-1 hover:bg-muted hover:text-foreground"
+                onClick={copyConnectionKey}
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -156,7 +193,7 @@ export function ConnectionCard({
                 <DropdownMenuSeparator />
               </>
             )}
-            {!isWebhook && (
+            {!isWebhook && !isManagedMcp && (
               <>
                 <DropdownMenuItem onClick={() => onTest(connection.id)}>
                   Test
@@ -166,13 +203,17 @@ export function ConnectionCard({
                 </DropdownMenuItem>
               </>
             )}
-            <DropdownMenuItem onClick={() => onEdit(connection)}>
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onToggleActive(connection.id, !connection.isActive)}>
-              {connection.isActive ? 'Disable' : 'Enable'}
-            </DropdownMenuItem>
+            {!isManagedMcp && (
+              <>
+                <DropdownMenuItem onClick={() => onEdit(connection)}>
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onToggleActive(connection.id, !connection.isActive)}>
+                  {connection.isActive ? 'Disable' : 'Enable'}
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuItem 
               onClick={() => onDelete(connection.id)}
               className="text-red-600 focus:text-red-600"

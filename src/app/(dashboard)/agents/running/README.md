@@ -15,8 +15,10 @@ agents/running/
 │   ├── agent-filters.tsx             # Filter controls (All/Active, agent types)
 │   ├── agent-actions-slider.tsx      # Actions slider for active/inactive agents
 │   ├── agent-slider-panels.tsx       # Configure panel
-│   ├── agent-delete-dialog.tsx       # Delete confirmation dialog
-│   └── agent-deactivate-dialog.tsx   # Deactivate confirmation dialog
+│   ├── agent-undeploy-dialog.tsx     # Undeploy confirmation dialog
+│   ├── agent-deactivate-dialog.tsx   # Deactivate confirmation dialog
+│   ├── agent-reactivate-dialog.tsx   # Reactivate confirmation dialog
+│   └── agent-redeploy-dialog.tsx     # Redeploy confirmation dialog
 └── README.md                         # This file
 ```
 
@@ -58,22 +60,29 @@ Filter controls including:
 
 ### `components/agent-actions-slider.tsx`
 Side panel that shows different content based on agent status:
-- **Active agents**: Links to conversations, tasks, knowledge, configure panel, Activity Logs (/settings/logs), Performance (/settings/performance)
-- **Inactive agents**: Activate and delete options
+- **Active agents**: Links to conversations, tasks, knowledge, configure panel, Activity Logs (/settings/logs), Performance (/settings/performance); management via split buttons (Deactivate | Reactivate, Undeploy | Redeploy)
+- **Inactive agents**: Activate, plus Undeploy | Redeploy split button
 
 ### `components/agent-slider-panels.tsx`
 Contains one slider panel component:
-- `ConfigurePanel`: **Read-only** view of agent workflow configurations with instructions on how to modify (deactivate then re-activate)
+- `ConfigurePanel`: **Read-only** view of agent workflow configurations with instructions on how to modify (deactivate then reactivate)
 
 Activity Logs and Performance link directly to `/settings/logs` and `/settings/performance` with agent/activation query params.
 
-### `components/agent-delete-dialog.tsx`
-Confirmation dialog for deleting an agent instance with:
-- Warning for active agents
+### `components/agent-undeploy-dialog.tsx`
+Confirmation dialog for undeploying an agent instance with:
+- Note that active agents are deactivated first
+- Optional associated-data deletion
 - Permanent action confirmation
 
 ### `components/agent-deactivate-dialog.tsx`
 Confirmation dialog for deactivating an agent instance
+
+### `components/agent-reactivate-dialog.tsx`
+Confirmation dialog for reactivating (deactivate then activate) an agent instance
+
+### `components/agent-redeploy-dialog.tsx`
+Confirmation dialog for redeploying (undeploy then deploy fresh) an agent instance
 
 ## Benefits of This Structure
 
@@ -108,8 +117,8 @@ This is a refactored version of the original 1448-line `page.tsx` file. The func
 
 All existing features are preserved:
 - Agent listing with filters
-- Agent activation/deactivation
-- Agent deletion
+- Agent activation/deactivation/reactivation
+- Agent undeploy/redeploy
 - Activity logs, configuration (performance links to settings page)
 - Activation wizard integration
 - URL parameter handling for newly created agents

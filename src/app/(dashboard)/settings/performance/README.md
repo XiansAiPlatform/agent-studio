@@ -7,8 +7,9 @@ The Performance page (`/settings/performance`) provides monitoring and visualiza
 ## Features
 
 ### 1. Date Range Selection
-- Default: Last 30 days
-- Presets: Last 7 days, Last 30 days, Last 90 days, This month, Last month
+- Default: Last 1 month
+- Presets: Last 7 days, Last 1 month, Last 3 months, Last 6 months, Last year
+- Custom range: pick any start and end date on the calendar (max 365 days, no future dates)
 - Automatic URL persistence of selected range
 
 ### 2. Agent Filtering
@@ -37,9 +38,10 @@ performance/
 ├── README.md                   # This file
 ├── components/
 │   ├── category-card.tsx       # Expandable category section
-│   ├── date-range-picker.tsx   # Date range dropdown selector
+│   ├── date-range-picker.tsx   # Date range popover (presets + custom range)
 │   ├── metric-type-item.tsx    # Individual metric display (with stats)
 │   ├── performance-filters.tsx # Agent template/instance filters
+│   ├── range-calendar.tsx      # Month grid for picking a range
 │   └── summary-cards.tsx       # Summary statistics cards
 ├── hooks/
 │   ├── use-activations.ts          # List of available activations
@@ -124,9 +126,10 @@ Example:
 ## Component Details
 
 ### Date Range Picker
-- Dropdown with preset options
+- Popover with relative presets and an absolute range calendar
 - Displays formatted date range
-- Updates URL on selection
+- Changes apply only on **Apply**; **Cancel** discards them
+- Updates URL on apply
 
 ### Summary Cards
 - Responsive grid (1 / 2 / 3 columns)
@@ -147,8 +150,8 @@ Example:
 
 ### Adding New Date Presets
 1. Add the preset key to `DateRangePreset` in `types.ts`
-2. Add a `SelectItem` in `date-range-picker.tsx`
-3. Implement the range in `getDateRangeFromPreset()` in `utils/date-helpers.ts`
+2. Add it to `PRESET_OPTIONS` in `date-range-picker.tsx`
+3. Implement the start date in `getPresetStart()` in `utils/date-helpers.ts`, and add it to the list in `detectPreset()`
 
 ### Formatting Custom Units
 1. Add a unit mapping in `getUnitDisplay()` in `utils/format-helpers.ts`
@@ -157,7 +160,7 @@ Example:
 ## Testing
 
 ### Manual Testing Checklist
-- [ ] Page loads with default date range (last 30 days)
+- [ ] Page loads with default date range (last 1 month)
 - [ ] Date range picker changes update the display
 - [ ] Agent / activation filters update metrics shown
 - [ ] URL parameters persist on refresh

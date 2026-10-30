@@ -10,6 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Bot,
   MessageSquare,
   ListTodo,
@@ -29,10 +35,12 @@ import {
   Star,
   KeyRound,
   CalendarClock,
+  ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
 import { AGENT_STATUS_CONFIG } from '@/lib/agent-status-config';
 import { Agent, SliderType } from '../types';
+import { cn } from '@/lib/utils';
 
 interface AgentActionsSliderProps {
   agent: Agent;
@@ -41,9 +49,9 @@ interface AgentActionsSliderProps {
   onSliderTypeChange: (type: SliderType) => void;
   onActivateClick: () => void;
   onDeactivateClick: () => void;
-  onRestartClick: () => void;
+  onReactivateClick: () => void;
   onRedeployClick: () => void;
-  onDeleteClick: () => void;
+  onUndeployClick: () => void;
 }
 
 function MenuLink({
@@ -90,15 +98,115 @@ function MenuButton({
   );
 }
 
+interface SplitActionMenuItem {
+  icon: LucideIcon;
+  label: string;
+  description?: string;
+  onClick: () => void;
+}
+
+function SplitActionButton({
+  icon: Icon,
+  label,
+  description,
+  onClick,
+  menuItems,
+  destructive = false,
+}: {
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  onClick: () => void;
+  menuItems: SplitActionMenuItem[];
+  destructive?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex rounded-lg overflow-hidden',
+        destructive
+          ? 'hover:bg-destructive/5'
+          : 'bg-muted/30 hover:bg-muted/60',
+        'transition-colors'
+      )}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        className="group flex flex-1 items-start gap-2 px-2.5 py-2 cursor-pointer text-left min-w-0"
+      >
+        <Icon
+          className={cn(
+            'h-4 w-4 mt-0.5 flex-shrink-0',
+            destructive
+              ? 'text-destructive'
+              : 'text-muted-foreground group-hover:text-foreground'
+          )}
+        />
+        <div className="min-w-0">
+          <div
+            className={cn(
+              'text-xs font-medium',
+              destructive
+                ? 'group-hover:text-destructive'
+                : 'text-muted-foreground group-hover:text-foreground'
+            )}
+          >
+            {label}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+            {description}
+          </p>
+        </div>
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={`${label} more options`}
+            className={cn(
+              'flex items-center px-1.5 border-l cursor-pointer',
+              destructive
+                ? 'border-destructive/10 hover:bg-destructive/10 text-destructive'
+                : 'border-border/40 hover:bg-muted/80 text-muted-foreground'
+            )}
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          {menuItems.map((item) => (
+            <DropdownMenuItem
+              key={item.label}
+              onClick={item.onClick}
+              className="cursor-pointer gap-2"
+            >
+              <item.icon className="h-4 w-4 text-muted-foreground" />
+              <div className="min-w-0">
+                <div className="text-sm">{item.label}</div>
+                {item.description && (
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export function AgentActionsSlider({
   agent,
   sliderType,
   onSliderTypeChange,
   onActivateClick,
   onDeactivateClick,
-  onRestartClick,
+  onReactivateClick,
   onRedeployClick,
-  onDeleteClick,
+  onUndeployClick,
   canEdit = true,
 }: AgentActionsSliderProps) {
   const { isParticipantMode } = useParticipantLayout();
@@ -240,67 +348,39 @@ export function AgentActionsSlider({
 
             <Separator className="opacity-40" />
 
-            {/* Management — 2 columns with descriptions */}
+            {/* Management — split buttons */}
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <SplitActionButton
+                icon={Power}
+                label="Deactivate"
+                description="Stop this instance. You can reactivate it later"
                 onClick={onDeactivateClick}
-                className="group flex items-start gap-2 px-2.5 py-2 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer text-left"
-              >
-                <Power className="h-4 w-4 text-muted-foreground group-hover:text-foreground mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
-                    Deactivate
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Pause this agent instance
-                  </p>
-                </div>
-              </button>
-              <button
-                onClick={onRestartClick}
-                className="group flex items-start gap-2 px-2.5 py-2 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer text-left"
-              >
-                <RefreshCw className="h-4 w-4 text-muted-foreground group-hover:text-foreground mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
-                    Restart
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Deactivate and reactivate with the same settings
-                  </p>
-                </div>
-              </button>
-              <button
-                onClick={onRedeployClick}
-                className="group flex items-start gap-2 px-2.5 py-2 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer text-left"
-              >
-                <Rocket className="h-4 w-4 text-muted-foreground group-hover:text-foreground mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
-                    Redeploy
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Undeploy and recreate with the same name
-                  </p>
-                </div>
-              </button>
-              <button
-                onClick={onDeleteClick}
-                disabled={agent.status === 'active'}
-                className="group flex items-start gap-2 px-2.5 py-2 rounded-lg hover:bg-destructive/5 transition-colors cursor-pointer text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-              >
-                <Trash2 className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-medium group-hover:text-destructive">
-                    Undeploy
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    {agent.status === 'active'
-                      ? 'Deactivate first to undeploy'
-                      : 'Undeploy this instance from the tenant'}
-                  </p>
-                </div>
-              </button>
+                menuItems={[
+                  {
+                    icon: RefreshCw,
+                    label: 'Reactivate',
+                    description:
+                      'Deactivate and activate again with the same configuration',
+                    onClick: onReactivateClick,
+                  },
+                ]}
+              />
+              <SplitActionButton
+                icon={Trash2}
+                label="Undeploy"
+                description="Permanently remove this instance from the tenant"
+                onClick={onUndeployClick}
+                destructive
+                menuItems={[
+                  {
+                    icon: Rocket,
+                    label: 'Redeploy',
+                    description:
+                      'Undeploy and deploy a fresh instance with the same name and configuration',
+                    onClick: onRedeployClick,
+                  },
+                ]}
+              />
             </div>
             </>
             )}
@@ -372,36 +452,22 @@ export function AgentActionsSlider({
 
             <Separator className="opacity-40" />
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={onRedeployClick}
-                className="group flex items-start gap-2 px-2.5 py-2 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer text-left"
-              >
-                <Rocket className="h-4 w-4 text-muted-foreground group-hover:text-foreground mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
-                    Redeploy
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Undeploy and recreate with the same name
-                  </p>
-                </div>
-              </button>
-              <button
-                onClick={onDeleteClick}
-                className="group flex items-start gap-2 px-2.5 py-2 rounded-lg hover:bg-destructive/5 transition-colors cursor-pointer text-left"
-              >
-                <Trash2 className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-medium group-hover:text-destructive">
-                    Undeploy
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Undeploy this instance from the tenant
-                  </p>
-                </div>
-              </button>
-            </div>
+            <SplitActionButton
+              icon={Trash2}
+              label="Undeploy"
+              description="Permanently remove this instance from the tenant"
+              onClick={onUndeployClick}
+              destructive
+              menuItems={[
+                {
+                  icon: Rocket,
+                  label: 'Redeploy',
+                  description:
+                    'Undeploy and deploy a fresh instance with the same name and configuration',
+                  onClick: onRedeployClick,
+                },
+              ]}
+            />
             </>
             )}
           </div>

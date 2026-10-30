@@ -29,9 +29,7 @@ export function ParticipantChatPage() {
   const { onOpenMenu } = useParticipantLayout()
   const { currentTenantId } = useTenant()
   const { activations: allActivations, isLoading } = useActivations(currentTenantId)
-  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId), {
-    pollIntervalMs: 20_000,
-  })
+  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId))
   const activations = allActivations.filter((a) => a.status === 'active')
   const displayName = getUserDisplayName(session)
 

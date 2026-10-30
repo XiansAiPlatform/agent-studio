@@ -4,9 +4,13 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorThemeProvider } from "@/components/theme-color-provider";
 import { SessionProvider } from "@/components/session-provider";
+import { SessionGuard } from "@/components/session-guard";
 import { AuthErrorBoundary } from "@/components/auth-error-boundary";
 import { Toaster } from "@/components/ui/sonner";
 import { FaviconUpdater } from "@/components/favicon-updater";
+import { cookies } from "next/headers";
+import { CURRENT_TENANT_COOKIE } from "@/lib/api/with-tenant";
+import { DEFAULT_FAVICON, tenantFaviconProxyUrl } from "@/lib/tenant/favicon";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,11 +58,25 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Put the current tenant's icon in the page from the start, so the tab
+  // doesn't show the default icon first and then switch. With no tenant
+  // selected, the default icon is used. The favicon route also falls back to
+  // the default icon when the user isn't logged in.
+  const tenantId = (await cookies()).get(CURRENT_TENANT_COOKIE)?.value;
+  const faviconHref = tenantId ? tenantFaviconProxyUrl(tenantId) : DEFAULT_FAVICON;
+
+  // Read at request time (this layout is dynamic because of cookies()), so the
+  // value can be changed per deployment without rebuilding the image.
+  // An empty value counts as unset; Number('') would be 0 and disable the timeout.
+  const rawIdle = process.env.IDLE_TIMEOUT_MINUTES?.trim();
+  const parsedIdle = rawIdle ? Number(rawIdle) : 30;
+  const idleTimeoutMinutes = Number.isFinite(parsedIdle) && parsedIdle >= 0 ? parsedIdle : 30;
+
   return (
     <html
       lang="en"
@@ -66,7 +84,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href={faviconHref}
+          type={faviconHref === DEFAULT_FAVICON ? "image/svg+xml" : undefined}
+        />
         {/* Inline script runs before React — cannot import COLOR_THEMES. Keep the theme list below in sync with src/lib/themes.ts when adding new themes. */}
         <script
           dangerouslySetInnerHTML={{
@@ -85,6 +107,7 @@ export default function RootLayout({
             >
               <ColorThemeProvider>
                 <FaviconUpdater />
+                <SessionGuard idleTimeoutMinutes={idleTimeoutMinutes} />
                 {children}
                 <Toaster />
               </ColorThemeProvider>

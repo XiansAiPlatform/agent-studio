@@ -491,9 +491,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
   const router = useRouter();
   const { can } = usePermissions();
   const { currentTenantId } = useTenant();
-  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId), {
-    pollIntervalMs: 20_000,
-  });
+  const { count: pendingTaskCount } = useMyPendingTaskCount(Boolean(currentTenantId));
 
   const visibleNavigation = navigation.filter((item) =>
     item.capability ? can(item.capability) : true
