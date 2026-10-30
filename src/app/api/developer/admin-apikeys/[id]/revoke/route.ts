@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withDeveloperAccess, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { sessionExpiredResponse } from '@/lib/api/session-expired'
@@ -13,7 +13,7 @@ function extractId(pathname: string): string | null {
  * POST /api/developer/admin-apikeys/[id]/revoke
  * Permanently revoke an admin API key.
  */
-export const POST = withParticipantAdmin(
+export const POST = withDeveloperAccess(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     const userId = session.user?.email ?? session.user?.id

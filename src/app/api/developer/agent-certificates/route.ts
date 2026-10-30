@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withDeveloperAccess, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
 import { sessionExpiredResponse } from '@/lib/api/session-expired'
@@ -8,7 +8,7 @@ import { sessionExpiredResponse } from '@/lib/api/session-expired'
  * GET /api/developer/agent-certificates
  * List all agent certificates for the current user within the current tenant.
  */
-export const GET = withParticipantAdmin(
+export const GET = withDeveloperAccess(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     // Identify the user by email. The backend resolves the agent (certificate OU) to a
@@ -41,7 +41,7 @@ export const GET = withParticipantAdmin(
  * Generate a new agent certificate for the current user.
  * Body: { revokePrevious?: boolean }
  */
-export const POST = withParticipantAdmin(
+export const POST = withDeveloperAccess(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     // Identify the user by email. See GET handler above.

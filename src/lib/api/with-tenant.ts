@@ -12,7 +12,7 @@ import { getServerSession, Session } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { sessionExpiredResponse } from "@/lib/api/session-expired"
 import { useTenantProvider, TenantContext } from "@/lib/tenant"
-import { requireParticipantAdmin, requireTenantAdmin, requireSystemAdmin } from "@/lib/api/auth"
+import { requireParticipantAdmin, requireDeveloper, requireTenantAdmin, requireSystemAdmin } from "@/lib/api/auth"
 import { runWithSessionOnBehalfOf } from "@/lib/xians/on-behalf-of"
 
 /** Dynamic segments from the Next.js App Router route context. */
@@ -273,6 +273,63 @@ export function withParticipantAdmin<P extends RouteParams = RouteParams>(
         { error: 'Internal server error' },
         { status: 500 }
       )
+    }
+  }
+}
+
+/**
+ * Middleware wrapper for Developer area API routes (agent certificates, admin
+ * API keys, MCP configuration). Requires the `developer:access` capability
+ * (TenantUser / TenantAdmin, or system admin).
+ *
+ * SECURITY: Same cookie-only tenant resolution as withParticipantAdmin.
+ * TenantParticipantAdmin is NOT allowed here.
+ *
+ * @param handler - API route handler function
+ * @returns Wrapped route handler with developer access validation
+ */
+export function withDeveloperAccess<P extends RouteParams = RouteParams>(
+  handler: ApiHandler<P>
+) {
+  return async (request: NextRequest, routeContext?: AppRouteContext<P>) => {
+    try {
+      const identityError = await rejectClientTenantId(request)
+      if (identityError) return identityError
+
+      const session = await getServerSession(authOptions)
+
+      if (!session || !session.user?.id || !session.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const tenantProvider = useTenantProvider()
+
+      return await runWithSessionOnBehalfOf(session, async () => {
+        const tenantId = getTenantIdFromCookie(request)
+
+        const authError = await requireDeveloper(session, tenantId)
+        if (authError) return authError
+
+        const tenantContext = await tenantProvider.getTenantContext(
+          session.user.id,
+          tenantId!,
+          session.accessToken,
+          session.user.email ?? undefined
+        )
+
+        if (!tenantContext) {
+          return NextResponse.json(
+            { error: 'Access denied to this tenant' },
+            { status: 403 }
+          )
+        }
+
+        const params = await resolveRouteParams(routeContext)
+        return handler(request, { session, tenantContext, tenantId: tenantId!, params })
+      })
+    } catch (error) {
+      console.error('[withDeveloperAccess] Error:', error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
   }
 }
