@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
-import { Copy, MoreHorizontal, Plug, Webhook } from 'lucide-react'
-import Image from 'next/image'
+import { Copy, MoreHorizontal } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,26 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { OIDCConnection, ConnectionStatus } from '../types'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
-
-// Icon mapping for integration types
-const INTEGRATION_ICONS: Record<string, string> = {
-  'slack': '/slack.png',
-  'msteams': '/microsoft_teams.png',
-  'teams': '/microsoft_teams.png',
-  'outlook': '/outlook.png',
-  'webhook': '/webhook.png',
-  'builtin_webhook': '/webhook.png'
-}
-
-const INTEGRATION_NAMES: Record<string, string> = {
-  'slack': 'Slack',
-  'msteams': 'Microsoft Teams',
-  'teams': 'Microsoft Teams',
-  'outlook': 'Outlook',
-  'webhook': 'Custom Webhook',
-  'builtin_webhook': 'Webhook',
-  'oauth-mcp': 'OAuth MCP'
-}
+import { ConnectionIcon, getConnectionDisplayName } from './connection-icon'
 
 interface ConnectionCardProps {
   connection: OIDCConnection
@@ -63,8 +43,7 @@ export function ConnectionCard({
   onClick 
 }: ConnectionCardProps) {
   const status = statusText[connection.status]
-  const iconUrl = INTEGRATION_ICONS[connection.providerId] || '/default-icon.png'
-  const displayName = INTEGRATION_NAMES[connection.providerId] || connection.providerId
+  const displayName = getConnectionDisplayName(connection.providerId)
   const isWebhook =
     connection.providerId === 'builtin_webhook' || connection.providerId === 'webhook'
   const isManagedMcp = connection.providerId === 'oauth-mcp'
@@ -95,7 +74,7 @@ export function ConnectionCard({
     <div 
       onClick={() => onClick?.(connection.id)}
       className={cn(
-        "group relative min-w-0 p-6 rounded-xl border-0 transition-all duration-200",
+        "group relative min-w-0 p-6 rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all duration-200",
         connection.isActive 
           ? "bg-card/80 hover:bg-card" 
           : "bg-muted/50 hover:bg-muted/70",
@@ -108,19 +87,7 @@ export function ConnectionCard({
           "flex-shrink-0 mt-0.5 flex items-center justify-center w-10 h-10",
           !connection.isActive && "opacity-50 grayscale"
         )}>
-          {isManagedMcp ? (
-            <Plug className="h-10 w-10 text-muted-foreground" />
-          ) : connection.providerId === 'builtin_webhook' ? (
-            <Webhook className="h-10 w-10 text-muted-foreground" />
-          ) : (
-            <Image 
-              src={iconUrl} 
-              alt={displayName}
-              width={40}
-              height={40}
-              className="object-contain"
-            />
-          )}
+          <ConnectionIcon providerId={connection.providerId} size={40} />
         </div>
         
         {/* Content */}
@@ -205,17 +172,28 @@ export function ConnectionCard({
             )}
             {!isManagedMcp && (
               <>
+                {/* Edit isn't built yet: the click bubbles to the card, which opens the details sheet */}
                 <DropdownMenuItem onClick={() => onEdit(connection)}>
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onToggleActive(connection.id, !connection.isActive)}>
+                <DropdownMenuItem
+                  onClick={(event) => {
+                    // Don't let the click bubble to the card and open the details sheet
+                    event.stopPropagation()
+                    onToggleActive(connection.id, !connection.isActive)
+                  }}
+                >
                   {connection.isActive ? 'Disable' : 'Enable'}
                 </DropdownMenuItem>
               </>
             )}
             <DropdownMenuItem 
-              onClick={() => onDelete(connection.id)}
+              onClick={(event) => {
+                // Don't let Delete bubble to the card and open the details sheet behind the dialog
+                event.stopPropagation()
+                onDelete(connection.id)
+              }}
               className="text-red-600 focus:text-red-600"
             >
               Delete
