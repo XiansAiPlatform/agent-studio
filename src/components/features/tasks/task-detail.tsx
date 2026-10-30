@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
@@ -23,9 +21,11 @@ import {
 import { TaskStatusBadge } from './task-status-badge';
 import { useTenant } from '@/hooks/use-tenant';
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
-import { formatTaskActionLabel } from '@/lib/task-mapper';
+import { formatTaskActionLabel, normalizeDescriptionType } from '@/lib/task-mapper';
 import { refreshMyPendingTaskCounts } from '@/lib/pending-task-count-sync';
 import { cn } from '@/lib/utils';
+import type { KnowledgeItem } from '@/lib/xians/knowledge';
+import { ContentViewer } from '@/components/features/knowledge/knowledge-item-detail';
 
 interface TaskDetailProps {
   task: Task;
@@ -39,6 +39,7 @@ type TaskDetailData = {
   runId: string;
   title: string;
   description: string;
+  descriptionType?: string | null;
   initialWork: string | null;
   finalWork: string | null;
   participantId: string;
@@ -76,6 +77,42 @@ function decodeText(text: string): string {
   decoded = decoded.replace(/\\r/g, '\r');
   
   return decoded;
+}
+
+type ViewerContent = Pick<KnowledgeItem, 'type' | 'content'>;
+
+type MarkdownNode = { type: string; children?: MarkdownNode[] };
+
+function remarkHtmlAsText() {
+  const visit = (node: MarkdownNode) => {
+    if (node.type === 'html') node.type = 'text';
+    node.children?.forEach(visit);
+  };
+  return visit;
+}
+
+const agentMarkdownProps = { remarkPlugins: [remarkBreaks, remarkHtmlAsText] };
+
+function isJsonContent(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function payloadContent(raw: string): ViewerContent {
+  return isJsonContent(raw)
+    ? { type: 'json', content: raw }
+    : { type: 'markdown', content: decodeText(raw) };
+}
+
+function descriptionContent(content: string, type: Task['descriptionType']): ViewerContent {
+  if (type === 'json' && isJsonContent(content)) return { type: 'json', content };
+  return { type: type === 'markdown' ? 'markdown' : 'text', content: decodeText(content) };
 }
 
 function formatDate(dateString: string): string {
@@ -347,11 +384,14 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
       {/* Description */}
       {task.description && (
-        <div className="px-4 py-3.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-foreground/90 markdown-preview-compact">
-          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-            {decodeText(task.description)}
-          </ReactMarkdown>
-        </div>
+        <ContentViewer
+          item={descriptionContent(
+            task.description,
+            taskDetail ? normalizeDescriptionType(taskDetail.descriptionType) : task.descriptionType
+          )}
+          mounted
+          markdownProps={agentMarkdownProps}
+        />
       )}
 
       {/* Initial Work */}
@@ -409,11 +449,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               </div>
             </>
           ) : (
-            <div className="px-4 py-3.5 bg-muted/30 border border-border/30 rounded-xl text-sm text-foreground markdown-preview-compact overflow-x-auto">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                {decodeText(taskDetail.initialWork)}
-              </ReactMarkdown>
-            </div>
+            <ContentViewer item={payloadContent(taskDetail.initialWork)} mounted markdownProps={agentMarkdownProps} />
           )}
         </div>
       )}
@@ -437,9 +473,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               placeholder="Edit proposed action..."
             />
           ) : (
-            <div className="px-4 py-3.5 bg-muted/30 border border-border/30 rounded-xl text-sm text-foreground whitespace-pre-wrap">
-              {task.content.proposedAction}
-            </div>
+            <ContentViewer item={payloadContent(task.content.proposedAction)} mounted markdownProps={agentMarkdownProps} />
           )}
         </div>
       )}

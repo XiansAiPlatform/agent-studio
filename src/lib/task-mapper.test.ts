@@ -92,4 +92,10 @@ describe('mapXiansTaskToTask', () => {
     assert.equal(task.content.data?.performedAction, 'approve')
     assert.equal(isPendingTask(task), false)
   })
+
+  it('normalizes the description type and defaults to string', () => {
+    assert.equal(mapXiansTaskToTask(makeXiansTask({ descriptionType: 'Json' })).descriptionType, 'json')
+    assert.equal(mapXiansTaskToTask(makeXiansTask({ descriptionType: 'unknown' })).descriptionType, 'string')
+    assert.equal(mapXiansTaskToTask(makeXiansTask()).descriptionType, 'string')
+  })
 })
