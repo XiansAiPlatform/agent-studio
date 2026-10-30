@@ -5,12 +5,19 @@ import {
   getSecretScopeDetail,
   getSecretScopeKind,
   SECRET_SCOPE_LABELS,
+  type AgentNameMap,
   type TenantSecret,
 } from '../types'
 
-export function SecretScopeBadge({ secret }: { secret: TenantSecret }) {
+export function SecretScopeBadge({
+  secret,
+  agentNames,
+}: {
+  secret: TenantSecret
+  agentNames?: AgentNameMap
+}) {
   const kind = getSecretScopeKind(secret)
-  const detail = getSecretScopeDetail(secret)
+  const detail = getSecretScopeDetail(secret, agentNames)
 
   return (
     <Badge variant="outline" className="max-w-full font-normal">
