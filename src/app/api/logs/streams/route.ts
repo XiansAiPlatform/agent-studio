@@ -22,12 +22,14 @@ export const GET = withParticipantAdmin(
       const startDate = searchParams.get('startDate')
       const endDate = searchParams.get('endDate')
       const search = searchParams.get('search')?.trim()
+      const includeChildWorkflows = searchParams.get('includeChildWorkflows') === 'true'
       const pageSize = searchParams.get('pageSize') || '20'
       const page = searchParams.get('page') || '1'
 
       if (agentName) params.set('agentName', agentName)
       if (activationName) params.set('activationName', activationName)
       if (workflowType) params.set('workflowType', workflowType)
+      if (includeChildWorkflows) params.set('includeChildWorkflows', 'true')
       if (logLevel) params.set('logLevel', logLevel)
       if (startDate) params.set('startDate', startDate)
       if (endDate) params.set('endDate', endDate)

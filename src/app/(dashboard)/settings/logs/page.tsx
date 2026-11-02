@@ -31,6 +31,7 @@ function LogsContent() {
     startDate,
     endDate,
     search,
+    includeChildWorkflows,
     selectedWorkflowId,
     selectedStreamMeta,
     streamFilters,
@@ -87,6 +88,7 @@ function LogsContent() {
               startDate={startDate}
               endDate={endDate}
               search={search}
+              includeChildWorkflows={includeChildWorkflows}
               onClearFilter={clearFilter}
               onClearAll={clearAllFilters}
             />
@@ -130,6 +132,7 @@ function LogsContent() {
           startDate={startDate}
           endDate={endDate}
           search={search}
+          includeChildWorkflows={includeChildWorkflows}
           onFiltersChange={applyFilterSliderChanges}
         />
       )}
