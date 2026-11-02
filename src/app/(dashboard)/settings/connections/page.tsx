@@ -115,6 +115,7 @@ function ConnectionsContent() {
     updateConnection,
     deleteConnection,
     deleteIntegration,
+    setIntegrationEnabled,
     testConnection,
     authorizeConnection,
     createIntegration
@@ -280,8 +281,26 @@ function ConnectionsContent() {
         await deleteIntegration.mutateAsync(selectedConnection.id);
       }
       setShowDeleteDialog(false);
+      // Deleting from the details sheet: close the sheet too.
+      if (selectedIntegrationId === selectedConnection.id) {
+        setShowDetailsSheet(false);
+        setSelectedIntegrationId(null);
+      }
       setSelectedConnection(null);
       showSuccessToast('Connection deleted successfully');
+    } catch (error) {
+      showErrorToast(error as Error);
+    }
+  };
+
+  const handleToggleActive = async (connection: OIDCConnection, active: boolean) => {
+    try {
+      // Integrations (Slack, Teams, webhooks) carry a platformId and have their own routes
+      if (connection.platformId) {
+        await setIntegrationEnabled.mutateAsync({ id: connection.id, enabled: active });
+      } else {
+        await updateConnection.mutateAsync({ id: connection.id, data: { isActive: active } });
+      }
     } catch (error) {
       showErrorToast(error as Error);
     }
@@ -409,12 +428,7 @@ function ConnectionsContent() {
                   setShowDeleteDialog(true);
                 }}
                 onTest={handleTestConnection}
-                onToggleActive={(id, active) => {
-                  updateConnection.mutate({ 
-                    id, 
-                    data: { isActive: active } 
-                  });
-                }}
+                onToggleActive={(_id, active) => handleToggleActive(connection, active)}
                 onViewUsage={() => {/* TODO: Implement usage view */}}
                 onAuthorize={handleAuthorizeConnection}
                 onClick={connection.providerId === 'oauth-mcp' ? undefined : handleViewDetails}
@@ -424,7 +438,7 @@ function ConnectionsContent() {
             {/* Add New Connection */}
             <button
               onClick={() => setShowCreateDialog(true)}
-              className="group p-6 rounded-xl bg-card/60 hover:bg-card/80 border-0 transition-all duration-200 text-left"
+              className="group p-6 rounded-xl bg-card/60 hover:bg-card/80 border border-border hover:border-primary/30 hover:shadow-md transition-all duration-200 text-left"
             >
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-muted/80 group-hover:text-foreground transition-colors flex-shrink-0 mt-0.5">
@@ -539,13 +553,16 @@ function ConnectionsContent() {
         />
 
         {/* Integration Details Sheet */}
+        {/* Stays mounted across opens so the expanded state carries over between cards */}
         <IntegrationDetailsSheet
           open={showDetailsSheet}
           onOpenChange={setShowDetailsSheet}
           integrationId={selectedIntegrationId}
-          onDeleted={() => {
-            refetch()
-            setSelectedIntegrationId(null)
+          onDeleteRequest={(id) => {
+            const connection = connections?.find(conn => conn.id === id);
+            if (!connection) return;
+            setSelectedConnection(connection);
+            setShowDeleteDialog(true);
           }}
         />
       </div>
