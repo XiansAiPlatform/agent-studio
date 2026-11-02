@@ -26,7 +26,7 @@ import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler';
 import { formatTaskActionLabel } from '@/lib/task-mapper';
 import { refreshMyPendingTaskCounts } from '@/lib/pending-task-count-sync';
 import { cn } from '@/lib/utils';
-import { formatRelativeTime } from '@/lib/format-relative-time';
+import { formatAbsoluteDateTime, formatRelativeTime } from '@/lib/format-relative-time';
 
 interface TaskDetailProps {
   task: Task;
@@ -319,7 +319,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
           <div className="h-4 w-px bg-border" />
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>{formatRelativeTime(task.createdAt, 'long')}</span>
+            <span title={formatAbsoluteDateTime(task.createdAt)}>{formatRelativeTime(task.createdAt, 'long')}</span>
           </div>
         </div>
       </div>

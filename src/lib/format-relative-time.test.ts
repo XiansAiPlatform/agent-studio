@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
-import { formatRelativeTime } from './format-relative-time.ts'
+import { formatAbsoluteDateTime, formatRelativeTime } from './format-relative-time.ts'
 
 const NOW = new Date('2026-10-23T12:00:00.000Z')
 
@@ -12,6 +12,20 @@ const SECOND = 1000
 const MINUTE = 60 * SECOND
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
+
+describe('formatAbsoluteDateTime', () => {
+  it('includes both the date and the time', () => {
+    const local = new Date(2026, 5, 22, 21, 53)
+    const formatted = formatAbsoluteDateTime(local.toISOString())
+    assert.ok(formatted?.includes('2026'))
+    assert.ok(formatted?.includes('22'))
+    assert.ok(formatted?.includes('53'))
+  })
+
+  it('returns undefined for an invalid timestamp', () => {
+    assert.equal(formatAbsoluteDateTime('not-a-date'), undefined)
+  })
+})
 
 describe('formatRelativeTime', () => {
   it('shows "just now" for a task created seconds ago (not "1 hour ago")', () => {

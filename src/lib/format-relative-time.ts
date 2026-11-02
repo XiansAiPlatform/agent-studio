@@ -40,3 +40,20 @@ export function formatRelativeTime(
 
   return isPast ? `${label} ago` : `in ${label}`
 }
+
+/**
+ * Formats a timestamp as an absolute local date and time (e.g. "Jun 22, 2026, 9:53 PM"),
+ * for use alongside a relative label. Returns undefined for an invalid timestamp.
+ */
+export function formatAbsoluteDateTime(dateString: string): string | undefined {
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return undefined
+
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}

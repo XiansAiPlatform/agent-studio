@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { TaskStatusBadge } from './task-status-badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import { Badge } from '@/components/ui/badge';
-import { formatRelativeTime } from '@/lib/format-relative-time';
+import { formatAbsoluteDateTime, formatRelativeTime } from '@/lib/format-relative-time';
 
 interface TaskListItemProps {
   task: Task;
@@ -135,7 +135,7 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
             
             <div className="inline-flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
-              <span>{formatRelativeTime(task.createdAt, 'short')}</span>
+              <span title={formatAbsoluteDateTime(task.createdAt)}>{formatRelativeTime(task.createdAt, 'short')}</span>
             </div>
 
             {task.dueDate && (
