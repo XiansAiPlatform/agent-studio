@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { useTenantProvider } from '@/lib/tenant'
 import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 /**
  * POST /api/tenants/validate
@@ -13,10 +14,7 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
 
   if (!session || !session.user?.email) {
-    return NextResponse.json(
-      { error: 'Unauthorized', exists: false, enabled: false },
-      { status: 401 }
-    )
+    return sessionExpiredResponse({ error: 'Unauthorized', exists: false, enabled: false })
   }
 
   const tenantProvider = useTenantProvider()

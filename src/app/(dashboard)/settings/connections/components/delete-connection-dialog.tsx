@@ -60,7 +60,7 @@ export function DeleteConnectionDialog({
           <AlertDialogDescription className="space-y-3">
             <p>
               Are you sure you want to delete the connection{' '}
-              <span className="font-semibold">"{connection.name}"</span>?
+              <span className="font-semibold [overflow-wrap:anywhere]">"{connection.name}"</span>?
             </p>
             
             <div className="bg-muted p-3 rounded-md text-sm">

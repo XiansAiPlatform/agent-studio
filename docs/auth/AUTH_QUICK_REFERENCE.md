@@ -180,6 +180,7 @@ NEXTAUTH_URL=http://localhost:3010
 NEXTAUTH_SECRET=<generated-secret>
 GOOGLE_CLIENT_ID=<from-google-console>
 GOOGLE_CLIENT_SECRET=<from-google-console>
+IDLE_TIMEOUT_MINUTES=30   # optional, runtime; 0 disables idle sign-out
 ```
 
 ---

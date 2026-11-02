@@ -15,6 +15,7 @@ import {
 } from '@/lib/api/task-access'
 import { createTtlCache } from '@/lib/xians/cache'
 import { summarizePendingTasks } from '@/lib/pending-task-summary'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 type XiansTasksListResponse = {
   tasks?: XiansTaskRecord[]
@@ -61,10 +62,7 @@ export const GET = withTenantFromSession(
 
       const participantId = session.user?.email
       if (!participantId) {
-        return NextResponse.json(
-          { error: 'User email not found in session' },
-          { status: 401 }
-        )
+        return sessionExpiredResponse({ error: 'User email not found in session' })
       }
 
       const agentName = searchParams.get('agentName')

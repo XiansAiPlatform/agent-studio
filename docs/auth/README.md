@@ -180,7 +180,8 @@ AZURE_AD_B2C_DISPLAY_NAME=Parkly  # optional button label
 - ✅ **JWT-based sessions** - Stateless authentication
 - ✅ **Secure cookies** - HTTPOnly, SameSite, Secure in production
 - ✅ **CSRF protection** - Built-in token validation
-- ✅ **30-day session expiration** - Automatic re-authentication
+- ✅ **7-day sliding session expiration** - Automatic re-authentication
+- ✅ **Idle sign-out** - Redirects to login after `IDLE_TIMEOUT_MINUTES` (default 30) of inactivity or when the session expires
 - ✅ **Provider isolation** - Separate credentials per environment
 - ✅ **Tenant-based access control** - Email-based authorization
 

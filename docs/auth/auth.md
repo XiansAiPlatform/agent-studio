@@ -77,6 +77,9 @@ Create `.env.local`:
 NEXTAUTH_URL=http://localhost:3010
 NEXTAUTH_SECRET=your-secret-key-here  # Generate with: openssl rand -base64 32
 
+# Minutes of inactivity before sign-out (runtime variable, default 30, 0 disables)
+IDLE_TIMEOUT_MINUTES=30
+
 # OIDC Provider (SSO)
 OIDC_WELL_KNOWN_URL=https://your-provider.com/.well-known/openid-configuration
 OIDC_CLIENT_ID=your-client-id
@@ -197,7 +200,8 @@ export const authOptions: NextAuthOptions = {
   
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days, extended on each refresh
+    updateAge: 30 * 60,       // re-issue the JWT at most every 30 minutes
   },
   
   // Enable debug messages in development
@@ -383,6 +387,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   return <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
 }
 ```
+
+### Session Expiry and Inactivity
+
+Middleware and the dashboard layout only redirect on page navigation. A tab that stays open after the session ends would otherwise show empty data and a placeholder avatar. `SessionGuard` (`src/components/session-guard.tsx`), mounted in the root layout, sends the user to `/login?reason=expired` (and clears the session cookie) when any of these happens:
+
+| Trigger | Detail |
+|---------|--------|
+| Session missing | `useSession()` reports `unauthenticated` |
+| Token refresh failed | `session.error === 'RefreshAccessTokenError'` |
+| API returns 401 | Any same-origin `/api/*` response except `/api/auth/*` |
+| Inactivity | No mouse, keyboard, scroll or touch activity for `IDLE_TIMEOUT_MINUTES` (shared across tabs, re-checked when the tab regains focus) |
+
+`IDLE_TIMEOUT_MINUTES` is read on the server at request time, so change it per deployment without rebuilding. The default is 30; `0` disables the idle timeout. The login page shows "Your session has expired. Please sign in again." when `reason=expired` is present.
 
 ---
 
@@ -781,8 +798,8 @@ export const authOptions = {
 export const authOptions = {
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    updateAge: 24 * 60 * 60,   // 24 hours - update session on activity
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 30 * 60,       // 30 minutes - update session on activity
   },
 }
 ```

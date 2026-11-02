@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { SESSION_EXPIRED_HEADER } from '@/lib/api/session-expired'
 
 export interface ApiErrorResponse {
   error: string
@@ -175,7 +176,8 @@ export function unauthorizedError(
       error: message,
       code: 'unauthorized',
     },
-    { status: 401 }
+    // Callers use this only for a missing session, which SessionGuard acts on.
+    { status: 401, headers: { [SESSION_EXPIRED_HEADER]: '1' } }
   )
 }
 

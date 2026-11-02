@@ -235,11 +235,11 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
       )}
       {...props}
     >
-      <div className="flex-1 flex items-start gap-3">
+      <div className="flex-1 min-w-0 flex items-start gap-3">
         {hasContextContent ? (
           <>
             {headerIcon && <div className="shrink-0 mt-0.5">{headerIcon}</div>}
-            <div className="flex-1 flex flex-col gap-1.5">
+            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
               {headerTitle && (
                 <SheetPrimitive.Title className="text-foreground font-semibold text-base">
                   {headerTitle}
@@ -253,7 +253,7 @@ function SheetHeader({ className, children, ...props }: React.ComponentProps<"di
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col gap-1.5">
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             {children}
           </div>
         )}
