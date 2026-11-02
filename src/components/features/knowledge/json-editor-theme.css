@@ -207,6 +207,14 @@
   margin-bottom: 0;
 }
 
+/* jsoneditor gives every td/th a fixed dark colour; Markdown table cells follow the value colour instead */
+.jsoneditor-tree .jsoneditor-markdown.wmde-markdown td,
+.jsoneditor-tree .jsoneditor-markdown.wmde-markdown th {
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+
 /* Number values */
 .jsoneditor-tree .jsoneditor-value.jsoneditor-number {
   color: #333333 !important;
@@ -276,6 +284,10 @@
 
 [data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-string {
   color: #cccccc !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-markdown.wmde-markdown th {
+  color: #f0f0f0;
 }
 
 [data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-number {
