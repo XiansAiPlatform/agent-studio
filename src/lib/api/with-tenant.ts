@@ -299,7 +299,7 @@ export function withDeveloperAccess<P extends RouteParams = RouteParams>(
       const session = await getServerSession(authOptions)
 
       if (!session || !session.user?.id || !session.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return sessionExpiredResponse({ error: 'Unauthorized' })
       }
 
       const tenantProvider = useTenantProvider()
