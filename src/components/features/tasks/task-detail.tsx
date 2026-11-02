@@ -111,6 +111,11 @@ function payloadContent(raw: string): ViewerContent {
     : { type: 'markdown', content: decodeText(raw) };
 }
 
+// Pretty-print JSON drafts for editing; other drafts are edited as-is.
+function editableDraft(raw: string): string {
+  return isJsonContent(raw) ? JSON.stringify(JSON.parse(raw), null, 2) : raw;
+}
+
 function descriptionContent(content: string, type: Task['descriptionType']): ViewerContent {
   if (type === 'json' && isJsonContent(content)) return { type: 'json', content };
   return { type: type === 'markdown' ? 'markdown' : 'text', content: decodeText(content) };
@@ -160,7 +165,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
 
         const data: TaskDetailData = await response.json();
         setTaskDetail(data);
-        setEditedInitialWork(data.initialWork || '');
+        setEditedInitialWork(editableDraft(data.initialWork || ''));
       } catch (error: any) {
         // Only log and show errors for unexpected failures
         console.error('[TaskDetail] Unexpected error:', error);
@@ -195,7 +200,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
       return;
     }
 
-    if (editedInitialWork.trim() === taskDetail?.initialWork?.trim()) {
+    if (editedInitialWork.trim() === editableDraft(taskDetail?.initialWork || '').trim()) {
       // No changes made
       setIsEditingInitialWork(false);
       return;
@@ -248,7 +253,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
   };
 
   const handleCancelInitialWork = () => {
-    setEditedInitialWork(taskDetail?.initialWork || '');
+    setEditedInitialWork(editableDraft(taskDetail?.initialWork || ''));
     setIsEditingInitialWork(false);
   };
 
@@ -427,7 +432,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               </div>
             </>
           ) : (
-            <ContentViewer item={payloadContent(taskDetail.initialWork)} mounted markdownProps={agentMarkdownProps} />
+            <ContentViewer item={payloadContent(taskDetail.initialWork)} mounted markdownProps={agentMarkdownProps} jsonStringsAsMarkdown />
           )}
         </div>
       )}
@@ -451,7 +456,7 @@ export function TaskDetail({ task, onApprove, onReject }: TaskDetailProps) {
               placeholder="Edit proposed action..."
             />
           ) : (
-            <ContentViewer item={payloadContent(task.content.proposedAction)} mounted markdownProps={agentMarkdownProps} />
+            <ContentViewer item={payloadContent(task.content.proposedAction)} mounted markdownProps={agentMarkdownProps} jsonStringsAsMarkdown />
           )}
         </div>
       )}

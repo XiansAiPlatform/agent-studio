@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ComponentProps } from 'react';
 import dynamic from 'next/dynamic';
+import { useTheme } from 'next-themes';
 import {
   KnowledgeItem,
   KnowledgeGroup,
@@ -116,9 +117,13 @@ interface ContentViewerProps {
   item: Pick<KnowledgeItem, 'type' | 'content'>;
   mounted: boolean;
   markdownProps?: Omit<ComponentProps<typeof MDEditorMarkdown>, 'source'>;
+  /** Render string values inside JSON content as Markdown (using `markdownProps`). */
+  jsonStringsAsMarkdown?: boolean;
 }
 
-export function ContentViewer({ item, mounted, markdownProps }: ContentViewerProps) {
+export function ContentViewer({ item, mounted, markdownProps, jsonStringsAsMarkdown }: ContentViewerProps) {
+  const { resolvedTheme } = useTheme();
+
   if (!mounted) {
     return (
       <div className="h-full flex items-center justify-center p-3 bg-muted/50 rounded-md">
@@ -146,13 +151,25 @@ export function ContentViewer({ item, mounted, markdownProps }: ContentViewerPro
             onChange={() => {}} // Read-only, no changes
             mode="tree"
             readOnly={true}
+            renderStringValue={
+              jsonStringsAsMarkdown
+                ? (value) => (
+                    <MDEditorMarkdown
+                      source={value}
+                      className="jsoneditor-markdown"
+                      style={{ backgroundColor: 'transparent', color: 'inherit' }}
+                      {...markdownProps}
+                    />
+                  )
+                : undefined
+            }
           />
         </div>
       );
 
     case 'markdown':
       return (
-        <div data-color-mode="auto" className="h-full markdown-preview-compact overflow-hidden">
+        <div data-color-mode={resolvedTheme === 'dark' ? 'dark' : 'light'} className="h-full markdown-preview-compact overflow-hidden">
           <div className="h-full p-3 bg-muted/30 rounded-md overflow-auto">
             <MDEditorMarkdown
               source={item.content}

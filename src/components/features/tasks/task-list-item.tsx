@@ -94,9 +94,15 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
 
           {/* Description */}
           <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2 markdown-list-compact">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-              {decodeText(task.description)}
-            </ReactMarkdown>
+            {task.descriptionType === 'markdown' ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                {decodeText(task.description)}
+              </ReactMarkdown>
+            ) : (
+              <p className="break-words">
+                {task.descriptionType === 'json' ? task.description : decodeText(task.description)}
+              </p>
+            )}
           </div>
 
           {/* Metadata */}
