@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { useSecrets } from './hooks/use-secrets'
+import { useAgentNameMap } from './hooks/use-scope-options'
 import {
   CreateSecretRequest,
   TenantSecret,
@@ -55,6 +56,7 @@ export default function SecretsPage() {
 
   const { secrets, isLoading, error, fetchSecrets, createSecret, deleteSecret } =
     useSecrets()
+  const agentNames = useAgentNameMap(secrets)
 
   useEffect(() => {
     fetchSecrets()
@@ -65,7 +67,7 @@ export default function SecretsPage() {
     const list = q
       ? secrets.filter((s) => {
           if (s.key.toLowerCase().includes(q)) return true
-          if (getSecretScopeLabel(s).toLowerCase().includes(q)) return true
+          if (getSecretScopeLabel(s, agentNames).toLowerCase().includes(q)) return true
           const desc = getSecretDescription(s)
           return desc ? desc.toLowerCase().includes(q) : false
         })
@@ -258,7 +260,7 @@ export default function SecretsPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <SecretScopeBadge secret={secret} />
+                  <SecretScopeBadge secret={secret} agentNames={agentNames} />
                   {description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">
                       {description}
@@ -361,7 +363,7 @@ export default function SecretsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <SecretScopeBadge secret={secret} />
+                        <SecretScopeBadge secret={secret} agentNames={agentNames} />
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         {formatDate(secret.createdAt)}

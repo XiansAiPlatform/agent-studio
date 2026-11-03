@@ -24,8 +24,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useCan } from '@/hooks/use-permissions'
 import { CreateSecretRequest, CreateSecretScope } from '../types'
+import { useActivationOptions, useAgentOptions } from '../hooks/use-scope-options'
 
 const KEY_PATTERN = /^[A-Za-z0-9._-]+$/
 
@@ -47,8 +49,11 @@ const schema = z
       .string()
       .max(DESCRIPTION_MAX, `Description must be ${DESCRIPTION_MAX} characters or less`)
       .optional(),
-    scope: z.enum(['tenant', 'user']),
+    scope: z.enum(['tenant', 'user', 'agent', 'activation']),
     userId: z.string().optional(),
+    agentId: z.string().optional(),
+    agentName: z.string().optional(),
+    activationName: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.scope === 'user' && !data.userId?.trim()) {
@@ -57,6 +62,12 @@ const schema = z
         path: ['userId'],
         message: 'Participant is required for user-scoped secrets',
       })
+    }
+    if ((data.scope === 'agent' || data.scope === 'activation') && !data.agentId) {
+      ctx.addIssue({ code: 'custom', path: ['agentId'], message: 'Agent is required' })
+    }
+    if (data.scope === 'activation' && data.agentId && !data.activationName) {
+      ctx.addIssue({ code: 'custom', path: ['activationName'], message: 'Activation is required' })
     }
   })
 
@@ -104,14 +115,42 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
     watch,
     control,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { key: '', value: '', description: '', scope: 'tenant', userId: '' },
+    defaultValues: {
+      key: '',
+      value: '',
+      description: '',
+      scope: 'tenant',
+      userId: '',
+      agentId: '',
+      agentName: '',
+      activationName: '',
+    },
   })
 
   const descriptionValue = watch('description') ?? ''
   const scope = watch('scope')
+  const agentId = watch('agentId') ?? ''
+  const agentName = watch('agentName') ?? ''
+  const agents = useAgentOptions()
+  const activations = useActivationOptions(agentName || undefined)
+  const agentSelectOptions = useMemo(
+    () => agents.items.map((a) => ({ value: a.id, label: a.name })),
+    [agents.items]
+  )
+  const activationSelectOptions = useMemo(
+    () =>
+      activations.items.map((a) => ({
+        value: a.name,
+        label: a.name,
+        hint: a.isActive ? 'active' : 'inactive',
+        dotClassName: a.isActive ? 'bg-green-500' : 'bg-muted-foreground/50',
+      })),
+    [activations.items]
+  )
   const uniqueDirectory = useMemo(() => {
     const seen = new Set<string>()
     return directory.filter((user) => {
@@ -190,6 +229,10 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
         ...(scopeValue === 'user' && values.userId?.trim()
           ? { userId: values.userId.trim().toLowerCase() }
           : {}),
+        ...(scopeValue === 'agent' || scopeValue === 'activation'
+          ? { agentId: values.agentId?.trim() }
+          : {}),
+        ...(scopeValue === 'activation' ? { activationName: values.activationName?.trim() } : {}),
         ...(description ? { description } : {}),
       })
       reset()
@@ -213,6 +256,10 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
               <SheetDescription className="text-sm mt-0.5">
                 {scope === 'user'
                   ? 'Store a secret for one participant in this tenant'
+                  : scope === 'agent'
+                  ? 'Store a secret for one agent in this tenant'
+                  : scope === 'activation'
+                  ? 'Store a secret for one agent instance'
                   : 'Securely store a secret for this tenant'}
               </SheetDescription>
             </div>
@@ -237,6 +284,13 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
                     if (next !== 'user') {
                       setValue('userId', '')
                     }
+                    if (next !== 'agent' && next !== 'activation') {
+                      setValue('agentId', '')
+                      setValue('agentName', '')
+                    }
+                    if (next !== 'activation') {
+                      setValue('activationName', '')
+                    }
                   }}
                 >
                   <SelectTrigger id="add-secret-scope" className="w-full">
@@ -245,6 +299,8 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
                   <SelectContent>
                     <SelectItem value="tenant">Tenant</SelectItem>
                     <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="activation">Activation</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -252,9 +308,75 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
             <p className="text-xs text-muted-foreground">
               {scope === 'user'
                 ? 'Only this participant can fetch the secret. The participant id is usually their email.'
+                : scope === 'agent'
+                ? 'Available to every activation of the selected agent.'
+                : scope === 'activation'
+                ? 'Available to a single agent instance only.'
                 : 'Shared across this tenant. Any agent can fetch it.'}
             </p>
           </div>
+
+          {(scope === 'agent' || scope === 'activation') && (
+            <div className="space-y-2">
+              <Label htmlFor="add-secret-agent">
+                Agent <span className="text-destructive">*</span>
+              </Label>
+              <SearchableSelect
+                id="add-secret-agent"
+                value={agentId}
+                onChange={(next) => {
+                  const picked = agents.items.find((a) => a.id === next)
+                  setValue('agentId', next, { shouldValidate: !!next })
+                  setValue('agentName', picked?.name ?? '')
+                  setValue('activationName', '')
+                  clearErrors('activationName')
+                  activations.reset()
+                }}
+                options={agentSelectOptions}
+                placeholder="Select an agent"
+                searchPlaceholder="Search agents"
+                noun="agents"
+                isLoading={agents.isLoading}
+                error={agents.error}
+                invalid={!!errors.agentId}
+                onOpen={agents.load}
+              />
+              {errors.agentId && (
+                <p className="text-xs text-destructive">{errors.agentId.message}</p>
+              )}
+            </div>
+          )}
+
+          {scope === 'activation' && (
+            <div className="space-y-2">
+              <Label htmlFor="add-secret-activation">
+                Activation <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="activationName"
+                control={control}
+                render={({ field }) => (
+                  <SearchableSelect
+                    id="add-secret-activation"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    options={activationSelectOptions}
+                    placeholder={agentId ? 'Select an activation' : 'Select an agent first'}
+                    searchPlaceholder="Search activations"
+                    noun="activations"
+                    disabled={!agentId}
+                    isLoading={activations.isLoading}
+                    error={activations.error}
+                    invalid={!!errors.activationName}
+                    onOpen={activations.load}
+                  />
+                )}
+              />
+              {errors.activationName && (
+                <p className="text-xs text-destructive">{errors.activationName.message}</p>
+              )}
+            </div>
+          )}
 
           {scope === 'user' && (
             <div className="space-y-2">
@@ -329,8 +451,8 @@ export function AddSecretDialog({ open, onOpenChange, onSubmit }: AddSecretDialo
               <p className="text-xs text-destructive">{errors.key.message}</p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Letters, numbers, dots, dashes, and underscores. Must be unique within the
-                tenant.
+                Letters, numbers, dots, dashes, and underscores. Must be unique within the{' '}
+                {scope === 'tenant' || scope === 'user' ? 'tenant' : scope}.
               </p>
             )}
           </div>
