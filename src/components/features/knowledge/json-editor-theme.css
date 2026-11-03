@@ -191,6 +191,30 @@
   color: #555555 !important;
 }
 
+/* String values rendered as Markdown (read-only viewers) */
+.jsoneditor-tree .jsoneditor-markdown.wmde-markdown {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: normal;
+}
+
+.jsoneditor-tree .jsoneditor-markdown.wmde-markdown > :first-child {
+  margin-top: 0;
+}
+
+.jsoneditor-tree .jsoneditor-markdown.wmde-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+/* jsoneditor gives every td/th a fixed dark colour; Markdown table cells follow the value colour instead */
+.jsoneditor-tree .jsoneditor-markdown.wmde-markdown td,
+.jsoneditor-tree .jsoneditor-markdown.wmde-markdown th {
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+
 /* Number values */
 .jsoneditor-tree .jsoneditor-value.jsoneditor-number {
   color: #333333 !important;
@@ -206,8 +230,8 @@
   color: #777777 !important;
 }
 
-/* Dark mode support */
-[data-color-mode="dark"] .jsoneditor-react-container {
+/* Dark mode support (the wrapper sets data-color-mode on the container itself) */
+.jsoneditor-react-container[data-color-mode="dark"] {
   --primary-color: #e0e0e0;
   --primary-hover: #cccccc;
   --border-color: #404040;
@@ -262,6 +286,10 @@
   color: #cccccc !important;
 }
 
+[data-color-mode="dark"] .jsoneditor-tree .jsoneditor-markdown.wmde-markdown th {
+  color: #f0f0f0;
+}
+
 [data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-number {
   color: #e0e0e0 !important;
 }
@@ -272,6 +300,21 @@
 
 [data-color-mode="dark"] .jsoneditor-tree .jsoneditor-value.jsoneditor-null {
   color: #999999 !important;
+}
+
+/* Expand/collapse icons are a dark sprite */
+[data-color-mode="dark"] .jsoneditor-tree button.jsoneditor-button {
+  filter: invert(1);
+}
+
+/* Inverted by the filter above, so this shows as #2a2a2a */
+[data-color-mode="dark"] .jsoneditor-tree button.jsoneditor-button:hover {
+  background-color: #d5d5d5 !important;
+}
+
+[data-color-mode="dark"] .jsoneditor-highlight,
+[data-color-mode="dark"] .jsoneditor-highlight-active {
+  background-color: #3a3a3a !important;
 }
 
 [data-color-mode="dark"] .jsoneditor-results {

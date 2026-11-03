@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { useTheme } from 'next-themes';
 import JSONEditor, { JSONEditorOptions } from 'jsoneditor';
 import 'jsoneditor/dist/jsoneditor.css';
 import './json-editor-theme.css';
@@ -11,6 +13,19 @@ interface JsonEditorWrapperProps {
   onValidationError?: (errors: any[]) => void;
   mode?: 'tree' | 'code' | 'view';
   readOnly?: boolean;
+  /** Read-only mode only: renders string values (e.g. as Markdown) instead of plain text. */
+  renderStringValue?: (value: string) => ReactNode;
+}
+
+// jsoneditor links each node's row to the node, which holds the raw (unescaped) value.
+// Value cells sit in a nested table, so walk up past the inner rows.
+type JsonEditorRow = HTMLElement & { node?: { value?: unknown } };
+
+function getNodeValue(element: HTMLElement): unknown {
+  for (let el: JsonEditorRow | null = element; el; el = el.parentElement) {
+    if (el.node) return el.node.value;
+  }
+  return undefined;
 }
 
 export function JsonEditorWrapper({
@@ -19,11 +34,18 @@ export function JsonEditorWrapper({
   onValidationError,
   mode = 'tree',
   readOnly = false,
+  renderStringValue,
 }: JsonEditorWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<JSONEditor | null>(null);
   const isInternalChangeRef = useRef(false);
   const initializedRef = useRef(false);
+  const renderStringValueRef = useRef(renderStringValue);
+  const { resolvedTheme } = useTheme();
+
+  useEffect(() => {
+    renderStringValueRef.current = renderStringValue;
+  });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -71,6 +93,28 @@ export function JsonEditorWrapper({
 
     editorRef.current = new JSONEditor(containerRef.current, options);
 
+    // Rows are created lazily (and recreated on update), so render string values as they appear.
+    // URL values are left alone: jsoneditor already renders them as links.
+    const container = containerRef.current;
+    const stringRoots: Root[] = [];
+    const renderStrings = () => {
+      const render = renderStringValueRef.current;
+      if (!readOnly || !render) return;
+      container
+        .querySelectorAll<HTMLElement>('div.jsoneditor-value.jsoneditor-string:not([data-rendered])')
+        .forEach((element) => {
+          const value = getNodeValue(element);
+          if (typeof value !== 'string') return;
+          element.dataset.rendered = 'true';
+          element.textContent = '';
+          const root = createRoot(element);
+          root.render(render(value));
+          stringRoots.push(root);
+        });
+    };
+    const observer = new MutationObserver(renderStrings);
+    observer.observe(container, { childList: true, subtree: true });
+
     // Set initial value
     if (value) {
       try {
@@ -93,6 +137,10 @@ export function JsonEditorWrapper({
     }
 
     return () => {
+      observer.disconnect();
+      // Unmount after the current render; React warns about unmounting roots synchronously during one.
+      const roots = stringRoots.splice(0);
+      setTimeout(() => roots.forEach((root) => root.unmount()));
       if (editorRef.current) {
         editorRef.current.destroy();
         editorRef.current = null;
@@ -139,7 +187,7 @@ export function JsonEditorWrapper({
       ref={containerRef} 
       className="h-full w-full jsoneditor-react-container"
       style={{ minHeight: '300px' }}
-      data-color-mode="auto"
+      data-color-mode={resolvedTheme === 'dark' ? 'dark' : 'light'}
       data-readonly={readOnly ? 'true' : 'false'}
     />
   );
