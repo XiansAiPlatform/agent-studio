@@ -49,13 +49,15 @@ interface LogFilterSliderProps {
   startDate: string | null;
   endDate: string | null;
   search: string | null;
+  includeChildWorkflows: boolean;
   onFiltersChange: (
     activation: SelectedActivation | null,
     workflowType: string | null,
     logLevels: LogLevel[],
     startDate: string | null,
     endDate: string | null,
-    search: string | null
+    search: string | null,
+    includeChildWorkflows: boolean
   ) => void;
 }
 
@@ -69,6 +71,7 @@ export function LogFilterSlider({
   startDate,
   endDate,
   search,
+  includeChildWorkflows,
   onFiltersChange,
 }: LogFilterSliderProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,6 +81,7 @@ export function LogFilterSlider({
   const [localStartDate, setLocalStartDate] = useState<string>(startDate || '');
   const [localEndDate, setLocalEndDate] = useState<string>(endDate || '');
   const [localLogSearch, setLocalLogSearch] = useState<string>(search || '');
+  const [localIncludeChildren, setLocalIncludeChildren] = useState<boolean>(includeChildWorkflows);
 
   // Sync local state when props change
   useEffect(() => {
@@ -87,7 +91,8 @@ export function LogFilterSlider({
     setLocalStartDate(startDate || '');
     setLocalEndDate(endDate || '');
     setLocalLogSearch(search || '');
-  }, [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search]);
+    setLocalIncludeChildren(includeChildWorkflows);
+  }, [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, includeChildWorkflows]);
 
   // Workflows of the selected activation's agent (third level of the tree)
   const { workflows: agentWorkflows, isLoading: isLoadingWorkflows } = useAgentWorkflows(
@@ -214,6 +219,7 @@ export function LogFilterSlider({
     setLocalStartDate('');
     setLocalEndDate('');
     setLocalLogSearch('');
+    setLocalIncludeChildren(false);
     setSearchQuery('');
   };
 
@@ -224,7 +230,8 @@ export function LogFilterSlider({
       localLogLevels,
       localStartDate || null,
       localEndDate || null,
-      localLogSearch.trim() || null
+      localLogSearch.trim() || null,
+      localIncludeChildren
     );
     onClose();
   };
@@ -245,7 +252,8 @@ export function LogFilterSlider({
     localLogLevels.length > 0 ||
     localStartDate !== '' ||
     localEndDate !== '' ||
-    localLogSearch.trim() !== '';
+    localLogSearch.trim() !== '' ||
+    localIncludeChildren;
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -413,6 +421,27 @@ export function LogFilterSlider({
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Include child workflows */}
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="include-child-workflows"
+                  checked={localIncludeChildren}
+                  onCheckedChange={(checked) => setLocalIncludeChildren(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <label
+                    htmlFor="include-child-workflows"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Include child workflows
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Also show logs of workflows started by the selected workflow, or by the stream you open.
+                  </p>
+                </div>
               </div>
 
               {/* Search Input */}

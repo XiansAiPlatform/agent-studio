@@ -4,6 +4,7 @@ import { createXiansSDK } from '@/lib/xians'
 import { handleApiError } from '@/lib/api/error-handler'
 import { assertCanEditAgent } from '@/lib/auth/agent-access'
 import { decodeAgentNameParam, isValidAgentName, normalizeAgentName, AGENT_NAME_VALIDATION_MESSAGE } from '@/lib/xians/agent-name'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 /**
  * GET /api/agent-activations
@@ -71,10 +72,7 @@ export const POST = withParticipantAdmin(
 
       const participantId = (session as any)?.user?.email
       if (!participantId) {
-        return NextResponse.json(
-          { error: 'User email not found in session' },
-          { status: 401 }
-        )
+        return sessionExpiredResponse({ error: 'User email not found in session' })
       }
 
       const xians = createXiansSDK((session as any).accessToken)

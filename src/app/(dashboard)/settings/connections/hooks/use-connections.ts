@@ -223,6 +223,18 @@ async function deleteIntegration(integrationId: string): Promise<void> {
   }
 }
 
+async function setIntegrationEnabled(integrationId: string, enabled: boolean): Promise<void> {
+  const action = enabled ? 'enable' : 'disable'
+  const response = await fetch(`/api/integrations/${integrationId}/${action}`, {
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error || `Failed to ${action} integration: ${response.statusText}`)
+  }
+}
+
 async function testConnection(connectionId: string): Promise<ConnectionTestResult> {
   const response = await fetch(`/api/connections/${connectionId}/test`, {
     method: 'POST',
@@ -415,6 +427,11 @@ export function useConnections(options?: UseConnectionsOptions) {
     refetch
   )
 
+  const setIntegrationEnabledMutation = createMutationState<{ id: string; enabled: boolean }>(
+    ({ id, enabled }) => setIntegrationEnabled(id, enabled),
+    refetch
+  )
+
   const testConnectionMutation = createMutationState<string>(
     (connectionId) => testConnection(connectionId),
     refetch
@@ -440,6 +457,7 @@ export function useConnections(options?: UseConnectionsOptions) {
     updateConnection: updateConnectionMutation,
     deleteConnection: deleteConnectionMutation,
     deleteIntegration: deleteIntegrationMutation,
+    setIntegrationEnabled: setIntegrationEnabledMutation,
     testConnection: testConnectionMutation,
     authorizeConnection: authorizeConnectionMutation,
     createIntegration: createIntegrationMutation,

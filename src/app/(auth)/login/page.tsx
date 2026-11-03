@@ -12,10 +12,15 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string | string[] }>
+  searchParams: Promise<{ error?: string | string[]; reason?: string | string[] }>
 }) {
-  const { error } = await searchParams
-  const authError = typeof error === "string" ? AUTH_ERROR_MESSAGES[error] ?? null : null
+  const { error, reason } = await searchParams
+  const authError =
+    typeof error === "string"
+      ? AUTH_ERROR_MESSAGES[error] ?? null
+      : (Array.isArray(reason) ? reason[0] : reason) === "expired"
+        ? "Your session has expired. Please sign in again."
+        : null
 
   const session = await getServerSession(authOptions)
   

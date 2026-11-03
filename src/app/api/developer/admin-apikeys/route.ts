@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
+import { withDeveloperAccess, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 /**
  * GET /api/developer/admin-apikeys
  * List all admin API keys for the current user within the current tenant.
  */
-export const GET = withParticipantAdmin(
+export const GET = withDeveloperAccess(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     const userId = session.user?.email ?? session.user?.id
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID not found in session' }, { status: 401 })
+      return sessionExpiredResponse({ error: 'User ID not found in session' })
     }
 
     try {
@@ -37,13 +38,13 @@ export const GET = withParticipantAdmin(
  * Create a new admin API key for the current user.
  * Body: { name: string }
  */
-export const POST = withParticipantAdmin(
+export const POST = withDeveloperAccess(
   async (request: NextRequest, { session, tenantContext }: ApiContext) => {
     const tenantId = tenantContext.tenant.id
     const userId = session.user?.email ?? session.user?.id
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID not found in session' }, { status: 401 })
+      return sessionExpiredResponse({ error: 'User ID not found in session' })
     }
 
     let body: { name?: string }

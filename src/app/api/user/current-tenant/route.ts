@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { useTenantProvider } from '@/lib/tenant'
 import { CURRENT_TENANT_COOKIE } from '@/lib/api/with-tenant'
 import { runWithSessionOnBehalfOf } from '@/lib/xians/on-behalf-of'
+import { sessionExpiredResponse } from '@/lib/api/session-expired'
 
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 // 30 days
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
 
   if (!session || !session.user?.id || !session.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return sessionExpiredResponse({ error: 'Unauthorized' })
   }
 
   const tenantProvider = useTenantProvider()
