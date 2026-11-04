@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Copy, XCircle, Link2, Settings, MapPin, Trash2 } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/lib/utils/error-handler'
 import { useTenant } from '@/hooks/use-tenant'
+import { DeliveriesCard } from './deliveries-card'
 
 interface IntegrationDetails {
   id: string
@@ -220,6 +221,10 @@ export function IntegrationDetailsSheet({
                   </div>
                 </div>
               </div>
+
+              {integration.platformId === 'builtin_webhook' && (
+                <DeliveriesCard integrationId={integration.id} />
+              )}
 
               {/* Configuration */}
               {Object.keys(integration.configuration).length > 0 && (

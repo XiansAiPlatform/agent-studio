@@ -160,3 +160,41 @@ export interface ConnectionResponse {
 export interface ConnectionTestResponse {
   result: ConnectionTestResult
 }
+
+// Webhook deliveries: calls received by a builtin webhook, recorded by XiansAi.Server.
+
+/** Position in the newest-first list. Pass a page's nextCursor back to get the next page. */
+export interface WebhookDeliveryCursor {
+  receivedAt: string
+  id: string
+}
+
+export interface WebhookDeliverySummary {
+  id: string
+  requestId: string
+  receivedAt: string
+  /** The payload was over 16 MB and was stored truncated, so it cannot be redelivered. */
+  bodyTruncated: boolean
+  /** The headers were over 16 KB and the longest values were cut, so it cannot be redelivered. */
+  headersTruncated: boolean
+}
+
+export interface WebhookDeliveryPage {
+  items: WebhookDeliverySummary[]
+  nextCursor: WebhookDeliveryCursor | null
+}
+
+export interface WebhookDeliveryHeader {
+  name: string
+  /** `********` when {@link masked}: the server never returns credential values. */
+  value: string
+  masked?: boolean
+}
+
+export interface WebhookDeliveryDetail extends WebhookDeliverySummary {
+  integrationId: string
+  contentType: string
+  headers: WebhookDeliveryHeader[]
+  body: string
+  workflowId: string
+}
