@@ -69,7 +69,6 @@ const ROLE_CAPABILITIES: Record<XiansParticipantRole, Capability[]> = {
   TenantParticipantAdmin: [
     'app:use-full-layout',
     'settings:view',
-    'developer:access',
     'theme:customize',
     'secrets:manage-user-scoped',
   ],

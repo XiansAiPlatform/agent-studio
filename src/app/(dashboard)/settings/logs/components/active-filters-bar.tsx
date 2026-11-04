@@ -10,7 +10,8 @@ interface ActiveFiltersBarProps {
   startDate: string | null;
   endDate: string | null;
   search: string | null;
-  onClearFilter: (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange' | 'search') => void;
+  includeChildWorkflows: boolean;
+  onClearFilter: (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange' | 'search' | 'children') => void;
   onClearAll: () => void;
 }
 
@@ -22,6 +23,7 @@ export function ActiveFiltersBar({
   startDate,
   endDate,
   search,
+  includeChildWorkflows,
   onClearFilter,
   onClearAll,
 }: ActiveFiltersBarProps) {
@@ -48,6 +50,17 @@ export function ActiveFiltersBar({
           title={selectedWorkflowType}
         >
           {shortWorkflowName(selectedWorkflowType, selectedActivation?.agentName)}
+          <X className="ml-1.5 h-3 w-3" />
+        </Badge>
+      )}
+
+      {includeChildWorkflows && (
+        <Badge
+          variant="secondary"
+          className="cursor-pointer hover:bg-secondary/80 transition-colors rounded-lg pl-2.5 pr-1.5 py-1"
+          onClick={() => onClearFilter('children')}
+        >
+          + child workflows
           <X className="ml-1.5 h-3 w-3" />
         </Badge>
       )}

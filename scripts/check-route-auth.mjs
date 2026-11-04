@@ -40,6 +40,7 @@ const PUBLIC_ALLOWLIST = new Set([
 const AUTH_SIGNALS = [
   'withTenantFromSession',
   'withParticipantAdmin',
+  'withDeveloperAccess',
   'withTenantAdmin',
   'withSystemAdmin',
   'getServerSession', // manual guard (must still check the result)
@@ -54,6 +55,7 @@ const ADMIN_CALL_SIGNALS = ['createXiansClient', 'createXiansSDK', 'xiansAdminHe
 const ATTRIBUTION_SIGNALS = [
   'withTenantFromSession',
   'withParticipantAdmin',
+  'withDeveloperAccess',
   'withTenantAdmin',
   'withSystemAdmin', // also matches withSystemAdminTenant
   'runWithOnBehalfOf',

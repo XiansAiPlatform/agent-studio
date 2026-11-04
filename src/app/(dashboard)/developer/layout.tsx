@@ -10,8 +10,8 @@ export const dynamic = 'force-dynamic'
 
 /**
  * Developer layout — requires the `developer:access` capability (TenantUser,
- * TenantParticipantAdmin, TenantAdmin, and system admins). Plain
- * TenantParticipants are redirected.
+ * TenantAdmin, and system admins). TenantParticipants and
+ * TenantParticipantAdmins are redirected.
  */
 export default async function DeveloperLayout({
   children,

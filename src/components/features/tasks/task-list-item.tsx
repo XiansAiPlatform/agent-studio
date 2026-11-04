@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { TaskStatusBadge } from './task-status-badge';
 import { IconAvatar } from '@/components/ui/icon-avatar';
 import { Badge } from '@/components/ui/badge';
+import { formatAbsoluteDateTime, formatRelativeTime } from '@/lib/format-relative-time';
 
 interface TaskListItemProps {
   task: Task;
@@ -39,28 +40,6 @@ function decodeText(text: string): string {
   decoded = decoded.replace(/\\r/g, '\r');
   
   return decoded;
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMs < 0) {
-    const absDiffHours = Math.abs(diffHours);
-    const absDiffDays = Math.abs(diffDays);
-    if (absDiffHours < 24) {
-      return `${absDiffHours}h ago`;
-    }
-    return `${absDiffDays}d ago`;
-  }
-
-  if (diffHours < 24) {
-    return `in ${diffHours}h`;
-  }
-  return `in ${diffDays}d`;
 }
 
 export function TaskListItem({ task, onClick, isSelected, isHighlighted, currentUserEmail }: TaskListItemProps) {
@@ -115,9 +94,15 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
 
           {/* Description */}
           <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2 markdown-list-compact">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-              {decodeText(task.description)}
-            </ReactMarkdown>
+            {task.descriptionType === 'markdown' ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                {decodeText(task.description)}
+              </ReactMarkdown>
+            ) : (
+              <p className="break-words">
+                {task.descriptionType === 'json' ? task.description : decodeText(task.description)}
+              </p>
+            )}
           </div>
 
           {/* Metadata */}
@@ -156,13 +141,13 @@ export function TaskListItem({ task, onClick, isSelected, isHighlighted, current
             
             <div className="inline-flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
-              <span>{formatDate(task.createdAt)}</span>
+              <span title={formatAbsoluteDateTime(task.createdAt)}>{formatRelativeTime(task.createdAt, 'short')}</span>
             </div>
 
             {task.dueDate && (
               <div className={cn('inline-flex items-center gap-1.5 font-medium', priorityColors[task.priority])}>
                 <Flag className="h-3 w-3" />
-                <span>Due {formatDate(task.dueDate)}</span>
+                <span>Due {formatRelativeTime(task.dueDate, 'short')}</span>
               </div>
             )}
           </div>

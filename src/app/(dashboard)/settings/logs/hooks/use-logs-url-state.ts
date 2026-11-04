@@ -32,6 +32,9 @@ export function useLogsUrlState() {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [search, setSearch] = useState<string | null>(null);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  // "Include child workflows" filter (`children=1`): widens the workflow type filter and the
+  // drilled-in stream to the child workflows they started. Also set by schedule run links.
+  const [includeChildWorkflows, setIncludeChildWorkflows] = useState(false);
   const [selectedStreamMeta, setSelectedStreamMeta] = useState<LogStream | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
@@ -49,6 +52,7 @@ export function useLogsUrlState() {
     const pageParam = searchParams.get('page');
     const workflowIdParam = searchParams.get('workflowId');
     const workflowTypeParam = searchParams.get('workflowType');
+    const childrenParam = searchParams.get('children');
 
     if (agentParam && activationParam) {
       setSelectedActivation({ agentName: agentParam, activationName: activationParam });
@@ -68,6 +72,7 @@ export function useLogsUrlState() {
     setEndDate(endDateParam || null);
     setSearch(searchParam || null);
     setSelectedWorkflowId(workflowIdParam || null);
+    setIncludeChildWorkflows(childrenParam === '1');
 
     // If the user lands directly on a workflow URL (no in-memory metadata), clear stale meta.
     if (!workflowIdParam) {
@@ -94,10 +99,11 @@ export function useLogsUrlState() {
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       search: search || undefined,
+      includeChildWorkflows: includeChildWorkflows || undefined,
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
-    [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage]
+    [selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, includeChildWorkflows, currentPage]
   );
 
   // Filters consumed by the drilled-in stream-logs view
@@ -111,10 +117,11 @@ export function useLogsUrlState() {
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       search: search || undefined,
+      includeChildWorkflows: includeChildWorkflows || undefined,
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
-    [selectedActivation, selectedWorkflowId, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage]
+    [selectedActivation, selectedWorkflowId, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, includeChildWorkflows, currentPage]
   );
 
   const updateURL = useCallback(
@@ -127,6 +134,7 @@ export function useLogsUrlState() {
       search?: string | null;
       page?: number;
       workflowId?: string | null;
+      includeChildWorkflows?: boolean;
     }) => {
       const newActivation = next.activation !== undefined ? next.activation : selectedActivation;
       const activationChanged =
@@ -151,9 +159,12 @@ export function useLogsUrlState() {
       const scopeChanged = activationChanged || newWorkflowType !== selectedWorkflowType;
       const newWorkflowId =
         next.workflowId !== undefined ? next.workflowId : scopeChanged ? null : selectedWorkflowId;
+      const newIncludeChildWorkflows =
+        next.includeChildWorkflows !== undefined ? next.includeChildWorkflows : includeChildWorkflows;
 
       const params = new URLSearchParams();
       if (newWorkflowId) params.set('workflowId', newWorkflowId);
+      if (newIncludeChildWorkflows) params.set('children', '1');
       if (newActivation) {
         params.set('agent', newActivation.agentName);
         params.set('activation', newActivation.activationName);
@@ -176,9 +187,10 @@ export function useLogsUrlState() {
       setSearch(newSearch);
       setCurrentPage(newPage);
       setSelectedWorkflowId(newWorkflowId);
+      setIncludeChildWorkflows(newIncludeChildWorkflows);
       if (!newWorkflowId) setSelectedStreamMeta(null);
     },
-    [router, selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage, selectedWorkflowId]
+    [router, selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage, selectedWorkflowId, includeChildWorkflows]
   );
 
   const handlePageChange = useCallback(
@@ -200,8 +212,9 @@ export function useLogsUrlState() {
   }, [updateURL]);
 
   const clearFilter = useCallback(
-    (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange' | 'search') => {
+    (type: 'activation' | 'workflowType' | 'logLevel' | 'dateRange' | 'search' | 'children') => {
       if (type === 'activation') updateURL({ activation: null, page: 1 });
+      else if (type === 'children') updateURL({ includeChildWorkflows: false, page: 1 });
       else if (type === 'workflowType') updateURL({ workflowType: null, page: 1 });
       else if (type === 'logLevel') updateURL({ logLevels: [], page: 1 });
       else if (type === 'dateRange') updateURL({ startDate: null, endDate: null, page: 1 });
@@ -211,7 +224,15 @@ export function useLogsUrlState() {
   );
 
   const clearAllFilters = useCallback(() => {
-    updateURL({ activation: null, logLevels: [], startDate: null, endDate: null, search: null, page: 1 });
+    updateURL({
+      activation: null,
+      logLevels: [],
+      startDate: null,
+      endDate: null,
+      search: null,
+      includeChildWorkflows: false,
+      page: 1,
+    });
   }, [updateURL]);
 
   const applyFilterSliderChanges = useCallback(
@@ -221,9 +242,19 @@ export function useLogsUrlState() {
       logLevels: LogLevel[],
       start: string | null,
       end: string | null,
-      searchTerm: string | null
+      searchTerm: string | null,
+      includeChildren: boolean
     ) => {
-      updateURL({ activation, workflowType, logLevels, startDate: start, endDate: end, search: searchTerm, page: 1 });
+      updateURL({
+        activation,
+        workflowType,
+        logLevels,
+        startDate: start,
+        endDate: end,
+        search: searchTerm,
+        includeChildWorkflows: includeChildren,
+        page: 1,
+      });
     },
     [updateURL]
   );
@@ -233,14 +264,16 @@ export function useLogsUrlState() {
     selectedLogLevels.length > 0 ||
     startDate !== null ||
     endDate !== null ||
-    search !== null;
+    search !== null ||
+    includeChildWorkflows;
 
   const activeFilterCount =
     (selectedActivation ? 1 : 0) +
     (selectedWorkflowType ? 1 : 0) +
     (selectedLogLevels.length > 0 ? 1 : 0) +
     (startDate || endDate ? 1 : 0) +
-    (search ? 1 : 0);
+    (search ? 1 : 0) +
+    (includeChildWorkflows ? 1 : 0);
 
   return {
     urlParamsInitialized,
@@ -252,6 +285,7 @@ export function useLogsUrlState() {
     startDate,
     endDate,
     search,
+    includeChildWorkflows,
     selectedWorkflowId,
     selectedStreamMeta,
     streamFilters,

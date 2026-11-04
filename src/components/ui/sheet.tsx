@@ -69,12 +69,15 @@ function SheetContent({
   children,
   side = "right",
   overlayClassName,
+  headerActions,
   ref,
   onPointerDownOutside,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   overlayClassName?: string
+  // Rendered in the top-right cluster, vertically centered with expand/close
+  headerActions?: React.ReactNode
 }) {
   const { isExpanded, setIsExpanded, headerIcon, headerTitle, headerDescription } = useSheet()
   const hasHeaderContent = headerIcon || headerTitle || headerDescription
@@ -153,6 +156,7 @@ function SheetContent({
             "sm:top-4 sm:right-4 sm:gap-1"
           )}
         >
+          {headerActions}
           {showExpandButton && (
             <button
               type="button"
