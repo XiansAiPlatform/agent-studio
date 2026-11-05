@@ -59,7 +59,7 @@ describe('DeliveryDetail', () => {
     const blocks = document.querySelectorAll('pre')
     expect(JSON.parse(blocks[0].textContent!)).toEqual({ 'X-GitHub-Event': 'pull_request', Cookie: '********' })
     expect(blocks[1].textContent).toBe('{\n  "action": "opened"\n}')
-    expect(screen.getByText('Open workflow').closest('a')!.getAttribute('href')).toBe(
+    expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
       '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
     )
     expect(fetchWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1', expect.any(AbortSignal))

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Copy, ExternalLink, Loader2, XCircle } from 'lucide-react'
+import { AlertTriangle, Copy, Loader2, ScrollText, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 import { fetchWebhookDelivery } from '../hooks/use-webhook-deliveries'
@@ -115,7 +115,7 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
 
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="font-semibold">Request headers</h4>
+          <h4 className="font-semibold">Headers</h4>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {hiddenCount > 0 && <span>{hiddenCount} hidden</span>}
             <span>
@@ -128,7 +128,8 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
           </div>
         </div>
         {delivery.headers.length > 0 ? (
-          <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">
+          // Five lines tall (1rem each) plus the padding; the rest scrolls.
+          <pre className="max-h-[6.5rem] overflow-auto rounded-md bg-muted p-3 text-xs leading-4 whitespace-pre-wrap break-all">
             {headersText}
           </pre>
         ) : (
@@ -136,7 +137,7 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
         )}
       </section>
 
-      <section className="space-y-2">
+      <section className="space-y-2 pt-4">
         <div className="flex items-center justify-between gap-2">
           <h4 className="font-semibold">Payload</h4>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -150,7 +151,7 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
         </div>
         {delivery.body ? (
           <>
-            <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">
+            <pre className="max-h-[11.5rem] overflow-auto rounded-md bg-muted p-3 text-xs leading-4 whitespace-pre-wrap break-all">
               {shownPayload}
             </pre>
             {payloadCut && (
@@ -164,19 +165,13 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
         )}
       </section>
 
-      <div className="pt-2 border-t">
-        <div className="text-xs text-muted-foreground min-w-0 space-y-1">
-          <p>
-            Workflow <code className="break-all">{delivery.workflowId}</code>
-          </p>
-          <Link
-            href={workflowLogsHref(delivery.workflowId)}
-            className="inline-flex items-center gap-1 text-primary hover:underline"
-          >
-            <ExternalLink className="h-3 w-3" />
-            Open workflow
+      <div className="flex justify-end pt-2 border-t">
+        <Button variant="outline" size="sm" asChild>
+          <Link href={workflowLogsHref(delivery.workflowId)} title={delivery.workflowId}>
+            <ScrollText className="h-3.5 w-3.5" />
+            Logs
           </Link>
-        </div>
+        </Button>
       </div>
     </div>
   )
