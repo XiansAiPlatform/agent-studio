@@ -36,32 +36,34 @@ export function DeliveriesCard({ integrationId }: { integrationId: string }) {
             No deliveries yet. Calls that trigger this webhook connection will appear here.
           </p>
         ) : (
-          <ul className="rounded-md border divide-y">
-            {items.map(item => (
-              <li key={item.id}>
-                <Link
-                  href={deliveriesPageHref(integrationId, item.id)}
-                  className="group flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50"
-                  title="Open this delivery"
-                >
-                  <code className="text-xs truncate min-w-0">{item.requestId}</code>
-                  <span className="ml-auto shrink-0">
-                    <ReceivedAt value={item.receivedAt} />
-                  </span>
-                  <ExternalLink
-                    className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
-                    aria-hidden="true"
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="rounded-md border divide-y">
+              {items.map(item => (
+                <li key={item.id}>
+                  <Link
+                    href={deliveriesPageHref(integrationId, item.id)}
+                    className="group flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50"
+                    title="Open this delivery"
+                  >
+                    <code className="text-xs truncate min-w-0">{item.requestId}</code>
+                    <span className="ml-auto shrink-0">
+                      <ReceivedAt value={item.receivedAt} />
+                    </span>
+                    <ExternalLink
+                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={deliveriesPageHref(integrationId)}>
+                View all deliveries
+              </Link>
+            </Button>
+          </>
         )}
-        <Button variant="outline" size="sm" asChild>
-          <Link href={deliveriesPageHref(integrationId)}>
-            View all deliveries
-          </Link>
-        </Button>
       </div>
     </div>
   )

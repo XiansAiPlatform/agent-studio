@@ -38,12 +38,13 @@ describe('DeliveriesCard', () => {
     )
   })
 
-  it('shows the empty state', () => {
+  it('shows the empty state without the link to all deliveries', () => {
     useWebhookDeliveries.mockReturnValue(state())
 
     render(<DeliveriesCard integrationId="hook-1" />)
 
     screen.getByText(/No deliveries yet/)
+    expect(screen.queryByText('View all deliveries')).toBeNull()
   })
 
   it('shows a spinner while loading', () => {
