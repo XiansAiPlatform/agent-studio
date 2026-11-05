@@ -75,6 +75,23 @@ describe('/api/integrations/[integrationId]/deliveries/[deliveryId]', () => {
     expect(del).toHaveBeenCalledWith(BACKEND)
   })
 
+  it('DELETE passes a backend 404 through', async () => {
+    del.mockRejectedValue(new XiansApiError('Incoming call not found', 404))
+
+    const response = await DELETE(request('DELETE'))
+
+    expect(response.status).toBe(404)
+    expect(JSON.stringify(await response.json())).toContain('Incoming call not found')
+  })
+
+  it('returns 500 when the backend fails', async () => {
+    get.mockRejectedValue(new XiansApiError('boom', 500))
+    del.mockRejectedValue(new XiansApiError('boom', 500))
+
+    expect((await GET(request())).status).toBe(500)
+    expect((await DELETE(request('DELETE'))).status).toBe(500)
+  })
+
   it.each([
     { integrationId: '../secrets', deliveryId: DELIVERY_ID },
     { integrationId: 'integration-1', deliveryId: '' },

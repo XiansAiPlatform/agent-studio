@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { deliveriesUrl, useWebhookDeliveries } from './use-webhook-deliveries'
+import { deliveriesUrl, fetchWebhookDelivery, useWebhookDeliveries } from './use-webhook-deliveries'
 import type { WebhookDeliverySummary } from '../types'
 
 function delivery(n: number): WebhookDeliverySummary {
@@ -54,9 +54,10 @@ describe('useWebhookDeliveries', () => {
 
     await act(() => result.current.loadMore())
 
-    expect(fetchMock).toHaveBeenLastCalledWith(deliveriesUrl('hook-1', 2, { receivedAt: b.receivedAt, id: b.id }), {
-      signal: undefined,
-    })
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      deliveriesUrl('hook-1', 2, { receivedAt: b.receivedAt, id: b.id }),
+      expect.anything()
+    )
     expect(result.current.items).toEqual([a, b, c])
     expect(result.current.hasMore).toBe(false)
   })
@@ -93,6 +94,52 @@ describe('useWebhookDeliveries', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.error).toBe('Internal server error')
     expect(result.current.items).toEqual([])
+  })
+
+  it('keeps the loaded rows and shows the error when Load more fails', async () => {
+    const a = delivery(1)
+    fetchMock
+      .mockResolvedValueOnce(json({ items: [a], nextCursor: { receivedAt: a.receivedAt, id: a.id } }))
+      .mockResolvedValueOnce(json({ error: 'Internal server error' }, 500))
+
+    const { result } = renderHook(() => useWebhookDeliveries('hook-1', { pageSize: 1 }))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    await act(() => result.current.loadMore())
+
+    expect(result.current.items).toEqual([a])
+    expect(result.current.error).toBe('Internal server error')
+    expect(result.current.isLoadingMore).toBe(false)
+  })
+
+  it('never leaves Load more stuck when the list reloads while it is in flight', async () => {
+    const [a, b] = [delivery(1), delivery(2)]
+    let finishLoadMore!: (response: Response) => void
+    fetchMock
+      .mockResolvedValueOnce(json({ items: [a], nextCursor: { receivedAt: a.receivedAt, id: a.id } }))
+      .mockReturnValueOnce(new Promise<Response>(resolve => (finishLoadMore = resolve)))
+      .mockResolvedValueOnce(json({ items: [a], nextCursor: { receivedAt: a.receivedAt, id: a.id } }))
+
+    const { result } = renderHook(() => useWebhookDeliveries('hook-1', { pageSize: 1 }))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    let pending!: Promise<void>
+    act(() => {
+      pending = result.current.loadMore()
+    })
+    await waitFor(() => expect(result.current.isLoadingMore).toBe(true))
+
+    act(() => result.current.reload())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await act(async () => {
+      finishLoadMore(json({ items: [b], nextCursor: null }))
+      await pending
+    })
+
+    // The superseded page is dropped, but its spinner is cleared so Load more works again.
+    expect(result.current.items).toEqual([a])
+    expect(result.current.isLoadingMore).toBe(false)
+    expect(result.current.hasMore).toBe(true)
   })
 
   it('removes a deleted delivery from the list', async () => {
@@ -154,5 +201,41 @@ describe('useWebhookDeliveries', () => {
 
     await waitFor(() => expect(result.current.items).toEqual([b, a]))
     expect(result.current.isLoading).toBe(false)
+  })
+})
+
+describe('fetchWebhookDelivery', () => {
+  const fetchMock = vi.fn()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('loads one delivery and passes the abort signal on', async () => {
+    const signal = new AbortController().signal
+    fetchMock.mockResolvedValueOnce(json({ id: 'abc', headers: [] }))
+
+    await expect(fetchWebhookDelivery('hook-1', 'abc', signal)).resolves.toEqual({ id: 'abc', headers: [] })
+    expect(fetchMock).toHaveBeenCalledWith('/api/integrations/hook-1/deliveries/abc', { signal })
+  })
+
+  it.each([
+    ['an error string', { error: 'Incoming call not found' }, 'Incoming call not found'],
+    ['an error object', { error: { message: 'Webhook not found' } }, 'Webhook not found'],
+  ])('throws the server message from %s', async (_, body, message) => {
+    fetchMock.mockResolvedValueOnce(json(body, 404))
+
+    await expect(fetchWebhookDelivery('hook-1', 'abc')).rejects.toThrow(message)
+  })
+
+  it('falls back to a generic message when the error body is not JSON', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('<html>Bad gateway</html>', { status: 502 }))
+
+    await expect(fetchWebhookDelivery('hook-1', 'abc')).rejects.toThrow('Failed to load delivery')
   })
 })

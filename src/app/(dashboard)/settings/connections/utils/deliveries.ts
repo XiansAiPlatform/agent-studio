@@ -32,9 +32,16 @@ export function formatHeaders(headers: WebhookDeliveryHeader[]): string {
   return JSON.stringify(object, null, 2)
 }
 
+/** Bodies longer than this (in characters) are shown as received instead of pretty-printed. */
+export const MAX_PRETTY_PRINT_CHARS = 2 * 1024 * 1024
+
+/** How much of a payload is rendered until the viewer asks for all of it; Copy always copies everything. */
+export const PAYLOAD_PREVIEW_CHARS = 256 * 1024
+
 /** Payload shown in the delivery detail: pretty-printed when it is JSON, raw text otherwise. */
 export function formatPayload(body: string, contentType: string): { text: string; isJson: boolean } {
-  const looksJson = /json/i.test(contentType) || /^\s*[[{]/.test(body)
+  // Parsing and re-indenting a multi-megabyte body would block the page, so large ones are shown as received.
+  const looksJson = body.length <= MAX_PRETTY_PRINT_CHARS && (/json/i.test(contentType) || /^\s*[[{]/.test(body))
   if (looksJson) {
     try {
       return { text: JSON.stringify(JSON.parse(body), null, 2), isJson: true }
@@ -45,9 +52,28 @@ export function formatPayload(body: string, contentType: string): { text: string
   return { text: body, isJson: false }
 }
 
-/** Size of the payload as received, in UTF-8 bytes. */
+/** Size of the payload as received, in UTF-8 bytes. Counted without copying a body that can be 16 MB. */
 export function payloadBytes(body: string): number {
-  return new TextEncoder().encode(body).length
+  let bytes = 0
+  for (let i = 0; i < body.length; i++) {
+    const code = body.charCodeAt(i)
+    if (code < 0x80) bytes += 1
+    else if (code < 0x800) bytes += 2
+    else if (code >= 0xd800 && code <= 0xdbff && i + 1 < body.length) {
+      const next = body.charCodeAt(i + 1)
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        // A surrogate pair is one 4-byte character.
+        bytes += 4
+        i++
+      } else {
+        bytes += 3
+      }
+    } else {
+      // Other BMP characters, and a lone surrogate (encoded as U+FFFD), are 3 bytes.
+      bytes += 3
+    }
+  }
+  return bytes
 }
 
 export function formatBytes(bytes: number): string {

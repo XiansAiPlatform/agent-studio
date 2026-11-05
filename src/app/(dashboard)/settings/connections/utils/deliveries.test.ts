@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { deliveriesPageHref, formatBytes, formatHeaders, formatPayload, payloadBytes, workflowLogsHref } from './deliveries'
+import {
+  MAX_PRETTY_PRINT_CHARS,
+  deliveriesPageHref,
+  formatBytes,
+  formatHeaders,
+  formatPayload,
+  payloadBytes,
+  workflowLogsHref,
+} from './deliveries'
 
 describe('formatPayload', () => {
   it('pretty-prints JSON bodies', () => {
@@ -11,6 +19,12 @@ describe('formatPayload', () => {
 
   it('recognises JSON sent without a JSON content type', () => {
     expect(formatPayload('[1,2]', 'text/plain').isJson).toBe(true)
+  })
+
+  it('shows a very large JSON body as received instead of re-indenting it', () => {
+    const body = `[${'1,'.repeat(MAX_PRETTY_PRINT_CHARS / 2)}1]`
+
+    expect(formatPayload(body, 'application/json')).toEqual({ text: body, isJson: false })
   })
 
   it('shows invalid JSON and other text as received', () => {
@@ -50,8 +64,17 @@ describe('payload size', () => {
     expect(payloadBytes('ab€')).toBe(5)
   })
 
+  it('counts the same bytes as the browser encoder, including emoji and lone surrogates', () => {
+    for (const text of ['', 'é', '😀', 'a😀b', '\ud800', 'x\udc00y', '日本語']) {
+      expect(payloadBytes(text)).toBe(new TextEncoder().encode(text).length)
+    }
+  })
+
   it('formats bytes, kilobytes and megabytes', () => {
     expect(formatBytes(512)).toBe('512 B')
+    expect(formatBytes(1023)).toBe('1023 B')
+    expect(formatBytes(1024)).toBe('1.0 KB')
+    expect(formatBytes(1024 * 1024)).toBe('1.0 MB')
     expect(formatBytes(18_840)).toBe('18.4 KB')
     expect(formatBytes(16 * 1024 * 1024)).toBe('16.0 MB')
   })

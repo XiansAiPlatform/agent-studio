@@ -4,9 +4,16 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, Copy, ExternalLink, Loader2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { showSuccessToast } from '@/lib/utils/error-handler'
+import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 import { fetchWebhookDelivery } from '../hooks/use-webhook-deliveries'
-import { formatBytes, formatHeaders, formatPayload, payloadBytes, workflowLogsHref } from '../utils/deliveries'
+import {
+  PAYLOAD_PREVIEW_CHARS,
+  formatBytes,
+  formatHeaders,
+  formatPayload,
+  payloadBytes,
+  workflowLogsHref,
+} from '../utils/deliveries'
 import type { WebhookDeliveryDetail } from '../types'
 
 interface DeliveryDetailProps {
@@ -17,6 +24,7 @@ interface DeliveryDetailProps {
 /** Headers and payload of one delivery. Loaded when it is first shown, not with the list. */
 export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProps) {
   const [attempt, setAttempt] = useState(0)
+  const [showFullPayload, setShowFullPayload] = useState(false)
   const requestKey = `${integrationId}:${deliveryId}:${attempt}`
   // Each result remembers which request it answers, so a stale one is never shown.
   const [result, setResult] = useState<{
@@ -41,8 +49,17 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   const delivery = current?.delivery ?? null
   const error = current?.error ?? null
 
-  const payload = useMemo(
-    () => (delivery ? formatPayload(delivery.body, delivery.contentType) : null),
+  // Everything derived from the body is computed once per delivery, not on every render.
+  const view = useMemo(
+    () =>
+      delivery
+        ? {
+            payload: formatPayload(delivery.body, delivery.contentType),
+            bytes: payloadBytes(delivery.body),
+            headersText: formatHeaders(delivery.headers),
+            hiddenCount: delivery.headers.filter(header => header.masked).length,
+          }
+        : null,
     [delivery]
   )
 
@@ -58,7 +75,7 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
     )
   }
 
-  if (!delivery || !payload) {
+  if (!delivery || !view) {
     return (
       <div className="flex justify-center py-6">
         <Loader2 className="h-5 w-5 animate-spin text-primary" aria-label="Loading delivery" />
@@ -66,17 +83,18 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
     )
   }
 
-  const headersText = formatHeaders(delivery.headers)
-  const hiddenCount = delivery.headers.filter(header => header.masked).length
+  const { payload, bytes, headersText, hiddenCount } = view
+  const payloadCut = !showFullPayload && payload.text.length > PAYLOAD_PREVIEW_CHARS
+  const shownPayload = payloadCut ? payload.text.slice(0, PAYLOAD_PREVIEW_CHARS) : payload.text
 
-  const copyPayload = () => {
-    navigator.clipboard.writeText(delivery.body)
-    showSuccessToast('Payload copied to clipboard')
-  }
-
-  const copyHeaders = () => {
-    navigator.clipboard.writeText(headersText)
-    showSuccessToast('Headers copied to clipboard')
+  // The clipboard is unavailable on non-secure origins and can be denied, so report a failed copy.
+  const copy = async (text: string, what: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      showSuccessToast(`${what} copied to clipboard`)
+    } catch (err) {
+      showErrorToast(err, `Could not copy the ${what.toLowerCase()}`)
+    }
   }
 
   return (
@@ -103,7 +121,7 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
             <span>
               {delivery.headers.length} {delivery.headers.length === 1 ? 'header' : 'headers'}
             </span>
-            <Button variant="ghost" size="sm" onClick={copyHeaders} disabled={delivery.headers.length === 0}>
+            <Button variant="ghost" size="sm" onClick={() => copy(headersText, 'Headers')} disabled={delivery.headers.length === 0}>
               <Copy className="h-3 w-3" />
               Copy
             </Button>
@@ -123,17 +141,24 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
           <h4 className="font-semibold">Payload</h4>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>{delivery.contentType || 'No content type'}</span>
-            <span>{formatBytes(payloadBytes(delivery.body))}</span>
-            <Button variant="ghost" size="sm" onClick={copyPayload} disabled={!delivery.body}>
+            <span>{formatBytes(bytes)}</span>
+            <Button variant="ghost" size="sm" onClick={() => copy(delivery.body, 'Payload')} disabled={!delivery.body}>
               <Copy className="h-3 w-3" />
               Copy
             </Button>
           </div>
         </div>
         {delivery.body ? (
-          <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">
-            {payload.text}
-          </pre>
+          <>
+            <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">
+              {shownPayload}
+            </pre>
+            {payloadCut && (
+              <Button variant="link" size="sm" className="px-0" onClick={() => setShowFullPayload(true)}>
+                Show full payload ({formatBytes(bytes)})
+              </Button>
+            )}
+          </>
         ) : (
           <p className="rounded-md bg-muted p-3 text-muted-foreground">Empty payload.</p>
         )}

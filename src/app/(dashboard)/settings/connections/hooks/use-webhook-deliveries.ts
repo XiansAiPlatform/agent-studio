@@ -129,7 +129,8 @@ export function useWebhookDeliveries(
       if (current !== generation.current) return
       setError(err instanceof Error ? err.message : 'Failed to load more deliveries')
     } finally {
-      if (current === generation.current) setIsLoadingMore(false)
+      // Cleared even when superseded: the flag belongs to this request, and leaving it set would lock Load more.
+      setIsLoadingMore(false)
     }
   }, [integrationId, pageSize, nextCursor, isLoadingMore])
 

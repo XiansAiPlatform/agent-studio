@@ -90,6 +90,12 @@ describe('/api/integrations/[integrationId]/deliveries', () => {
       expect(get).not.toHaveBeenCalled()
     })
 
+    it('returns 500 when the backend fails', async () => {
+      get.mockRejectedValue(new XiansApiError('boom', 500))
+
+      expect((await GET(request())).status).toBe(500)
+    })
+
     it('passes a backend 404 through with its message', async () => {
       get.mockRejectedValue(new XiansApiError('Webhook not found', 404))
 
@@ -111,12 +117,26 @@ describe('/api/integrations/[integrationId]/deliveries', () => {
       expect(del).toHaveBeenCalledWith(BACKEND)
     })
 
-    it('passes a backend 404 through', async () => {
+    it('passes a backend 404 through with its message', async () => {
       del.mockRejectedValue(new XiansApiError('Webhook not found', 404))
 
       const response = await DELETE(request('', 'DELETE'))
 
       expect(response.status).toBe(404)
+      expect(JSON.stringify(await response.json())).toContain('Webhook not found')
+    })
+
+    it('returns 400 for an invalid integrationId', async () => {
+      contextRef.current.params = { integrationId: '../secrets' }
+
+      expect((await DELETE(request('', 'DELETE'))).status).toBe(400)
+      expect(del).not.toHaveBeenCalled()
+    })
+
+    it('returns 500 when the backend fails', async () => {
+      del.mockRejectedValue(new XiansApiError('boom', 500))
+
+      expect((await DELETE(request('', 'DELETE'))).status).toBe(500)
     })
   })
 })
