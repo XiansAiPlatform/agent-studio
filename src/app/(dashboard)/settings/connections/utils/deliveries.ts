@@ -10,9 +10,24 @@ export function deliveriesPageHref(integrationId: string, deliveryId?: string): 
   return deliveryId ? `${path}?${new URLSearchParams({ delivery: deliveryId })}` : path
 }
 
-/** Activity Logs for the workflow a delivery was sent to, including the workflows it started. */
+/** Activity Logs for a workflow, including the workflows it started. */
 export function workflowLogsHref(workflowId: string): string {
   return `/settings/logs?${new URLSearchParams({ workflowId, children: '1' })}`
+}
+
+/** Workflow type the agent starts for each delivery. */
+export const DELIVERY_RUN_WORKFLOW_TYPE = 'Processing Workflow'
+
+/**
+ * Workflow ID of the run a delivery started. The receiving workflow is
+ * `tenant:agent:type[:activation]`; the agent keys its run by the delivery's request ID under the
+ * same tenant, agent and activation: `tenant:agent:Processing Workflow[:activation]:requestId`.
+ * Null when the receiving workflow ID doesn't have that shape or there is no request ID.
+ */
+export function deliveryRunWorkflowId(receivingWorkflowId: string, requestId: string): string | null {
+  const [tenant, agent, type, ...activation] = receivingWorkflowId.split(':')
+  if (!tenant || !agent || !type || !requestId) return null
+  return [tenant, agent, DELIVERY_RUN_WORKFLOW_TYPE, ...activation, requestId].join(':')
 }
 
 /**

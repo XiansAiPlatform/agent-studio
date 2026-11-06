@@ -8,6 +8,7 @@ import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 import { fetchWebhookDelivery } from '../hooks/use-webhook-deliveries'
 import {
   PAYLOAD_PREVIEW_CHARS,
+  deliveryRunWorkflowId,
   formatBytes,
   formatHeaders,
   formatPayload,
@@ -84,6 +85,8 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   }
 
   const { payload, bytes, headersText, hiddenCount } = view
+  // Logs open this delivery's own run; the receiving workflow is the fallback when it can't be worked out.
+  const logsWorkflowId = deliveryRunWorkflowId(delivery.workflowId, delivery.requestId) ?? delivery.workflowId
   const payloadCut = !showFullPayload && payload.text.length > PAYLOAD_PREVIEW_CHARS
   const shownPayload = payloadCut ? payload.text.slice(0, PAYLOAD_PREVIEW_CHARS) : payload.text
 
@@ -167,7 +170,7 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
 
       <div className="flex justify-end pt-2 border-t">
         <Button variant="outline" size="sm" asChild>
-          <Link href={workflowLogsHref(delivery.workflowId)} title={delivery.workflowId}>
+          <Link href={workflowLogsHref(logsWorkflowId)} title={logsWorkflowId}>
             <ScrollText className="h-3.5 w-3.5" />
             Logs
           </Link>

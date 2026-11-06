@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   MAX_PRETTY_PRINT_CHARS,
   deliveriesPageHref,
+  deliveryRunWorkflowId,
   formatBytes,
   formatHeaders,
   formatPayload,
@@ -90,5 +91,29 @@ describe('links', () => {
     expect(workflowLogsHref('t:Agent One:Integrator Workflow:Raven')).toBe(
       '/settings/logs?workflowId=t%3AAgent+One%3AIntegrator+Workflow%3ARaven&children=1'
     )
+  })
+})
+
+describe('deliveryRunWorkflowId', () => {
+  it('builds the run ID from the receiving workflow, keeping its activation, and the request ID', () => {
+    expect(
+      deliveryRunWorkflowId(
+        'test-diyanada:Xianix AI-DLC Agent Onboarding:Integrator Workflow:Xianix AI-DLC Agent Onboarding - Autonomous Raven',
+        '97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973'
+      )
+    ).toBe(
+      'test-diyanada:Xianix AI-DLC Agent Onboarding:Processing Workflow:Xianix AI-DLC Agent Onboarding - Autonomous Raven:97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973'
+    )
+  })
+
+  it('builds the run ID for a receiving workflow without an activation', () => {
+    expect(deliveryRunWorkflowId('t:Agent One:Integrator Workflow', 'req-1')).toBe('t:Agent One:Processing Workflow:req-1')
+  })
+
+  it.each([
+    ['a receiving workflow ID of another shape', 'Integrator Workflow', 'req-1'],
+    ['no request ID', 't:Agent One:Integrator Workflow:Raven', ''],
+  ])('is null for %s', (_, workflowId, requestId) => {
+    expect(deliveryRunWorkflowId(workflowId, requestId)).toBeNull()
   })
 })
