@@ -49,7 +49,7 @@ describe('DeliveryDetail', () => {
 
   afterEach(cleanup)
 
-  it('shows the headers and payload as JSON with the hidden count and a link to the workflow', async () => {
+  it('shows the headers and payload as JSON with the hidden count and a link to the run', async () => {
     fetchWebhookDelivery.mockResolvedValue(detail())
 
     renderDetail()
@@ -60,9 +60,19 @@ describe('DeliveryDetail', () => {
     expect(JSON.parse(blocks[0].textContent!)).toEqual({ 'X-GitHub-Event': 'pull_request', Cookie: '********' })
     expect(blocks[1].textContent).toBe('{\n  "action": "opened"\n}')
     expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
-      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
+      '/settings/logs?workflowId=tenant%3Aagent%3AProcessing+Workflow%3Aactivation%3Arequest-1&children=1'
     )
     expect(fetchWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1', expect.any(AbortSignal))
+  })
+
+  it('links to the receiving workflow when the run cannot be worked out', async () => {
+    fetchWebhookDelivery.mockResolvedValue(detail({ requestId: '' }))
+
+    renderDetail()
+
+    expect((await screen.findByText('Logs')).closest('a')!.getAttribute('href')).toBe(
+      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
+    )
   })
 
   it('warns when the payload or headers were truncated', async () => {

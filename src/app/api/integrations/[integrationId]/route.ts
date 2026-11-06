@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { encodeSafePathSegment } from '@/lib/api/path-segment'
 import { createXiansClient } from '@/lib/xians/client'
+import { getWebhookBaseUrl } from '@/lib/xians/webhook-base-url'
 
 type IntegrationParams = { integrationId: string }
 
@@ -34,7 +35,7 @@ export const GET = withParticipantAdmin(
     if (data?.webhookUrl) {
       let fullUrl = data.webhookUrl
       if (data.webhookUrl.startsWith('/')) {
-        const baseUrl = process.env.XIANS_SERVER_URL
+        const baseUrl = getWebhookBaseUrl()
         if (baseUrl) fullUrl = `${baseUrl}${data.webhookUrl}`
       }
       const urlParts = fullUrl.split('/')
