@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PageLoader } from '@/components/ui/page-loader'
+import { useCan } from '@/hooks/use-permissions'
 import { useWebhookDeliveries } from '../../hooks/use-webhook-deliveries'
+import { deliveryLabel } from '../../utils/deliveries'
 import { DeliveryDetail } from '../../components/delivery-detail'
 import { ReceivedAt } from '../../components/received-at'
 
@@ -44,6 +46,14 @@ function WebhookDeliveriesContent() {
   const scrollTarget = useRef<string | null>(searchParams.get('delivery'))
 
   const { items, hasMore, isLoading, isLoadingMore, error, reload, loadMore } = useWebhookDeliveries(integrationId)
+  const canRedeliver = useCan('webhooks:redeliver')
+
+  // The new delivery is the newest row: reload the list, then open and scroll to it.
+  const showRedelivery = (deliveryId: string) => {
+    scrollTarget.current = deliveryId
+    setExpandedId(deliveryId)
+    reload()
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -138,8 +148,9 @@ function WebhookDeliveriesContent() {
                         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
                       <code className="rounded bg-muted px-2 py-0.5 text-xs truncate min-w-0" title={item.requestId}>
-                        {item.requestId}
+                        {deliveryLabel(item)}
                       </code>
+                      {item.redeliveryOf && <Badge variant="secondary">Redelivery</Badge>}
                       {(item.bodyTruncated || item.headersTruncated) && (
                         <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
                           Truncated
@@ -151,7 +162,12 @@ function WebhookDeliveriesContent() {
                     </button>
                     {expanded && (
                       <div className="px-4 pb-4 sm:pl-11">
-                        <DeliveryDetail integrationId={integrationId} deliveryId={item.id} />
+                        <DeliveryDetail
+                          integrationId={integrationId}
+                          deliveryId={item.id}
+                          canRedeliver={canRedeliver}
+                          onRedelivered={result => result.deliveryId && showRedelivery(result.deliveryId)}
+                        />
                       </div>
                     )}
                   </li>

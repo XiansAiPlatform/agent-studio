@@ -2,7 +2,27 @@
  * Display helpers for webhook deliveries.
  */
 
-import type { WebhookDeliveryHeader } from '../types'
+import type { WebhookDeliveryHeader, WebhookDeliverySummary } from '../types'
+
+/** The request id a row is labelled with. A redelivery shows the id of the delivery it repeats. */
+export function deliveryLabel(item: Pick<WebhookDeliverySummary, 'requestId' | 'redeliveryOfRequestId'>): string {
+  return item.redeliveryOfRequestId || item.requestId
+}
+
+/** Whether a delivery can be sent again as it was received. */
+export function canBeRedelivered(item: Pick<WebhookDeliverySummary, 'bodyTruncated' | 'headersTruncated'>): boolean {
+  return !item.bodyTruncated && !item.headersTruncated
+}
+
+/** "840 ms", "2.4 s" or "1 min 5 s". */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.max(0, Math.round(ms))} ms`
+  const seconds = ms / 1000
+  if (seconds < 60) return `${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s`
+  const minutes = Math.floor(seconds / 60)
+  const rest = Math.round(seconds - minutes * 60)
+  return rest ? `${minutes} min ${rest} s` : `${minutes} min`
+}
 
 /** The webhook's Deliveries page, optionally opened at one delivery. */
 export function deliveriesPageHref(integrationId: string, deliveryId?: string): string {

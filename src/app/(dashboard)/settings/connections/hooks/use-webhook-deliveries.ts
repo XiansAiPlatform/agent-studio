@@ -9,6 +9,7 @@ import type {
   WebhookDeliveryDetail,
   WebhookDeliveryPage,
   WebhookDeliverySummary,
+  WebhookRedeliveryResult,
 } from '../types'
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
@@ -60,6 +61,16 @@ export async function fetchWebhookDelivery(
 ): Promise<WebhookDeliveryDetail> {
   const response = await fetch(deliveryUrl(integrationId, deliveryId), { signal })
   if (!response.ok) throw new Error(await errorMessage(response, 'Failed to load delivery'))
+  return response.json()
+}
+
+/** Sends a recorded call to its webhook again. Resolves once the webhook has answered. */
+export async function redeliverWebhookDelivery(
+  integrationId: string,
+  deliveryId: string
+): Promise<WebhookRedeliveryResult> {
+  const response = await fetch(`${deliveryUrl(integrationId, deliveryId)}/redeliver`, { method: 'POST' })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Failed to redeliver'))
   return response.json()
 }
 
