@@ -28,12 +28,12 @@ export const GET = withParticipantAdmin(
       const client = createXiansClient()
       const data = await client.get<any>(backendPath)
 
+      const baseUrl = getWebhookBaseUrl()
       const processedData = Array.isArray(data)
         ? data.map((integration: any) => {
             if (integration.webhookUrl) {
               let fullUrl = integration.webhookUrl
               if (integration.webhookUrl.startsWith('/')) {
-                const baseUrl = getWebhookBaseUrl()
                 if (baseUrl) fullUrl = `${baseUrl}${integration.webhookUrl}`
               }
               const urlParts = fullUrl.split('/')
