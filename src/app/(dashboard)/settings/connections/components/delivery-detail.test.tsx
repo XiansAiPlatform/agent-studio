@@ -3,13 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { WebhookDeliveryDetail } from '../types'
 
-const { fetchWebhookDelivery, showSuccessToast, showErrorToast } = vi.hoisted(() => ({
+const { fetchWebhookDelivery, workflowHasLogs, showSuccessToast, showErrorToast } = vi.hoisted(() => ({
   fetchWebhookDelivery: vi.fn(),
+  workflowHasLogs: vi.fn(),
   showSuccessToast: vi.fn(),
   showErrorToast: vi.fn(),
 }))
 
-vi.mock('../hooks/use-webhook-deliveries', () => ({ fetchWebhookDelivery }))
+vi.mock('../hooks/use-webhook-deliveries', () => ({ fetchWebhookDelivery, workflowHasLogs }))
 vi.mock('@/lib/utils/error-handler', () => ({ showSuccessToast, showErrorToast }))
 
 import { DeliveryDetail } from './delivery-detail'
@@ -41,6 +42,8 @@ describe('DeliveryDetail', () => {
 
   beforeEach(() => {
     fetchWebhookDelivery.mockReset()
+    workflowHasLogs.mockReset()
+    workflowHasLogs.mockResolvedValue(true)
     showSuccessToast.mockReset()
     showErrorToast.mockReset()
     writeText.mockReset()
@@ -59,8 +62,14 @@ describe('DeliveryDetail', () => {
     const blocks = document.querySelectorAll('pre')
     expect(JSON.parse(blocks[0].textContent!)).toEqual({ 'X-GitHub-Event': 'pull_request', Cookie: '********' })
     expect(blocks[1].textContent).toBe('{\n  "action": "opened"\n}')
-    expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
-      '/settings/logs?workflowId=tenant%3Aagent%3AProcessing+Workflow%3Aactivation%3Arequest-1&children=1'
+    await waitFor(() =>
+      expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
+        '/settings/logs?workflowId=tenant%3Aagent%3AProcessing+Workflow%3Aactivation%3Arequest-1&children=1'
+      )
+    )
+    expect(workflowHasLogs).toHaveBeenCalledWith(
+      'tenant:agent:Processing Workflow:activation:request-1',
+      expect.any(AbortSignal)
     )
     expect(fetchWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1', expect.any(AbortSignal))
   })
@@ -71,6 +80,20 @@ describe('DeliveryDetail', () => {
     renderDetail()
 
     expect((await screen.findByText('Logs')).closest('a')!.getAttribute('href')).toBe(
+      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
+    )
+    expect(workflowHasLogs).not.toHaveBeenCalled()
+  })
+
+  it('keeps the receiving workflow link when the run has no logs, as for other agents', async () => {
+    workflowHasLogs.mockResolvedValue(false)
+    fetchWebhookDelivery.mockResolvedValue(detail())
+
+    renderDetail()
+
+    await screen.findByText('Logs')
+    await waitFor(() => expect(workflowHasLogs).toHaveBeenCalled())
+    expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
       '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
     )
   })
