@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
 import { handleApiError } from '@/lib/api/error-handler'
-import { getWebhookBaseUrl } from '@/lib/xians/webhook-base-url'
 
 /**
  * GET /api/webhooks
@@ -26,7 +25,7 @@ export const GET = withParticipantAdmin(
       const client = createXiansClient()
       const data = await client.get<{ webhooks: unknown[] }>(backendPath)
 
-      const baseUrl = getWebhookBaseUrl()
+      const baseUrl = process.env.XIANS_SERVER_URL
       const webhooks = Array.isArray(data?.webhooks)
         ? data.webhooks.map((w: any) => {
             if (w.webhookUrl?.startsWith('/') && baseUrl) {
@@ -60,7 +59,7 @@ export const POST = withParticipantAdmin(
       const data = await client.post<any>(backendPath, body)
 
       if (data?.webhookUrl?.startsWith('/')) {
-        const baseUrl = getWebhookBaseUrl()
+        const baseUrl = process.env.XIANS_SERVER_URL
         if (baseUrl) data.webhookUrl = `${baseUrl}${data.webhookUrl}`
       }
 
