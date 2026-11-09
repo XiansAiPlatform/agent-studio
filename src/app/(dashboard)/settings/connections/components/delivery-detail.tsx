@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { AlertTriangle, Copy, Loader2, ScrollText, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
-import { fetchWebhookDelivery } from '../hooks/use-webhook-deliveries'
+import { fetchWebhookDelivery, workflowHasLogs } from '../hooks/use-webhook-deliveries'
 import {
   PAYLOAD_PREVIEW_CHARS,
   deliveryRunWorkflowId,
@@ -50,6 +50,20 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   const delivery = current?.delivery ?? null
   const error = current?.error ?? null
 
+  // The run this delivery started, as the Xianix agent names it. Other agents name their runs
+  // differently, and older deliveries predate the naming, so it is only linked once it has logs.
+  const runWorkflowId = delivery ? deliveryRunWorkflowId(delivery.workflowId, delivery.requestId) : null
+  const [runWithLogs, setRunWithLogs] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!runWorkflowId) return
+    const controller = new AbortController()
+    workflowHasLogs(runWorkflowId, controller.signal).then(hasLogs => {
+      if (hasLogs && !controller.signal.aborted) setRunWithLogs(runWorkflowId)
+    })
+    return () => controller.abort()
+  }, [runWorkflowId])
+
   // Everything derived from the body is computed once per delivery, not on every render.
   const view = useMemo(
     () =>
@@ -85,8 +99,8 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   }
 
   const { payload, bytes, headersText, hiddenCount } = view
-  // Logs open this delivery's own run; the receiving workflow is the fallback when it can't be worked out.
-  const logsWorkflowId = deliveryRunWorkflowId(delivery.workflowId, delivery.requestId) ?? delivery.workflowId
+  // This delivery's own run when it has logs; otherwise the receiving workflow and the workflows it started.
+  const logsWorkflowId = runWithLogs && runWithLogs === runWorkflowId ? runWithLogs : delivery.workflowId
   const payloadCut = !showFullPayload && payload.text.length > PAYLOAD_PREVIEW_CHARS
   const shownPayload = payloadCut ? payload.text.slice(0, PAYLOAD_PREVIEW_CHARS) : payload.text
 

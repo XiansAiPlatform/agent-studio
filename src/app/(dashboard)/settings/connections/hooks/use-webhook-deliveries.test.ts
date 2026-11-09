@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { deliveriesUrl, fetchWebhookDelivery, useWebhookDeliveries } from './use-webhook-deliveries'
+import { deliveriesUrl, fetchWebhookDelivery, useWebhookDeliveries, workflowHasLogs } from './use-webhook-deliveries'
 import type { WebhookDeliverySummary } from '../types'
 
 function delivery(n: number): WebhookDeliverySummary {
@@ -237,5 +237,39 @@ describe('fetchWebhookDelivery', () => {
     fetchMock.mockResolvedValueOnce(new Response('<html>Bad gateway</html>', { status: 502 }))
 
     await expect(fetchWebhookDelivery('hook-1', 'abc')).rejects.toThrow('Failed to load delivery')
+  })
+})
+
+describe('workflowHasLogs', () => {
+  const fetchMock = vi.fn()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('asks for one log of the workflow and is true when there is any', async () => {
+    fetchMock.mockResolvedValue(json({ logs: [{}], totalCount: 3 }))
+
+    await expect(workflowHasLogs('t:a:Processing Workflow:x:req-1')).resolves.toBe(true)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/logs?workflowId=t%3Aa%3AProcessing+Workflow%3Ax%3Areq-1&pageSize=1&page=1',
+      { signal: undefined }
+    )
+  })
+
+  it('is false when there are no logs, the request fails or the network errors', async () => {
+    fetchMock.mockResolvedValueOnce(json({ logs: [], totalCount: 0 }))
+    await expect(workflowHasLogs('w')).resolves.toBe(false)
+
+    fetchMock.mockResolvedValueOnce(json({ error: 'Forbidden' }, 403))
+    await expect(workflowHasLogs('w')).resolves.toBe(false)
+
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await expect(workflowHasLogs('w')).resolves.toBe(false)
   })
 })

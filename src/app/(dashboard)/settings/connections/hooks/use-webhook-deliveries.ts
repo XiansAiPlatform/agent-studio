@@ -68,6 +68,22 @@ interface UseWebhookDeliveriesOptions {
   pageSize?: number
 }
 
+/**
+ * Whether a workflow has written any logs. Logs for a run that doesn't exist, or hasn't logged yet,
+ * would open an empty page, so callers link elsewhere when this is false. Any failure counts as false.
+ */
+export async function workflowHasLogs(workflowId: string, signal?: AbortSignal): Promise<boolean> {
+  const query = new URLSearchParams({ workflowId, pageSize: '1', page: '1' })
+  try {
+    const response = await fetch(`/api/logs?${query}`, { signal })
+    if (!response.ok) return false
+    const data = (await response.json()) as { totalCount?: number }
+    return (data.totalCount ?? 0) > 0
+  } catch {
+    return false
+  }
+}
+
 export function useWebhookDeliveries(
   integrationId: string | null,
   { pageSize = 50 }: UseWebhookDeliveriesOptions = {}
