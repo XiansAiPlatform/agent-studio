@@ -27,7 +27,8 @@ export const DELIVERY_RUN_WORKFLOW_TYPE = 'Processing Workflow'
 export function deliveryRunWorkflowId(receivingWorkflowId: string, requestId: string): string | null {
   const [tenant, agent, type, ...activation] = receivingWorkflowId.split(':')
   if (!tenant || !agent || !type || !requestId) return null
-  return [tenant, agent, DELIVERY_RUN_WORKFLOW_TYPE, ...activation, requestId].join(':')
+  // An empty activation segment (`tenant:agent:type:`) means no activation, not an empty one.
+  return [tenant, agent, DELIVERY_RUN_WORKFLOW_TYPE, ...activation.filter(Boolean), requestId].join(':')
 }
 
 /**

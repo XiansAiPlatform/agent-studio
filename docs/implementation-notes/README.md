@@ -12,7 +12,7 @@ This directory contains implementation notes, fixes, and technical deep-dives th
 |----------|------|-------------|
 | [TOAST.md](./TOAST.md) | Reference | Toast notifications using shadcn/ui Sonner |
 | [SSE_REAL_TIME_MESSAGING.md](./SSE_REAL_TIME_MESSAGING.md) | Reference | Real-time messaging (SSE), connection management, server-unavailable handling |
-| [WEBHOOK_DELIVERIES.md](./WEBHOOK_DELIVERIES.md) | Explanation | Webhook delivery tracking and developer-only redeliver (design) |
+| [WEBHOOK_DELIVERIES.md](./WEBHOOK_DELIVERIES.md) | Explanation | Webhook delivery tracking, developer-only redeliver, and run links |
 
 ## 🎯 Quick Lookup
 

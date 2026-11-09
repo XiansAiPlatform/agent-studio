@@ -110,6 +110,10 @@ describe('deliveryRunWorkflowId', () => {
     expect(deliveryRunWorkflowId('t:Agent One:Integrator Workflow', 'req-1')).toBe('t:Agent One:Processing Workflow:req-1')
   })
 
+  it('treats an empty activation segment as no activation', () => {
+    expect(deliveryRunWorkflowId('t:Agent One:Integrator Workflow:', 'req-1')).toBe('t:Agent One:Processing Workflow:req-1')
+  })
+
   it.each([
     ['a receiving workflow ID of another shape', 'Integrator Workflow', 'req-1'],
     ['no request ID', 't:Agent One:Integrator Workflow:Raven', ''],

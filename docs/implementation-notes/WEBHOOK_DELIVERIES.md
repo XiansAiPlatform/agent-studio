@@ -1,6 +1,6 @@
 # Webhook Deliveries
 
-> **Status**: Design (not implemented)  
+> **Status**: Implemented  
 > **Last Updated**: 2026-10-29  
 > **Audience**: Developers  
 > **Design canvas**: [Webhook Recent Deliveries](https://claude.ai/artifact/LptT7ZhMENvU4CJAYjhUEV)
@@ -92,6 +92,7 @@ Expanding a row shows two tabs:
 The tab row also shows:
 
 - "Completed in {duration}".
+- **Logs** button that opens the run the delivery started. The agent names that run's workflow ID after the delivery's request ID (`tenant:agent:Processing Workflow[:activation]:requestId`), so Studio builds the ID from the receiving workflow ID and the request ID. When it cannot (no request ID, or an unexpected receiving workflow ID), the button opens the receiving workflow instead.
 - **Redeliver** button for users with `webhooks:redeliver`.
 - For other users, a lock icon with "Redeliver is available to Developers".
 

@@ -8,5 +8,5 @@ export function getWebhookBaseUrl(): string {
     process.env.XIANS_WEBHOOK_PUBLIC_URL?.trim() ||
     process.env.XIANS_SERVER_URL?.trim() ||
     ''
-  return base.replace(/\/$/, '')
+  return base.replace(/\/+$/, '')
 }
