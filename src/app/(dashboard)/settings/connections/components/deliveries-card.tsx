@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { ExternalLink, History, Loader2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useWebhookDeliveries } from '../hooks/use-webhook-deliveries'
-import { deliveriesPageHref } from '../utils/deliveries'
+import { deliveriesPageHref, deliveryLabel } from '../utils/deliveries'
 import { ReceivedAt } from './received-at'
 
 const LATEST_COUNT = 5
@@ -45,7 +46,12 @@ export function DeliveriesCard({ integrationId }: { integrationId: string }) {
                     className="group flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50"
                     title="Open this delivery"
                   >
-                    <code className="text-xs truncate min-w-0">{item.requestId}</code>
+                    <code className="text-xs truncate min-w-0">{deliveryLabel(item)}</code>
+                    {item.redeliveryOf && (
+                      <Badge variant="secondary" className="shrink-0">
+                        Redelivery
+                      </Badge>
+                    )}
                     <span className="ml-auto shrink-0">
                       <ReceivedAt value={item.receivedAt} />
                     </span>

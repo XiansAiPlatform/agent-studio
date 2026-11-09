@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_PRETTY_PRINT_CHARS,
+  canBeRedelivered,
   deliveriesPageHref,
+  deliveryLabel,
   formatBytes,
+  formatDuration,
   formatHeaders,
   formatPayload,
   payloadBytes,
@@ -90,5 +93,32 @@ describe('links', () => {
     expect(workflowLogsHref('t:Agent One:Integrator Workflow:Raven')).toBe(
       '/settings/logs?workflowId=t%3AAgent+One%3AIntegrator+Workflow%3ARaven&children=1'
     )
+  })
+})
+
+describe('deliveryLabel', () => {
+  it('labels a redelivery with the request id of the delivery it repeats', () => {
+    expect(deliveryLabel({ requestId: 'request-2', redeliveryOfRequestId: 'request-1' })).toBe('request-1')
+    expect(deliveryLabel({ requestId: 'request-2', redeliveryOfRequestId: null })).toBe('request-2')
+    expect(deliveryLabel({ requestId: 'request-2' })).toBe('request-2')
+  })
+})
+
+describe('canBeRedelivered', () => {
+  it('is false when the body or headers were stored truncated', () => {
+    expect(canBeRedelivered({ bodyTruncated: false, headersTruncated: false })).toBe(true)
+    expect(canBeRedelivered({ bodyTruncated: true, headersTruncated: false })).toBe(false)
+    expect(canBeRedelivered({ bodyTruncated: false, headersTruncated: true })).toBe(false)
+  })
+})
+
+describe('formatDuration', () => {
+  it('uses ms below a second, seconds below a minute, then minutes', () => {
+    expect(formatDuration(840)).toBe('840 ms')
+    expect(formatDuration(2400)).toBe('2.4 s')
+    expect(formatDuration(42_000)).toBe('42 s')
+    expect(formatDuration(60_000)).toBe('1 min')
+    expect(formatDuration(65_000)).toBe('1 min 5 s')
+    expect(formatDuration(-5)).toBe('0 ms')
   })
 })

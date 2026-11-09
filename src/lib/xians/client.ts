@@ -10,6 +10,12 @@ import { applyOnBehalfOfHeader, getOnBehalfOf } from './on-behalf-of'
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 5_000
 
+/** Request options plus a per-call timeout, for the few calls that wait on an agent. */
+export interface XiansRequestOptions extends RequestInit {
+  /** Overrides the default timeout (`XIANS_REQUEST_TIMEOUT_MS`, else 5 s) for this call. */
+  timeoutMs?: number
+}
+
 function resolveRequestTimeoutMs(): number {
   const raw = process.env.XIANS_REQUEST_TIMEOUT_MS
   if (raw?.trim()) {
@@ -82,7 +88,7 @@ export class XiansClient {
    */
   private async request<T>(
     path: string,
-    options: RequestInit = {}
+    { timeoutMs, ...options }: XiansRequestOptions = {}
   ): Promise<T> {
     const url = new URL(path, this.baseUrl + '/').toString()
     
@@ -105,7 +111,7 @@ export class XiansClient {
 
     applyOnBehalfOfHeader(headers, this.onBehalfOf)
 
-    const timeoutSignal = AbortSignal.timeout(resolveRequestTimeoutMs())
+    const timeoutSignal = AbortSignal.timeout(timeoutMs ?? resolveRequestTimeoutMs())
     const signal = options.signal
       ? mergeAbortSignals([options.signal, timeoutSignal])
       : timeoutSignal
@@ -196,7 +202,7 @@ export class XiansClient {
   /**
    * POST request
    */
-  async post<T>(path: string, data?: any, options?: RequestInit): Promise<T> {
+  async post<T>(path: string, data?: any, options?: XiansRequestOptions): Promise<T> {
     return this.request<T>(path, {
       ...options,
       method: 'POST',

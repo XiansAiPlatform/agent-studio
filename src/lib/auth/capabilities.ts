@@ -39,6 +39,11 @@ export type Capability =
   | 'secrets:manage-user-scoped'
   /** Customize the tenant theme. */
   | 'theme:customize'
+  /**
+   * Redeliver a builtin webhook's recorded call, which runs its agent again.
+   * Developers and above; Participant Admins can view deliveries but not redeliver.
+   */
+  | 'webhooks:redeliver'
   /** Platform-wide system administration (`/system-admin/*`). */
   | 'system:admin'
 
@@ -50,6 +55,7 @@ export const ALL_CAPABILITIES: Capability[] = [
   'tenant:manage-users',
   'secrets:manage-user-scoped',
   'theme:customize',
+  'webhooks:redeliver',
   'system:admin',
 ]
 
@@ -74,6 +80,7 @@ const ROLE_CAPABILITIES: Record<XiansParticipantRole, Capability[]> = {
     'settings:view',
     'developer:access',
     'theme:customize',
+    'webhooks:redeliver',
   ],
   TenantAdmin: [
     'app:use-full-layout',
@@ -81,6 +88,7 @@ const ROLE_CAPABILITIES: Record<XiansParticipantRole, Capability[]> = {
     'developer:access',
     'theme:customize',
     'tenant:manage-users',
+    'webhooks:redeliver',
   ],
 }
 

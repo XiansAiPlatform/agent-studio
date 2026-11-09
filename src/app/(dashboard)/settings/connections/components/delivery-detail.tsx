@@ -2,29 +2,38 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Copy, Loader2, ScrollText, XCircle } from 'lucide-react'
+import { AlertTriangle, Copy, Loader2, RotateCcw, ScrollText, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
-import { fetchWebhookDelivery } from '../hooks/use-webhook-deliveries'
+import { fetchWebhookDelivery, redeliverWebhookDelivery } from '../hooks/use-webhook-deliveries'
 import {
   PAYLOAD_PREVIEW_CHARS,
+  canBeRedelivered,
   formatBytes,
+  formatDuration,
   formatHeaders,
   formatPayload,
   payloadBytes,
   workflowLogsHref,
 } from '../utils/deliveries'
-import type { WebhookDeliveryDetail } from '../types'
+import { RedeliverDialog } from './redeliver-dialog'
+import type { WebhookDeliveryDetail, WebhookRedeliveryResult } from '../types'
 
 interface DeliveryDetailProps {
   integrationId: string
   deliveryId: string
+  /** Whether the user holds `webhooks:redeliver`. The server checks it again. */
+  canRedeliver?: boolean
+  /** Called after a redelivery the webhook recorded, with the new delivery. */
+  onRedelivered?: (result: WebhookRedeliveryResult) => void
 }
 
 /** Headers and payload of one delivery. Loaded when it is first shown, not with the list. */
-export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProps) {
+export function DeliveryDetail({ integrationId, deliveryId, canRedeliver = false, onRedelivered }: DeliveryDetailProps) {
   const [attempt, setAttempt] = useState(0)
   const [showFullPayload, setShowFullPayload] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [isRedelivering, setIsRedelivering] = useState(false)
   const requestKey = `${integrationId}:${deliveryId}:${attempt}`
   // Each result remembers which request it answers, so a stale one is never shown.
   const [result, setResult] = useState<{
@@ -87,6 +96,26 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   const payloadCut = !showFullPayload && payload.text.length > PAYLOAD_PREVIEW_CHARS
   const shownPayload = payloadCut ? payload.text.slice(0, PAYLOAD_PREVIEW_CHARS) : payload.text
 
+  const redeliver = async () => {
+    setIsRedelivering(true)
+    try {
+      const result = await redeliverWebhookDelivery(integrationId, delivery.id)
+      setConfirmOpen(false)
+      const answer = `answered ${result.statusCode} in ${formatDuration(result.durationMs)}`
+      if (result.deliveryId) {
+        showSuccessToast(`Redelivered · ${answer}`)
+        onRedelivered?.(result)
+      } else {
+        // Turned away before it was recorded, e.g. the webhook's API key was revoked.
+        showErrorToast(new Error(`The webhook ${answer} and did not accept the call.`), 'Redelivery was rejected')
+      }
+    } catch (err) {
+      showErrorToast(err, 'Could not redeliver')
+    } finally {
+      setIsRedelivering(false)
+    }
+  }
+
   // The clipboard is unavailable on non-secure origins and can be denied, so report a failed copy.
   const copy = async (text: string, what: string) => {
     try {
@@ -99,6 +128,17 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
 
   return (
     <div className="space-y-5 text-sm">
+      {delivery.redeliveryOf && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border p-3 text-xs">
+          <dt className="text-muted-foreground">Redelivery of</dt>
+          <dd className="font-mono [overflow-wrap:anywhere]">{delivery.redeliveryOfRequestId || delivery.redeliveryOf}</dd>
+          <dt className="text-muted-foreground">Triggered by</dt>
+          <dd className="[overflow-wrap:anywhere]">{delivery.triggeredBy || 'Unknown'}</dd>
+          <dt className="text-muted-foreground">Request ID</dt>
+          <dd className="font-mono [overflow-wrap:anywhere]">{delivery.requestId}</dd>
+        </dl>
+      )}
+
       {delivery.bodyTruncated && (
         <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-400">
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -165,14 +205,35 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
         )}
       </section>
 
-      <div className="flex justify-end pt-2 border-t">
+      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
         <Button variant="outline" size="sm" asChild>
           <Link href={workflowLogsHref(delivery.workflowId)} title={delivery.workflowId}>
             <ScrollText className="h-3.5 w-3.5" />
             Logs
           </Link>
         </Button>
+        {canRedeliver && (
+          <Button
+            size="sm"
+            onClick={() => setConfirmOpen(true)}
+            disabled={!canBeRedelivered(delivery) || isRedelivering}
+            title={canBeRedelivered(delivery) ? undefined : 'Stored truncated, so it cannot be redelivered'}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Redeliver
+          </Button>
+        )}
       </div>
+
+      {canRedeliver && (
+        <RedeliverDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          delivery={delivery}
+          onConfirm={redeliver}
+          isSending={isRedelivering}
+        />
+      )}
     </div>
   )
 }
