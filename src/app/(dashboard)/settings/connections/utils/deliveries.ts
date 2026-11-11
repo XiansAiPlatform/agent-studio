@@ -15,20 +15,25 @@ export function workflowLogsHref(workflowId: string): string {
   return `/settings/logs?${new URLSearchParams({ workflowId, children: '1' })}`
 }
 
-/** Workflow type the agent starts for each delivery. */
-export const DELIVERY_RUN_WORKFLOW_TYPE = 'Processing Workflow'
+/** How long before a delivery arrived its logs are looked for, to allow for clock differences. */
+export const DELIVERY_LOGS_LEAD_MS = 60_000
+
+/** The earliest a delivery's logs can be: shortly before it arrived. Null for an unreadable time. */
+export function deliveryLogsSince(receivedAt: string): string | null {
+  const time = Date.parse(receivedAt)
+  return Number.isNaN(time) ? null : new Date(time - DELIVERY_LOGS_LEAD_MS).toISOString()
+}
 
 /**
- * Workflow ID of the run a delivery started. The receiving workflow is
- * `tenant:agent:type[:activation]`; the agent keys its run by the delivery's request ID under the
- * same tenant, agent and activation: `tenant:agent:Processing Workflow[:activation]:requestId`.
- * Null when the receiving workflow ID doesn't have that shape or there is no request ID.
+ * Activity Logs for one delivery: every log written while handling its request, in the receiving
+ * workflow and in every run it started. Starts shortly before the delivery arrived, so the search
+ * covers a small window instead of all of the tenant's logs.
  */
-export function deliveryRunWorkflowId(receivingWorkflowId: string, requestId: string): string | null {
-  const [tenant, agent, type, ...activation] = receivingWorkflowId.split(':')
-  if (!tenant || !agent || !type || !requestId) return null
-  // An empty activation segment (`tenant:agent:type:`) means no activation, not an empty one.
-  return [tenant, agent, DELIVERY_RUN_WORKFLOW_TYPE, ...activation.filter(Boolean), requestId].join(':')
+export function deliveryLogsHref(requestId: string, receivedAt: string): string {
+  const query = new URLSearchParams({ requestId })
+  const since = deliveryLogsSince(receivedAt)
+  if (since) query.set('startDate', since)
+  return `/settings/logs?${query}`
 }
 
 /**

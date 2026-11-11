@@ -37,6 +37,11 @@ export interface LogFilters {
   search?: string;
   /** Also return logs of child workflows started by `workflowId` (or by workflows of `workflowType`). */
   includeChildWorkflows?: boolean;
+  /**
+   * Only logs written while handling this message (a webhook delivery's request ID), across every
+   * workflow and activity it reached. Needs agents on an Xians.Lib that tags logs with it.
+   */
+  requestId?: string;
   page?: number;
   pageSize?: number;
 }

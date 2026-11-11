@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   MAX_PRETTY_PRINT_CHARS,
   deliveriesPageHref,
-  deliveryRunWorkflowId,
+  deliveryLogsHref,
+  deliveryLogsSince,
   formatBytes,
   formatHeaders,
   formatPayload,
@@ -94,30 +95,15 @@ describe('links', () => {
   })
 })
 
-describe('deliveryRunWorkflowId', () => {
-  it('builds the run ID from the receiving workflow, keeping its activation, and the request ID', () => {
-    expect(
-      deliveryRunWorkflowId(
-        'test-diyanada:Xianix AI-DLC Agent Onboarding:Integrator Workflow:Xianix AI-DLC Agent Onboarding - Autonomous Raven',
-        '97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973'
-      )
-    ).toBe(
-      'test-diyanada:Xianix AI-DLC Agent Onboarding:Processing Workflow:Xianix AI-DLC Agent Onboarding - Autonomous Raven:97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973'
+describe('deliveryLogsHref', () => {
+  it('opens Activity Logs for the request, from a minute before the delivery arrived', () => {
+    expect(deliveryLogsHref('97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973', '2026-11-04T10:09:41Z')).toBe(
+      '/settings/logs?requestId=97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973&startDate=2026-11-04T10%3A08%3A41.000Z'
     )
   })
 
-  it('builds the run ID for a receiving workflow without an activation', () => {
-    expect(deliveryRunWorkflowId('t:Agent One:Integrator Workflow', 'req-1')).toBe('t:Agent One:Processing Workflow:req-1')
-  })
-
-  it('treats an empty activation segment as no activation', () => {
-    expect(deliveryRunWorkflowId('t:Agent One:Integrator Workflow:', 'req-1')).toBe('t:Agent One:Processing Workflow:req-1')
-  })
-
-  it.each([
-    ['a receiving workflow ID of another shape', 'Integrator Workflow', 'req-1'],
-    ['no request ID', 't:Agent One:Integrator Workflow:Raven', ''],
-  ])('is null for %s', (_, workflowId, requestId) => {
-    expect(deliveryRunWorkflowId(workflowId, requestId)).toBeNull()
+  it('leaves out the start date when the received time cannot be read', () => {
+    expect(deliveryLogsHref('req-1', 'not a date')).toBe('/settings/logs?requestId=req-1')
+    expect(deliveryLogsSince('not a date')).toBeNull()
   })
 })

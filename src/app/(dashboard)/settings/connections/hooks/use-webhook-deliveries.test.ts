@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { deliveriesUrl, fetchWebhookDelivery, useWebhookDeliveries, workflowHasLogs } from './use-webhook-deliveries'
+import { deliveriesUrl, deliveryHasLogs, fetchWebhookDelivery, useWebhookDeliveries } from './use-webhook-deliveries'
 import type { WebhookDeliverySummary } from '../types'
 
 function delivery(n: number): WebhookDeliverySummary {
@@ -240,7 +240,7 @@ describe('fetchWebhookDelivery', () => {
   })
 })
 
-describe('workflowHasLogs', () => {
+describe('deliveryHasLogs', () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
@@ -252,24 +252,24 @@ describe('workflowHasLogs', () => {
     vi.unstubAllGlobals()
   })
 
-  it('asks for one log of the workflow and is true when there is any', async () => {
+  it('asks for one log tagged with the request, from shortly before the delivery arrived', async () => {
     fetchMock.mockResolvedValue(json({ logs: [{}], totalCount: 3 }))
 
-    await expect(workflowHasLogs('t:a:Processing Workflow:x:req-1')).resolves.toBe(true)
+    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(true)
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/logs?workflowId=t%3Aa%3AProcessing+Workflow%3Ax%3Areq-1&pageSize=1&page=1',
+      '/api/logs?requestId=req-1&pageSize=1&page=1&startDate=2026-11-04T10%3A08%3A41.000Z',
       { signal: undefined }
     )
   })
 
-  it('is false when there are no logs, the request fails or the network errors', async () => {
+  it('is false when there are no tagged logs, the request fails or the network errors', async () => {
     fetchMock.mockResolvedValueOnce(json({ logs: [], totalCount: 0 }))
-    await expect(workflowHasLogs('w')).resolves.toBe(false)
+    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(false)
 
     fetchMock.mockResolvedValueOnce(json({ error: 'Forbidden' }, 403))
-    await expect(workflowHasLogs('w')).resolves.toBe(false)
+    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(false)
 
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    await expect(workflowHasLogs('w')).resolves.toBe(false)
+    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(false)
   })
 })

@@ -92,7 +92,7 @@ Expanding a row shows two tabs:
 The tab row also shows:
 
 - "Completed in {duration}".
-- **Logs** button that opens the run the delivery started. The agent names that run's workflow ID after the delivery's request ID (`tenant:agent:Processing Workflow[:activation]:requestId`), so Studio builds the ID from the receiving workflow ID and the request ID. When it cannot (no request ID, or an unexpected receiving workflow ID), the button opens the receiving workflow instead.
+- **Logs** button that opens every log of the delivery: the integration step in the receiving workflow and the runs it started. Xians.Lib tags each log written while handling a message with its request ID (`properties.requestId`), so Studio opens `/settings/logs?requestId=…&startDate=…` (from a minute before the delivery arrived). Agents on an older Xians.Lib write no tagged logs. When no tagged logs exist for the delivery, the button is disabled and reads **No logs**. It does not fall back to the receiving workflow, which is shared by every delivery of the activation.
 - **Redeliver** button for users with `webhooks:redeliver`.
 - For other users, a lock icon with "Redeliver is available to Developers".
 
