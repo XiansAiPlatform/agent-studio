@@ -17,10 +17,13 @@ export function canBeRedelivered(item: Pick<WebhookDeliverySummary, 'bodyTruncat
 /** "840 ms", "2.4 s" or "1 min 5 s". */
 export function formatDuration(ms: number): string {
   if (ms < 1000) return `${Math.max(0, Math.round(ms))} ms`
-  const seconds = ms / 1000
-  if (seconds < 60) return `${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s`
-  const minutes = Math.floor(seconds / 60)
-  const rest = Math.round(seconds - minutes * 60)
+  // Round before choosing the unit, so 9.96 s reads "10 s" and 59.6 s reads "1 min", not "60 s".
+  const tenths = Math.round(ms / 100) / 10
+  if (tenths < 10) return `${tenths.toFixed(1)} s`
+  const total = Math.round(ms / 1000)
+  if (total < 60) return `${total} s`
+  const minutes = Math.floor(total / 60)
+  const rest = total % 60
   return rest ? `${minutes} min ${rest} s` : `${minutes} min`
 }
 

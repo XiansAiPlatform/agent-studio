@@ -65,12 +65,36 @@ export async function fetchWebhookDelivery(
 }
 
 /** Sends a recorded call to its webhook again. Resolves once the webhook has answered. */
+/** A redelivery that failed. `status` is null when no answer came back at all. */
+export class RedeliveryError extends Error {
+  constructor(
+    message: string,
+    readonly status: number | null
+  ) {
+    super(message)
+    this.name = 'RedeliveryError'
+  }
+
+  /**
+   * True when the call may still have reached the webhook and run the agent: no answer, a
+   * timeout, or a server or gateway error. A refusal (403, 404, 409) means nothing was sent.
+   */
+  get outcomeUnknown(): boolean {
+    return this.status === null || this.status === 408 || this.status >= 500
+  }
+}
+
 export async function redeliverWebhookDelivery(
   integrationId: string,
   deliveryId: string
 ): Promise<WebhookRedeliveryResult> {
-  const response = await fetch(`${deliveryUrl(integrationId, deliveryId)}/redeliver`, { method: 'POST' })
-  if (!response.ok) throw new Error(await errorMessage(response, 'Failed to redeliver'))
+  let response: Response
+  try {
+    response = await fetch(`${deliveryUrl(integrationId, deliveryId)}/redeliver`, { method: 'POST' })
+  } catch (err) {
+    throw new RedeliveryError(err instanceof Error ? err.message : 'Failed to redeliver', null)
+  }
+  if (!response.ok) throw new RedeliveryError(await errorMessage(response, 'Failed to redeliver'), response.status)
   return response.json()
 }
 

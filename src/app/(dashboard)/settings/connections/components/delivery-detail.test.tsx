@@ -10,11 +10,16 @@ const { fetchWebhookDelivery, redeliverWebhookDelivery, showSuccessToast, showEr
   showErrorToast: vi.fn(),
 }))
 
-vi.mock('../hooks/use-webhook-deliveries', () => ({ fetchWebhookDelivery, redeliverWebhookDelivery }))
+vi.mock('../hooks/use-webhook-deliveries', async importOriginal => ({
+  ...(await importOriginal<typeof import('../hooks/use-webhook-deliveries')>()),
+  fetchWebhookDelivery,
+  redeliverWebhookDelivery,
+}))
 vi.mock('@/lib/utils/error-handler', () => ({ showSuccessToast, showErrorToast }))
 
 import { DeliveryDetail } from './delivery-detail'
 import { PAYLOAD_PREVIEW_CHARS } from '../utils/deliveries'
+import { RedeliveryError } from '../hooks/use-webhook-deliveries'
 
 function detail(overrides: Partial<WebhookDeliveryDetail> = {}): WebhookDeliveryDetail {
   return {
@@ -143,6 +148,7 @@ describe('DeliveryDetail', () => {
 
   describe('redeliver', () => {
     const onRedelivered = vi.fn()
+    const onRedeliveryUncertain = vi.fn()
     const renderWith = (canRedeliver: boolean) =>
       render(
         <DeliveryDetail
@@ -150,10 +156,14 @@ describe('DeliveryDetail', () => {
           deliveryId="delivery-1"
           canRedeliver={canRedeliver}
           onRedelivered={onRedelivered}
+          onRedeliveryUncertain={onRedeliveryUncertain}
         />
       )
 
-    beforeEach(() => onRedelivered.mockReset())
+    beforeEach(() => {
+      onRedelivered.mockReset()
+      onRedeliveryUncertain.mockReset()
+    })
 
     it('shows nothing about redelivery to users without the capability', async () => {
       fetchWebhookDelivery.mockResolvedValue(detail())
@@ -169,7 +179,10 @@ describe('DeliveryDetail', () => {
 
       renderWith(true)
 
-      expect(await screen.findByRole('button', { name: /Redeliver/ })).toHaveProperty('disabled', true)
+      const button = await screen.findByRole('button', { name: /Redeliver/ })
+      expect(button).toHaveProperty('disabled', true)
+      fireEvent.click(button)
+      expect(screen.queryByText('Redeliver this webhook?')).toBeNull()
     })
 
     it('asks for confirmation, then redelivers and reports the answer', async () => {
@@ -206,9 +219,9 @@ describe('DeliveryDetail', () => {
       expect(showSuccessToast).not.toHaveBeenCalled()
     })
 
-    it('reports a failed redelivery', async () => {
+    it('reports a refused redelivery, which sent nothing', async () => {
       fetchWebhookDelivery.mockResolvedValue(detail())
-      redeliverWebhookDelivery.mockRejectedValue(new Error('The webhook did not answer in time'))
+      redeliverWebhookDelivery.mockRejectedValue(new RedeliveryError('This call is already being redelivered', 409))
 
       renderWith(true)
       fireEvent.click(await screen.findByRole('button', { name: /Redeliver/ }))
@@ -216,6 +229,27 @@ describe('DeliveryDetail', () => {
 
       await waitFor(() => expect(showErrorToast).toHaveBeenCalledWith(expect.any(Error), 'Could not redeliver'))
       expect(onRedelivered).not.toHaveBeenCalled()
+      expect(onRedeliveryUncertain).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['a timeout', 408],
+      ['a gateway timeout', 504],
+      ['no answer at all', null],
+    ])('after %s, says the call may have been sent and refreshes the list', async (_, status) => {
+      fetchWebhookDelivery.mockResolvedValue(detail())
+      redeliverWebhookDelivery.mockRejectedValue(new RedeliveryError('failed', status))
+
+      renderWith(true)
+      fireEvent.click(await screen.findByRole('button', { name: /Redeliver/ }))
+      fireEvent.click(await screen.findByRole('button', { name: /Redeliver now/ }))
+
+      await waitFor(() =>
+        expect(showErrorToast).toHaveBeenCalledWith(expect.any(Error), 'Could not confirm the redelivery')
+      )
+      expect(onRedeliveryUncertain).toHaveBeenCalledOnce()
+      expect(onRedelivered).not.toHaveBeenCalled()
+      await waitFor(() => expect(screen.queryByText('Redeliver this webhook?')).toBeNull())
     })
 
     it('shows who triggered a redelivery and what it repeats', async () => {
