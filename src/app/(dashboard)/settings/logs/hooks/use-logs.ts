@@ -44,6 +44,7 @@ export function useLogs(
     filters.endDate,
     filters.search,
     filters.includeChildWorkflows,
+    filters.requestId,
     filters.pageSize,
     filters.page,
   ]);
@@ -72,6 +73,7 @@ export function useLogs(
       if (currentFilters.workflowType) params.set('workflowType', currentFilters.workflowType);
       // Adds logs of child workflows started by the stream (or by workflows of the filtered type)
       if (currentFilters.includeChildWorkflows) params.set('includeChildWorkflows', 'true');
+      if (currentFilters.requestId) params.set('requestId', currentFilters.requestId);
       
       // Handle multiple log levels (comma-separated)
       if (currentFilters.logLevel && currentFilters.logLevel.length > 0) {

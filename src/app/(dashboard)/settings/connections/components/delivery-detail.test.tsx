@@ -3,14 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { WebhookDeliveryDetail } from '../types'
 
-const { fetchWebhookDelivery, workflowHasLogs, showSuccessToast, showErrorToast } = vi.hoisted(() => ({
+const { fetchWebhookDelivery, deliveryHasLogs, showSuccessToast, showErrorToast } = vi.hoisted(() => ({
   fetchWebhookDelivery: vi.fn(),
-  workflowHasLogs: vi.fn(),
+  deliveryHasLogs: vi.fn(),
   showSuccessToast: vi.fn(),
   showErrorToast: vi.fn(),
 }))
 
-vi.mock('../hooks/use-webhook-deliveries', () => ({ fetchWebhookDelivery, workflowHasLogs }))
+vi.mock('../hooks/use-webhook-deliveries', () => ({ fetchWebhookDelivery, deliveryHasLogs }))
 vi.mock('@/lib/utils/error-handler', () => ({ showSuccessToast, showErrorToast }))
 
 import { DeliveryDetail } from './delivery-detail'
@@ -42,8 +42,8 @@ describe('DeliveryDetail', () => {
 
   beforeEach(() => {
     fetchWebhookDelivery.mockReset()
-    workflowHasLogs.mockReset()
-    workflowHasLogs.mockResolvedValue(true)
+    deliveryHasLogs.mockReset()
+    deliveryHasLogs.mockResolvedValue(true)
     showSuccessToast.mockReset()
     showErrorToast.mockReset()
     writeText.mockReset()
@@ -52,7 +52,7 @@ describe('DeliveryDetail', () => {
 
   afterEach(cleanup)
 
-  it('shows the headers and payload as JSON with the hidden count and a link to the run', async () => {
+  it('shows the headers and payload as JSON with the hidden count and a link to all the delivery\'s logs', async () => {
     fetchWebhookDelivery.mockResolvedValue(detail())
 
     renderDetail()
@@ -64,38 +64,42 @@ describe('DeliveryDetail', () => {
     expect(blocks[1].textContent).toBe('{\n  "action": "opened"\n}')
     await waitFor(() =>
       expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
-        '/settings/logs?workflowId=tenant%3Aagent%3AProcessing+Workflow%3Aactivation%3Arequest-1&children=1'
+        '/settings/logs?requestId=request-1&startDate=2026-11-04T10%3A08%3A41.000Z'
       )
     )
-    expect(workflowHasLogs).toHaveBeenCalledWith(
-      'tenant:agent:Processing Workflow:activation:request-1',
-      expect.any(AbortSignal)
-    )
+    expect(deliveryHasLogs).toHaveBeenCalledWith('request-1', '2026-11-04T10:09:41Z', expect.any(AbortSignal))
     expect(fetchWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1', expect.any(AbortSignal))
   })
 
-  it('links to the receiving workflow when the run cannot be worked out', async () => {
+  it('shows no logs when the delivery has no request ID', async () => {
     fetchWebhookDelivery.mockResolvedValue(detail({ requestId: '' }))
 
     renderDetail()
 
-    expect((await screen.findByText('Logs')).closest('a')!.getAttribute('href')).toBe(
-      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
-    )
-    expect(workflowHasLogs).not.toHaveBeenCalled()
+    const button = (await screen.findByText('No logs')).closest('button')!
+    expect(button).toHaveProperty('disabled', true)
+    expect(deliveryHasLogs).not.toHaveBeenCalled()
   })
 
-  it('keeps the receiving workflow link when the run has no logs, as for other agents', async () => {
-    workflowHasLogs.mockResolvedValue(false)
+  it('shows no logs, rather than the shared receiving workflow, when none are tagged with the request', async () => {
+    deliveryHasLogs.mockResolvedValue(false)
     fetchWebhookDelivery.mockResolvedValue(detail())
 
     renderDetail()
 
-    await screen.findByText('Logs')
-    await waitFor(() => expect(workflowHasLogs).toHaveBeenCalled())
-    expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
-      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
-    )
+    const button = (await screen.findByText('No logs')).closest('button')!
+    expect(button).toHaveProperty('disabled', true)
+    expect(document.querySelector('a[href*="workflowId"]')).toBeNull()
+  })
+
+  it('keeps the Logs button disabled while looking for logs', async () => {
+    deliveryHasLogs.mockReturnValue(new Promise(() => {}))
+    fetchWebhookDelivery.mockResolvedValue(detail())
+
+    renderDetail()
+
+    const button = (await screen.findByText('Logs')).closest('button')!
+    expect(button).toHaveProperty('disabled', true)
   })
 
   it('warns when the payload or headers were truncated', async () => {

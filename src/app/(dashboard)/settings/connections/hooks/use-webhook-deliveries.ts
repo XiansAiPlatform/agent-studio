@@ -10,6 +10,7 @@ import type {
   WebhookDeliveryPage,
   WebhookDeliverySummary,
 } from '../types'
+import { deliveryLogsSince } from '../utils/deliveries'
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
   try {
@@ -69,11 +70,14 @@ interface UseWebhookDeliveriesOptions {
 }
 
 /**
- * Whether a workflow has written any logs. Logs for a run that doesn't exist, or hasn't logged yet,
- * would open an empty page, so callers link elsewhere when this is false. Any failure counts as false.
+ * Whether any logs are tagged with this delivery's request ID. Only agents on an Xians.Lib that tags
+ * logs write them; for others, and for deliveries recorded before, callers link elsewhere.
+ * Any failure counts as false.
  */
-export async function workflowHasLogs(workflowId: string, signal?: AbortSignal): Promise<boolean> {
-  const query = new URLSearchParams({ workflowId, pageSize: '1', page: '1' })
+export async function deliveryHasLogs(requestId: string, receivedAt: string, signal?: AbortSignal): Promise<boolean> {
+  const query = new URLSearchParams({ requestId, pageSize: '1', page: '1' })
+  const since = deliveryLogsSince(receivedAt)
+  if (since) query.set('startDate', since)
   try {
     const response = await fetch(`/api/logs?${query}`, { signal })
     if (!response.ok) return false

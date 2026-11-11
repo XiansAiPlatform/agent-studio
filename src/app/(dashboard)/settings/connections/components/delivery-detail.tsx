@@ -5,15 +5,14 @@ import Link from 'next/link'
 import { AlertTriangle, Copy, Loader2, ScrollText, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
-import { fetchWebhookDelivery, workflowHasLogs } from '../hooks/use-webhook-deliveries'
+import { deliveryHasLogs, fetchWebhookDelivery } from '../hooks/use-webhook-deliveries'
 import {
   PAYLOAD_PREVIEW_CHARS,
-  deliveryRunWorkflowId,
+  deliveryLogsHref,
   formatBytes,
   formatHeaders,
   formatPayload,
   payloadBytes,
-  workflowLogsHref,
 } from '../utils/deliveries'
 import type { WebhookDeliveryDetail } from '../types'
 
@@ -50,19 +49,29 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   const delivery = current?.delivery ?? null
   const error = current?.error ?? null
 
-  // The run this delivery started, as the Xianix agent names it. Other agents name their runs
-  // differently, and older deliveries predate the naming, so it is only linked once it has logs.
-  const runWorkflowId = delivery ? deliveryRunWorkflowId(delivery.workflowId, delivery.requestId) : null
-  const [runWithLogs, setRunWithLogs] = useState<string | null>(null)
+  // One Logs link for the whole delivery: every log tagged with its request ID, from the receiving
+  // workflow and every run it started. Agents on an older Xians.Lib write no tagged logs. The
+  // receiving workflow is shared by every delivery, so it is no fallback: the button is disabled.
+  const requestId = delivery?.requestId || null
+  const receivedAt = delivery?.receivedAt ?? ''
+  const [logsCheck, setLogsCheck] = useState<{ requestId: string; hasLogs: boolean } | null>(null)
 
   useEffect(() => {
-    if (!runWorkflowId) return
+    if (!requestId) return
     const controller = new AbortController()
-    workflowHasLogs(runWorkflowId, controller.signal).then(hasLogs => {
-      if (hasLogs && !controller.signal.aborted) setRunWithLogs(runWorkflowId)
+    deliveryHasLogs(requestId, receivedAt, controller.signal).then(hasLogs => {
+      if (!controller.signal.aborted) setLogsCheck({ requestId, hasLogs })
     })
     return () => controller.abort()
-  }, [runWorkflowId])
+  }, [requestId, receivedAt])
+
+  const logsState: 'checking' | 'found' | 'none' = !requestId
+    ? 'none'
+    : logsCheck?.requestId !== requestId
+      ? 'checking'
+      : logsCheck.hasLogs
+        ? 'found'
+        : 'none'
 
   // Everything derived from the body is computed once per delivery, not on every render.
   const view = useMemo(
@@ -99,8 +108,6 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   }
 
   const { payload, bytes, headersText, hiddenCount } = view
-  // This delivery's own run when it has logs; otherwise the receiving workflow and the workflows it started.
-  const logsWorkflowId = runWithLogs && runWithLogs === runWorkflowId ? runWithLogs : delivery.workflowId
   const payloadCut = !showFullPayload && payload.text.length > PAYLOAD_PREVIEW_CHARS
   const shownPayload = payloadCut ? payload.text.slice(0, PAYLOAD_PREVIEW_CHARS) : payload.text
 
@@ -183,12 +190,28 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
       </section>
 
       <div className="flex justify-end pt-2 border-t">
-        <Button variant="outline" size="sm" asChild>
-          <Link href={workflowLogsHref(logsWorkflowId)} title={logsWorkflowId}>
-            <ScrollText className="h-3.5 w-3.5" />
-            Logs
-          </Link>
-        </Button>
+        {logsState === 'found' ? (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={deliveryLogsHref(delivery.requestId, delivery.receivedAt)} title={`All logs of request ${delivery.requestId}`}>
+              <ScrollText className="h-3.5 w-3.5" />
+              Logs
+            </Link>
+          </Button>
+        ) : (
+          // A disabled button gets no pointer events, so the reason sits on a wrapper.
+          <span
+            title={
+              logsState === 'checking'
+                ? 'Looking for logs of this delivery…'
+                : 'No logs were recorded for this delivery. The agent may use a Xians.Lib version that does not tag logs, or log nothing at its level.'
+            }
+          >
+            <Button variant="outline" size="sm" disabled>
+              {logsState === 'checking' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ScrollText className="h-3.5 w-3.5" />}
+              {logsState === 'checking' ? 'Logs' : 'No logs'}
+            </Button>
+          </span>
+        )}
       </div>
     </div>
   )
