@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { AlertTriangle, Copy, Loader2, RotateCcw, ScrollText, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
-import { fetchWebhookDelivery, redeliverWebhookDelivery } from '../hooks/use-webhook-deliveries'
+import { RedeliveryError, fetchWebhookDelivery, redeliverWebhookDelivery } from '../hooks/use-webhook-deliveries'
 import {
   PAYLOAD_PREVIEW_CHARS,
   canBeRedelivered,
@@ -26,10 +26,18 @@ interface DeliveryDetailProps {
   canRedeliver?: boolean
   /** Called after a redelivery the webhook recorded, with the new delivery. */
   onRedelivered?: (result: WebhookRedeliveryResult) => void
+  /** Called when a redelivery failed in a way that may still have sent the call, so the list can be refreshed. */
+  onRedeliveryUncertain?: () => void
 }
 
 /** Headers and payload of one delivery. Loaded when it is first shown, not with the list. */
-export function DeliveryDetail({ integrationId, deliveryId, canRedeliver = false, onRedelivered }: DeliveryDetailProps) {
+export function DeliveryDetail({
+  integrationId,
+  deliveryId,
+  canRedeliver = false,
+  onRedelivered,
+  onRedeliveryUncertain,
+}: DeliveryDetailProps) {
   const [attempt, setAttempt] = useState(0)
   const [showFullPayload, setShowFullPayload] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -110,7 +118,17 @@ export function DeliveryDetail({ integrationId, deliveryId, canRedeliver = false
         showErrorToast(new Error(`The webhook ${answer} and did not accept the call.`), 'Redelivery was rejected')
       }
     } catch (err) {
-      showErrorToast(err, 'Could not redeliver')
+      if (err instanceof RedeliveryError && err.outcomeUnknown) {
+        // The call may have run the agent already; a blind retry would run it again.
+        setConfirmOpen(false)
+        showErrorToast(
+          new Error('It may still have been sent. Check the list for a new delivery before trying again.'),
+          'Could not confirm the redelivery'
+        )
+        onRedeliveryUncertain?.()
+      } else {
+        showErrorToast(err, 'Could not redeliver')
+      }
     } finally {
       setIsRedelivering(false)
     }

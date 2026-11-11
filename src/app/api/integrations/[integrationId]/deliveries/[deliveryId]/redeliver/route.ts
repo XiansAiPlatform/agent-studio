@@ -8,10 +8,11 @@ import { createXiansClient } from '@/lib/xians/client'
 type DeliveryParams = { integrationId: string; deliveryId: string }
 
 /**
- * The server waits for the agent up to the webhook's own timeout (at most 300 s) plus a margin,
- * so this call must outlast that rather than use the 5 s default.
+ * The server waits for the webhook up to its own timeout plus a margin, at most 290 s, so this
+ * call must outlast that rather than use the 5 s default. It stays under 300 s, where Node's fetch
+ * gives up on a response that has sent no headers.
  */
-const REDELIVER_TIMEOUT_MS = 330_000
+const REDELIVER_TIMEOUT_MS = 295_000
 
 /**
  * POST /api/integrations/{integrationId}/deliveries/{deliveryId}/redeliver
@@ -40,6 +41,8 @@ export const POST = withParticipantAdmin(
 
     const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantContext.tenant.id)}/webhooks/${integrationId}/incomings/${deliveryId}/redeliver`
     try {
+      // The browser's abort is not passed on on purpose: once sent, the call may already be running
+      // the agent, and cutting it off would only lose its result and audit entry.
       const result = await createXiansClient().post<unknown>(path, undefined, { timeoutMs: REDELIVER_TIMEOUT_MS })
       return NextResponse.json(result)
     } catch (error) {

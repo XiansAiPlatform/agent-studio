@@ -167,6 +167,7 @@ function WebhookDeliveriesContent() {
                           deliveryId={item.id}
                           canRedeliver={canRedeliver}
                           onRedelivered={result => result.deliveryId && showRedelivery(result.deliveryId)}
+                          onRedeliveryUncertain={reload}
                         />
                       </div>
                     )}

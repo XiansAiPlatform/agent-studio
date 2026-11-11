@@ -60,7 +60,7 @@ describe('POST /api/integrations/[integrationId]/deliveries/[deliveryId]/redeliv
 
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual(result)
-    expect(post).toHaveBeenCalledWith(BACKEND, undefined, { timeoutMs: 330_000 })
+    expect(post).toHaveBeenCalledWith(BACKEND, undefined, { timeoutMs: 295_000 })
     expect(requireCapability).toHaveBeenCalledWith(
       contextRef.current.session,
       'tenant-1',
@@ -85,6 +85,14 @@ describe('POST /api/integrations/[integrationId]/deliveries/[deliveryId]/redeliv
 
     expect(response.status).toBe(409)
     expect(JSON.stringify(await response.json())).toContain('cannot be redelivered')
+  })
+
+  it('passes a backend 408 through, so the page can tell the call may still have been sent', async () => {
+    post.mockRejectedValue(new XiansApiError('The webhook did not answer in time', 408))
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(408)
   })
 
   it('rejects an unsafe delivery id', async () => {

@@ -121,4 +121,12 @@ describe('formatDuration', () => {
     expect(formatDuration(65_000)).toBe('1 min 5 s')
     expect(formatDuration(-5)).toBe('0 ms')
   })
+
+  it('rounds before choosing the unit', () => {
+    expect(formatDuration(9_960)).toBe('10 s')
+    expect(formatDuration(59_600)).toBe('1 min')
+    expect(formatDuration(119_600)).toBe('2 min')
+    expect(formatDuration(999)).toBe('999 ms')
+    expect(formatDuration(1_000)).toBe('1.0 s')
+  })
 })
