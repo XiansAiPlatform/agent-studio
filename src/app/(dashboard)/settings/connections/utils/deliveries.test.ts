@@ -3,12 +3,10 @@ import {
   MAX_PRETTY_PRINT_CHARS,
   deliveriesPageHref,
   deliveryLogsHref,
-  deliveryLogsSince,
   formatBytes,
   formatHeaders,
   formatPayload,
   payloadBytes,
-  workflowLogsHref,
 } from './deliveries'
 
 describe('formatPayload', () => {
@@ -88,22 +86,9 @@ describe('links', () => {
     expect(deliveriesPageHref('hook-1', 'abc')).toBe('/settings/connections/hook-1/deliveries?delivery=abc')
   })
 
-  it('opens the workflow in Activity Logs with its child workflows', () => {
-    expect(workflowLogsHref('t:Agent One:Integrator Workflow:Raven')).toBe(
-      '/settings/logs?workflowId=t%3AAgent+One%3AIntegrator+Workflow%3ARaven&children=1'
+  it("opens the delivery's receiving workflow in Activity Logs, without child workflows", () => {
+    expect(deliveryLogsHref('t:Agent One:Integrator Workflow:Raven:req-1')).toBe(
+      '/settings/logs?workflowId=t%3AAgent+One%3AIntegrator+Workflow%3ARaven%3Areq-1'
     )
-  })
-})
-
-describe('deliveryLogsHref', () => {
-  it('opens Activity Logs for the request, from a minute before the delivery arrived', () => {
-    expect(deliveryLogsHref('97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973', '2026-11-04T10:09:41Z')).toBe(
-      '/settings/logs?requestId=97ebedb8-5d1b-4d62-ac48-f1eb4b2a0973&startDate=2026-11-04T10%3A08%3A41.000Z'
-    )
-  })
-
-  it('leaves out the start date when the received time cannot be read', () => {
-    expect(deliveryLogsHref('req-1', 'not a date')).toBe('/settings/logs?requestId=req-1')
-    expect(deliveryLogsSince('not a date')).toBeNull()
   })
 })

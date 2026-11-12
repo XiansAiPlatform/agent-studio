@@ -10,7 +10,6 @@ import type {
   WebhookDeliveryPage,
   WebhookDeliverySummary,
 } from '../types'
-import { deliveryLogsSince } from '../utils/deliveries'
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
   try {
@@ -67,25 +66,6 @@ export async function fetchWebhookDelivery(
 interface UseWebhookDeliveriesOptions {
   /** Rows per request. The server accepts 1–200. */
   pageSize?: number
-}
-
-/**
- * Whether any logs are tagged with this delivery's request ID. Only agents on an Xians.Lib that tags
- * logs write them, so deliveries handled by other agents, or recorded before, have none.
- * Any failure, an aborted request included, counts as false.
- */
-export async function deliveryHasLogs(requestId: string, receivedAt: string, signal?: AbortSignal): Promise<boolean> {
-  const query = new URLSearchParams({ requestId, pageSize: '1', page: '1' })
-  const since = deliveryLogsSince(receivedAt)
-  if (since) query.set('startDate', since)
-  try {
-    const response = await fetch(`/api/logs?${query}`, { signal })
-    if (!response.ok) return false
-    const data = (await response.json()) as { totalCount?: number }
-    return (data.totalCount ?? 0) > 0
-  } catch {
-    return false
-  }
 }
 
 export function useWebhookDeliveries(

@@ -6,8 +6,6 @@ import { LogStream } from '../types';
 interface StreamDetailsTitleProps {
   selectedStreamMeta: LogStream | null;
   selectedWorkflowId: string | null;
-  /** Set for a webhook delivery's logs: every workflow it reached, found by its request ID. */
-  selectedRequestId?: string | null;
   onBack: () => void;
 }
 
@@ -20,11 +18,8 @@ interface StreamDetailsTitleProps {
 export function StreamDetailsTitle({
   selectedStreamMeta,
   selectedWorkflowId,
-  selectedRequestId = null,
   onBack,
 }: StreamDetailsTitleProps) {
-  // The value shown and copied under the title: the workflow, or else the delivery's request ID.
-  const copyValue = selectedWorkflowId ?? selectedRequestId;
   const [copied, setCopied] = useState(false);
   const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -34,10 +29,10 @@ export function StreamDetailsTitle({
     };
   }, []);
 
-  const handleCopyValue = async () => {
-    if (!copyValue) return;
+  const handleCopyWorkflowId = async () => {
+    if (!selectedWorkflowId) return;
     try {
-      await navigator.clipboard.writeText(copyValue);
+      await navigator.clipboard.writeText(selectedWorkflowId);
       setCopied(true);
       if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
       copiedResetRef.current = setTimeout(() => setCopied(false), 2000);
@@ -60,7 +55,7 @@ export function StreamDetailsTitle({
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight truncate">
-          {selectedStreamMeta?.agent ?? (selectedRequestId && !selectedWorkflowId ? 'Webhook delivery' : 'Workflow stream')}
+          {selectedStreamMeta?.agent ?? 'Workflow stream'}
           {selectedStreamMeta?.activation && (
             <span className="text-muted-foreground font-normal text-base sm:text-lg">
               {' '}
@@ -79,27 +74,19 @@ export function StreamDetailsTitle({
         </div>
       )}
 
-      {selectedRequestId && !selectedWorkflowId && (
-        <p className="mt-1 pl-9 text-xs sm:text-sm text-muted-foreground">
-          Every log written while handling this delivery: the integration step and the runs it started.
-        </p>
-      )}
-
-      {copyValue && (
+      {selectedWorkflowId && (
         <button
           type="button"
-          onClick={handleCopyValue}
+          onClick={handleCopyWorkflowId}
           className="mt-1 pl-9 flex w-full min-w-0 items-start gap-1.5 text-left font-mono text-[11px] sm:text-xs text-muted-foreground/80 hover:text-foreground transition-colors"
-          title={copied ? 'Copied!' : `Click to copy: ${copyValue}`}
+          title={copied ? 'Copied!' : `Click to copy: ${selectedWorkflowId}`}
         >
           {copied ? (
             <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
           ) : (
             <Copy className="mt-0.5 h-3 w-3 shrink-0" />
           )}
-          <span className="break-all leading-relaxed">
-            {selectedWorkflowId ? selectedWorkflowId : `Request ${selectedRequestId}`}
-          </span>
+          <span className="break-all leading-relaxed">{selectedWorkflowId}</span>
         </button>
       )}
     </div>

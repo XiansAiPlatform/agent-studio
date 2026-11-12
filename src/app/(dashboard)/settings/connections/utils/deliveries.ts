@@ -10,30 +10,12 @@ export function deliveriesPageHref(integrationId: string, deliveryId?: string): 
   return deliveryId ? `${path}?${new URLSearchParams({ delivery: deliveryId })}` : path
 }
 
-/** Activity Logs for a workflow, including the workflows it started. */
-export function workflowLogsHref(workflowId: string): string {
-  return `/settings/logs?${new URLSearchParams({ workflowId, children: '1' })}`
-}
-
-/** How long before a delivery arrived its logs are looked for, to allow for clock differences. */
-export const DELIVERY_LOGS_LEAD_MS = 60_000
-
-/** The earliest a delivery's logs can be: shortly before it arrived. Null for an unreadable time. */
-export function deliveryLogsSince(receivedAt: string): string | null {
-  const time = Date.parse(receivedAt)
-  return Number.isNaN(time) ? null : new Date(time - DELIVERY_LOGS_LEAD_MS).toISOString()
-}
-
 /**
- * Activity Logs for one delivery: every log written while handling its request, in the receiving
- * workflow and in every run it started. Starts shortly before the delivery arrived, so the search
- * covers a small window instead of all of the tenant's logs.
+ * Activity Logs for one delivery, opened at the workflow that received it. Each delivery has its own
+ * receiving workflow, and the logs API adds the run it started (see withDeliveryRun).
  */
-export function deliveryLogsHref(requestId: string, receivedAt: string): string {
-  const query = new URLSearchParams({ requestId })
-  const since = deliveryLogsSince(receivedAt)
-  if (since) query.set('startDate', since)
-  return `/settings/logs?${query}`
+export function deliveryLogsHref(workflowId: string): string {
+  return `/settings/logs?${new URLSearchParams({ workflowId })}`
 }
 
 /**

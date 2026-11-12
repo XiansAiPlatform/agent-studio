@@ -32,8 +32,6 @@ export function useLogsUrlState() {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [search, setSearch] = useState<string | null>(null);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
-  // `requestId=` (from a webhook delivery's Logs button): every log of one delivery, across workflows.
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   // "Include child workflows" filter (`children=1`): widens the workflow type filter and the
   // drilled-in stream to the child workflows they started. Also set by schedule run links.
   const [includeChildWorkflows, setIncludeChildWorkflows] = useState(false);
@@ -41,7 +39,7 @@ export function useLogsUrlState() {
   const [currentPage, setCurrentPage] = useState(1);
   const [urlParamsInitialized, setUrlParamsInitialized] = useState(false);
 
-  const isStreamView = !selectedWorkflowId && !selectedRequestId;
+  const isStreamView = !selectedWorkflowId;
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -53,7 +51,6 @@ export function useLogsUrlState() {
     const searchParam = searchParams.get('search');
     const pageParam = searchParams.get('page');
     const workflowIdParam = searchParams.get('workflowId');
-    const requestIdParam = searchParams.get('requestId');
     const workflowTypeParam = searchParams.get('workflowType');
     const childrenParam = searchParams.get('children');
 
@@ -75,7 +72,6 @@ export function useLogsUrlState() {
     setEndDate(endDateParam || null);
     setSearch(searchParam || null);
     setSelectedWorkflowId(workflowIdParam || null);
-    setSelectedRequestId(requestIdParam || null);
     setIncludeChildWorkflows(childrenParam === '1');
 
     // If the user lands directly on a workflow URL (no in-memory metadata), clear stale meta.
@@ -116,7 +112,6 @@ export function useLogsUrlState() {
       agentName: selectedActivation?.agentName,
       activationName: selectedActivation?.activationName,
       workflowId: selectedWorkflowId || undefined,
-      requestId: selectedRequestId || undefined,
       workflowType: selectedWorkflowType || undefined,
       logLevel: selectedLogLevels.length > 0 ? selectedLogLevels : undefined,
       startDate: startDate || undefined,
@@ -126,7 +121,7 @@ export function useLogsUrlState() {
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
-    [selectedActivation, selectedWorkflowId, selectedRequestId, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, includeChildWorkflows, currentPage]
+    [selectedActivation, selectedWorkflowId, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, includeChildWorkflows, currentPage]
   );
 
   const updateURL = useCallback(
@@ -139,7 +134,6 @@ export function useLogsUrlState() {
       search?: string | null;
       page?: number;
       workflowId?: string | null;
-      requestId?: string | null;
       includeChildWorkflows?: boolean;
     }) => {
       const newActivation = next.activation !== undefined ? next.activation : selectedActivation;
@@ -165,14 +159,11 @@ export function useLogsUrlState() {
       const scopeChanged = activationChanged || newWorkflowType !== selectedWorkflowType;
       const newWorkflowId =
         next.workflowId !== undefined ? next.workflowId : scopeChanged ? null : selectedWorkflowId;
-      const newRequestId =
-        next.requestId !== undefined ? next.requestId : scopeChanged ? null : selectedRequestId;
       const newIncludeChildWorkflows =
         next.includeChildWorkflows !== undefined ? next.includeChildWorkflows : includeChildWorkflows;
 
       const params = new URLSearchParams();
       if (newWorkflowId) params.set('workflowId', newWorkflowId);
-      if (newRequestId) params.set('requestId', newRequestId);
       if (newIncludeChildWorkflows) params.set('children', '1');
       if (newActivation) {
         params.set('agent', newActivation.agentName);
@@ -196,11 +187,10 @@ export function useLogsUrlState() {
       setSearch(newSearch);
       setCurrentPage(newPage);
       setSelectedWorkflowId(newWorkflowId);
-      setSelectedRequestId(newRequestId);
       setIncludeChildWorkflows(newIncludeChildWorkflows);
       if (!newWorkflowId) setSelectedStreamMeta(null);
     },
-    [router, selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage, selectedWorkflowId, selectedRequestId, includeChildWorkflows]
+    [router, selectedActivation, selectedWorkflowType, selectedLogLevels, startDate, endDate, search, currentPage, selectedWorkflowId, includeChildWorkflows]
   );
 
   const handlePageChange = useCallback(
@@ -218,7 +208,7 @@ export function useLogsUrlState() {
 
   const handleBackToStreams = useCallback(() => {
     setSelectedStreamMeta(null);
-    updateURL({ workflowId: null, requestId: null, page: 1 });
+    updateURL({ workflowId: null, page: 1 });
   }, [updateURL]);
 
   const clearFilter = useCallback(
@@ -297,7 +287,6 @@ export function useLogsUrlState() {
     search,
     includeChildWorkflows,
     selectedWorkflowId,
-    selectedRequestId,
     selectedStreamMeta,
     streamFilters,
     logFilters,
