@@ -34,7 +34,7 @@ export function StreamDetailsTitle({
     };
   }, []);
 
-  const handleCopyWorkflowId = async () => {
+  const handleCopyValue = async () => {
     if (!copyValue) return;
     try {
       await navigator.clipboard.writeText(copyValue);
@@ -88,7 +88,7 @@ export function StreamDetailsTitle({
       {copyValue && (
         <button
           type="button"
-          onClick={handleCopyWorkflowId}
+          onClick={handleCopyValue}
           className="mt-1 pl-9 flex w-full min-w-0 items-start gap-1.5 text-left font-mono text-[11px] sm:text-xs text-muted-foreground/80 hover:text-foreground transition-colors"
           title={copied ? 'Copied!' : `Click to copy: ${copyValue}`}
         >

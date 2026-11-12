@@ -272,4 +272,19 @@ describe('deliveryHasLogs', () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
     await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(false)
   })
+
+  it('passes the signal on and resolves false, not a rejection, when the check is aborted', async () => {
+    const controller = new AbortController()
+    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) =>
+        init.signal!.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      )
+    )
+
+    const check = deliveryHasLogs('req-1', '2026-11-04T10:09:41Z', controller.signal)
+    controller.abort()
+
+    await expect(check).resolves.toBe(false)
+    expect(fetchMock.mock.calls[0][1]).toEqual({ signal: controller.signal })
+  })
 })
