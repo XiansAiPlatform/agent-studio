@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
+import { withDeliveryRun } from '@/lib/xians/delivery-workflows'
 
 /**
  * GET /api/logs
@@ -27,7 +28,11 @@ export const GET = withParticipantAdmin(
 
       if (agentName) params.set('agentName', agentName)
       if (activationName) params.set('activationName', activationName)
-      if (workflowId) params.set('workflowId', workflowId)
+      if (workflowId) {
+        // A webhook delivery's own receiving workflow brings in the run it started, so its whole flow shows.
+        const workflowIds = withDeliveryRun(workflowId)
+        params.set(workflowIds.length > 1 ? 'workflowIds' : 'workflowId', workflowIds.join(','))
+      }
       if (workflowType) params.set('workflowType', workflowType)
       if (includeChildWorkflows) params.set('includeChildWorkflows', 'true')
       if (logLevel) params.set('logLevel', logLevel)

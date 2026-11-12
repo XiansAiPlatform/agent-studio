@@ -8,11 +8,11 @@ import { showErrorToast, showSuccessToast } from '@/lib/utils/error-handler'
 import { fetchWebhookDelivery } from '../hooks/use-webhook-deliveries'
 import {
   PAYLOAD_PREVIEW_CHARS,
+  deliveryLogsHref,
   formatBytes,
   formatHeaders,
   formatPayload,
   payloadBytes,
-  workflowLogsHref,
 } from '../utils/deliveries'
 import type { WebhookDeliveryDetail } from '../types'
 
@@ -167,7 +167,7 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
 
       <div className="flex justify-end pt-2 border-t">
         <Button variant="outline" size="sm" asChild>
-          <Link href={workflowLogsHref(delivery.workflowId)} title={delivery.workflowId}>
+          <Link href={deliveryLogsHref(delivery.workflowId)} title={delivery.workflowId}>
             <ScrollText className="h-3.5 w-3.5" />
             Logs
           </Link>

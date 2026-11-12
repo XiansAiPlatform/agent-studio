@@ -10,9 +10,12 @@ export function deliveriesPageHref(integrationId: string, deliveryId?: string): 
   return deliveryId ? `${path}?${new URLSearchParams({ delivery: deliveryId })}` : path
 }
 
-/** Activity Logs for the workflow a delivery was sent to, including the workflows it started. */
-export function workflowLogsHref(workflowId: string): string {
-  return `/settings/logs?${new URLSearchParams({ workflowId, children: '1' })}`
+/**
+ * Activity Logs for one delivery, opened at the workflow that received it. Each delivery has its own
+ * receiving workflow, and the logs API adds the run it started (see withDeliveryRun).
+ */
+export function deliveryLogsHref(workflowId: string): string {
+  return `/settings/logs?${new URLSearchParams({ workflowId })}`
 }
 
 /**

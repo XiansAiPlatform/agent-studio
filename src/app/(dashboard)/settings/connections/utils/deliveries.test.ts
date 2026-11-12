@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   MAX_PRETTY_PRINT_CHARS,
   deliveriesPageHref,
+  deliveryLogsHref,
   formatBytes,
   formatHeaders,
   formatPayload,
   payloadBytes,
-  workflowLogsHref,
 } from './deliveries'
 
 describe('formatPayload', () => {
@@ -86,9 +86,9 @@ describe('links', () => {
     expect(deliveriesPageHref('hook-1', 'abc')).toBe('/settings/connections/hook-1/deliveries?delivery=abc')
   })
 
-  it('opens the workflow in Activity Logs with its child workflows', () => {
-    expect(workflowLogsHref('t:Agent One:Integrator Workflow:Raven')).toBe(
-      '/settings/logs?workflowId=t%3AAgent+One%3AIntegrator+Workflow%3ARaven&children=1'
+  it("opens the delivery's receiving workflow in Activity Logs, without child workflows", () => {
+    expect(deliveryLogsHref('t:Agent One:Integrator Workflow:Raven:req-1')).toBe(
+      '/settings/logs?workflowId=t%3AAgent+One%3AIntegrator+Workflow%3ARaven%3Areq-1'
     )
   })
 })

@@ -29,7 +29,7 @@ function detail(overrides: Partial<WebhookDeliveryDetail> = {}): WebhookDelivery
       { name: 'Cookie', value: '********', masked: true },
     ],
     body: '{"action":"opened"}',
-    workflowId: 'tenant:agent:Integrator Workflow:activation',
+    workflowId: 'tenant:agent:Integrator Workflow:activation:request-1',
     ...overrides,
   }
 }
@@ -49,7 +49,7 @@ describe('DeliveryDetail', () => {
 
   afterEach(cleanup)
 
-  it('shows the headers and payload as JSON with the hidden count and a link to the workflow', async () => {
+  it('shows the headers and payload as JSON with the hidden count and a link to its workflow', async () => {
     fetchWebhookDelivery.mockResolvedValue(detail())
 
     renderDetail()
@@ -60,7 +60,7 @@ describe('DeliveryDetail', () => {
     expect(JSON.parse(blocks[0].textContent!)).toEqual({ 'X-GitHub-Event': 'pull_request', Cookie: '********' })
     expect(blocks[1].textContent).toBe('{\n  "action": "opened"\n}')
     expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
-      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation&children=1'
+      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation%3Arequest-1'
     )
     expect(fetchWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1', expect.any(AbortSignal))
   })
