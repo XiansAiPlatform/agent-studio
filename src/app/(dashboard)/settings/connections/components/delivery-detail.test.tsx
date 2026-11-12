@@ -185,6 +185,41 @@ describe('DeliveryDetail', () => {
       expect(screen.queryByText('Redeliver this webhook?')).toBeNull()
     })
 
+    it('is disabled for a delivery whose headers were stored truncated', async () => {
+      fetchWebhookDelivery.mockResolvedValue(detail({ headersTruncated: true }))
+
+      renderWith(true)
+
+      const button = await screen.findByRole('button', { name: /Redeliver/ })
+      expect(button).toHaveProperty('disabled', true)
+      fireEvent.click(button)
+      expect(screen.queryByText('Redeliver this webhook?')).toBeNull()
+    })
+
+    it('stops waiting when closed mid-redelivery, without updating or toasting', async () => {
+      fetchWebhookDelivery.mockResolvedValue(detail())
+      let signal: AbortSignal | undefined
+      redeliverWebhookDelivery.mockImplementation(
+        (_i: string, _d: string, s: AbortSignal) =>
+          new Promise((_resolve, reject) => {
+            signal = s
+            s.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+          })
+      )
+
+      const { unmount } = renderWith(true)
+      fireEvent.click(await screen.findByRole('button', { name: /Redeliver/ }))
+      fireEvent.click(await screen.findByRole('button', { name: /Redeliver now/ }))
+      await waitFor(() => expect(signal).toBeDefined())
+
+      unmount()
+      await Promise.resolve()
+
+      expect(signal?.aborted).toBe(true)
+      expect(showErrorToast).not.toHaveBeenCalled()
+      expect(onRedeliveryUncertain).not.toHaveBeenCalled()
+    })
+
     it('asks for confirmation, then redelivers and reports the answer', async () => {
       fetchWebhookDelivery.mockResolvedValue(detail())
       const result = { deliveryId: 'delivery-2', redeliveryOf: 'delivery-1', statusCode: 200, durationMs: 2400 }
@@ -201,7 +236,7 @@ describe('DeliveryDetail', () => {
       fireEvent.click(screen.getByRole('button', { name: /Redeliver now/ }))
 
       await waitFor(() => expect(onRedelivered).toHaveBeenCalledWith(result))
-      expect(redeliverWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1')
+      expect(redeliverWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1', expect.any(AbortSignal))
       expect(showSuccessToast).toHaveBeenCalledWith('Redelivered · answered 200 in 2.4 s')
       await waitFor(() => expect(screen.queryByText('Redeliver this webhook?')).toBeNull())
     })

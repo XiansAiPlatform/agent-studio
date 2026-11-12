@@ -95,6 +95,54 @@ describe('POST /api/integrations/[integrationId]/deliveries/[deliveryId]/redeliv
     expect(response.status).toBe(408)
   })
 
+  it('rejects an unsafe integration id', async () => {
+    contextRef.current.params = { integrationId: '../../secrets', deliveryId: DELIVERY_ID }
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(400)
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('lets one user run only three redeliveries at once, and frees a slot when one ends', async () => {
+    const pending: Array<(value: unknown) => void> = []
+    post.mockImplementation(() => new Promise(resolve => pending.push(resolve)))
+
+    const running = [POST(request()), POST(request()), POST(request())]
+    await vi.waitFor(() => expect(post).toHaveBeenCalledTimes(3))
+
+    const refused = await POST(request())
+    expect(refused.status).toBe(429)
+    expect(post).toHaveBeenCalledTimes(3)
+
+    pending[0]({ deliveryId: 'new-id', statusCode: 200, durationMs: 1 })
+    expect((await running[0]).status).toBe(200)
+
+    const next = POST(request())
+    await vi.waitFor(() => expect(post).toHaveBeenCalledTimes(4))
+
+    pending.slice(1).forEach(resolve => resolve({ deliveryId: 'new-id', statusCode: 200, durationMs: 1 }))
+    await Promise.all([...running.slice(1), next])
+  })
+
+  it('counts redeliveries per user', async () => {
+    const pending: Array<(value: unknown) => void> = []
+    post.mockImplementation(() => new Promise(resolve => pending.push(resolve)))
+    const original = contextRef.current.session
+
+    const mine = [POST(request()), POST(request()), POST(request())]
+    await vi.waitFor(() => expect(post).toHaveBeenCalledTimes(3))
+
+    contextRef.current.session = { user: { email: 'other@example.com' } }
+    const theirs = POST(request())
+    await vi.waitFor(() => expect(post).toHaveBeenCalledTimes(4))
+    contextRef.current.session = original
+
+    pending.forEach(resolve => resolve({ deliveryId: 'new-id', statusCode: 200, durationMs: 1 }))
+    expect((await theirs).status).toBe(200)
+    await Promise.all(mine)
+  })
+
   it('rejects an unsafe delivery id', async () => {
     contextRef.current.params = { integrationId: 'integration-1', deliveryId: '../../secrets' }
 
