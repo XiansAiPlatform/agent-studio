@@ -56,6 +56,22 @@ describe('GET /api/logs', () => {
     expect(get).not.toHaveBeenCalled()
   })
 
+  it.each([['x'], ['x'.repeat(128)], ['A-z_0-9']])('accepts a request ID of 1 to 128 allowed characters (%s)', async requestId => {
+    const response = await GET(request(`requestId=${requestId}`))
+
+    expect(response.status).toBe(200)
+    const query = new URLSearchParams((get.mock.calls[0][0] as string).split('?')[1])
+    expect(query.getAll('property')).toEqual([`requestId:${requestId}`])
+  })
+
+  it.each([[''], ['   ']])('treats a blank request ID as none (%j)', async requestId => {
+    const response = await GET(request(`requestId=${encodeURIComponent(requestId)}`))
+
+    expect(response.status).toBe(200)
+    const query = new URLSearchParams((get.mock.calls[0][0] as string).split('?')[1])
+    expect(query.has('property')).toBe(false)
+  })
+
   it('sends no property filter without a request ID', async () => {
     await GET(request('workflowId=w-1'))
 

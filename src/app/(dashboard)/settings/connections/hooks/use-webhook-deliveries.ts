@@ -71,8 +71,8 @@ interface UseWebhookDeliveriesOptions {
 
 /**
  * Whether any logs are tagged with this delivery's request ID. Only agents on an Xians.Lib that tags
- * logs write them; for others, and for deliveries recorded before, callers link elsewhere.
- * Any failure counts as false.
+ * logs write them, so deliveries handled by other agents, or recorded before, have none.
+ * Any failure, an aborted request included, counts as false.
  */
 export async function deliveryHasLogs(requestId: string, receivedAt: string, signal?: AbortSignal): Promise<boolean> {
   const query = new URLSearchParams({ requestId, pageSize: '1', page: '1' })

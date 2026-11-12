@@ -53,11 +53,12 @@ export function DeliveryDetail({ integrationId, deliveryId }: DeliveryDetailProp
   // workflow and every run it started. Agents on an older Xians.Lib write no tagged logs. The
   // receiving workflow is shared by every delivery, so it is no fallback: the button is disabled.
   const requestId = delivery?.requestId || null
-  const receivedAt = delivery?.receivedAt ?? ''
+  const receivedAt = delivery?.receivedAt
   const [logsCheck, setLogsCheck] = useState<{ requestId: string; hasLogs: boolean } | null>(null)
 
   useEffect(() => {
-    if (!requestId) return
+    // receivedAt is only missing with no delivery, which also has no request ID.
+    if (!requestId || receivedAt === undefined) return
     const controller = new AbortController()
     deliveryHasLogs(requestId, receivedAt, controller.signal).then(hasLogs => {
       if (!controller.signal.aborted) setLogsCheck({ requestId, hasLogs })
