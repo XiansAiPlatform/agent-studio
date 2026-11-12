@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withParticipantAdmin, ApiContext } from '@/lib/api/with-tenant'
 import { createXiansClient } from '@/lib/xians/client'
-
-/**
- * Request IDs are GUIDs. Anything else is refused rather than passed into the server's
- * `property=key:value1,value2` filter, where a comma would split it into several values.
- */
-const REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
+import { withDeliveryRun } from '@/lib/xians/delivery-workflows'
 
 /**
  * GET /api/logs
@@ -28,20 +23,18 @@ export const GET = withParticipantAdmin(
       const endDate = searchParams.get('endDate')
       const search = searchParams.get('search')?.trim()
       const includeChildWorkflows = searchParams.get('includeChildWorkflows') === 'true'
-      const requestId = searchParams.get('requestId')?.trim()
-      if (requestId && !REQUEST_ID_PATTERN.test(requestId)) {
-        return NextResponse.json({ error: 'requestId is not a valid request ID' }, { status: 400 })
-      }
       const pageSize = searchParams.get('pageSize') || '20'
       const page = searchParams.get('page') || '1'
 
       if (agentName) params.set('agentName', agentName)
       if (activationName) params.set('activationName', activationName)
-      if (workflowId) params.set('workflowId', workflowId)
+      if (workflowId) {
+        // A webhook delivery's own receiving workflow brings in the run it started, so its whole flow shows.
+        const workflowIds = withDeliveryRun(workflowId)
+        params.set(workflowIds.length > 1 ? 'workflowIds' : 'workflowId', workflowIds.join(','))
+      }
       if (workflowType) params.set('workflowType', workflowType)
       if (includeChildWorkflows) params.set('includeChildWorkflows', 'true')
-      // Logs the agent wrote while handling this request, in any workflow or activity it reached.
-      if (requestId) params.append('property', `requestId:${requestId}`)
       if (logLevel) params.set('logLevel', logLevel)
       if (startDate) params.set('startDate', startDate)
       if (endDate) params.set('endDate', endDate)

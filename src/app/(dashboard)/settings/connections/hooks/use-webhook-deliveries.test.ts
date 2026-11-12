@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { deliveriesUrl, deliveryHasLogs, fetchWebhookDelivery, useWebhookDeliveries } from './use-webhook-deliveries'
+import { deliveriesUrl, fetchWebhookDelivery, useWebhookDeliveries } from './use-webhook-deliveries'
 import type { WebhookDeliverySummary } from '../types'
 
 function delivery(n: number): WebhookDeliverySummary {
@@ -237,54 +237,5 @@ describe('fetchWebhookDelivery', () => {
     fetchMock.mockResolvedValueOnce(new Response('<html>Bad gateway</html>', { status: 502 }))
 
     await expect(fetchWebhookDelivery('hook-1', 'abc')).rejects.toThrow('Failed to load delivery')
-  })
-})
-
-describe('deliveryHasLogs', () => {
-  const fetchMock = vi.fn()
-
-  beforeEach(() => {
-    fetchMock.mockReset()
-    vi.stubGlobal('fetch', fetchMock)
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('asks for one log tagged with the request, from shortly before the delivery arrived', async () => {
-    fetchMock.mockResolvedValue(json({ logs: [{}], totalCount: 3 }))
-
-    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(true)
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/logs?requestId=req-1&pageSize=1&page=1&startDate=2026-11-04T10%3A08%3A41.000Z',
-      { signal: undefined }
-    )
-  })
-
-  it('is false when there are no tagged logs, the request fails or the network errors', async () => {
-    fetchMock.mockResolvedValueOnce(json({ logs: [], totalCount: 0 }))
-    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(false)
-
-    fetchMock.mockResolvedValueOnce(json({ error: 'Forbidden' }, 403))
-    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(false)
-
-    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    await expect(deliveryHasLogs('req-1', '2026-11-04T10:09:41Z')).resolves.toBe(false)
-  })
-
-  it('passes the signal on and resolves false, not a rejection, when the check is aborted', async () => {
-    const controller = new AbortController()
-    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) =>
-      new Promise((_resolve, reject) =>
-        init.signal!.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
-      )
-    )
-
-    const check = deliveryHasLogs('req-1', '2026-11-04T10:09:41Z', controller.signal)
-    controller.abort()
-
-    await expect(check).resolves.toBe(false)
-    expect(fetchMock.mock.calls[0][1]).toEqual({ signal: controller.signal })
   })
 })

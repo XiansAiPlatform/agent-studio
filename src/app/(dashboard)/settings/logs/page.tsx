@@ -33,7 +33,6 @@ function LogsContent() {
     search,
     includeChildWorkflows,
     selectedWorkflowId,
-    selectedRequestId,
     selectedStreamMeta,
     streamFilters,
     logFilters,
@@ -67,7 +66,6 @@ function LogsContent() {
                 <StreamDetailsTitle
                   selectedStreamMeta={selectedStreamMeta}
                   selectedWorkflowId={selectedWorkflowId}
-                  selectedRequestId={selectedRequestId}
                   onBack={handleBackToStreams}
                 />
               )

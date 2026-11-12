@@ -38,45 +38,26 @@ describe('GET /api/logs', () => {
     createXiansClient.mockReturnValue({ get })
   })
 
-  it('turns requestId into a property filter, so one delivery\'s logs come back from every workflow', async () => {
-    const response = await GET(request('requestId=3f9a6c2e-41d8-4b7e-9c55-0a1e7d2b8f64&startDate=2026-11-04T10%3A08%3A41.000Z'))
+  const backendQuery = () => new URL(`http://x${get.mock.calls[0][0] as string}`).searchParams
+
+  const REQUEST_ID = 'd960231d-93fc-41bc-b9ac-5db2c31ed199'
+
+  it('passes any other workflow ID through as workflowId', async () => {
+    await GET(request(new URLSearchParams({ workflowId: 't:a:Integrator Workflow:Raven' }).toString()))
+
+    expect(backendQuery().get('workflowId')).toBe('t:a:Integrator Workflow:Raven')
+    expect(backendQuery().get('workflowIds')).toBeNull()
+  })
+
+  it("adds the run to a delivery's receiving workflow, so the whole delivery shows", async () => {
+    const response = await GET(
+      request(new URLSearchParams({ workflowId: `t:a:Integrator Workflow:Raven:${REQUEST_ID}` }).toString())
+    )
 
     expect(response.status).toBe(200)
-    const path = get.mock.calls[0][0] as string
-    const query = new URLSearchParams(path.split('?')[1])
-    expect(query.getAll('property')).toEqual(['requestId:3f9a6c2e-41d8-4b7e-9c55-0a1e7d2b8f64'])
-    expect(query.get('startDate')).toBe('2026-11-04T10:08:41.000Z')
-    expect(query.has('workflowId')).toBe(false)
-  })
-
-  it.each([['a,b'], ['req id'], ['x'.repeat(129)]])('refuses a request ID that is not one (%s)', async requestId => {
-    const response = await GET(request(`requestId=${encodeURIComponent(requestId)}`))
-
-    expect(response.status).toBe(400)
-    expect(get).not.toHaveBeenCalled()
-  })
-
-  it.each([['x'], ['x'.repeat(128)], ['A-z_0-9']])('accepts a request ID of 1 to 128 allowed characters (%s)', async requestId => {
-    const response = await GET(request(`requestId=${requestId}`))
-
-    expect(response.status).toBe(200)
-    const query = new URLSearchParams((get.mock.calls[0][0] as string).split('?')[1])
-    expect(query.getAll('property')).toEqual([`requestId:${requestId}`])
-  })
-
-  it.each([[''], ['   ']])('treats a blank request ID as none (%j)', async requestId => {
-    const response = await GET(request(`requestId=${encodeURIComponent(requestId)}`))
-
-    expect(response.status).toBe(200)
-    const query = new URLSearchParams((get.mock.calls[0][0] as string).split('?')[1])
-    expect(query.has('property')).toBe(false)
-  })
-
-  it('sends no property filter without a request ID', async () => {
-    await GET(request('workflowId=w-1'))
-
-    const query = new URLSearchParams((get.mock.calls[0][0] as string).split('?')[1])
-    expect(query.has('property')).toBe(false)
-    expect(query.get('workflowId')).toBe('w-1')
+    expect(backendQuery().get('workflowIds')).toBe(
+      `t:a:Integrator Workflow:Raven:${REQUEST_ID},t:a:Processing Workflow:Raven:${REQUEST_ID}`
+    )
+    expect(backendQuery().get('workflowId')).toBeNull()
   })
 })

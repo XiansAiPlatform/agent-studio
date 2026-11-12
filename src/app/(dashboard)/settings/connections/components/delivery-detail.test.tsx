@@ -3,14 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { WebhookDeliveryDetail } from '../types'
 
-const { fetchWebhookDelivery, deliveryHasLogs, showSuccessToast, showErrorToast } = vi.hoisted(() => ({
+const { fetchWebhookDelivery, showSuccessToast, showErrorToast } = vi.hoisted(() => ({
   fetchWebhookDelivery: vi.fn(),
-  deliveryHasLogs: vi.fn(),
   showSuccessToast: vi.fn(),
   showErrorToast: vi.fn(),
 }))
 
-vi.mock('../hooks/use-webhook-deliveries', () => ({ fetchWebhookDelivery, deliveryHasLogs }))
+vi.mock('../hooks/use-webhook-deliveries', () => ({ fetchWebhookDelivery }))
 vi.mock('@/lib/utils/error-handler', () => ({ showSuccessToast, showErrorToast }))
 
 import { DeliveryDetail } from './delivery-detail'
@@ -30,7 +29,7 @@ function detail(overrides: Partial<WebhookDeliveryDetail> = {}): WebhookDelivery
       { name: 'Cookie', value: '********', masked: true },
     ],
     body: '{"action":"opened"}',
-    workflowId: 'tenant:agent:Integrator Workflow:activation',
+    workflowId: 'tenant:agent:Integrator Workflow:activation:request-1',
     ...overrides,
   }
 }
@@ -42,8 +41,6 @@ describe('DeliveryDetail', () => {
 
   beforeEach(() => {
     fetchWebhookDelivery.mockReset()
-    deliveryHasLogs.mockReset()
-    deliveryHasLogs.mockResolvedValue(true)
     showSuccessToast.mockReset()
     showErrorToast.mockReset()
     writeText.mockReset()
@@ -52,7 +49,7 @@ describe('DeliveryDetail', () => {
 
   afterEach(cleanup)
 
-  it('shows the headers and payload as JSON with the hidden count and a link to all the delivery\'s logs', async () => {
+  it('shows the headers and payload as JSON with the hidden count and a link to its workflow', async () => {
     fetchWebhookDelivery.mockResolvedValue(detail())
 
     renderDetail()
@@ -62,44 +59,10 @@ describe('DeliveryDetail', () => {
     const blocks = document.querySelectorAll('pre')
     expect(JSON.parse(blocks[0].textContent!)).toEqual({ 'X-GitHub-Event': 'pull_request', Cookie: '********' })
     expect(blocks[1].textContent).toBe('{\n  "action": "opened"\n}')
-    await waitFor(() =>
-      expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
-        '/settings/logs?requestId=request-1&startDate=2026-11-04T10%3A08%3A41.000Z'
-      )
+    expect(screen.getByText('Logs').closest('a')!.getAttribute('href')).toBe(
+      '/settings/logs?workflowId=tenant%3Aagent%3AIntegrator+Workflow%3Aactivation%3Arequest-1'
     )
-    expect(deliveryHasLogs).toHaveBeenCalledWith('request-1', '2026-11-04T10:09:41Z', expect.any(AbortSignal))
     expect(fetchWebhookDelivery).toHaveBeenCalledWith('hook-1', 'delivery-1', expect.any(AbortSignal))
-  })
-
-  it('shows no logs when the delivery has no request ID', async () => {
-    fetchWebhookDelivery.mockResolvedValue(detail({ requestId: '' }))
-
-    renderDetail()
-
-    const button = (await screen.findByText('No logs')).closest('button')!
-    expect(button).toHaveProperty('disabled', true)
-    expect(deliveryHasLogs).not.toHaveBeenCalled()
-  })
-
-  it('shows no logs, rather than the shared receiving workflow, when none are tagged with the request', async () => {
-    deliveryHasLogs.mockResolvedValue(false)
-    fetchWebhookDelivery.mockResolvedValue(detail())
-
-    renderDetail()
-
-    const button = (await screen.findByText('No logs')).closest('button')!
-    expect(button).toHaveProperty('disabled', true)
-    expect(document.querySelector('a[href*="workflowId"]')).toBeNull()
-  })
-
-  it('keeps the Logs button disabled while looking for logs', async () => {
-    deliveryHasLogs.mockReturnValue(new Promise(() => {}))
-    fetchWebhookDelivery.mockResolvedValue(detail())
-
-    renderDetail()
-
-    const button = (await screen.findByText('Logs')).closest('button')!
-    expect(button).toHaveProperty('disabled', true)
   })
 
   it('warns when the payload or headers were truncated', async () => {
