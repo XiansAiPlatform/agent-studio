@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, Copy, Loader2, RotateCcw, ScrollText, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -42,6 +42,9 @@ export function DeliveryDetail({
   const [showFullPayload, setShowFullPayload] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isRedelivering, setIsRedelivering] = useState(false)
+  // Stops waiting for a redelivery when the detail closes. The server still finishes the call.
+  const redeliverAbort = useRef<AbortController | null>(null)
+  useEffect(() => () => redeliverAbort.current?.abort(), [])
   const requestKey = `${integrationId}:${deliveryId}:${attempt}`
   // Each result remembers which request it answers, so a stale one is never shown.
   const [result, setResult] = useState<{
@@ -105,9 +108,12 @@ export function DeliveryDetail({
   const shownPayload = payloadCut ? payload.text.slice(0, PAYLOAD_PREVIEW_CHARS) : payload.text
 
   const redeliver = async () => {
+    const controller = new AbortController()
+    redeliverAbort.current = controller
     setIsRedelivering(true)
     try {
-      const result = await redeliverWebhookDelivery(integrationId, delivery.id)
+      const result = await redeliverWebhookDelivery(integrationId, delivery.id, controller.signal)
+      if (controller.signal.aborted) return
       setConfirmOpen(false)
       const answer = `answered ${result.statusCode} in ${formatDuration(result.durationMs)}`
       if (result.deliveryId) {
@@ -118,6 +124,7 @@ export function DeliveryDetail({
         showErrorToast(new Error(`The webhook ${answer} and did not accept the call.`), 'Redelivery was rejected')
       }
     } catch (err) {
+      if (controller.signal.aborted) return
       if (err instanceof RedeliveryError && err.outcomeUnknown) {
         // The call may have run the agent already; a blind retry would run it again.
         setConfirmOpen(false)
@@ -130,7 +137,7 @@ export function DeliveryDetail({
         showErrorToast(err, 'Could not redeliver')
       }
     } finally {
-      setIsRedelivering(false)
+      if (!controller.signal.aborted) setIsRedelivering(false)
     }
   }
 

@@ -15,6 +15,14 @@ type DeliveryParams = { integrationId: string; deliveryId: string }
 const REDELIVER_TIMEOUT_MS = 295_000
 
 /**
+ * Each redelivery can hold a connection open for up to REDELIVER_TIMEOUT_MS, so one user may only
+ * have a few running at once. The count is per server instance; the backend's 409 already stops
+ * two at once for the same delivery.
+ */
+const MAX_REDELIVERIES_PER_USER = 3
+const inFlight = new Map<string, number>()
+
+/**
  * POST /api/integrations/{integrationId}/deliveries/{deliveryId}/redeliver
  * Sends a recorded call to its webhook again. The agent runs again, so only users with
  * `webhooks:redeliver` (Developers and above) may do it. The Admin API is called with the shared
@@ -39,6 +47,16 @@ export const POST = withParticipantAdmin(
       )
     }
 
+    const userKey = `${tenantId}:${session.user.id ?? session.user.email ?? ''}`
+    const running = inFlight.get(userKey) ?? 0
+    if (running >= MAX_REDELIVERIES_PER_USER) {
+      return NextResponse.json(
+        { error: `You already have ${running} redeliveries running. Wait for one to finish.` },
+        { status: 429 }
+      )
+    }
+    inFlight.set(userKey, running + 1)
+
     const path = `/api/v1/admin/tenants/${encodeURIComponent(tenantContext.tenant.id)}/webhooks/${integrationId}/incomings/${deliveryId}/redeliver`
     try {
       // The browser's abort is not passed on on purpose: once sent, the call may already be running
@@ -49,6 +67,10 @@ export const POST = withParticipantAdmin(
       return handleApiError(error, 'webhook delivery redeliver POST', {
         fallbackMessage: 'Failed to redeliver',
       })
+    } finally {
+      const left = (inFlight.get(userKey) ?? 1) - 1
+      if (left > 0) inFlight.set(userKey, left)
+      else inFlight.delete(userKey)
     }
   }
 )

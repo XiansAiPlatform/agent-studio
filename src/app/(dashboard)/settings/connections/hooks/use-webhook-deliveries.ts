@@ -64,7 +64,6 @@ export async function fetchWebhookDelivery(
   return response.json()
 }
 
-/** Sends a recorded call to its webhook again. Resolves once the webhook has answered. */
 /** A redelivery that failed. `status` is null when no answer came back at all. */
 export class RedeliveryError extends Error {
   constructor(
@@ -84,14 +83,20 @@ export class RedeliveryError extends Error {
   }
 }
 
+/**
+ * Sends a recorded call to its webhook again. Resolves once the webhook has answered.
+ * `signal` only stops this page waiting: the server goes on with a call it has already sent.
+ */
 export async function redeliverWebhookDelivery(
   integrationId: string,
-  deliveryId: string
+  deliveryId: string,
+  signal?: AbortSignal
 ): Promise<WebhookRedeliveryResult> {
   let response: Response
   try {
-    response = await fetch(`${deliveryUrl(integrationId, deliveryId)}/redeliver`, { method: 'POST' })
+    response = await fetch(`${deliveryUrl(integrationId, deliveryId)}/redeliver`, { method: 'POST', signal })
   } catch (err) {
+    if (signal?.aborted) throw err
     throw new RedeliveryError(err instanceof Error ? err.message : 'Failed to redeliver', null)
   }
   if (!response.ok) throw new RedeliveryError(await errorMessage(response, 'Failed to redeliver'), response.status)
