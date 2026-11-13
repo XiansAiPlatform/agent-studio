@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { deliveriesUrl, fetchWebhookDelivery, useWebhookDeliveries } from './use-webhook-deliveries'
+import {
+  RedeliveryError,
+  deliveriesUrl,
+  fetchWebhookDelivery,
+  redeliverWebhookDelivery,
+  useWebhookDeliveries,
+} from './use-webhook-deliveries'
 import type { WebhookDeliverySummary } from '../types'
 
 function delivery(n: number): WebhookDeliverySummary {
@@ -237,5 +243,51 @@ describe('fetchWebhookDelivery', () => {
     fetchMock.mockResolvedValueOnce(new Response('<html>Bad gateway</html>', { status: 502 }))
 
     await expect(fetchWebhookDelivery('hook-1', 'abc')).rejects.toThrow('Failed to load delivery')
+  })
+})
+
+describe('redeliverWebhookDelivery', () => {
+  const fetchMock = vi.fn()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('posts to the redeliver route and returns the result', async () => {
+    const result = { deliveryId: 'new', redeliveryOf: 'abc', statusCode: 200, durationMs: 10 }
+    fetchMock.mockResolvedValue(json(result))
+
+    await expect(redeliverWebhookDelivery('hook 1', 'abc')).resolves.toEqual(result)
+    expect(fetchMock).toHaveBeenCalledWith('/api/integrations/hook%201/deliveries/abc/redeliver', { method: 'POST' })
+  })
+
+  it('throws the server message on failure', async () => {
+    fetchMock.mockResolvedValue(json({ error: 'Redeliver is available to Developers' }, 403))
+
+    await expect(redeliverWebhookDelivery('hook-1', 'abc')).rejects.toThrow('Redeliver is available to Developers')
+  })
+
+  it('marks a refusal as a known outcome and a timeout or server error as unknown', async () => {
+    for (const [status, unknown] of [[403, false], [409, false], [408, true], [500, true], [504, true]] as const) {
+      fetchMock.mockResolvedValueOnce(json({ error: 'x' }, status))
+      const error = await redeliverWebhookDelivery('hook-1', 'abc').catch(e => e)
+      expect(error).toBeInstanceOf(RedeliveryError)
+      expect([error.status, error.outcomeUnknown]).toEqual([status, unknown])
+    }
+  })
+
+  it('marks a failed connection as an unknown outcome', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const error = await redeliverWebhookDelivery('hook-1', 'abc').catch(e => e)
+
+    expect(error).toBeInstanceOf(RedeliveryError)
+    expect(error.status).toBeNull()
+    expect(error.outcomeUnknown).toBe(true)
   })
 })

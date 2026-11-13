@@ -17,3 +17,20 @@ describe('developer:access grants', () => {
     expect(canAccess({})).toBe(false)
   })
 })
+
+describe('webhooks:redeliver grants', () => {
+  const canRedeliver = (ctx: Parameters<typeof getCapabilities>[0]) =>
+    hasCapability(getCapabilities(ctx), 'webhooks:redeliver')
+
+  it('is granted to Developers (TenantUser), TenantAdmin and system admins', () => {
+    expect(canRedeliver({ participantRole: 'TenantUser' })).toBe(true)
+    expect(canRedeliver({ participantRole: 'TenantAdmin' })).toBe(true)
+    expect(canRedeliver({ isSystemAdmin: true })).toBe(true)
+  })
+
+  it('is not granted to Participant Admins, who can only view deliveries', () => {
+    expect(canRedeliver({ participantRole: 'TenantParticipantAdmin' })).toBe(false)
+    expect(canRedeliver({ participantRole: 'TenantParticipant' })).toBe(false)
+    expect(canRedeliver({})).toBe(false)
+  })
+})

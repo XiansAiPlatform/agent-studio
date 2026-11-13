@@ -177,6 +177,10 @@ export interface WebhookDeliverySummary {
   bodyTruncated: boolean
   /** The headers were over 16 KB and the longest values were cut, so it cannot be redelivered. */
   headersTruncated: boolean
+  /** For a redelivery, the id of the delivery first received from the source. */
+  redeliveryOf?: string | null
+  /** For a redelivery, that first delivery's request id, which labels the row. */
+  redeliveryOfRequestId?: string | null
 }
 
 export interface WebhookDeliveryPage {
@@ -197,4 +201,16 @@ export interface WebhookDeliveryDetail extends WebhookDeliverySummary {
   headers: WebhookDeliveryHeader[]
   body: string
   workflowId: string
+  /** For a redelivery, the user who triggered it. */
+  triggeredBy?: string | null
+}
+
+/** What happened when a delivery was sent to its webhook again. */
+export interface WebhookRedeliveryResult {
+  /** The new delivery, or null when the webhook turned the call away before recording it. */
+  deliveryId: string | null
+  redeliveryOf: string
+  /** HTTP status the webhook answered with. */
+  statusCode: number
+  durationMs: number
 }
