@@ -195,7 +195,7 @@ const navigation: NavigationItem[] = [
       { name: 'Contacts', href: '/tenant-settings/contacts' },
       { name: 'Branding', href: '/tenant-settings/branding' },
       { name: 'Audit Log', href: '/tenant-settings/audit-log' },
-      { name: 'Email', href: '/tenant-settings/email-configs' },
+      { name: 'Email Server', href: '/tenant-settings/email-configs' },
       {
         name: 'OIDC Providers',
         href: '/tenant-settings/oidc',

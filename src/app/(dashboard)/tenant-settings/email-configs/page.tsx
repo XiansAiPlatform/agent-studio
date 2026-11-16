@@ -132,7 +132,7 @@ export default function EmailConfigsPage() {
   return (
     <DashboardPage width="narrow">
       <DashboardPageHeader
-        title="Email"
+        title="Email Server"
         description="The email server used to send notifications to this tenant's users and admins."
         icon={<Mail className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />}
       />

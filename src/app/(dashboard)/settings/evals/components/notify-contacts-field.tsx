@@ -126,7 +126,7 @@ export function NotifyContactsField({ selected, onSelectedChange, error }: Notif
           <span>
             Email isn’t set up for this tenant, so no notifications will be sent. Set it up in{' '}
             <Link href="/tenant-settings/email-configs" className="underline">
-              Tenant Settings → Email
+              Tenant Settings → Email Server
             </Link>
             .
           </span>
