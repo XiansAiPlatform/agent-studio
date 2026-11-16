@@ -248,7 +248,7 @@ function EvalRuns({
             Load more
           </Button>
         )}
-        <p className="pt-2 text-center text-xs text-muted-foreground">Run history is kept for 30 days by default.</p>
+        <p className="pt-2 text-center text-xs text-muted-foreground">Run history is kept for 15 days by default.</p>
       </div>
     </>
   )
