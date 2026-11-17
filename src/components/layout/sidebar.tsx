@@ -22,6 +22,7 @@ import {
   Code2,
   CalendarClock,
   Workflow,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -165,6 +166,19 @@ const navigation: NavigationItem[] = [
           icon: Workflow,
         },
       },
+      {
+        name: 'Evals',
+        href: '/settings/evals',
+        capability: 'evals:manage',
+        triggersPanel: true,
+        panelConfig: {
+          title: 'Select an Agent',
+          description: 'Choose an agent activation to manage its evals',
+          basePath: '/settings/evals',
+          useQueryParams: true,
+          icon: FlaskConical,
+        },
+      },
       { name: 'Performance', href: '/settings/performance' },
       { name: 'Activity Logs', href: '/settings/logs' },
       { name: 'Feedback', href: '/settings/feedback' },
@@ -181,7 +195,7 @@ const navigation: NavigationItem[] = [
       { name: 'Contacts', href: '/tenant-settings/contacts' },
       { name: 'Branding', href: '/tenant-settings/branding' },
       { name: 'Audit Log', href: '/tenant-settings/audit-log' },
-      { name: 'Email', href: '/tenant-settings/email-configs' },
+      { name: 'Email Server', href: '/tenant-settings/email-configs' },
       {
         name: 'OIDC Providers',
         href: '/tenant-settings/oidc',
@@ -603,6 +617,10 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps = {}) {
             onActivationSelect={(activationName, agentName) => {
               const url = buildPanelDestinationUrl(activePanelConfig, agentName, activationName);
               router.push(url);
+              setActivePanelMode(null);
+              onNavigate?.();
+            }}
+            onNavigateAway={() => {
               setActivePanelMode(null);
               onNavigate?.();
             }}

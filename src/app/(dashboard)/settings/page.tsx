@@ -14,12 +14,14 @@ import {
   KeyRound,
   CalendarClock,
   Workflow,
+  FlaskConical,
 } from 'lucide-react'
 import { usePermissions } from '@/hooks/use-permissions'
 
 export default function SettingsPage() {
   const { can } = usePermissions()
   const canManageWorkflows = can('tenant:manage-users')
+  const canManageEvals = can('evals:manage')
 
   const settingsSections = useMemo(() => {
     const sections = [
@@ -67,6 +69,18 @@ export default function SettingsPage() {
             },
           ]
         : []),
+      ...(canManageEvals
+        ? [
+            {
+              title: 'Evals',
+              description: 'Automated chat, webhook and schedule checks with pass/fail history',
+              href: '/settings/evals',
+              icon: FlaskConical,
+              color: 'text-primary',
+              bgColor: 'bg-primary/10',
+            },
+          ]
+        : []),
       {
         title: 'Performance',
         description: 'Monitor system performance metrics and analytics',
@@ -93,7 +107,7 @@ export default function SettingsPage() {
       },
     ]
     return sections
-  }, [canManageWorkflows])
+  }, [canManageWorkflows, canManageEvals])
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
