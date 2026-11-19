@@ -16,6 +16,7 @@ import { forbiddenError, unauthorizedError, validationError } from '@/lib/api/er
 import { normalizeTenantUser } from '@/app/(dashboard)/tenant-settings/users/types'
 import { createXiansClient } from '@/lib/xians/client'
 import { createTtlCache } from '@/lib/xians/cache'
+import { redactEmail } from '@/lib/auth/email-verification'
 import {
   getViewAsParticipantIdFromSearchParams,
 } from '@/lib/messaging/view-as-constants'
@@ -329,7 +330,11 @@ export async function recordConversationViewAsAudit(
         timestamp: new Date().toISOString(),
       }
 
-      console.info('[Audit] conversation.view_as', entry)
+      console.info('[Audit] conversation.view_as', {
+        ...entry,
+        performedBy: redactEmail(entry.performedBy),
+        targetParticipantId: redactEmail(entry.targetParticipantId),
+      })
 
       const client = createXiansClient(accessToken)
       await client.post(
@@ -349,9 +354,9 @@ export async function recordConversationViewAsAudit(
   } catch (error) {
     console.error('[Audit] conversation.view_as write failed', {
       tenantId: payload.tenantId,
-      performedBy: payload.adminEmail,
-      targetParticipantId: payload.viewAsParticipantId,
-      error,
+      performedBy: redactEmail(payload.adminEmail),
+      targetParticipantId: redactEmail(payload.viewAsParticipantId),
+      error: error instanceof Error ? error.message : error,
     })
   }
 }

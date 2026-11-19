@@ -124,19 +124,16 @@ export class XiansTenantsApi {
    */
   async getParticipantTenants(email: string): Promise<XiansParticipantTenantsResponse> {
     return participantTenantsCache.get(email, async () => {
-      console.log(`[Xians Tenants] Fetching participant tenants for: ${email}`)
-
       try {
         const response = await this.client.get<XiansParticipantTenantsResponse>(
           `/api/v1/admin/participants/${encodeURIComponent(email)}`
         )
 
-        console.log(`[Xians Tenants] Found ${response.tenants.length} tenants for ${email} (isSystemAdmin: ${response.isSystemAdmin}):`,
-          response.tenants.map(t => `${t.tenantId} (${t.tenantName})`).join(', '))
+        console.log(`[Xians Tenants] Fetched participant tenants: ${response.tenants.length} tenant(s) (isSystemAdmin: ${response.isSystemAdmin})`)
 
         return response
       } catch (error: any) {
-        console.error(`[Xians Tenants] Failed to fetch participant tenants for ${email}:`, {
+        console.error('[Xians Tenants] Failed to fetch participant tenants:', {
           error: error.message,
           status: error.status,
           ...(isServiceApiKeyError(error) ? { hint: SERVICE_API_KEY_ERROR_HINT } : {})
