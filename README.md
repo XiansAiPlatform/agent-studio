@@ -205,3 +205,5 @@ For questions or issues, please refer to the documentation in the `docs/` folder
 **Version:** 0.1.0  
 **Last Updated:** 2026-01-15  
 **Built with:** Next.js 16.1.2
+
+<!-- [TEST] Xianix failure-comment test (the-agent #673). Do not merge. -->
