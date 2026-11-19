@@ -34,7 +34,7 @@ export async function getUserTenants(): Promise<UserTenantsResult> {
         session.user.email ?? undefined
       )
       
-      console.log('[Server] Fetched', userTenants.length, 'tenant(s) for user:', session.user.email)
+      console.log('[Server] Fetched', userTenants.length, 'tenant(s) for current user')
       
       return {
         success: true,
