@@ -22,8 +22,6 @@ export async function GET() {
 
   return runWithSessionOnBehalfOf(session, async () => {
     try {
-      console.log('[User Tenants API] Fetching tenants from Xians for user:', (session as any)?.user?.email)
-      
       const userTenants = await tenantProvider.getUserTenants(
         (session as any)?.user?.id,
         (session as any)?.accessToken,

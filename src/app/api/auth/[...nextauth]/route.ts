@@ -412,7 +412,7 @@ export const authOptions: NextAuthOptions = {
             user.hasTenantAccess = response.tenants.length > 0
             user.isSystemAdmin = response.isSystemAdmin
 
-            console.log(`[Auth] User ${user.email} has access to ${response.tenants.length} tenant(s), isSystemAdmin: ${response.isSystemAdmin}`)
+            console.log(`[Auth] Signed-in user has access to ${response.tenants.length} tenant(s), isSystemAdmin: ${response.isSystemAdmin}`)
           })
         } catch (error) {
           if (isServiceApiKeyError(error)) {

@@ -4,7 +4,9 @@
 # Multi-stage build for Next.js application following best practices
 
 FROM node:22-alpine AS base
-RUN apk add --no-cache 'zlib>=1.3.2-r1'
+# Pull in Alpine security fixes (e.g. zlib, CVE-2026-4738) that are newer than
+# the node base image. Runs whenever the base image digest changes.
+RUN apk upgrade --no-cache
 
 # Install dependencies only when needed
 FROM base AS deps
