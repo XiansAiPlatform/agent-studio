@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { CreateSecretRequest, TenantSecret } from '../types'
+import { CreateSecretRequest, TenantSecret, UpdateSecretRequest } from '../types'
 
 interface SecretsState {
   secrets: TenantSecret[]
@@ -55,6 +55,26 @@ export function useSecrets() {
     []
   )
 
+  const updateSecret = useCallback(
+    async (id: string, data: UpdateSecretRequest): Promise<void> => {
+      setIsMutating(true)
+      try {
+        const res = await fetch(`/api/settings/secrets/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error ?? `Failed to update secret (${res.status})`)
+        }
+      } finally {
+        setIsMutating(false)
+      }
+    },
+    []
+  )
+
   const deleteSecret = useCallback(async (id: string): Promise<void> => {
     setIsMutating(true)
     try {
@@ -75,6 +95,7 @@ export function useSecrets() {
     isMutating,
     fetchSecrets,
     createSecret,
+    updateSecret,
     deleteSecret,
   }
 }
