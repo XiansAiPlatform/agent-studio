@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Copy,
   Check,
+  Pencil,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,11 +28,13 @@ import { useAgentNameMap } from './hooks/use-scope-options'
 import {
   CreateSecretRequest,
   TenantSecret,
+  UpdateSecretRequest,
   getSecretDescription,
   getSecretScopeLabel,
 } from './types'
 import { AddSecretDialog } from './components/add-secret-dialog'
 import { DeleteSecretDialog } from './components/delete-secret-dialog'
+import { EditSecretDialog } from './components/edit-secret-dialog'
 import { SecretScopeBadge } from './components/secret-scope-badge'
 
 function formatDate(value: string | null | undefined): string {
@@ -49,12 +52,13 @@ function formatDate(value: string | null | undefined): string {
 
 export default function SecretsPage() {
   const [showAdd, setShowAdd] = useState(false)
+  const [editTarget, setEditTarget] = useState<TenantSecret | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TenantSecret | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [search, setSearch] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const { secrets, isLoading, error, fetchSecrets, createSecret, deleteSecret } =
+  const { secrets, isLoading, error, fetchSecrets, createSecret, updateSecret, deleteSecret } =
     useSecrets()
   const agentNames = useAgentNameMap(secrets)
 
@@ -84,6 +88,18 @@ export default function SecretsPage() {
       fetchSecrets()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add secret')
+      throw err
+    }
+  }
+
+  const handleEdit = async (data: UpdateSecretRequest) => {
+    if (!editTarget) return
+    try {
+      await updateSecret(editTarget.id, data)
+      toast.success(`Secret "${editTarget.key}" updated`)
+      fetchSecrets()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update secret')
       throw err
     }
   }
@@ -250,6 +266,10 @@ export default function SecretsPage() {
                           <Copy className="mr-2 h-4 w-4" />
                           Copy key
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditTarget(secret)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setDeleteTarget(secret)}
                           className="text-destructive focus:text-destructive"
@@ -384,6 +404,10 @@ export default function SecretsPage() {
                               <Copy className="mr-2 h-4 w-4" />
                               Copy key
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditTarget(secret)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => setDeleteTarget(secret)}
                               className="text-destructive focus:text-destructive"
@@ -405,6 +429,15 @@ export default function SecretsPage() {
 
       {/* Dialogs */}
       <AddSecretDialog open={showAdd} onOpenChange={setShowAdd} onSubmit={handleAdd} />
+
+      <EditSecretDialog
+        secret={editTarget}
+        agentNames={agentNames}
+        onOpenChange={(open) => {
+          if (!open) setEditTarget(null)
+        }}
+        onSubmit={handleEdit}
+      />
 
       <DeleteSecretDialog
         secret={deleteTarget}

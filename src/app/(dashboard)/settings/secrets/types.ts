@@ -24,6 +24,8 @@ export interface TenantSecret {
   additionalData?: string | Record<string, string | number | boolean> | null
   createdAt: string
   createdBy: string
+  updatedAt?: string | null
+  updatedBy?: string | null
 }
 
 export interface CreateSecretRequest {
@@ -36,6 +38,13 @@ export interface CreateSecretRequest {
   agentId?: string
   /** Required when scope is `activation`. */
   activationName?: string
+  description?: string
+}
+
+/** Edit replaces the value and, optionally, the description. Key and scope never change. */
+export interface UpdateSecretRequest {
+  value: string
+  /** Omit to keep the current description; empty string clears it. */
   description?: string
 }
 
@@ -206,4 +215,39 @@ export function buildAdminSecretCreatePayload(
     payload,
     ...(agentId && (scope === 'agent' || scope === 'activation') ? { authAgentId: agentId } : {}),
   }
+}
+
+export type AdminSecretUpdatePayload = {
+  value: string
+  /** Only sent when the description changes; other additionalData keys are kept. */
+  additionalData?: Record<string, string | number | boolean>
+}
+
+/**
+ * Validates a Studio edit-secret body and maps it to the Admin API payload.
+ * Scope fields are never forwarded, so an edit can't move a secret to another scope.
+ */
+export function buildAdminSecretUpdatePayload(
+  body: { value?: unknown; description?: unknown },
+  currentAdditionalData: TenantSecret['additionalData']
+): { ok: true; payload: AdminSecretUpdatePayload } | { ok: false; error: string } {
+  const value = body.value
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return { ok: false, error: 'Value is required' }
+  }
+
+  const payload: AdminSecretUpdatePayload = { value }
+
+  if (body.description !== undefined) {
+    if (typeof body.description !== 'string') {
+      return { ok: false, error: 'Description must be a string' }
+    }
+    const additionalData = { ...(parseAdditionalData(currentAdditionalData) ?? {}) }
+    const description = body.description.trim()
+    if (description) additionalData.description = description
+    else delete additionalData.description
+    payload.additionalData = additionalData
+  }
+
+  return { ok: true, payload }
 }
